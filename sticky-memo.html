@@ -1472,6 +1472,7 @@
     </div>
     <button id="cardsTopBtn" title="명함관리"><svg class="ico"><use href="#i-id-card"/></svg><span id="cardsTopBadge" class="topbar-badge"></span></button>
     <button id="paintTopBtn" title="그림판 (Paint)"><svg class="ico"><use href="#i-bucket"/></svg></button>
+    <button id="imgCvtTopBtn" title="이미지 변환기 (크기·용량·포맷)"><svg class="ico"><use href="#i-resize"/></svg></button>
     <button id="themeBtn" title="테마 변경"><svg class="ico"><use href="#i-palette"/></svg></button>
     <button id="searchToggle" title="검색 (Ctrl+F)"><svg class="ico"><use href="#i-search"/></svg></button>
     <button id="focusBtn" title="집중 모드"><svg class="ico"><use href="#i-target"/></svg></button>
@@ -2265,6 +2266,7 @@
       <button id="paintOpen" class="ptb" title="이미지 열기 (Ctrl+O)"><svg class="ico"><use href="#i-upload"/></svg>열기</button>
       <button id="paintSave" class="ptb" title="PNG로 저장 (Ctrl+S)"><svg class="ico"><use href="#i-download"/></svg>저장</button>
       <button id="paintAI" class="ptb" title="AI로 이미지 생성" style="background:linear-gradient(135deg, #7e57c2, #5e35b1); color:white; border:none;"><svg class="ico" style="stroke:white;"><use href="#i-sparkles"/></svg>AI 생성</button>
+      <button id="paintConvert" class="ptb" title="크기/용량/포맷 변환 후 저장"><svg class="ico"><use href="#i-resize"/></svg>변환</button>
       <button id="paintInsert" class="ptb-primary" title="메모에 삽입 (Ctrl+Enter)"><svg class="ico" style="stroke:white;"><use href="#i-check"/></svg>메모 삽입</button>
       <button id="paintClose" class="ptb" title="닫기 (Esc)" style="padding:6px 8px;"><svg class="ico"><use href="#i-x"/></svg></button>
     </div>
@@ -2505,6 +2507,149 @@
   #pt-layers-panel, #pt-color-panel { display:none; }
   #pt-footer { flex-wrap:wrap; }
 }
+</style>
+
+<!-- ========== 이미지 변환기 모달 (크기/용량/포맷) ========== -->
+<div class="modal-backdrop" id="imgCvtModal">
+  <div class="modal" style="width:min(980px,96vw); max-height:94vh; display:flex; flex-direction:column; padding:0;">
+    <div style="display:flex; align-items:center; gap:8px; padding:12px 16px; border-bottom:1px solid var(--paper-edge); background:linear-gradient(180deg, color-mix(in srgb, var(--accent) 10%, white), white);">
+      <svg class="ico" style="stroke:var(--accent); width:20px; height:20px;"><use href="#i-resize"/></svg>
+      <h3 style="margin:0; font-size:15px; color:var(--accent);">이미지 변환기</h3>
+      <span style="font-size:11px; color:var(--ink-soft);">크기 · 용량 · 포맷 조정</span>
+      <span style="flex:1;"></span>
+      <button id="imgCvtClose" class="ptb" style="padding:5px 8px;"><svg class="ico"><use href="#i-x"/></svg></button>
+    </div>
+
+    <div style="display:grid; grid-template-columns:340px 1fr; gap:0; flex:1; min-height:0;">
+      <!-- 좌측: 미리보기 & 입력 -->
+      <div style="padding:14px; border-right:1px solid var(--paper-edge); overflow-y:auto;">
+        <div id="imgCvtDrop" style="border:2px dashed var(--paper-edge); border-radius:8px; padding:20px; text-align:center; background:color-mix(in srgb, var(--paper-edge) 20%, transparent); min-height:200px; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer;">
+          <div id="imgCvtEmpty">
+            <svg class="ico" style="width:32px; height:32px; color:var(--ink-soft); opacity:0.5; margin-bottom:8px;"><use href="#i-upload"/></svg>
+            <div style="font-size:13px; color:var(--ink); margin-bottom:4px;">이미지를 드래그하거나 클릭</div>
+            <div style="font-size:11px; color:var(--ink-soft);">Ctrl+V로 클립보드 붙여넣기도 가능</div>
+          </div>
+          <img id="imgCvtPreview" style="max-width:100%; max-height:240px; border-radius:6px; display:none; box-shadow:0 2px 8px rgba(0,0,0,0.1);" />
+        </div>
+        <div id="imgCvtSrcInfo" style="margin-top:10px; font-size:11px; color:var(--ink-soft); display:none;">
+          <div style="display:grid; grid-template-columns:auto 1fr; gap:4px 10px;">
+            <span>원본 크기</span><span id="imgCvtSrcSize"></span>
+            <span>원본 용량</span><span id="imgCvtSrcBytes"></span>
+            <span>포맷</span><span id="imgCvtSrcFmt"></span>
+          </div>
+        </div>
+        <input type="file" id="imgCvtFileInput" accept="image/*" style="display:none;">
+        <button id="imgCvtPickBtn" style="width:100%; margin-top:10px; padding:8px; background:transparent; border:1px solid var(--paper-edge); border-radius:6px; cursor:pointer; font-size:12px;">파일 선택</button>
+      </div>
+
+      <!-- 우측: 설정 -->
+      <div style="padding:14px; overflow-y:auto;">
+        <!-- 크기 -->
+        <div class="ic-section">
+          <div class="ic-h">크기 (해상도)</div>
+          <div style="display:flex; gap:6px; align-items:center; margin-bottom:8px;">
+            <label style="font-size:11px; color:var(--ink-soft); width:40px;">너비</label>
+            <input type="number" id="icW" class="ic-input" placeholder="px">
+            <span style="color:#999;">×</span>
+            <label style="font-size:11px; color:var(--ink-soft);">높이</label>
+            <input type="number" id="icH" class="ic-input" placeholder="px">
+            <label style="display:flex; align-items:center; gap:3px; font-size:11px; white-space:nowrap;"><input type="checkbox" id="icLock" checked>비율</label>
+          </div>
+          <div style="display:flex; gap:4px; flex-wrap:wrap; margin-bottom:6px;">
+            <button class="ic-preset" data-w="1920" data-h="1080">FHD 1920×1080</button>
+            <button class="ic-preset" data-w="1280" data-h="720">HD 1280×720</button>
+            <button class="ic-preset" data-w="3840" data-h="2160">4K 3840×2160</button>
+            <button class="ic-preset" data-w="1080" data-h="1080">인스타 1:1</button>
+            <button class="ic-preset" data-w="1080" data-h="1350">인스타 4:5</button>
+            <button class="ic-preset" data-w="1200" data-h="675">트위터/X</button>
+            <button class="ic-preset" data-w="1280" data-h="720">유튜브 썸네일</button>
+            <button class="ic-preset" data-w="720" data-h="720">카카오</button>
+          </div>
+          <div style="display:flex; gap:4px; align-items:center; font-size:11px;">
+            <span style="color:var(--ink-soft);">배율</span>
+            <button class="ic-scale" data-s="0.25">25%</button>
+            <button class="ic-scale" data-s="0.5">50%</button>
+            <button class="ic-scale" data-s="0.75">75%</button>
+            <button class="ic-scale" data-s="1">100%</button>
+            <button class="ic-scale" data-s="1.5">150%</button>
+            <button class="ic-scale" data-s="2">200%</button>
+          </div>
+        </div>
+
+        <!-- 용량 -->
+        <div class="ic-section">
+          <div class="ic-h">목표 용량 (자동 품질 조정)</div>
+          <div style="display:flex; gap:6px; align-items:center; margin-bottom:6px;">
+            <input type="number" id="icBytes" class="ic-input" placeholder="예: 500" style="flex:1;">
+            <select id="icBytesUnit" class="ic-input" style="width:70px;">
+              <option value="KB" selected>KB</option>
+              <option value="MB">MB</option>
+            </select>
+            <button id="icBytesOff" class="ic-btn-mini" style="white-space:nowrap;">끄기</button>
+          </div>
+          <div style="display:flex; gap:4px; flex-wrap:wrap; margin-bottom:6px;">
+            <button class="ic-size-preset" data-kb="50">50KB</button>
+            <button class="ic-size-preset" data-kb="100">100KB</button>
+            <button class="ic-size-preset" data-kb="300">300KB</button>
+            <button class="ic-size-preset" data-kb="500">500KB</button>
+            <button class="ic-size-preset" data-kb="1024">1MB</button>
+            <button class="ic-size-preset" data-kb="2048">2MB</button>
+            <button class="ic-size-preset" data-kb="5120">5MB</button>
+          </div>
+          <div style="font-size:10px; color:var(--ink-soft);">※ JPG/WebP만 용량 자동 조정 · PNG는 무손실이라 적용 불가</div>
+        </div>
+
+        <!-- 포맷 -->
+        <div class="ic-section">
+          <div class="ic-h">출력 포맷</div>
+          <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:4px; margin-bottom:8px;">
+            <button class="ic-fmt" data-f="image/jpeg">JPG</button>
+            <button class="ic-fmt" data-f="image/png">PNG</button>
+            <button class="ic-fmt" data-f="image/webp">WebP</button>
+            <button class="ic-fmt" data-f="image/bmp">BMP</button>
+          </div>
+          <div id="icQualityWrap" style="display:flex; gap:8px; align-items:center; margin-bottom:4px;">
+            <label style="font-size:11px; color:var(--ink-soft); width:40px;">품질</label>
+            <input type="range" id="icQuality" min="10" max="100" value="90" style="flex:1; accent-color:var(--accent);">
+            <span id="icQualityVal" style="font-size:11px; min-width:30px; text-align:right; font-weight:600;">90%</span>
+          </div>
+          <div style="font-size:10px; color:var(--ink-soft);" id="icFmtNote">JPG: 사진·사진 웹 업로드에 적합 · 투명 배경 미지원</div>
+        </div>
+
+        <!-- 결과 미리보기 -->
+        <div class="ic-section" style="background:color-mix(in srgb, var(--accent) 5%, transparent); padding:10px; border-radius:6px;">
+          <div class="ic-h" style="color:var(--accent);">예상 결과</div>
+          <div style="display:grid; grid-template-columns:auto 1fr; gap:4px 10px; font-size:12px;">
+            <span style="color:var(--ink-soft);">변환 크기</span><span id="icOutSize" style="font-weight:600;">—</span>
+            <span style="color:var(--ink-soft);">예상 용량</span><span id="icOutBytes" style="font-weight:600;">—</span>
+            <span style="color:var(--ink-soft);">압축률</span><span id="icOutRatio" style="font-weight:600;">—</span>
+          </div>
+          <button id="icPreviewBtn" style="width:100%; margin-top:8px; padding:7px; background:white; border:1px solid var(--accent); color:var(--accent); border-radius:5px; cursor:pointer; font-size:12px; font-weight:600;">미리보기 갱신</button>
+        </div>
+
+        <!-- 액션 -->
+        <div style="display:flex; gap:6px; margin-top:12px;">
+          <button id="icDownload" class="ptb-primary" style="flex:1;">파일로 다운로드</button>
+          <button id="icInsert" class="ptb">메모 삽입</button>
+          <button id="icCopyDataUrl" class="ptb" title="Data URL 클립보드 복사">데이터URL</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.ic-section { margin-bottom:14px; }
+.ic-h { font-size:11px; font-weight:700; color:var(--ink); margin-bottom:6px; letter-spacing:0.3px; }
+.ic-input { padding:6px 8px; border:1px solid var(--paper-edge); border-radius:4px; font-size:12px; background:white; }
+.ic-input[type=number] { width:80px; }
+.ic-preset, .ic-scale, .ic-size-preset, .ic-fmt, .ic-btn-mini {
+  padding:5px 8px; background:white; border:1px solid var(--paper-edge);
+  border-radius:4px; font-size:10px; cursor:pointer; color:var(--ink);
+  white-space:nowrap; transition:all .12s;
+}
+.ic-preset:hover, .ic-scale:hover, .ic-size-preset:hover, .ic-fmt:hover { background:#f3ebff; border-color:var(--accent); color:var(--accent); }
+.ic-fmt.active { background:var(--accent); color:white; border-color:var(--accent); font-weight:700; }
 </style>
 
 <!-- ========== 명함관리 모달 ========== -->
@@ -10107,6 +10252,17 @@ const Paint = (function() {
       }
     });
     $('paintClose').addEventListener('click', () => { $('paintModal').classList.remove('open'); state.onClose = null; });
+    // Paint → ImageConverter 연계
+    const convertBtn = $('paintConvert');
+    if (convertBtn) convertBtn.addEventListener('click', () => {
+      const url = compositeToDataURL('image/png');
+      if (window.ImageConverter) {
+        // Paint 모달 유지 (뒤에 열림) — 변환기 닫으면 Paint로 돌아옴
+        ImageConverter.open(url, 'paint-export');
+      } else {
+        toast('변환기 모듈 로드 실패');
+      }
+    });
     // 이미지 변환
     $('pt-resize-btn').addEventListener('click', async () => {
       const w = +(await prompt2('새 너비 (px)', state.width) || state.width);
@@ -10428,6 +10584,361 @@ window.openCaptureInPaint = openCaptureInPaint;
 // 상단바 그림판 버튼 (주 진입점) — 바로 보이는 위치
 const paintTopBtn = $('paintTopBtn');
 if (paintTopBtn) paintTopBtn.addEventListener('click', () => Paint.open());
+
+/* ============================================================
+   이미지 변환기 (ImageConverter) — 크기/용량/포맷/품질
+   ============================================================ */
+const ImageConverter = (function() {
+  const state = {
+    src: null,       // 원본 data URL
+    srcImg: null,    // Image 객체
+    srcW: 0, srcH: 0, srcBytes: 0, srcFmt: '',
+    outW: 0, outH: 0,
+    lockAspect: true,
+    format: 'image/jpeg',
+    quality: 0.9,
+    targetBytes: null,
+    lastResult: null,
+    lastSize: 0
+  };
+
+  function dataUrlBytes(url) {
+    if (!url) return 0;
+    const i = url.indexOf(',');
+    const b64 = url.slice(i + 1);
+    return Math.floor(b64.length * 0.75);
+  }
+  function formatBytes(b) {
+    if (b < 1024) return b + ' B';
+    if (b < 1024*1024) return (b/1024).toFixed(1) + ' KB';
+    return (b/1024/1024).toFixed(2) + ' MB';
+  }
+  function extForMime(m) {
+    return { 'image/jpeg':'jpg', 'image/png':'png', 'image/webp':'webp', 'image/bmp':'bmp' }[m] || 'img';
+  }
+
+  function loadFromDataUrl(dataUrl, fileName) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        state.src = dataUrl;
+        state.srcImg = img;
+        state.srcW = img.width;
+        state.srcH = img.height;
+        state.srcBytes = dataUrlBytes(dataUrl);
+        // 포맷 추정
+        const m = dataUrl.match(/^data:(image\/[a-z]+)/);
+        state.srcFmt = m ? m[1].replace('image/','').toUpperCase() : '?';
+        // 기본 출력 크기
+        state.outW = state.srcW;
+        state.outH = state.srcH;
+        updateSrcUI(fileName);
+        renderPreviewEstimate();
+        resolve();
+      };
+      img.onerror = reject;
+      img.src = dataUrl;
+    });
+  }
+
+  function loadFromFile(file) {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => loadFromDataUrl(r.result, file.name).then(resolve, reject);
+      r.onerror = reject;
+      r.readAsDataURL(file);
+    });
+  }
+
+  function updateSrcUI(fileName) {
+    $('imgCvtPreview').src = state.src;
+    $('imgCvtPreview').style.display = '';
+    $('imgCvtEmpty').style.display = 'none';
+    $('imgCvtSrcInfo').style.display = '';
+    $('imgCvtSrcSize').textContent = state.srcW + ' × ' + state.srcH;
+    $('imgCvtSrcBytes').textContent = formatBytes(state.srcBytes) + (fileName ? ' (' + fileName + ')' : '');
+    $('imgCvtSrcFmt').textContent = state.srcFmt;
+    $('icW').value = state.srcW;
+    $('icH').value = state.srcH;
+  }
+
+  // 실제 변환 수행
+  async function convert() {
+    if (!state.srcImg) return null;
+    const w = state.outW || state.srcW;
+    const h = state.outH || state.srcH;
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    // JPEG/BMP는 투명 배경을 흰색으로 채움
+    if (state.format === 'image/jpeg' || state.format === 'image/bmp') {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, w, h);
+    }
+    ctx.drawImage(state.srcImg, 0, 0, w, h);
+
+    // 목표 용량이 있고 포맷이 JPEG/WebP면 이진탐색으로 품질 조정
+    if (state.targetBytes && (state.format === 'image/jpeg' || state.format === 'image/webp')) {
+      let lo = 0.05, hi = 0.99, best = null, bestQ = 0.05;
+      for (let iter = 0; iter < 10; iter++) {
+        const mid = (lo + hi) / 2;
+        const url = canvas.toDataURL(state.format, mid);
+        const sz = dataUrlBytes(url);
+        if (sz <= state.targetBytes) {
+          best = url; bestQ = mid; lo = mid;
+        } else {
+          hi = mid;
+        }
+      }
+      // 품질 최저로도 초과면 점진적 크기 축소 (최대 3회)
+      if (!best) {
+        let tw = w, th = h;
+        for (let attempt = 0; attempt < 5; attempt++) {
+          tw = Math.round(tw * 0.85);
+          th = Math.round(th * 0.85);
+          const c2 = document.createElement('canvas');
+          c2.width = tw; c2.height = th;
+          const ctx2 = c2.getContext('2d');
+          if (state.format === 'image/jpeg') { ctx2.fillStyle = '#fff'; ctx2.fillRect(0,0,tw,th); }
+          ctx2.drawImage(state.srcImg, 0, 0, tw, th);
+          const url = c2.toDataURL(state.format, 0.7);
+          if (dataUrlBytes(url) <= state.targetBytes) {
+            best = url;
+            toast(`목표 용량에 맞춰 크기를 ${tw}×${th}로 축소했습니다`);
+            break;
+          }
+        }
+      }
+      return best || canvas.toDataURL(state.format, 0.05);
+    }
+
+    // 일반 변환 (품질 적용은 JPEG/WebP만)
+    if (state.format === 'image/jpeg' || state.format === 'image/webp') {
+      return canvas.toDataURL(state.format, state.quality);
+    }
+    return canvas.toDataURL(state.format);
+  }
+
+  async function renderPreviewEstimate() {
+    if (!state.srcImg) return;
+    $('icOutSize').textContent = (state.outW||state.srcW) + ' × ' + (state.outH||state.srcH);
+    try {
+      const url = await convert();
+      state.lastResult = url;
+      state.lastSize = dataUrlBytes(url);
+      $('icOutBytes').textContent = formatBytes(state.lastSize);
+      const ratio = state.srcBytes > 0 ? ((1 - state.lastSize / state.srcBytes) * 100) : 0;
+      $('icOutRatio').textContent = (ratio > 0 ? '-' : '+') + Math.abs(ratio).toFixed(1) + '% (' +
+        (state.lastSize < state.srcBytes ? '감소' : '증가') + ')';
+    } catch (e) {
+      $('icOutBytes').textContent = '오류: ' + e.message;
+    }
+  }
+
+  // UI 바인딩
+  function bindUI() {
+    // 드래그&드롭
+    const drop = $('imgCvtDrop');
+    drop.addEventListener('click', () => $('imgCvtFileInput').click());
+    drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.style.borderColor = 'var(--accent)'; });
+    drop.addEventListener('dragleave', () => { drop.style.borderColor = 'var(--paper-edge)'; });
+    drop.addEventListener('drop', async (e) => {
+      e.preventDefault(); drop.style.borderColor = 'var(--paper-edge)';
+      const f = e.dataTransfer.files[0];
+      if (f && f.type.startsWith('image/')) await loadFromFile(f);
+    });
+    $('imgCvtFileInput').addEventListener('change', async (e) => {
+      const f = e.target.files[0]; if (f) await loadFromFile(f);
+      e.target.value = '';
+    });
+    $('imgCvtPickBtn').addEventListener('click', () => $('imgCvtFileInput').click());
+    // 붙여넣기
+    $('imgCvtModal').addEventListener('paste', async (e) => {
+      if (!$('imgCvtModal').classList.contains('open')) return;
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const it of items) {
+        if (it.type.startsWith('image/')) {
+          e.preventDefault();
+          await loadFromFile(it.getAsFile());
+          return;
+        }
+      }
+    });
+
+    // 크기 입력
+    function syncAspect(changed) {
+      if (!state.lockAspect || !state.srcW || !state.srcH) return;
+      const ratio = state.srcW / state.srcH;
+      if (changed === 'w') {
+        const w = +$('icW').value;
+        if (w > 0) $('icH').value = Math.round(w / ratio);
+      } else {
+        const h = +$('icH').value;
+        if (h > 0) $('icW').value = Math.round(h * ratio);
+      }
+    }
+    $('icW').addEventListener('input', () => {
+      syncAspect('w');
+      state.outW = +$('icW').value || state.srcW;
+      state.outH = +$('icH').value || state.srcH;
+    });
+    $('icH').addEventListener('input', () => {
+      syncAspect('h');
+      state.outW = +$('icW').value || state.srcW;
+      state.outH = +$('icH').value || state.srcH;
+    });
+    $('icLock').addEventListener('change', (e) => { state.lockAspect = e.target.checked; });
+
+    // 프리셋
+    document.querySelectorAll('.ic-preset').forEach(b => b.addEventListener('click', () => {
+      $('icW').value = b.dataset.w;
+      $('icH').value = b.dataset.h;
+      state.outW = +b.dataset.w; state.outH = +b.dataset.h;
+      state.lockAspect = false; $('icLock').checked = false;
+      renderPreviewEstimate();
+    }));
+    document.querySelectorAll('.ic-scale').forEach(b => b.addEventListener('click', () => {
+      const s = +b.dataset.s;
+      state.outW = Math.round(state.srcW * s);
+      state.outH = Math.round(state.srcH * s);
+      $('icW').value = state.outW; $('icH').value = state.outH;
+      renderPreviewEstimate();
+    }));
+
+    // 용량
+    function computeTarget() {
+      const v = +$('icBytes').value;
+      if (!v || v <= 0) { state.targetBytes = null; return; }
+      const unit = $('icBytesUnit').value;
+      state.targetBytes = v * (unit === 'MB' ? 1048576 : 1024);
+    }
+    $('icBytes').addEventListener('input', computeTarget);
+    $('icBytesUnit').addEventListener('change', computeTarget);
+    $('icBytesOff').addEventListener('click', () => { $('icBytes').value = ''; state.targetBytes = null; renderPreviewEstimate(); });
+    document.querySelectorAll('.ic-size-preset').forEach(b => b.addEventListener('click', () => {
+      const kb = +b.dataset.kb;
+      if (kb >= 1024) { $('icBytes').value = kb / 1024; $('icBytesUnit').value = 'MB'; }
+      else { $('icBytes').value = kb; $('icBytesUnit').value = 'KB'; }
+      computeTarget();
+      renderPreviewEstimate();
+    }));
+
+    // 포맷
+    document.querySelectorAll('.ic-fmt').forEach(b => b.addEventListener('click', () => {
+      document.querySelectorAll('.ic-fmt').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      state.format = b.dataset.f;
+      const isLossy = state.format === 'image/jpeg' || state.format === 'image/webp';
+      $('icQualityWrap').style.display = isLossy ? 'flex' : 'none';
+      const notes = {
+        'image/jpeg': 'JPG: 사진·웹 업로드에 적합 · 투명 배경 미지원 · 용량 조정 가능',
+        'image/png': 'PNG: 무손실 · 투명 배경 · 일러스트/스크린샷 적합 · 용량 조정 불가',
+        'image/webp': 'WebP: 최신 포맷 · 용량/품질 균형 최고 · iOS 14+ 지원',
+        'image/bmp': 'BMP: 비압축 · 용량 크지만 완벽 호환 · 구형 환경용'
+      };
+      $('icFmtNote').textContent = notes[state.format];
+      renderPreviewEstimate();
+    }));
+
+    // 품질
+    $('icQuality').addEventListener('input', (e) => {
+      state.quality = +e.target.value / 100;
+      $('icQualityVal').textContent = e.target.value + '%';
+    });
+
+    // 미리보기 갱신
+    $('icPreviewBtn').addEventListener('click', renderPreviewEstimate);
+
+    // 다운로드
+    $('icDownload').addEventListener('click', async () => {
+      if (!state.srcImg) { toast('먼저 이미지를 불러오세요'); return; }
+      const url = state.lastResult || await convert();
+      if (!url) { toast('변환 실패'); return; }
+      const a = document.createElement('a');
+      a.href = url;
+      const ext = extForMime(state.format);
+      const ts = new Date().toISOString().replace(/[:T]/g,'-').slice(0,19);
+      a.download = 'image-' + ts + '.' + ext;
+      document.body.appendChild(a); a.click(); a.remove();
+      toast('다운로드됨 · ' + formatBytes(dataUrlBytes(url)));
+    });
+
+    // 메모 삽입
+    $('icInsert').addEventListener('click', async () => {
+      if (!state.srcImg) { toast('먼저 이미지를 불러오세요'); return; }
+      const url = state.lastResult || await convert();
+      $('imgCvtModal').classList.remove('open');
+      restorePageSel();
+      pageEl.focus();
+      document.execCommand('insertImage', false, url);
+      scheduleSave();
+      toast('변환 이미지를 메모에 삽입했습니다');
+    });
+
+    // Data URL 복사
+    $('icCopyDataUrl').addEventListener('click', async () => {
+      if (!state.srcImg) { toast('먼저 이미지를 불러오세요'); return; }
+      const url = state.lastResult || await convert();
+      navigator.clipboard.writeText(url).then(() => toast('Data URL 복사됨 · ' + formatBytes(dataUrlBytes(url))));
+    });
+
+    $('imgCvtClose').addEventListener('click', () => $('imgCvtModal').classList.remove('open'));
+  }
+
+  let inited = false;
+  function init() {
+    if (inited) return;
+    inited = true;
+    bindUI();
+    // 기본 포맷 = JPG
+    document.querySelector('.ic-fmt[data-f="image/jpeg"]')?.classList.add('active');
+  }
+
+  return {
+    open(dataUrl, fileName) {
+      init();
+      $('imgCvtModal').classList.add('open');
+      if (dataUrl) loadFromDataUrl(dataUrl, fileName);
+    },
+    close() { $('imgCvtModal').classList.remove('open'); }
+  };
+})();
+window.ImageConverter = ImageConverter;
+
+// 상단바 버튼
+if ($('imgCvtTopBtn')) $('imgCvtTopBtn').addEventListener('click', () => ImageConverter.open());
+
+// 명령 팔레트 추가
+if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
+  COMMANDS.push(
+    { ico:'i-resize', name:'이미지 변환기', desc:'크기/용량/포맷 변경', run: () => ImageConverter.open() },
+    { ico:'i-resize', name:'선택 이미지 변환', desc:'선택된 이미지를 변환기로', run: () => convertSelectedImageInMemo() }
+  );
+}
+
+function convertSelectedImageInMemo() {
+  const sel = window.getSelection();
+  let img = null;
+  try {
+    if (sel.rangeCount > 0) {
+      const frag = sel.getRangeAt(0).cloneContents();
+      img = frag.querySelector && frag.querySelector('img');
+    }
+  } catch {}
+  if (!img) img = document.querySelector('.page img:last-of-type');
+  if (!img || !img.src) { toast('변환할 이미지를 먼저 선택하세요'); return; }
+  ImageConverter.open(img.src, 'memo-image');
+}
+
+// Esc 닫기
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && $('imgCvtModal').classList.contains('open')) {
+    $('imgCvtModal').classList.remove('open');
+  }
+});
 
 // 토크바에 그림판 전용 버튼을 추가 (sketchBtn 옆, 보조 진입점)
 (function addPaintToolbarBtn() {
