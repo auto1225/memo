@@ -1,0 +1,36 @@
+<svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#9B7CE0"/>
+      <stop offset="100%" stop-color="#7A4FC7"/>
+    </linearGradient>
+    <linearGradient id="paperGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FBF6FF"/>
+      <stop offset="100%" stop-color="#E8D9FA"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" in="SourceAlpha"/>
+      <feOffset dx="0" dy="3" result="offsetblur"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.3"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- Background rounded square -->
+  <rect x="0" y="0" width="400" height="400" rx="88" fill="url(#bgGrad)"/>
+  <!-- Notepad, tilted -->
+  <g transform="rotate(-7 200 200)" filter="url(#shadow)">
+    <!-- Paper card -->
+    <rect x="90" y="100" width="220" height="240" rx="14" fill="url(#paperGrad)"/>
+    <!-- Spring binding rings on top -->
+    <circle cx="118" cy="100" r="9" fill="none" stroke="#4A2D95" stroke-width="5"/>
+    <circle cx="164" cy="100" r="9" fill="none" stroke="#4A2D95" stroke-width="5"/>
+    <circle cx="210" cy="100" r="9" fill="none" stroke="#4A2D95" stroke-width="5"/>
+    <circle cx="256" cy="100" r="9" fill="none" stroke="#4A2D95" stroke-width="5"/>
+    <!-- "just." handwritten text -->
+    <text x="115" y="225" font-family="Georgia, 'Times New Roman', serif" font-size="96" font-style="italic" font-weight="900" fill="#5B3DA8" letter-spacing="-2">just.</text>
+    <!-- Paper lines -->
+    <line x1="115" y1="255" x2="285" y2="255" stroke="#C4AFEB" stroke-width="2.5" opacity="0.7"/>
+    <line x1="115" y1="285" x2="285" y2="285" stroke="#C4AFEB" stroke-width="2.5" opacity="0.7"/>
+    <line x1="115" y1="315" x2="240" y2="315" stroke="#C4AFEB" stroke-width="2.5" opacity="0.7"/>
+  </g>
+</svg>
