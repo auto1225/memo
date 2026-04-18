@@ -1468,6 +1468,7 @@
       </div>
     </div>
     <button id="cardsTopBtn" title="명함관리"><svg class="ico"><use href="#i-id-card"/></svg><span id="cardsTopBadge" class="topbar-badge"></span></button>
+    <button id="paintTopBtn" title="그림판 (Paint)"><svg class="ico"><use href="#i-bucket"/></svg></button>
     <button id="themeBtn" title="테마 변경"><svg class="ico"><use href="#i-palette"/></svg></button>
     <button id="searchToggle" title="검색 (Ctrl+F)"><svg class="ico"><use href="#i-search"/></svg></button>
     <button id="focusBtn" title="집중 모드"><svg class="ico"><use href="#i-target"/></svg></button>
@@ -9828,7 +9829,11 @@ function openCaptureInPaint(dataUrl) {
 }
 window.openCaptureInPaint = openCaptureInPaint;
 
-// 토크바에 그림판 전용 버튼을 추가 (sketchBtn 옆)
+// 상단바 그림판 버튼 (주 진입점) — 바로 보이는 위치
+const paintTopBtn = $('paintTopBtn');
+if (paintTopBtn) paintTopBtn.addEventListener('click', () => Paint.open());
+
+// 토크바에 그림판 전용 버튼을 추가 (sketchBtn 옆, 보조 진입점)
 (function addPaintToolbarBtn() {
   const sketchBtn = $('sketchBtn');
   if (!sketchBtn) return;
