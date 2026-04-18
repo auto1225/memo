@@ -2790,6 +2790,84 @@
 .role-flash h4 { color:var(--accent) !important; font-weight:800 !important; }
 </style>
 
+<!-- ========== 온보딩 투어 오버레이 ========== -->
+<div id="tourOverlay" style="display:none;">
+  <div id="tourMask"></div>
+  <div id="tourBubble">
+    <div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">
+      <span id="tourStepNum" style="background:var(--accent); color:white; width:22px; height:22px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:11px; font-weight:700;">1</span>
+      <b id="tourTitle" style="font-size:14px;"></b>
+    </div>
+    <div id="tourBody" style="font-size:13px; line-height:1.5; color:var(--ink); margin-bottom:12px;"></div>
+    <div style="display:flex; gap:6px; align-items:center;">
+      <button id="tourSkip" style="background:transparent; border:none; color:var(--ink-soft); cursor:pointer; font-size:11px;">건너뛰기</button>
+      <span style="flex:1;"></span>
+      <span id="tourProgress" style="font-size:10px; color:var(--ink-soft);"></span>
+      <button id="tourPrev" class="ptb" style="padding:4px 10px; font-size:11px;">이전</button>
+      <button id="tourNext" class="ptb-primary" style="padding:4px 12px; font-size:11px;">다음</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 도움말 센터 모달 ========== -->
+<div class="modal-backdrop" id="helpHubModal">
+  <div class="modal" style="width:min(900px,96vw); max-height:92vh; display:flex; flex-direction:column; padding:0;">
+    <div class="rw-header">
+      <svg class="ico" style="stroke:var(--accent); width:20px; height:20px;"><use href="#i-help"/></svg>
+      <h3 style="margin:0; font-size:15px;">도움말 센터</h3>
+      <span style="font-size:11px; color:var(--ink-soft);">모든 기능을 한 곳에서</span>
+      <span style="flex:1;"></span>
+      <button id="helpHubTour" class="ptb">투어 다시 보기</button>
+      <button id="helpHubManual" class="ptb">전체 매뉴얼</button>
+      <button id="helpHubClose" class="ptb" style="padding:5px 8px;"><svg class="ico"><use href="#i-x"/></svg></button>
+    </div>
+    <div style="padding:12px 16px; border-bottom:1px solid var(--paper-edge);">
+      <input type="search" id="helpSearch" placeholder="기능 검색 (예: 가계부, 시간표, AI 번역)" style="width:100%; padding:10px 14px; border:2px solid var(--paper-edge); border-radius:8px; font-size:14px; outline:none;">
+    </div>
+    <div id="helpHubBody" style="flex:1; overflow-y:auto; padding:16px;"></div>
+  </div>
+</div>
+
+<!-- ========== 팁 카드 (우측 하단 플로팅) ========== -->
+<div id="tipCard" style="display:none;"></div>
+
+<style>
+#tourOverlay { position:fixed; inset:0; z-index:9998; pointer-events:none; }
+#tourMask { position:absolute; inset:0; background:rgba(0,0,0,0.45); transition:clip-path 0.3s; pointer-events:auto; }
+#tourBubble { position:absolute; background:white; border-radius:10px; padding:14px 16px; box-shadow:0 8px 32px rgba(0,0,0,0.25); max-width:320px; pointer-events:auto; z-index:9999; border:2px solid var(--accent); }
+#tourBubble::before { content:''; position:absolute; width:12px; height:12px; background:white; border-left:2px solid var(--accent); border-top:2px solid var(--accent); transform:rotate(45deg); }
+#tourBubble.pos-bottom::before { top:-8px; left:30px; }
+#tourBubble.pos-top::before { bottom:-8px; left:30px; border-left:none; border-top:none; border-right:2px solid var(--accent); border-bottom:2px solid var(--accent); transform:rotate(45deg); }
+.tour-highlight { position:relative; z-index:9999 !important; box-shadow:0 0 0 4px var(--accent), 0 0 0 9999px rgba(0,0,0,0.4) !important; border-radius:4px; }
+
+#tipCard {
+  position:fixed; bottom:70px; right:20px; background:linear-gradient(135deg, #fff, #f9f5ff);
+  border:1px solid var(--accent); border-radius:10px; padding:12px 16px 12px 20px;
+  box-shadow:0 4px 16px rgba(138,95,209,0.2); max-width:320px; z-index:9000;
+  font-size:12px; color:var(--ink); border-left:4px solid var(--accent);
+  animation:tipSlide .4s ease-out;
+}
+@keyframes tipSlide { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }
+#tipCard .tip-close { position:absolute; top:6px; right:8px; background:transparent; border:none; cursor:pointer; color:#999; font-size:14px; }
+#tipCard .tip-title { font-weight:700; color:var(--accent); font-size:11px; letter-spacing:0.3px; margin-bottom:4px; }
+#tipCard .tip-body { line-height:1.5; margin-bottom:6px; }
+#tipCard .tip-actions { display:flex; gap:6px; font-size:10px; color:var(--ink-soft); }
+#tipCard .tip-try { background:var(--accent); color:white; border:none; padding:3px 10px; border-radius:10px; cursor:pointer; font-size:10px; font-weight:600; }
+#tipCard .tip-try:hover { background:#7a4fc7; }
+
+.help-cat { margin-bottom:18px; }
+.help-cat-title { font-size:13px; font-weight:700; color:var(--accent); margin-bottom:8px; display:flex; align-items:center; gap:6px; padding-bottom:5px; border-bottom:2px solid color-mix(in srgb, var(--accent) 20%, transparent); }
+.help-item { display:grid; grid-template-columns:32px 1fr auto; gap:10px; padding:8px 10px; border-radius:6px; cursor:pointer; transition:all .12s; align-items:center; }
+.help-item:hover { background:color-mix(in srgb, var(--accent) 8%, transparent); }
+.help-item .help-ico { color:var(--accent); stroke:var(--accent); width:18px; height:18px; }
+.help-item .help-name { font-weight:600; font-size:13px; color:var(--ink); }
+.help-item .help-desc { font-size:11px; color:var(--ink-soft); margin-top:2px; }
+.help-item .help-key { font-size:10px; background:#f0f0f0; padding:2px 6px; border-radius:3px; font-family:monospace; color:#555; }
+.help-item .help-go { color:var(--accent); font-size:11px; font-weight:600; opacity:0; transition:opacity .12s; }
+.help-item:hover .help-go { opacity:1; }
+.help-empty { text-align:center; padding:40px; color:var(--ink-soft); }
+</style>
+
 <!-- ========== 견적서/청구서 위젯 ========== -->
 <div class="modal-backdrop" id="invoiceModal">
   <div class="modal" style="width:min(1100px,96vw); max-height:94vh; display:flex; flex-direction:column; padding:0;">
@@ -13819,6 +13897,307 @@ function exportTimetableImage() {
 if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
   COMMANDS.push(
     { ico:'i-briefcase', name:'견적서/청구서', desc:'프로 수준 견적서 + PDF/인쇄', run: openInvoice }
+  );
+}
+
+/* ============================================================
+   발견성 개선: 온보딩 투어 + 도움말 센터 + 팁 카드
+   ============================================================ */
+
+/* ---- 온보딩 투어 ---- */
+const TOUR_STEPS = [
+  { target: '.app-logo', title: 'JustANotepad에 오신 것을 환영합니다', body: '그냥 메모장이 되려 했으나… 수십 가지 기능이 담긴 올인원 앱입니다. 7단계에 걸쳐 핵심 기능을 소개할게요.', position: 'bottom' },
+  { target: '#palBtn', title: '명령 팔레트 (Ctrl+K)', body: '가장 강력한 기능. <b>모든 메뉴·기능</b>을 한 곳에서 검색해 실행할 수 있습니다. 기억하세요: <kbd>Ctrl+K</kbd>', position: 'bottom' },
+  { target: '#roleDashTopBtn', title: '역할별 전용 도구', body: '학생·회사원·주부 등 <b>14개 역할</b>에 맞춘 도구를 제공합니다. 시간표·가계부·GPA·견적서 등 상황에 맞게 꺼내드립니다.', position: 'bottom' },
+  { target: '#aiBtn', title: 'AI 어시스턴트', body: 'OpenAI·Gemini·Claude로 요약·번역·질문·이어쓰기. <b>Ctrl+Shift+A</b>로 선택한 내용에 대한 스마트 AI 작업도 가능.', position: 'bottom' },
+  { target: '#paintTopBtn', title: '그림판 (Paint)', body: '포토샵급 편집기. 레이어·블렌드 모드·필터·AI 이미지 생성까지. 메모 안의 이미지를 <b>더블클릭</b>하면 즉시 편집 모드로 들어갑니다.', position: 'bottom' },
+  { target: '#calOpenBtn', title: '캘린더·날짜', body: '클릭하면 캘린더 열기, <b>길게 누르면</b> 오늘 메모/날짜 삽입/캘린더 태그 드롭다운 표시.', position: 'bottom' },
+  { target: '#helpBtn', title: '언제든 도움말', body: '모르는 기능이 생기면 여기를 클릭하세요. 모든 기능의 안내와 바로가기가 있는 <b>도움말 센터</b>가 열립니다.', position: 'bottom' }
+];
+let tourStep = 0;
+
+function startTour() {
+  tourStep = 0;
+  $('tourOverlay').style.display = 'block';
+  renderTourStep();
+}
+function endTour() {
+  $('tourOverlay').style.display = 'none';
+  document.querySelectorAll('.tour-highlight').forEach(el => el.classList.remove('tour-highlight'));
+  localStorage.setItem('tour-completed', '1');
+}
+function renderTourStep() {
+  document.querySelectorAll('.tour-highlight').forEach(el => el.classList.remove('tour-highlight'));
+  const step = TOUR_STEPS[tourStep];
+  if (!step) { endTour(); return; }
+  const target = document.querySelector(step.target);
+  $('tourStepNum').textContent = tourStep + 1;
+  $('tourTitle').textContent = step.title;
+  $('tourBody').innerHTML = step.body;
+  $('tourProgress').textContent = `${tourStep + 1} / ${TOUR_STEPS.length}`;
+  $('tourPrev').disabled = tourStep === 0;
+  $('tourPrev').style.opacity = tourStep === 0 ? '0.4' : '1';
+  $('tourNext').textContent = tourStep === TOUR_STEPS.length - 1 ? '시작하기' : '다음';
+
+  const bubble = $('tourBubble');
+  if (target) {
+    target.classList.add('tour-highlight');
+    const rect = target.getBoundingClientRect();
+    bubble.className = 'pos-bottom';
+    // 위치 계산: 타겟 아래에 배치, 화면 밖 벗어나지 않게
+    let top = rect.bottom + 14;
+    let left = rect.left;
+    if (left + 340 > window.innerWidth) left = window.innerWidth - 340;
+    if (left < 10) left = 10;
+    if (top + 180 > window.innerHeight) {
+      top = rect.top - 200;
+      bubble.className = 'pos-top';
+    }
+    bubble.style.top = top + 'px';
+    bubble.style.left = left + 'px';
+    // 마스크: 타겟 영역을 뚫음 (clip-path)
+    const mask = $('tourMask');
+    mask.style.clipPath = `polygon(0 0, 100% 0, 100% 100%, 0 100%, 0 ${rect.top-4}px, ${rect.left-4}px ${rect.top-4}px, ${rect.left-4}px ${rect.bottom+4}px, ${rect.right+4}px ${rect.bottom+4}px, ${rect.right+4}px ${rect.top-4}px, 0 ${rect.top-4}px)`;
+  } else {
+    bubble.style.top = '50%';
+    bubble.style.left = '50%';
+    bubble.style.transform = 'translate(-50%, -50%)';
+    $('tourMask').style.clipPath = '';
+  }
+}
+$('tourNext').addEventListener('click', () => {
+  tourStep++;
+  if (tourStep >= TOUR_STEPS.length) endTour();
+  else renderTourStep();
+});
+$('tourPrev').addEventListener('click', () => {
+  if (tourStep > 0) { tourStep--; renderTourStep(); }
+});
+$('tourSkip').addEventListener('click', endTour);
+
+// 첫 방문자에게 자동 투어 (역할 선택 후)
+setTimeout(() => {
+  if (!localStorage.getItem('tour-completed') && localStorage.getItem('role-onboarded')) {
+    setTimeout(startTour, 1500);
+  }
+}, 3500);
+
+/* ---- 도움말 센터 ---- */
+const HELP_CATALOG = {
+  '🌟 핵심 기능': [
+    { ico:'i-cmd', name:'명령 팔레트', key:'Ctrl+K', desc:'모든 기능을 검색해 실행', action:() => openPalette() },
+    { ico:'i-users', name:'역할 선택', desc:'학생·회사원·주부 등 맞춤 도구', action:() => openRolesModal() },
+    { ico:'i-sparkles', name:'AI 어시스턴트', key:'Ctrl+Space', desc:'요약·번역·질문·이어쓰기', action:() => $('aiBtn').click() },
+    { ico:'i-sparkles', name:'스마트 AI (컨텍스트 감지)', key:'Ctrl+Shift+A', desc:'선택한 내용에 맞는 AI 작업', action:() => smartAiEntry() }
+  ],
+  '🖌 그림·이미지': [
+    { ico:'i-brush', name:'그림판 (Paint)', desc:'포토샵급 편집기 — 레이어·필터·AI 생성', action:() => Paint.open() },
+    { ico:'i-resize', name:'이미지 변환기', desc:'크기·용량·포맷(JPG/PNG/WebP) 변경', action:() => ImageConverter.open() },
+    { ico:'i-brush', name:'손글씨/스케치', desc:'펜·필압 감지 그리기', action:() => $('sketchBtn').click() },
+    { ico:'i-camera', name:'화면 캡쳐', desc:'일부 영역 캡쳐해서 메모에 삽입', action:() => $('captureBtn').click() }
+  ],
+  '📇 명함·연락처': [
+    { ico:'i-id-card', name:'명함 관리', desc:'촬영·AI OCR·SNS 16종·vCard', action:() => openCardsModal() },
+    { ico:'i-smartphone', name:'스마트폰 연락처 연동', desc:'iOS/Android에 .vcf로 내보내기', action:() => { openCardsModal(); setTimeout(() => $('cardsPhoneSyncBtn').click(), 200); } }
+  ],
+  '📅 캘린더·날짜': [
+    { ico:'i-calendar', name:'캘린더', key:'Ctrl+J', desc:'월간 캘린더 + 메모 날짜 자동 인식', action:() => openCalendar() },
+    { ico:'i-today', name:'오늘 메모', desc:'오늘 날짜 일일노트', action:() => openTodayMemo() },
+    { ico:'i-today', name:'D-Day 관리', desc:'여러 D-Day 카테고리별', action:() => openDday() }
+  ],
+  '🎓 학생/교육': [
+    { ico:'i-grid', name:'강의 시간표', desc:'에브리타임 붙여넣기 파싱·이미지 저장', action:() => openTimetable() },
+    { ico:'i-stats', name:'GPA 계산기', desc:'학점·성적·목표 GPA', action:() => openGpa() },
+    { ico:'i-check', name:'출결 관리', desc:'F 위험 자동 경고', action:() => openAttendance() },
+    { ico:'i-users', name:'조별과제', desc:'팀원·할일·진행률', action:() => openGroupProj() },
+    { ico:'i-today', name:'시험 계획표', desc:'D-Day·과목별 범위', action:() => openExamPlan() }
+  ],
+  '📚 연구/독서': [
+    { ico:'i-book', name:'논문 리딩 리스트', desc:'BibTeX 자동 생성', action:() => openPaperList() },
+    { ico:'i-book', name:'독서 목록', desc:'월별 통계·목표·인용구', action:() => openBooks() }
+  ],
+  '💼 업무·비즈니스': [
+    { ico:'i-briefcase', name:'견적서/청구서', desc:'PDF 출력·VAT·번호 자동', action:() => openInvoice() },
+    { ico:'i-columns', name:'프로젝트 파이프라인', desc:'4단계 칸반·매출 요약', action:() => openProjPipe() },
+    { ico:'i-clock', name:'타임 트래킹', desc:'프로젝트별 시간 기록·주간 차트', action:() => openTimetrack() },
+    { ico:'i-mic', name:'회의 노트 (CLOVA Note)', desc:'녹음+받아쓰기+AI 요약', action:() => $('meetingNoteBtn').click() }
+  ],
+  '🏠 가정·생활': [
+    { ico:'i-stats', name:'가계부', desc:'예산·반복거래·추이 차트', action:() => openLedger() },
+    { ico:'i-check', name:'장보기 리스트', desc:'카테고리별 체크리스트', action:() => openShop() },
+    { ico:'i-table', name:'주간 식단', desc:'아침/점심/저녁', action:() => openMeal() },
+    { ico:'i-chef', name:'레시피북', desc:'재료·조리타이머·장보기 연계', action:() => openRecipe() }
+  ],
+  '🎨 창작·취미': [
+    { ico:'i-palette', name:'작품 포트폴리오', desc:'예술작품 관리·판매 통계', action:() => openPortfolio() },
+    { ico:'i-plane', name:'여행 계획', desc:'체크리스트·예산·가계부 연계', action:() => openTravel() }
+  ],
+  '💊 건강·케어': [
+    { ico:'i-heart', name:'약 복용 관리', desc:'복용 체크·주간 준수율·알림', action:() => openMed() },
+    { ico:'i-heart', name:'혈압·혈당 기록', desc:'정상 범위 자동 판단·차트', action:() => openVital() }
+  ],
+  '⚙️ 생산성': [
+    { ico:'i-target', name:'집중 모드', key:'Ctrl+/', desc:'방해요소 숨김', action:() => $('focusBtn').click() },
+    { ico:'i-timer', name:'포모도로', desc:'25분 집중 타이머', action:() => pomoStart() },
+    { ico:'i-cards', name:'플래시카드', desc:'Q/A 학습·메모 저장', action:() => $('flashBtn').click() },
+    { ico:'i-wordcloud', name:'워드 클라우드', desc:'자주 쓰는 단어 시각화', action:() => $('wordCloudBtn').click() },
+    { ico:'i-find-replace', name:'찾아 바꾸기', key:'Ctrl+F', desc:'정규식·대소문자', action:() => toggleSearch(true) },
+    { ico:'i-translate', name:'번역', desc:'한글↔영어·다국어', action:() => $('translateBtn').click() }
+  ],
+  '📤 공유·내보내기': [
+    { ico:'i-md-dl', name:'PDF로 내보내기', desc:'인쇄 대화창에서 PDF 저장', action:() => $('exportPdfBtn').click() },
+    { ico:'i-md-dl', name:'Word로 내보내기', desc:'.docx 변환', action:() => $('exportDocxBtn').click() },
+    { ico:'i-upload', name:'전체 백업', desc:'JSON 파일로 저장', action:() => $('exportBtn').click() },
+    { ico:'i-download', name:'백업 복원', desc:'JSON 파일 불러오기', action:() => $('importBtn').click() }
+  ]
+};
+
+function openHelpHub() {
+  $('helpHubModal').classList.add('open');
+  renderHelpHub('');
+  setTimeout(() => $('helpSearch').focus(), 100);
+}
+function renderHelpHub(query) {
+  const q = (query||'').toLowerCase().trim();
+  const body = $('helpHubBody');
+  let html = '';
+  let foundCount = 0;
+  Object.entries(HELP_CATALOG).forEach(([cat, items]) => {
+    const filtered = q ? items.filter(it => (it.name + ' ' + it.desc).toLowerCase().includes(q)) : items;
+    if (filtered.length === 0) return;
+    foundCount += filtered.length;
+    html += `<div class="help-cat">
+      <div class="help-cat-title">${cat}</div>
+      ${filtered.map((it, i) => `<div class="help-item" data-cat="${escapeHtml(cat)}" data-i="${i}">
+        <svg class="ico help-ico"><use href="#${it.ico}"/></svg>
+        <div>
+          <div class="help-name">${escapeHtml(it.name)}${it.key ? ` <span class="help-key">${it.key}</span>` : ''}</div>
+          <div class="help-desc">${escapeHtml(it.desc)}</div>
+        </div>
+        <span class="help-go">열기 →</span>
+      </div>`).join('')}
+    </div>`;
+  });
+  if (q && foundCount === 0) {
+    html = `<div class="help-empty">
+      <svg class="ico" style="width:40px; height:40px; opacity:0.4;"><use href="#i-search"/></svg>
+      <div style="margin-top:10px; font-size:14px;">"${escapeHtml(q)}"에 해당하는 기능이 없습니다</div>
+      <div style="font-size:11px; margin-top:6px;">다른 키워드로 검색해보세요</div>
+    </div>`;
+  }
+  body.innerHTML = html;
+  body.querySelectorAll('.help-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const cat = el.dataset.cat;
+      const i = +el.dataset.i;
+      const items = HELP_CATALOG[cat];
+      const filteredItems = q ? items.filter(it => (it.name + ' ' + it.desc).toLowerCase().includes(q)) : items;
+      const it = filteredItems[i];
+      if (it && it.action) {
+        $('helpHubModal').classList.remove('open');
+        setTimeout(() => it.action(), 100);
+      }
+    });
+  });
+}
+$('helpSearch').addEventListener('input', (e) => renderHelpHub(e.target.value));
+$('helpHubClose').addEventListener('click', () => $('helpHubModal').classList.remove('open'));
+$('helpHubTour').addEventListener('click', () => { $('helpHubModal').classList.remove('open'); localStorage.removeItem('tour-completed'); setTimeout(startTour, 200); });
+$('helpHubManual').addEventListener('click', () => {
+  window.open('https://github.com/auto1225/memo/blob/main/MANUAL.md', '_blank');
+});
+
+// 상단바 도움말 버튼 → 도움말 센터로 변경 (기존 helpModal 대신)
+const origHelpBtn = $('helpBtn');
+if (origHelpBtn) {
+  // 기존 helpModal 핸들러 제거는 안 하고, 우리 핸들러를 capture 단계로 추가해 우선 실행
+  origHelpBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openHelpHub();
+  }, true);
+  origHelpBtn.title = '도움말 센터 — 모든 기능 찾기';
+}
+
+/* ---- "알고 계셨나요?" 팁 ---- */
+const TIPS = [
+  { title:'Ctrl+K 명령 팔레트', body:'모든 기능을 이 한 곳에서 검색해 실행할 수 있습니다. 가장 빠른 길!', try: () => openPalette() },
+  { title:'이미지 더블클릭 편집', body:'메모에 삽입된 이미지를 더블클릭하면 즉시 그림판으로 편집 모드에 진입합니다.', try: null },
+  { title:'@로 명함/메모 멘션', body:'메모 작성 중 @를 입력하면 명함·다른 메모를 자동완성으로 링크할 수 있습니다.', try: null },
+  { title:'역할별 도구 자동 노출', body:'대학생 선택 → 시간표·GPA·출결·조별과제. 회사원 선택 → 견적서·프로젝트·타임트래킹.', try: () => openRolesModal() },
+  { title:'에브리타임 시간표 파싱', body:'학교 포털에서 시간표를 복사 → 시간표 모달 "자동 파싱" → 붙여넣기 → 자동 완성.', try: () => openTimetable() },
+  { title:'Paint 저장 = 변환기', body:'그림판에서 저장 버튼 누르면 크기/용량/포맷(JPG/PNG/WebP) 선택 화면이 자동으로 열립니다.', try: null },
+  { title:'손글씨 펜 모드', body:'스타일러스·손가락으로 그리기. 필압 감지·팜 리젝션 지원. 태블릿이면 자동 감지.', try: () => $('sketchBtn').click() },
+  { title:'가계부 예산 설정', body:'가계부에서 "예산 설정" 버튼 → 카테고리별 월 예산 → 초과 시 빨간 알림.', try: () => openLedger() },
+  { title:'명함 AI 자동 입력', body:'명함 사진을 업로드하고 "AI로 자동 추출" 버튼 → 이름·회사·전화·이메일이 자동 입력됩니다.', try: () => openCardsModal() },
+  { title:'Ctrl+Shift+A 스마트 AI', body:'텍스트·이미지를 선택하고 Ctrl+Shift+A → 상황에 맞는 AI 작업 메뉴가 뜹니다.', try: null },
+  { title:'탭 암호화', body:'민감한 메모를 AES로 암호화. 탭 우클릭 → 잠금 설정.', try: null },
+  { title:'조리 타이머', body:'레시피북에서 각 레시피마다 "⏱ 타이머" 버튼. 브라우저 알림 권한 허용 시 완료 알림.', try: () => openRecipe() },
+  { title:'회의 노트 AI 요약', body:'녹음하면서 실시간 받아쓰기 → AI가 화자 분리·핵심 요약·액션 아이템 자동 생성.', try: () => $('meetingNoteBtn').click() },
+  { title:'플래시카드 → 메모 저장', body:'AI로 생성한 플래시카드를 메모 탭으로 저장해 나중에 다시 학습할 수 있습니다.', try: null },
+  { title:'견적서 PDF 저장', body:'견적서 위젯 → "인쇄/PDF" 버튼 → 브라우저 인쇄 대화창 → "PDF로 저장".', try: () => openInvoice() },
+  { title:'캘린더 태그 자동 인식', body:'메모에 "2025-06-15" 같은 날짜 쓰면 캘린더가 자동 인식해서 해당 날짜에 표시합니다.', try: () => openCalendar() },
+  { title:'여행 지출 → 가계부 자동', body:'여행 계획에서 지출 추가하면 가계부에도 "여행:" 카테고리로 자동 기록됩니다.', try: () => openTravel() },
+  { title:'레시피 재료 → 장보기', body:'레시피의 "→장보기" 버튼 → 재료를 장보기 리스트로 일괄 전송 (중복 자동 제외).', try: () => openRecipe() },
+  { title:'Ctrl+휠로 그림 확대', body:'Paint에서 Ctrl+휠 = 줌, Space+드래그 = 팬. 정밀 작업이 훨씬 쉬워집니다.', try: null },
+  { title:'이미지 목표 용량 지정', body:'이미지 변환기에서 "500KB" 같은 목표 용량 입력 → JPEG 품질이 자동 조절됩니다.', try: () => ImageConverter.open() }
+];
+
+function showRandomTip() {
+  if (localStorage.getItem('tip-disabled') === '1') return;
+  const seen = JSON.parse(localStorage.getItem('tip-seen') || '[]');
+  let available = TIPS.map((_, i) => i).filter(i => !seen.includes(i));
+  if (available.length === 0) {
+    // 전부 봤으면 리셋
+    localStorage.setItem('tip-seen', '[]');
+    available = TIPS.map((_, i) => i);
+  }
+  const idx = available[Math.floor(Math.random() * available.length)];
+  const tip = TIPS[idx];
+  seen.push(idx);
+  localStorage.setItem('tip-seen', JSON.stringify(seen));
+
+  const card = $('tipCard');
+  card.innerHTML = `
+    <button class="tip-close" id="tipClose">×</button>
+    <div class="tip-title">💡 알고 계셨나요?</div>
+    <div style="font-weight:700; margin-bottom:3px;">${escapeHtml(tip.title)}</div>
+    <div class="tip-body">${escapeHtml(tip.body)}</div>
+    <div class="tip-actions">
+      ${tip.try ? '<button class="tip-try" id="tipTry">바로 해보기</button>' : ''}
+      <span style="flex:1;"></span>
+      <a href="#" id="tipDisable" style="color:var(--ink-soft); font-size:10px; text-decoration:none;">팁 끄기</a>
+    </div>
+  `;
+  card.style.display = 'block';
+  $('tipClose').addEventListener('click', () => card.style.display = 'none');
+  $('tipDisable').addEventListener('click', (e) => {
+    e.preventDefault();
+    localStorage.setItem('tip-disabled', '1');
+    card.style.display = 'none';
+    toast('팁 알림을 껐습니다. 도움말 센터에서 다시 켤 수 있습니다');
+  });
+  const tryBtn = $('tipTry');
+  if (tryBtn) tryBtn.addEventListener('click', () => {
+    card.style.display = 'none';
+    if (tip.try) tip.try();
+  });
+  // 20초 후 자동 사라짐
+  setTimeout(() => { if (card.style.display !== 'none') card.style.display = 'none'; }, 20000);
+}
+
+// 앱 로드 후 8초 뒤 첫 팁 표시 (온보딩 투어 완료 후)
+setTimeout(() => {
+  if (localStorage.getItem('tour-completed') && !localStorage.getItem('tip-disabled')) {
+    showRandomTip();
+  }
+}, 8000);
+
+// 명령 팔레트에 도움말 + 투어 추가
+if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
+  COMMANDS.push(
+    { ico:'i-help', name:'도움말 센터', desc:'모든 기능 한 눈에 + 검색', run: openHelpHub },
+    { ico:'i-info', name:'첫 사용 투어 다시 보기', desc:'주요 기능 7단계 안내', run: () => { localStorage.removeItem('tour-completed'); startTour(); } },
+    { ico:'i-info', name:'팁 알림 켜기', desc:'"알고 계셨나요?" 팁 다시 켜기', run: () => { localStorage.removeItem('tip-disabled'); toast('팁 알림을 다시 켰습니다'); showRandomTip(); } }
   );
 }
 
