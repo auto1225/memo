@@ -61,6 +61,18 @@
     font-size:13px; outline:none; width:150px; }
   .app-logo { color:#fff; width:20px; height:20px; flex-shrink:0;
     filter: drop-shadow(0 1px 2px rgba(0,0,0,0.25)); }
+  .topbar-badge { position:absolute; top:-2px; right:-2px; background:#ff5252; color:white;
+    font-size:9px; font-weight:700; padding:1px 4px; border-radius:8px; min-width:14px;
+    height:14px; line-height:12px; display:none; }
+  .topbar-badge.show { display:inline-block; }
+  .topbar-drop { position:relative; }
+  .topbar-drop-menu { position:absolute; top:100%; right:0; background:white;
+    border:1px solid rgba(0,0,0,0.1); border-radius:6px; box-shadow:0 4px 12px rgba(0,0,0,0.15);
+    min-width:170px; z-index:1000; padding:4px; margin-top:4px; }
+  .tdm-item { padding:7px 10px; font-size:12px; color:#333; border-radius:4px; cursor:pointer;
+    white-space:nowrap; }
+  .tdm-item:hover { background:var(--tab-hover); color:var(--accent); }
+  .tdm-item.divider { border-top:1px solid rgba(0,0,0,0.08); margin-top:4px; padding-top:11px; }
   .topbar button { background:transparent; border:none; color:#fff; font-size:14px;
     width:28px; height:28px; border-radius:6px; cursor:pointer; opacity:.9; }
   .topbar button:hover { background:rgba(255,255,255,.2); opacity:1; }
@@ -1427,7 +1439,16 @@
     <button id="palBtn" title="명령 팔레트 (Ctrl+K)"><svg class="ico"><use href="#i-cmd"/></svg></button>
     <button id="webBtn" title="웹 검색 (Ctrl+Shift+F)"><svg class="ico"><use href="#i-globe"/></svg></button>
     <button id="aiBtn" title="AI 어시스턴트 (Ctrl+Space)"><svg class="ico"><use href="#i-sparkles"/></svg></button>
-    <button id="calOpenBtn" title="캘린더 (Ctrl+J)"><svg class="ico"><use href="#i-calendar"/></svg></button>
+    <div class="topbar-drop" id="calDropWrap" style="position:relative; display:inline-flex;">
+      <button id="calOpenBtn" title="캘린더 (Ctrl+J) · 길게누르면 메뉴"><svg class="ico"><use href="#i-calendar"/></svg></button>
+      <div class="topbar-drop-menu" id="calDropMenu" style="display:none;">
+        <div class="tdm-item" data-act="cal">월간 캘린더</div>
+        <div class="tdm-item" data-act="today">오늘 메모</div>
+        <div class="tdm-item" data-act="insertDate">현재 날짜/시간 삽입</div>
+        <div class="tdm-item" data-act="insertTag">캘린더 태그 삽입</div>
+      </div>
+    </div>
+    <button id="cardsTopBtn" title="명함관리"><svg class="ico"><use href="#i-id-card"/></svg><span id="cardsTopBadge" class="topbar-badge"></span></button>
     <button id="themeBtn" title="테마 변경"><svg class="ico"><use href="#i-palette"/></svg></button>
     <button id="searchToggle" title="검색 (Ctrl+F)"><svg class="ico"><use href="#i-search"/></svg></button>
     <button id="focusBtn" title="집중 모드"><svg class="ico"><use href="#i-target"/></svg></button>
@@ -1460,13 +1481,15 @@
     <div class="item" id="toggleTOC"><svg class="ico"><use href="#i-toc"/></svg>목차 패널 토글</div>
     <div class="item" id="toggleSplit"><svg class="ico"><use href="#i-columns"/></svg>분할 보기 토글</div>
 
-    <h4 style="margin-top:12px;">기타</h4>
-    <div class="item" id="todayMemoSide"><svg class="ico"><use href="#i-today"/></svg>오늘 메모</div>
-    <div class="item" id="openCalSide"><svg class="ico"><use href="#i-calendar"/></svg>캘린더 열기</div>
-    <div class="item" id="openCardsSide"><svg class="ico"><use href="#i-id-card"/></svg>명함관리 <span class="badge" id="cardsCount">0</span></div>
+    <h4 style="margin-top:12px;">복구 & 관리</h4>
     <div class="item" id="openTrash"><svg class="ico"><use href="#i-trash"/></svg>휴지통 <span class="badge" id="trashCount">0</span></div>
     <div class="item" id="openHistory"><svg class="ico"><use href="#i-history"/></svg>버전 히스토리</div>
     <div class="item" id="cornerSnap"><svg class="ico"><use href="#i-corner"/></svg>화면 구석으로</div>
+    <!-- 숨김: 호환성 위해 DOM에만 남김 (기존 코드 참조) -->
+    <span id="todayMemoSide" style="display:none;"></span>
+    <span id="openCalSide" style="display:none;"></span>
+    <span id="openCardsSide" style="display:none;"></span>
+    <span class="badge" id="cardsCount" style="display:none;">0</span>
   </div>
 
   <div class="tabs" id="tabs"></div>
@@ -2199,6 +2222,7 @@
     </h3>
     <div id="flashBoard" class="flash-board"></div>
     <div class="actions">
+      <button class="cancel" id="flashSaveAsTab" style="margin-right:auto; background:#4caf50; color:white; border:none;">메모로 저장</button>
       <button class="cancel" id="flashClose">닫기</button>
     </div>
   </div>
@@ -6626,6 +6650,24 @@ $('flashBtn').addEventListener('click', () => {
   renderFlashCard();
 });
 $('flashClose').addEventListener('click', () => $('flashModal').classList.remove('open'));
+// P2: 플래시카드를 메모로 영속화
+$('flashSaveAsTab').addEventListener('click', () => {
+  const board = $('flashBoard');
+  if (!board || !board.children.length) { toast('저장할 카드가 없습니다'); return; }
+  const cards = [...board.querySelectorAll('.flash-card')];
+  if (cards.length === 0) { toast('저장할 카드가 없습니다'); return; }
+  const html = `<h2>플래시카드 · ${new Date().toLocaleDateString('ko-KR')}</h2>` +
+    cards.map((c, i) => {
+      const q = c.querySelector('.flash-q, .flash-front, [data-q]')?.textContent?.trim() || '';
+      const a = c.querySelector('.flash-a, .flash-back, [data-a]')?.textContent?.trim() || '';
+      return `<div style="border:1px solid var(--paper-edge); border-radius:6px; padding:10px; margin-bottom:8px;">
+        <div style="font-weight:600; margin-bottom:6px;">Q${i+1}. ${escapeHtml(q)}</div>
+        <div style="color:var(--ink-soft); padding-left:10px;">A: ${escapeHtml(a)}</div>
+      </div>`;
+    }).join('');
+  saveAiResultAsTab('플래시카드 ' + new Date().toLocaleDateString('ko-KR'), html);
+  $('flashModal').classList.remove('open');
+});
 
 /* ============================================================
     선택 텍스트 플로팅 메뉴
@@ -7265,9 +7307,13 @@ $('mnInsertBtn').addEventListener('click', async () => {
   restorePageSel();
   pageEl.focus();
   document.execCommand('insertHTML', false, html);
+  // P1.6: 오늘 날짜의 캘린더 태그 자동 삽입 (회의록 ↔ 캘린더 연결)
+  const todayKey = new Date().toISOString().slice(0,10);
+  const calTag = ` <span class="date-tag">${todayKey}</span>&nbsp;`;
+  document.execCommand('insertHTML', false, calTag);
   scheduleSave();
   $('meetingModal').classList.remove('open');
-  toast('회의 노트가 메모에 삽입되었습니다');
+  toast('회의 노트가 메모에 삽입되었습니다 (오늘 캘린더에도 등록)');
   setTimeout(bindMeetingNoteEvents, 100);
 });
 
@@ -8241,6 +8287,354 @@ pageEl.addEventListener('input', () => {
 }, { once: false });
 
 /* ============================================================
+   P0: 토크바 재구성 — 캘린더 드롭다운 + 명함 상단 버튼
+   ============================================================ */
+(function p0_topbar() {
+  const calBtn = $('calOpenBtn');
+  const calMenu = $('calDropMenu');
+  let longPressTimer = null, longPressed = false;
+  // 일반 클릭 = 캘린더 열기 (기존 동작 유지)
+  // 우클릭 또는 길게누르기 = 드롭다운
+  calBtn.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    toggleCalMenu();
+  });
+  calBtn.addEventListener('pointerdown', () => {
+    longPressed = false;
+    longPressTimer = setTimeout(() => { longPressed = true; toggleCalMenu(); }, 500);
+  });
+  calBtn.addEventListener('pointerup', () => clearTimeout(longPressTimer));
+  calBtn.addEventListener('pointerleave', () => clearTimeout(longPressTimer));
+  // 클릭 시 longPress 플래그 확인 (longPress면 openCalendar 호출 막기)
+  const origClick = calBtn.onclick;
+  calBtn.addEventListener('click', (e) => {
+    if (longPressed) { e.stopPropagation(); e.preventDefault(); longPressed = false; }
+  }, true);
+  function toggleCalMenu() {
+    const open = calMenu.style.display !== 'none';
+    closeAllTopbarMenus();
+    if (!open) calMenu.style.display = 'block';
+  }
+  function closeAllTopbarMenus() {
+    document.querySelectorAll('.topbar-drop-menu').forEach(m => m.style.display = 'none');
+  }
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.topbar-drop')) closeAllTopbarMenus();
+  });
+  // 메뉴 항목 핸들러
+  calMenu.querySelectorAll('.tdm-item').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeAllTopbarMenus();
+      const act = el.dataset.act;
+      if (act === 'cal') openCalendar();
+      else if (act === 'today') openTodayMemo();
+      else if (act === 'insertDate') $('dateBtn').click();
+      else if (act === 'insertTag') $('dateTagBtn').click();
+    });
+  });
+  // 명함 상단 버튼
+  $('cardsTopBtn').addEventListener('click', openCardsModal);
+})();
+
+/* ============================================================
+   P1: 통합 태그 시스템 + @멘션 + 캘린더↔미팅 연결
+   ============================================================ */
+// 모든 엔티티의 태그를 모으는 전역 함수 (탭 + 명함)
+function getAllTags() {
+  const set = new Set();
+  (state.tabs || []).forEach(t => { if (t.tag) set.add(t.tag); });
+  (state.businessCards || []).forEach(c => (c.tags || []).forEach(t => set.add(t)));
+  return [...set].sort();
+}
+window.getAllTags = getAllTags;
+
+// @멘션: 메모 입력 중 @를 치면 자동완성 팝업
+(function p1_mention() {
+  let mentionBox = null;
+  let mentionRange = null;
+  let mentionItems = [];
+  let mentionSel = 0;
+
+  function closeMention() {
+    if (mentionBox) { mentionBox.remove(); mentionBox = null; }
+    mentionRange = null; mentionItems = []; mentionSel = 0;
+  }
+
+  function openMention(query, rect) {
+    closeMention();
+    // 탭 + 명함에서 매칭
+    const q = query.toLowerCase();
+    const tabHits = (state.tabs || [])
+      .filter(t => (t.name || '').toLowerCase().includes(q) && !t.locked)
+      .slice(0, 5)
+      .map(t => ({ type:'tab', id:t.id, label:t.name, sub:'메모' }));
+    const cardHits = (state.businessCards || [])
+      .filter(c => (c.name || '').toLowerCase().includes(q) ||
+                   (c.nameEn || '').toLowerCase().includes(q) ||
+                   (c.company || '').toLowerCase().includes(q))
+      .slice(0, 5)
+      .map(c => ({ type:'card', id:c.id, label:c.name || c.nameEn || c.email,
+                   sub: [c.company, c.position].filter(Boolean).join(' · ') || '명함' }));
+    mentionItems = [...cardHits, ...tabHits];
+    if (mentionItems.length === 0) return;
+    mentionBox = document.createElement('div');
+    mentionBox.className = 'mention-box';
+    mentionBox.style.cssText = `position:fixed; left:${rect.left}px; top:${rect.bottom + 4}px;
+      background:white; border:1px solid rgba(0,0,0,0.1); border-radius:6px;
+      box-shadow:0 6px 16px rgba(0,0,0,0.15); min-width:240px; max-width:320px;
+      z-index:9999; padding:4px; font-size:12px;`;
+    renderMention();
+    document.body.appendChild(mentionBox);
+  }
+
+  function renderMention() {
+    if (!mentionBox) return;
+    mentionBox.innerHTML = mentionItems.map((it, i) => `
+      <div class="mention-item" data-i="${i}" style="padding:6px 8px; border-radius:4px; cursor:pointer; display:flex; align-items:center; gap:6px; ${i===mentionSel?'background:var(--accent); color:white;':''}">
+        <svg class="ico" style="width:12px; height:12px; ${i===mentionSel?'stroke:white;':''}"><use href="#i-${it.type==='card'?'id-card':'note'}"/></svg>
+        <div style="flex:1; overflow:hidden;">
+          <div style="font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(it.label)}</div>
+          <div style="font-size:10px; opacity:${i===mentionSel?'0.85':'0.6'};">${escapeHtml(it.sub)}</div>
+        </div>
+      </div>
+    `).join('');
+    mentionBox.querySelectorAll('.mention-item').forEach(el => {
+      el.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        mentionSel = +el.dataset.i;
+        insertMention();
+      });
+    });
+  }
+
+  function insertMention() {
+    const it = mentionItems[mentionSel];
+    if (!it || !mentionRange) { closeMention(); return; }
+    // @query를 지우고 링크 삽입
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(mentionRange);
+    const span = it.type === 'card'
+      ? `<span class="mention mention-card" data-card-id="${it.id}" contenteditable="false" style="background:color-mix(in srgb, var(--accent) 15%, transparent); color:var(--accent); padding:1px 6px; border-radius:10px; font-weight:600; cursor:pointer;">@${escapeHtml(it.label)}</span>&nbsp;`
+      : `<span class="mention mention-tab" data-tab-id="${it.id}" contenteditable="false" style="background:color-mix(in srgb, #4caf50 15%, transparent); color:#2e7d32; padding:1px 6px; border-radius:10px; font-weight:600; cursor:pointer;">#${escapeHtml(it.label)}</span>&nbsp;`;
+    document.execCommand('insertHTML', false, span);
+    scheduleSave();
+    closeMention();
+  }
+
+  pageEl.addEventListener('input', (e) => {
+    const sel = window.getSelection();
+    if (!sel.rangeCount) { closeMention(); return; }
+    const r = sel.getRangeAt(0);
+    const node = r.startContainer;
+    if (node.nodeType !== 3) { closeMention(); return; }
+    const text = node.textContent.slice(0, r.startOffset);
+    const m = text.match(/@([^\s@]{0,20})$/);
+    if (!m) { closeMention(); return; }
+    const query = m[1];
+    const mRange = document.createRange();
+    mRange.setStart(node, r.startOffset - m[0].length);
+    mRange.setEnd(node, r.startOffset);
+    mentionRange = mRange;
+    const rect = r.getBoundingClientRect();
+    openMention(query, rect);
+  });
+  pageEl.addEventListener('keydown', (e) => {
+    if (!mentionBox) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); mentionSel = (mentionSel+1) % mentionItems.length; renderMention(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); mentionSel = (mentionSel-1+mentionItems.length) % mentionItems.length; renderMention(); }
+    else if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); insertMention(); }
+    else if (e.key === 'Escape') { e.preventDefault(); closeMention(); }
+  });
+  document.addEventListener('click', (e) => {
+    if (mentionBox && !e.target.closest('.mention-box')) closeMention();
+  });
+
+  // 기존 멘션 클릭 → 해당 명함/탭으로 이동
+  pageEl.addEventListener('click', (e) => {
+    const m = e.target.closest('.mention');
+    if (!m) return;
+    if (m.classList.contains('mention-card')) {
+      const id = m.dataset.cardId;
+      openCardsModal();
+      setTimeout(() => {
+        cardsState.selectedId = id;
+        renderCardsList();
+        renderCardsDetail(id);
+      }, 100);
+    } else if (m.classList.contains('mention-tab')) {
+      const id = m.dataset.tabId;
+      if (state.tabs.find(t => t.id === id)) setActive(id);
+    }
+  });
+})();
+
+// 명함 상세 패널에 "이 사람이 언급된 메모" 섹션 추가 (renderCardsDetail 확장)
+function getMemosReferencingCard(cardId) {
+  return (state.tabs || []).filter(t => {
+    if (t.locked) return false;
+    return (t.html || '').includes('data-card-id="' + cardId + '"');
+  });
+}
+window.getMemosReferencingCard = getMemosReferencingCard;
+
+/* ============================================================
+   P2: 통합 AI 진입점 (컨텍스트 감지) + 결과 영속화 헬퍼
+   ============================================================ */
+// Ctrl+Shift+A: 컨텍스트 감지 AI
+function smartAiEntry() {
+  const sel = window.getSelection();
+  const selText = sel && sel.toString().trim();
+  // 이미지 선택?
+  const selImg = sel && sel.anchorNode && sel.anchorNode.querySelector && sel.anchorNode.querySelector('img');
+  if (selText && selText.length > 5) {
+    // 텍스트 선택 → 요약/번역/개선 메뉴
+    showModalHtml('AI 작업 선택', `
+      <div style="padding:4px 0;">
+        <div style="font-size:11px; color:var(--ink-soft); margin-bottom:8px;">선택된 텍스트: "${escapeHtml(selText.slice(0, 60))}${selText.length>60?'…':''}" (${selText.length}자)</div>
+        <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:6px;">
+          <button class="sai-btn" data-a="summarize" style="padding:10px; background:var(--accent); color:white; border:none; border-radius:5px; cursor:pointer; font-size:12px;">요약</button>
+          <button class="sai-btn" data-a="improve" style="padding:10px; background:#4caf50; color:white; border:none; border-radius:5px; cursor:pointer; font-size:12px;">다듬기</button>
+          <button class="sai-btn" data-a="translate-ko" style="padding:10px; background:#2196f3; color:white; border:none; border-radius:5px; cursor:pointer; font-size:12px;">한국어 번역</button>
+          <button class="sai-btn" data-a="translate-en" style="padding:10px; background:#2196f3; color:white; border:none; border-radius:5px; cursor:pointer; font-size:12px;">영어 번역</button>
+          <button class="sai-btn" data-a="keypoints" style="padding:10px; background:#ff9800; color:white; border:none; border-radius:5px; cursor:pointer; font-size:12px;">핵심 추출</button>
+          <button class="sai-btn" data-a="tasks" style="padding:10px; background:#7e57c2; color:white; border:none; border-radius:5px; cursor:pointer; font-size:12px;">할 일 추출</button>
+        </div>
+      </div>
+    `);
+    setTimeout(() => {
+      document.querySelectorAll('.sai-btn').forEach(b => {
+        b.addEventListener('click', () => {
+          $('modal').classList.remove('open');
+          if (typeof runAiAction === 'function') runAiAction(b.dataset.a);
+        });
+      });
+    }, 50);
+  } else if (selImg) {
+    // 이미지 선택 → OCR 메뉴
+    toast('이미지 AI 모드 (OCR 버튼 사용 권장)');
+    if (typeof openOcrPicker === 'function') openOcrPicker();
+    else $('aiBtn').click();
+  } else {
+    // 기본 AI 모달
+    $('aiBtn').click();
+  }
+}
+
+// 결과를 새 탭으로 저장하는 헬퍼
+function saveAiResultAsTab(title, htmlContent) {
+  if (typeof addTab === 'function') {
+    addTab(title, htmlContent);
+    toast(`"${title}" 메모로 저장됨`);
+  }
+}
+window.saveAiResultAsTab = saveAiResultAsTab;
+
+/* ============================================================
+   P3: 모바일/반응형 — 좁은 화면에서 모달은 풀스크린 시트
+   ============================================================ */
+(function p3_responsive() {
+  const style = document.createElement('style');
+  style.textContent = `
+    @media (max-width: 640px) {
+      .modal-backdrop .modal {
+        max-width: 100vw !important;
+        max-height: 100vh !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        border-radius: 0 !important;
+        margin: 0 !important;
+      }
+      /* 명함관리 1단 레이아웃 */
+      #cardsModal #cardsSide { display: none !important; }
+      #cardsModal #cardsDetail {
+        position: fixed !important; inset: 0 !important; width: 100vw !important;
+        height: 100vh !important; border: none !important; z-index: 10 !important;
+        background: white !important;
+      }
+      /* 카드 편집 모달: 세로 배치 */
+      #cardEditModal .modal > div[style*="grid-template-columns:340px 1fr"] {
+        grid-template-columns: 1fr !important;
+      }
+      /* 토크바 드롭다운 메뉴 너비 */
+      .topbar-drop-menu { right: -8px; min-width: 200px; }
+      /* 툴바 가로 스크롤 허용 */
+      .toolbar { overflow-x: auto; flex-wrap: nowrap !important; }
+    }
+    /* 펜 자동 감지 힌트 */
+    .pen-hint-toast {
+      position:fixed; top:70px; right:20px; background:#7e57c2; color:white;
+      padding:10px 14px; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.2);
+      font-size:12px; z-index:10000; max-width:280px;
+    }
+  `;
+  document.head.appendChild(style);
+
+  // 펜 자동 감지 — 처음 pointerType='pen' 이벤트가 오면 안내
+  let penHinted = localStorage.getItem('pen-hint-shown') === '1';
+  pageEl.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'pen' && !penHinted) {
+      penHinted = true;
+      localStorage.setItem('pen-hint-shown', '1');
+      const hint = document.createElement('div');
+      hint.className = 'pen-hint-toast';
+      hint.innerHTML = `스타일러스가 감지됐습니다. <br><b>펜 모드</b>로 전환하시겠어요?
+        <div style="display:flex; gap:6px; margin-top:8px;">
+          <button id="penHintYes" style="flex:1; background:white; color:#7e57c2; border:none; padding:5px; border-radius:4px; cursor:pointer; font-size:11px; font-weight:600;">네, 전환</button>
+          <button id="penHintNo" style="background:transparent; color:white; border:1px solid rgba(255,255,255,0.5); padding:5px 10px; border-radius:4px; cursor:pointer; font-size:11px;">닫기</button>
+        </div>`;
+      document.body.appendChild(hint);
+      setTimeout(() => {
+        const yes = document.getElementById('penHintYes');
+        const no = document.getElementById('penHintNo');
+        if (yes) yes.addEventListener('click', () => {
+          hint.remove();
+          const penBtn = $('penModeBtn') || $('sketchBtn');
+          if (penBtn) penBtn.click();
+        });
+        if (no) no.addEventListener('click', () => hint.remove());
+      }, 50);
+      setTimeout(() => hint.remove(), 8000);
+    }
+  });
+})();
+
+/* ============================================================
+   P4: 명명 일관화 + 통합 Focus 세션
+   ============================================================ */
+// 통합 Focus: 포모도로 시작 시 집중 모드도 자동 토글하는 옵션
+function startFocusSession(minutes) {
+  if (typeof pomoStart === 'function') pomoStart();
+  // 집중 모드 자동 켜기
+  const focusBtn = $('focusBtn');
+  if (focusBtn && !document.body.classList.contains('focus-mode')) focusBtn.click();
+  toast(`${minutes || 25}분 집중 세션 시작`);
+}
+window.startFocusSession = startFocusSession;
+
+// 팔레트에 새 명령 추가
+if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
+  COMMANDS.push(
+    { ico:'i-sparkles', name:'AI 스마트 작업', desc:'선택 컨텍스트에 맞는 AI (Ctrl+Shift+A)', run: smartAiEntry },
+    { ico:'i-target', name:'집중 세션 시작', desc:'포모도로 + 집중 모드 자동 연계', run: startFocusSession },
+    { ico:'i-id-card', name:'명함 빠른 추가', desc:'명함관리 → 추가 모달', run: () => { openCardsModal(); setTimeout(() => openCardEditor(null), 100); } }
+  );
+}
+
+// Ctrl+Shift+A: 스마트 AI
+document.addEventListener('keydown', (e) => {
+  const ctrl = e.ctrlKey || e.metaKey;
+  if (ctrl && e.shiftKey && (e.key === 'a' || e.key === 'A')) {
+    e.preventDefault();
+    smartAiEntry();
+  }
+});
+
+// 기존 openCalSide / todayMemoSide / openCardsSide는 DOM에 숨김 상태로 남았으나
+// 이전에 걸린 핸들러가 span을 클릭해도 작동은 안 됨 (요소 숨김). 안전함.
+
+/* ============================================================
    명함관리 (Business Cards)
    ============================================================ */
 let cardsState = {
@@ -8398,10 +8792,18 @@ function closeCardsModal() {
   cardsState.selectedId = null;
 }
 function updateCardsCountBadge() {
-  const el = $('cardsCount'); if (!el) return;
   const n = (state.businessCards || []).length;
-  el.textContent = n;
-  el.style.display = n > 0 ? '' : 'none';
+  // topbar badge
+  const topBadge = $('cardsTopBadge');
+  if (topBadge) {
+    topBadge.textContent = n > 99 ? '99+' : n;
+    topBadge.classList.toggle('show', n > 0);
+  }
+  const el = $('cardsCount');
+  if (el) {
+    el.textContent = n;
+    el.style.display = n > 0 ? '' : 'none';
+  }
 }
 
 function getVisibleCards() {
@@ -8682,6 +9084,17 @@ function renderCardsDetail(id) {
       </div>
       ${history}
     </div>
+    ${(() => {
+      const refs = getMemosReferencingCard(c.id);
+      if (refs.length === 0) return '';
+      return `<div style="margin-top:12px;">
+        <div style="font-size:11px; font-weight:600; color:var(--ink-soft); margin-bottom:6px;">이 사람이 언급된 메모 (${refs.length})</div>
+        ${refs.slice(0, 5).map(t => `<div class="cd-ref-tab" data-tid="${t.id}" style="padding:6px 8px; background:color-mix(in srgb, #4caf50 8%, transparent); border-radius:4px; margin-bottom:3px; font-size:11px; cursor:pointer; display:flex; align-items:center; gap:6px;">
+          <svg class="ico" style="width:11px; height:11px; stroke:#2e7d32;"><use href="#i-note"/></svg>
+          ${escapeHtml(t.name)}
+        </div>`).join('')}
+      </div>`;
+    })()}
     <div style="margin-top:14px; display:flex; gap:6px; flex-wrap:wrap;">
       <button class="cd-bulk-btn" id="cdInsertBtn" style="flex:1; min-width:80px; background:var(--accent); color:white; border:none; padding:8px; border-radius:5px; cursor:pointer; font-size:12px;">메모 삽입</button>
       <button class="cd-bulk-btn" id="cdPhoneBtn" style="background:#ff6b35; color:white; border:none; padding:8px 10px; border-radius:5px; cursor:pointer; font-size:12px; display:flex; align-items:center; gap:4px;">
@@ -8740,6 +9153,14 @@ function renderCardsDetail(id) {
   if (fImg) fImg.addEventListener('click', () => openImageViewer(c.frontImg));
   const bImg = $('cdBackImg');
   if (bImg) bImg.addEventListener('click', () => openImageViewer(c.backImg));
+  // "이 사람이 언급된 메모" 클릭 → 탭 이동
+  body.querySelectorAll('.cd-ref-tab').forEach(el => {
+    el.addEventListener('click', () => {
+      const tid = el.dataset.tid;
+      closeCardsModal();
+      if (state.tabs.find(t => t.id === tid)) setActive(tid);
+    });
+  });
   // SNS 아이콘 버튼
   body.querySelectorAll('.sns-icon-btn').forEach(btn => {
     btn.addEventListener('click', () => {
