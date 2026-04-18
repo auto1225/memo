@@ -2779,6 +2779,14 @@
 .role-tool-card .rtc-ico { width:32px; height:32px; margin-bottom:6px; stroke:var(--accent); }
 .role-tool-card .rtc-name { font-weight:600; font-size:12px; }
 .role-tool-card .rtc-desc { font-size:10px; color:var(--ink-soft); margin-top:3px; }
+@keyframes roleFlash {
+  0%, 100% { background:transparent; box-shadow:none; }
+  25% { background:color-mix(in srgb, var(--accent) 25%, transparent); box-shadow:0 0 0 4px color-mix(in srgb, var(--accent) 40%, transparent); }
+  50% { background:color-mix(in srgb, var(--accent) 15%, transparent); box-shadow:0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent); }
+  75% { background:color-mix(in srgb, var(--accent) 22%, transparent); box-shadow:0 0 0 4px color-mix(in srgb, var(--accent) 35%, transparent); }
+}
+.role-flash { animation:roleFlash 1s ease-in-out 4; border-radius:8px; padding:4px; }
+.role-flash h4 { color:var(--accent) !important; font-weight:800 !important; }
 </style>
 
 <!-- ========== 이미지 변환기 모달 (크기/용량/포맷) ========== -->
@@ -3325,12 +3333,12 @@ function insertHtmlAtCursor(html) {
 
 /* 토스트 */
 let toastTimer = null;
-function toast(msg) {
+function toast(msg, duration) {
   const t = $('toast');
   t.textContent = msg;
   t.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+  toastTimer = setTimeout(() => t.classList.remove('show'), duration || 2200);
 }
 
 /* ============================================================
@@ -11420,16 +11428,36 @@ function applyRoles() {
   updateRoleBadge();
   renderSidebar();
   $('rolesModal').classList.remove('open');
+
+  // 사이드바 자동 열기 + 역할 섹션 하이라이트 (접근성 개선)
+  if (selected.length > 0) {
+    setTimeout(() => {
+      padEl.classList.add('show-sidebar');
+      const roleSection = $('roleSidebarSections');
+      if (roleSection) {
+        roleSection.classList.add('role-flash');
+        roleSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => roleSection.classList.remove('role-flash'), 4000);
+      }
+    }, 300);
+    // 역할 이름 나열한 안내
+    const roleNames = selected.map(r => ROLES[r]?.name).filter(Boolean).join(', ');
+    setTimeout(() => {
+      toast('👈 왼쪽 사이드바 "내 역할"에서 ' + roleNames + ' 전용 도구를 확인하세요', 5000);
+    }, 600);
+  }
+
   // 처음 선택한 역할에 대해 템플릿 생성 제안
   if (newOnes.length > 0) {
     const templateCount = newOnes.reduce((acc, r) => acc + (ROLES[r].templates?.length || 0), 0);
     if (templateCount > 0) {
-      confirm2('템플릿 자동 생성', `선택하신 역할에 맞는 메모 템플릿 ${templateCount}개를 자동 생성할까요?`, '생성', '나중에').then(ok => {
-        if (ok) generateRoleTemplates(newOnes);
-      });
+      setTimeout(() => {
+        confirm2('템플릿 자동 생성', `선택하신 역할에 맞는 메모 템플릿 ${templateCount}개를 자동 생성할까요?`, '생성', '나중에').then(ok => {
+          if (ok) generateRoleTemplates(newOnes);
+        });
+      }, 1200);
     }
   }
-  toast(selected.length > 0 ? `${selected.length}개 역할 설정됨` : '역할 해제됨');
 }
 function generateRoleTemplates(roleKeys) {
   let created = 0;
@@ -11452,6 +11480,18 @@ function updateRoleBadge() {
   const n = (state.userRoles || []).length;
   b.textContent = n;
   b.classList.toggle('show', n > 0);
+  // 상단바 👥 버튼 tooltip도 현재 역할명 반영 (즉시 발견성 향상)
+  const btn = $('roleDashTopBtn');
+  if (btn) {
+    if (n > 0) {
+      const roleNames = state.userRoles.map(r => ROLES[r]?.name).filter(Boolean).join(', ');
+      btn.title = '내 도구 (' + roleNames + ') · 시간표·가계부 등';
+      btn.style.background = 'rgba(255,255,255,0.25)';
+    } else {
+      btn.title = '역할 선택 — 학생/회사원/주부 등 상황별 도구';
+      btn.style.background = '';
+    }
+  }
 }
 
 $('rolesClose').addEventListener('click', () => $('rolesModal').classList.remove('open'));
