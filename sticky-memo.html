@@ -2650,6 +2650,14 @@
 }
 .ic-preset:hover, .ic-scale:hover, .ic-size-preset:hover, .ic-fmt:hover { background:#f3ebff; border-color:var(--accent); color:var(--accent); }
 .ic-fmt.active { background:var(--accent); color:white; border-color:var(--accent); font-weight:700; }
+@media (max-width: 820px) {
+  #imgCvtModal .modal > div[style*="grid-template-columns:340px 1fr"] {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto 1fr;
+  }
+  #imgCvtDrop { min-height:140px !important; }
+  #imgCvtPreview { max-height:140px !important; }
+}
 </style>
 
 <!-- ========== 명함관리 모달 ========== -->
@@ -10726,10 +10734,26 @@ const ImageConverter = (function() {
     }
 
     // 일반 변환 (품질 적용은 JPEG/WebP만)
-    if (state.format === 'image/jpeg' || state.format === 'image/webp') {
-      return canvas.toDataURL(state.format, state.quality);
+    try {
+      let result;
+      if (state.format === 'image/jpeg' || state.format === 'image/webp') {
+        result = canvas.toDataURL(state.format, state.quality);
+      } else {
+        result = canvas.toDataURL(state.format);
+      }
+      // 브라우저가 요청 포맷을 지원하지 않으면 image/png로 폴백함 (MIME 확인)
+      if (!result.startsWith('data:' + state.format)) {
+        // BMP 미지원 등 — 요청 포맷으로 인코딩 실패, PNG로 대체됨
+        const actualFmt = result.match(/^data:(image\/[a-z]+)/);
+        if (actualFmt && actualFmt[1] !== state.format) {
+          toast(`⚠ ${state.format.split('/')[1].toUpperCase()}은 이 브라우저에서 지원 안 함 → PNG로 저장됨`);
+        }
+      }
+      return result;
+    } catch (e) {
+      toast('변환 실패: 이미지가 너무 크거나 메모리 부족 — 크기를 줄여 다시 시도하세요');
+      return null;
     }
-    return canvas.toDataURL(state.format);
   }
 
   async function renderPreviewEstimate() {
@@ -10765,15 +10789,23 @@ const ImageConverter = (function() {
       e.target.value = '';
     });
     $('imgCvtPickBtn').addEventListener('click', () => $('imgCvtFileInput').click());
-    // 붙여넣기
-    $('imgCvtModal').addEventListener('paste', async (e) => {
+    // 붙여넣기 — 모달 열렸을 때 document 레벨에서 감지 (포커스 불필요)
+    document.addEventListener('paste', async (e) => {
       if (!$('imgCvtModal').classList.contains('open')) return;
+      // input/textarea에 포커스 있으면 원래 동작 보존 (텍스트 붙여넣기)
+      const tgt = e.target;
+      if (tgt && (tgt.tagName === 'INPUT' || tgt.tagName === 'TEXTAREA')) {
+        // 이미지 아이템이 없으면 무시
+        const items = e.clipboardData?.items;
+        if (!items || ![...items].some(it => it.type.startsWith('image/'))) return;
+      }
       const items = e.clipboardData?.items;
       if (!items) return;
       for (const it of items) {
         if (it.type.startsWith('image/')) {
           e.preventDefault();
-          await loadFromFile(it.getAsFile());
+          const file = it.getAsFile();
+          if (file) await loadFromFile(file);
           return;
         }
       }
@@ -10848,9 +10880,13 @@ const ImageConverter = (function() {
         'image/jpeg': 'JPG: 사진·웹 업로드에 적합 · 투명 배경 미지원 · 용량 조정 가능',
         'image/png': 'PNG: 무손실 · 투명 배경 · 일러스트/스크린샷 적합 · 용량 조정 불가',
         'image/webp': 'WebP: 최신 포맷 · 용량/품질 균형 최고 · iOS 14+ 지원',
-        'image/bmp': 'BMP: 비압축 · 용량 크지만 완벽 호환 · 구형 환경용'
+        'image/bmp': 'BMP: 비압축 · 용량 크지만 완벽 호환 · Safari 미지원 시 PNG로 대체'
       };
       $('icFmtNote').textContent = notes[state.format];
+      // PNG/BMP 선택 시 targetBytes 있으면 사용자에게 알림
+      if (!isLossy && state.targetBytes) {
+        toast(`⚠ ${state.format.split('/')[1].toUpperCase()}은 용량 자동 조정 불가 — JPG/WebP로 전환 추천`);
+      }
       renderPreviewEstimate();
     }));
 
