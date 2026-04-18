@@ -1414,7 +1414,10 @@
   <symbol id="i-polygon" viewBox="0 0 24 24"><polygon points="12 3 21 9 18 20 6 20 3 9" fill="none"/></symbol>
   <symbol id="i-undo" viewBox="0 0 24 24"><polyline points="3 10 7 6 3 2"/><path d="M3 10h12a5 5 0 0 1 0 10h-3"/></symbol>
   <symbol id="i-redo" viewBox="0 0 24 24"><polyline points="21 10 17 6 21 2"/><path d="M21 10H9a5 5 0 0 0 0 10h3"/></symbol>
-  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+  <symbol id="i-gradient" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" fill="none"/><line x1="4" y1="4" x2="20" y2="20" stroke-width="1"/><circle cx="7" cy="7" r="1" fill="currentColor"/><circle cx="17" cy="17" r="2" fill="currentColor"/></symbol>
+  <symbol id="i-symmetry" viewBox="0 0 24 24"><line x1="12" y1="3" x2="12" y2="21" stroke-dasharray="2 2"/><path d="M8 7l-3 5 3 5M16 7l3 5-3 5"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="9" y1="4" x2="9" y2="20"/><line x1="15" y1="4" x2="15" y2="20"/></symbol>
+  <symbol id="i-merge" viewBox="0 0 24 24"><path d="M8 3v4c0 2-4 4-4 6s4 4 4 6v2"/><path d="M16 3v4c0 2 4 4 4 6s-4 4-4 6v2"/></symbol>
   <symbol id="i-twitter" viewBox="0 0 24 24"><path d="M18 3h3l-7 9 8 9h-6l-5-6-6 6H2l8-9L2 3h6l4 5 6-5z" fill="currentColor" stroke="none"/></symbol>
   <symbol id="i-facebook" viewBox="0 0 24 24"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></symbol>
   <symbol id="i-instagram" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37a4 4 0 1 1-7.914 1.174A4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></symbol>
@@ -2261,6 +2264,7 @@
       <button id="paintNew" class="ptb" title="새로 만들기 (Ctrl+N)"><svg class="ico"><use href="#i-plus"/></svg>새로</button>
       <button id="paintOpen" class="ptb" title="이미지 열기 (Ctrl+O)"><svg class="ico"><use href="#i-upload"/></svg>열기</button>
       <button id="paintSave" class="ptb" title="PNG로 저장 (Ctrl+S)"><svg class="ico"><use href="#i-download"/></svg>저장</button>
+      <button id="paintAI" class="ptb" title="AI로 이미지 생성" style="background:linear-gradient(135deg, #7e57c2, #5e35b1); color:white; border:none;"><svg class="ico" style="stroke:white;"><use href="#i-sparkles"/></svg>AI 생성</button>
       <button id="paintInsert" class="ptb-primary" title="메모에 삽입 (Ctrl+Enter)"><svg class="ico" style="stroke:white;"><use href="#i-check"/></svg>메모 삽입</button>
       <button id="paintClose" class="ptb" title="닫기 (Esc)" style="padding:6px 8px;"><svg class="ico"><use href="#i-x"/></svg></button>
     </div>
@@ -2287,9 +2291,13 @@
       <!-- 기능 도구 -->
       <div class="pt-group" title="기능 도구">
         <button class="pt-btn pt-tool" data-tool="fill" title="채우기 - 같은색 영역 페인트 (G)"><svg class="ico"><use href="#i-bucket"/></svg></button>
+        <button class="pt-btn pt-tool" data-tool="gradient" title="그라디언트 (그라데이션 채우기)"><svg class="ico"><use href="#i-gradient"/></svg></button>
         <button class="pt-btn pt-tool" data-tool="eyedrop" title="스포이드 - 색 추출 (I)"><svg class="ico"><use href="#i-eyedrop"/></svg></button>
+        <button class="pt-btn pt-tool" data-tool="magicwand" title="마술봉 - 유사색 자동 선택 (W)"><svg class="ico"><use href="#i-wand"/></svg></button>
         <button class="pt-btn pt-tool" data-tool="text" title="텍스트 입력 (T)"><svg class="ico"><use href="#i-text-t"/></svg></button>
-        <button class="pt-btn pt-tool" data-tool="select" title="영역 선택 - 자르기용 (S)"><svg class="ico"><use href="#i-select"/></svg></button>
+        <button class="pt-btn pt-tool" data-tool="select" title="영역 선택 - 사각형 (S)"><svg class="ico"><use href="#i-select"/></svg></button>
+        <button class="pt-btn" id="pt-sym-toggle" title="대칭 그리기 토글"><svg class="ico"><use href="#i-symmetry"/></svg></button>
+        <button class="pt-btn" id="pt-grid-toggle" title="격자 표시 토글"><svg class="ico"><use href="#i-grid"/></svg></button>
       </div>
       <div class="pt-sep"></div>
 
@@ -2343,7 +2351,28 @@
         <div style="margin-top:12px; padding-top:10px; border-top:1px dashed #ddd;">
           <div class="pt-footer-label" style="margin-bottom:4px;">레이어 투명도</div>
           <input type="range" id="pt-layer-opacity" min="0" max="100" value="100" style="width:100%; accent-color:var(--accent);">
-          <div id="pt-layer-opacity-val" style="font-size:10px; text-align:center; color:var(--ink-soft);">100%</div>
+          <div id="pt-layer-opacity-val" style="font-size:10px; text-align:center; color:var(--ink-soft); margin-bottom:8px;">100%</div>
+          <div class="pt-footer-label" style="margin-bottom:4px;">블렌드 모드</div>
+          <select id="pt-layer-blend" style="width:100%; padding:4px 6px; font-size:11px; border:1px solid #d0c8e0; border-radius:4px; background:white;">
+            <option value="source-over">보통 (Normal)</option>
+            <option value="multiply">곱하기 (Multiply)</option>
+            <option value="screen">스크린 (Screen)</option>
+            <option value="overlay">오버레이 (Overlay)</option>
+            <option value="darken">어둡게 (Darken)</option>
+            <option value="lighten">밝게 (Lighten)</option>
+            <option value="color-dodge">닷지 (Color Dodge)</option>
+            <option value="color-burn">번 (Color Burn)</option>
+            <option value="hard-light">하드 라이트</option>
+            <option value="soft-light">소프트 라이트</option>
+            <option value="difference">차이 (Difference)</option>
+            <option value="exclusion">제외 (Exclusion)</option>
+            <option value="hue">색조 (Hue)</option>
+            <option value="saturation">채도 (Saturation)</option>
+            <option value="color">색상 (Color)</option>
+            <option value="luminosity">광도 (Luminosity)</option>
+          </select>
+          <button id="pt-layer-merge" class="ptb-mini" style="width:100%; margin-top:8px; justify-content:center;" title="아래 레이어와 병합"><svg class="ico" style="width:12px; height:12px;"><use href="#i-merge"/></svg>아래와 병합</button>
+          <button id="pt-layer-flatten" class="ptb-mini" style="width:100%; margin-top:4px; justify-content:center;" title="모든 레이어를 하나로 평탄화">전체 평탄화</button>
         </div>
       </div>
 
@@ -9394,10 +9423,16 @@ const Paint = (function() {
         drawPolygon(ictx, state.polyPoints, false);
         return;
       }
-      // 브러시류: 즉시 점 찍기
+      if (state.tool === 'magicwand') {
+        magicWandSelect(p.x, p.y);
+        state.isDrawing = false;
+        return;
+      }
+      // 브러시류: 즉시 점 찍기 + 대칭 지원
       pushUndo();
       if (['pencil','brush','marker','airbrush','eraser'].includes(state.tool)) {
-        drawBrush(ctx, p.x, p.y, p.x, p.y, e);
+        const pts = getSymmetryPoints(p.x, p.y);
+        pts.forEach(pt => drawBrush(ctx, pt.x, pt.y, pt.x, pt.y, e));
       }
     });
     iv.addEventListener('pointermove', (e) => {
@@ -9407,10 +9442,25 @@ const Paint = (function() {
       const ctx = getActiveCtx();
       const ictx = iv.getContext('2d');
       if (['pencil','brush','marker','airbrush','eraser'].includes(state.tool)) {
-        drawBrush(ctx, state.lastX, state.lastY, p.x, p.y, e);
+        const symCurr = getSymmetryPoints(p.x, p.y);
+        const symLast = getSymmetryPoints(state.lastX, state.lastY);
+        for (let si = 0; si < symCurr.length; si++) {
+          drawBrush(ctx, symLast[si].x, symLast[si].y, symCurr[si].x, symCurr[si].y, e);
+        }
       } else if (['line','rect','roundRect','ellipse','triangle','diamond','arrow','star','heart'].includes(state.tool)) {
         clearInteractive();
         drawShape(ictx, state.tool, state.startX, state.startY, p.x, p.y);
+      } else if (state.tool === 'gradient') {
+        clearInteractive();
+        // 미리보기: 시작~현재 선
+        ictx.strokeStyle = '#000';
+        ictx.setLineDash([3,3]);
+        ictx.lineWidth = 1;
+        ictx.beginPath();
+        ictx.moveTo(state.startX, state.startY);
+        ictx.lineTo(p.x, p.y);
+        ictx.stroke();
+        ictx.setLineDash([]);
       } else if (state.tool === 'select') {
         clearInteractive();
         ictx.strokeStyle = '#000';
@@ -9429,6 +9479,11 @@ const Paint = (function() {
       if (['line','rect','roundRect','ellipse','triangle','diamond','arrow','star','heart'].includes(state.tool)) {
         drawShape(ctx, state.tool, state.startX, state.startY, p.x, p.y);
         clearInteractive();
+      } else if (state.tool === 'gradient') {
+        clearInteractive();
+        const mode = e.shiftKey ? 'radial' : 'linear';
+        drawGradient(ctx, state.startX, state.startY, p.x, p.y, mode);
+        toast(mode === 'radial' ? '방사형 그라디언트' : '선형 그라디언트 (Shift로 방사형)');
       } else if (state.tool === 'select') {
         state.selection = {
           x: Math.min(state.startX, p.x), y: Math.min(state.startY, p.y),
@@ -9586,6 +9641,341 @@ const Paint = (function() {
     }
     ctx.putImageData(img, 0, 0);
     toast('배경 제거 완료 (근사 알고리즘)');
+  }
+
+  /* ---- 고급 필터 6종 ---- */
+  function applyAdvancedFilter(name) {
+    pushUndo();
+    const ctx = getActiveCtx();
+    const img = ctx.getImageData(0, 0, state.width, state.height);
+    const d = img.data;
+    const w = state.width, h = state.height;
+
+    if (name === 'blur') {
+      // 간단한 박스 블러 3x3
+      const copy = new Uint8ClampedArray(d);
+      for (let y = 1; y < h-1; y++) for (let x = 1; x < w-1; x++) {
+        let r=0, g=0, b=0;
+        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+          const i = ((y+dy)*w + (x+dx))*4;
+          r += copy[i]; g += copy[i+1]; b += copy[i+2];
+        }
+        const i = (y*w+x)*4;
+        d[i]=r/9; d[i+1]=g/9; d[i+2]=b/9;
+      }
+    } else if (name === 'sharpen') {
+      // 샤프닝 커널 [0,-1,0;-1,5,-1;0,-1,0]
+      const copy = new Uint8ClampedArray(d);
+      const K = [0,-1,0,-1,5,-1,0,-1,0];
+      for (let y = 1; y < h-1; y++) for (let x = 1; x < w-1; x++) {
+        let r=0, g=0, b=0;
+        for (let ky = -1; ky <= 1; ky++) for (let kx = -1; kx <= 1; kx++) {
+          const i = ((y+ky)*w + (x+kx))*4;
+          const k = K[(ky+1)*3 + (kx+1)];
+          r += copy[i]*k; g += copy[i+1]*k; b += copy[i+2]*k;
+        }
+        const i = (y*w+x)*4;
+        d[i]=Math.max(0, Math.min(255, r));
+        d[i+1]=Math.max(0, Math.min(255, g));
+        d[i+2]=Math.max(0, Math.min(255, b));
+      }
+    } else if (name === 'noise') {
+      for (let i = 0; i < d.length; i += 4) {
+        const n = (Math.random() - 0.5) * 60;
+        d[i]+=n; d[i+1]+=n; d[i+2]+=n;
+      }
+    } else if (name === 'pixelate') {
+      const block = 8;
+      for (let y = 0; y < h; y += block) for (let x = 0; x < w; x += block) {
+        let r=0, g=0, b=0, a=0, count=0;
+        for (let dy = 0; dy < block && y+dy < h; dy++)
+          for (let dx = 0; dx < block && x+dx < w; dx++) {
+            const i = ((y+dy)*w+(x+dx))*4;
+            r += d[i]; g += d[i+1]; b += d[i+2]; a += d[i+3]; count++;
+          }
+        r/=count; g/=count; b/=count; a/=count;
+        for (let dy = 0; dy < block && y+dy < h; dy++)
+          for (let dx = 0; dx < block && x+dx < w; dx++) {
+            const i = ((y+dy)*w+(x+dx))*4;
+            d[i]=r; d[i+1]=g; d[i+2]=b; d[i+3]=a;
+          }
+      }
+    } else if (name === 'emboss') {
+      const copy = new Uint8ClampedArray(d);
+      const K = [-2,-1,0,-1,1,1,0,1,2];
+      for (let y = 1; y < h-1; y++) for (let x = 1; x < w-1; x++) {
+        let r=0, g=0, b=0;
+        for (let ky = -1; ky <= 1; ky++) for (let kx = -1; kx <= 1; kx++) {
+          const i = ((y+ky)*w + (x+kx))*4;
+          const k = K[(ky+1)*3 + (kx+1)];
+          r += copy[i]*k; g += copy[i+1]*k; b += copy[i+2]*k;
+        }
+        const i = (y*w+x)*4;
+        d[i]=Math.max(0, Math.min(255, r+128));
+        d[i+1]=Math.max(0, Math.min(255, g+128));
+        d[i+2]=Math.max(0, Math.min(255, b+128));
+      }
+    } else if (name === 'edge') {
+      // Sobel 엣지 검출
+      const copy = new Uint8ClampedArray(d);
+      const KX = [-1,0,1,-2,0,2,-1,0,1];
+      const KY = [-1,-2,-1,0,0,0,1,2,1];
+      for (let y = 1; y < h-1; y++) for (let x = 1; x < w-1; x++) {
+        let gx=0, gy=0;
+        for (let ky = -1; ky <= 1; ky++) for (let kx = -1; kx <= 1; kx++) {
+          const i = ((y+ky)*w + (x+kx))*4;
+          const v = (copy[i]+copy[i+1]+copy[i+2])/3;
+          gx += v * KX[(ky+1)*3 + (kx+1)];
+          gy += v * KY[(ky+1)*3 + (kx+1)];
+        }
+        const mag = Math.min(255, Math.sqrt(gx*gx + gy*gy));
+        const i = (y*w+x)*4;
+        d[i]=d[i+1]=d[i+2]=mag;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+
+  /* ---- 그라디언트 ---- */
+  function drawGradient(ctx, x1, y1, x2, y2, mode) {
+    let grad;
+    if (mode === 'radial') {
+      const r = Math.hypot(x2-x1, y2-y1);
+      grad = ctx.createRadialGradient(x1, y1, 0, x1, y1, r);
+    } else {
+      grad = ctx.createLinearGradient(x1, y1, x2, y2);
+    }
+    grad.addColorStop(0, state.color1);
+    grad.addColorStop(1, state.color2);
+    ctx.fillStyle = grad;
+    ctx.globalAlpha = state.alpha;
+    ctx.fillRect(0, 0, state.width, state.height);
+    ctx.globalAlpha = 1;
+  }
+
+  /* ---- 마술봉 선택 ---- */
+  function magicWandSelect(x, y, tolerance = 30) {
+    const ctx = getActiveCtx();
+    const img = ctx.getImageData(0, 0, state.width, state.height);
+    const d = img.data;
+    const w = state.width, h = state.height;
+    const startIdx = (y*w+x)*4;
+    const tr = d[startIdx], tg = d[startIdx+1], tb = d[startIdx+2];
+    const mask = new Uint8Array(w*h);
+    const stack = [[x, y]];
+    while (stack.length) {
+      const [px, py] = stack.pop();
+      if (px < 0 || py < 0 || px >= w || py >= h) continue;
+      const mIdx = py*w + px;
+      if (mask[mIdx]) continue;
+      const i = mIdx * 4;
+      const dr = d[i]-tr, dg = d[i+1]-tg, db = d[i+2]-tb;
+      if (Math.sqrt(dr*dr+dg*dg+db*db) > tolerance) continue;
+      mask[mIdx] = 1;
+      stack.push([px+1,py], [px-1,py], [px,py+1], [px,py-1]);
+    }
+    // 경계 박스 계산
+    let minX=w, minY=h, maxX=0, maxY=0;
+    for (let yy = 0; yy < h; yy++) for (let xx = 0; xx < w; xx++) {
+      if (mask[yy*w+xx]) {
+        if (xx < minX) minX = xx;
+        if (xx > maxX) maxX = xx;
+        if (yy < minY) minY = yy;
+        if (yy > maxY) maxY = yy;
+      }
+    }
+    if (maxX < minX) return;
+    state.selection = { x: minX, y: minY, w: maxX-minX+1, h: maxY-minY+1, mask };
+    // 점선 표시
+    const iv = getInteractive();
+    const ictx = iv.getContext('2d');
+    clearInteractive();
+    ictx.strokeStyle = '#000';
+    ictx.setLineDash([4, 4]);
+    ictx.lineWidth = 1;
+    ictx.strokeRect(minX, minY, maxX-minX+1, maxY-minY+1);
+    ictx.setLineDash([]);
+    toast(`${Object.values(mask).filter(v=>v).length}픽셀 선택됨`);
+  }
+
+  /* ---- 복사/붙여넣기 ---- */
+  let clipboard = null;
+  function copySelection() {
+    if (!state.selection) { toast('먼저 영역을 선택하세요'); return; }
+    const s = state.selection;
+    const tc = document.createElement('canvas');
+    tc.width = s.w; tc.height = s.h;
+    const tx = tc.getContext('2d');
+    const src = state.layers[state.activeLayer].canvas;
+    tx.drawImage(src, -s.x, -s.y);
+    clipboard = tc.toDataURL();
+    toast(`선택 영역 복사됨 (${s.w}×${s.h})`);
+  }
+  function pasteClipboard() {
+    if (!clipboard) { toast('복사된 내용이 없습니다'); return; }
+    const img = new Image();
+    img.onload = () => {
+      pushUndo();
+      // 새 레이어에 붙여넣기
+      const l = newLayer('붙여넣기');
+      l.canvas.getContext('2d').drawImage(img, 20, 20);
+      state.layers.push(l);
+      state.activeLayer = state.layers.length - 1;
+      setupCanvasDOM(); renderLayerList();
+      toast('붙여넣기됨 (새 레이어)');
+    };
+    img.src = clipboard;
+  }
+
+  /* ---- 블렌드 모드 ---- */
+  function setLayerBlend(mode) {
+    const l = state.layers[state.activeLayer];
+    if (!l) return;
+    l.blend = mode;
+    l.canvas.style.mixBlendMode = mode === 'source-over' ? 'normal' :
+      (mode === 'color-dodge' ? 'color-dodge' :
+       mode === 'color-burn' ? 'color-burn' :
+       mode === 'hard-light' ? 'hard-light' :
+       mode === 'soft-light' ? 'soft-light' : mode);
+  }
+
+  /* ---- 레이어 병합 ---- */
+  function mergeDown() {
+    if (state.activeLayer === 0) { toast('아래에 병합할 레이어가 없습니다'); return; }
+    pushUndo();
+    const top = state.layers[state.activeLayer];
+    const bot = state.layers[state.activeLayer - 1];
+    const ctx = bot.canvas.getContext('2d');
+    ctx.globalAlpha = top.opacity;
+    ctx.globalCompositeOperation = top.blend || 'source-over';
+    ctx.drawImage(top.canvas, 0, 0);
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+    state.layers.splice(state.activeLayer, 1);
+    state.activeLayer--;
+    setupCanvasDOM(); renderLayerList();
+    toast('아래 레이어와 병합됨');
+  }
+  function flattenAll() {
+    if (state.layers.length <= 1) return;
+    pushUndo();
+    const merged = newLayer('배경 (평탄화)');
+    const ctx = merged.canvas.getContext('2d');
+    state.layers.forEach(l => {
+      if (!l.visible) return;
+      ctx.globalAlpha = l.opacity;
+      ctx.globalCompositeOperation = l.blend || 'source-over';
+      ctx.drawImage(l.canvas, 0, 0);
+    });
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+    state.layers = [merged];
+    state.activeLayer = 0;
+    setupCanvasDOM(); renderLayerList();
+    toast('모든 레이어가 하나로 평탄화됨');
+  }
+
+  /* ---- 대칭 그리기 ---- */
+  function getSymmetryPoints(x, y) {
+    const points = [{x, y}];
+    if (!state.symmetry || state.symmetry === 'none') return points;
+    const cx = state.width / 2, cy = state.height / 2;
+    if (state.symmetry === 'h' || state.symmetry === 'both') {
+      points.push({x: state.width - x, y});
+    }
+    if (state.symmetry === 'v' || state.symmetry === 'both') {
+      points.push({x, y: state.height - y});
+    }
+    if (state.symmetry === 'both') {
+      points.push({x: state.width - x, y: state.height - y});
+    }
+    return points;
+  }
+
+  /* ---- 격자 ---- */
+  function toggleGrid() {
+    state.gridOn = !state.gridOn;
+    drawGrid();
+    $('pt-grid-toggle').classList.toggle('active', state.gridOn);
+  }
+  function drawGrid() {
+    const iv = getInteractive();
+    const ictx = iv.getContext('2d');
+    clearInteractive();
+    if (!state.gridOn) return;
+    ictx.save();
+    ictx.strokeStyle = 'rgba(100,100,150,0.25)';
+    ictx.lineWidth = 0.5;
+    const step = 50;
+    for (let x = 0; x < state.width; x += step) {
+      ictx.beginPath();
+      ictx.moveTo(x, 0); ictx.lineTo(x, state.height); ictx.stroke();
+    }
+    for (let y = 0; y < state.height; y += step) {
+      ictx.beginPath();
+      ictx.moveTo(0, y); ictx.lineTo(state.width, y); ictx.stroke();
+    }
+    ictx.restore();
+  }
+
+  /* ---- AI 이미지 생성 ---- */
+  async function generateAIImage() {
+    const prompt = await prompt2('AI 이미지 설명', '(예: 해변에서 노을을 바라보는 고양이, 수채화 스타일)');
+    if (!prompt) return;
+    const prov = typeof getActiveProvider === 'function' ? getActiveProvider() : null;
+    if (!prov) { toast('AI 계정 연결 후 사용하세요'); return; }
+    toast('AI 이미지 생성 중…');
+    // 간단한 방식: AI에게 SVG 코드 생성 요청 → canvas에 렌더
+    try {
+      const sys = '당신은 SVG 일러스트레이터입니다. 사용자 요청에 맞춰 800x600 크기의 SVG 이미지 코드를 생성하세요. `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">`로 시작하고 `</svg>`로 끝내세요. 중간 설명 없이 SVG 코드만 반환. 간결하지만 아름답게.';
+      const result = await callAI(sys, '다음 장면을 SVG로 그려주세요: ' + prompt);
+      if (!result) { toast('AI 응답 실패'); return; }
+      const svgMatch = result.match(/<svg[\s\S]*<\/svg>/i);
+      if (!svgMatch) { toast('SVG 파싱 실패'); return; }
+      // SVG → data URL → canvas
+      const svg = svgMatch[0];
+      const blob = new Blob([svg], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const img = new Image();
+      img.onload = () => {
+        pushUndo();
+        const l = newLayer('AI 생성: ' + prompt.slice(0, 20));
+        l.canvas.getContext('2d').drawImage(img, 0, 0, state.width, state.height);
+        state.layers.push(l);
+        state.activeLayer = state.layers.length - 1;
+        setupCanvasDOM(); renderLayerList();
+        URL.revokeObjectURL(url);
+        toast('AI 이미지 추가됨');
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); toast('이미지 로드 실패'); };
+      img.src = url;
+    } catch (e) {
+      toast('오류: ' + e.message);
+    }
+  }
+
+  /* ---- 자동 저장 ---- */
+  function autoSave() {
+    try {
+      const data = compositeToDataURL('image/png');
+      const tc = document.createElement('canvas');
+      tc.width = 200; tc.height = 150;
+      // 간단 백업: 마지막 이미지만
+      localStorage.setItem('paint-autosave', JSON.stringify({
+        width: state.width, height: state.height,
+        data: data, ts: Date.now()
+      }));
+    } catch {}
+  }
+  function loadAutoSave() {
+    try {
+      const s = localStorage.getItem('paint-autosave');
+      if (!s) return;
+      const saved = JSON.parse(s);
+      if (Date.now() - saved.ts > 7*24*3600*1000) return; // 7일 이상은 무시
+      confirm2('자동 저장된 그림 복원', `${new Date(saved.ts).toLocaleString('ko-KR')}에 저장된 그림이 있습니다. 복원할까요?`)
+        .then(ok => { if (ok) loadImage(saved.data); });
+    } catch {}
   }
 
   function resizeCanvas(w, h) {
@@ -9761,6 +10151,56 @@ const Paint = (function() {
       }, 50);
     });
     $('pt-bg-remove').addEventListener('click', removeBackground);
+    // 신규 UI: 블렌드 모드, 병합/평탄화, 대칭, 격자, AI, 복사/붙여넣기
+    const blendSel = $('pt-layer-blend');
+    if (blendSel) blendSel.addEventListener('change', (e) => setLayerBlend(e.target.value));
+    const mergeBtn = $('pt-layer-merge');
+    if (mergeBtn) mergeBtn.addEventListener('click', mergeDown);
+    const flattenBtn = $('pt-layer-flatten');
+    if (flattenBtn) flattenBtn.addEventListener('click', flattenAll);
+    const gridBtn = $('pt-grid-toggle');
+    if (gridBtn) gridBtn.addEventListener('click', toggleGrid);
+    const symBtn = $('pt-sym-toggle');
+    if (symBtn) symBtn.addEventListener('click', () => {
+      const modes = ['none', 'h', 'v', 'both'];
+      const labels = ['꺼짐', '좌우 대칭', '상하 대칭', '사방 대칭'];
+      const cur = modes.indexOf(state.symmetry || 'none');
+      state.symmetry = modes[(cur + 1) % 4];
+      symBtn.classList.toggle('active', state.symmetry !== 'none');
+      toast('대칭: ' + labels[modes.indexOf(state.symmetry)]);
+    });
+    const aiBtn = $('paintAI');
+    if (aiBtn) aiBtn.addEventListener('click', generateAIImage);
+    // 필터 메뉴 확장
+    $('pt-filter-btn').addEventListener('click', () => {
+      const basicFilters = [['invert','반전색'],['grayscale','흑백'],['sepia','세피아'],['bright','밝게'],['contrast','대비증가']];
+      const advFilters = [['blur','블러'],['sharpen','샤프닝'],['noise','노이즈'],['pixelate','픽셀레이트'],['emboss','엠보스'],['edge','윤곽선 감지']];
+      showModalHtml('필터 적용', `
+        <div style="margin-bottom:10px;"><b>기본 필터</b></div>
+        <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:5px; margin-bottom:14px;">
+          ${basicFilters.map(([k,l]) => `<button class="pt-fil-opt" data-k="basic" data-f="${k}" style="padding:8px; background:#eee; border:none; border-radius:4px; cursor:pointer;">${l}</button>`).join('')}
+        </div>
+        <div style="margin-bottom:10px;"><b>고급 필터 (처리 시간 소요)</b></div>
+        <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:5px;">
+          ${advFilters.map(([k,l]) => `<button class="pt-fil-opt" data-k="adv" data-f="${k}" style="padding:8px; background:#f0e8ff; border:1px solid var(--accent); color:var(--accent); border-radius:4px; cursor:pointer;">${l}</button>`).join('')}
+        </div>
+      `);
+      setTimeout(() => {
+        document.querySelectorAll('.pt-fil-opt').forEach(b => {
+          b.addEventListener('click', async () => {
+            $('modal').classList.remove('open');
+            if (b.dataset.k === 'basic') applyFilter(b.dataset.f);
+            else {
+              toast('필터 처리 중…');
+              await new Promise(r => setTimeout(r, 50));
+              applyAdvancedFilter(b.dataset.f);
+              toast('완료');
+            }
+          });
+        });
+      }, 50);
+    });
+
     // 키보드 단축키
     document.addEventListener('keydown', (e) => {
       if (!$('paintModal').classList.contains('open')) return;
@@ -9772,12 +10212,83 @@ const Paint = (function() {
       if (ctrl && e.key.toLowerCase() === 's') { e.preventDefault(); $('paintSave').click(); return; }
       if (ctrl && e.key.toLowerCase() === 'n') { e.preventDefault(); $('paintNew').click(); return; }
       if (ctrl && e.key.toLowerCase() === 'o') { e.preventDefault(); $('paintOpen').click(); return; }
+      if (ctrl && e.key.toLowerCase() === 'c') { e.preventDefault(); copySelection(); return; }
+      if (ctrl && e.key.toLowerCase() === 'v') { e.preventDefault(); pasteClipboard(); return; }
       if (ctrl && e.key === 'Enter') { e.preventDefault(); $('paintInsert').click(); return; }
       if (e.key === 'Escape') { e.preventDefault(); $('paintClose').click(); return; }
       // 도구 단축키
-      const keys = { p:'pencil', b:'brush', e:'eraser', g:'fill', i:'eyedrop', t:'text', s:'select', l:'line' };
+      const keys = { p:'pencil', b:'brush', e:'eraser', g:'fill', i:'eyedrop', t:'text', s:'select', l:'line', w:'magicwand' };
       if (!ctrl && keys[e.key.toLowerCase()]) { setTool(keys[e.key.toLowerCase()]); }
     });
+
+    // Ctrl+휠 줌
+    $('pt-canvas-scroll').addEventListener('wheel', (e) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      e.preventDefault();
+      state.zoom = Math.max(0.1, Math.min(8, state.zoom * (e.deltaY < 0 ? 1.1 : 0.9)));
+      applyZoom();
+    }, { passive: false });
+
+    // 스페이스+드래그 팬
+    let panMode = false, panStart = null;
+    document.addEventListener('keydown', (e) => {
+      if (!$('paintModal').classList.contains('open')) return;
+      if (e.key === ' ' && !e.repeat && e.target.tagName !== 'INPUT') {
+        e.preventDefault();
+        panMode = true;
+        getInteractive().style.cursor = 'grab';
+      }
+    });
+    document.addEventListener('keyup', (e) => {
+      if (e.key === ' ') { panMode = false; getInteractive().style.cursor = ''; panStart = null; }
+    });
+    const scrollEl = $('pt-canvas-scroll');
+    scrollEl.addEventListener('pointerdown', (e) => {
+      if (!panMode) return;
+      e.preventDefault();
+      panStart = { x: e.clientX, y: e.clientY, sl: scrollEl.scrollLeft, st: scrollEl.scrollTop };
+      getInteractive().style.cursor = 'grabbing';
+    });
+    scrollEl.addEventListener('pointermove', (e) => {
+      if (!panMode || !panStart) return;
+      scrollEl.scrollLeft = panStart.sl - (e.clientX - panStart.x);
+      scrollEl.scrollTop = panStart.st - (e.clientY - panStart.y);
+    });
+    scrollEl.addEventListener('pointerup', () => { panStart = null; if (panMode) getInteractive().style.cursor = 'grab'; });
+
+    // 클립보드 이미지 붙여넣기 (시스템)
+    $('paintModal').addEventListener('paste', async (e) => {
+      if (!$('paintModal').classList.contains('open')) return;
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const it of items) {
+        if (it.type.startsWith('image/')) {
+          e.preventDefault();
+          const blob = it.getAsFile();
+          const r = new FileReader();
+          r.onload = () => {
+            const img = new Image();
+            img.onload = () => {
+              pushUndo();
+              const l = newLayer('붙여넣기 ' + new Date().toLocaleTimeString('ko-KR'));
+              l.canvas.getContext('2d').drawImage(img, 0, 0);
+              state.layers.push(l);
+              state.activeLayer = state.layers.length - 1;
+              setupCanvasDOM(); renderLayerList();
+              toast('클립보드 이미지 붙여넣기됨');
+            };
+            img.src = r.result;
+          };
+          r.readAsDataURL(blob);
+          return;
+        }
+      }
+    });
+
+    // 자동 저장 (30초마다)
+    setInterval(() => {
+      if ($('paintModal').classList.contains('open') && state.layers.length > 0) autoSave();
+    }, 30000);
   }
 
   let inited = false;
