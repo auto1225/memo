@@ -2252,21 +2252,21 @@
 <div class="modal-backdrop" id="paintModal">
   <div class="modal" style="width:min(1200px,98vw); height:min(800px,94vh); display:flex; flex-direction:column; padding:0; gap:0;">
     <!-- 헤더 -->
-    <div id="paintHeader" style="display:flex; align-items:center; gap:6px; padding:8px 12px; border-bottom:1px solid var(--paper-edge); background:color-mix(in srgb, var(--accent) 8%, transparent);">
-      <svg class="ico" style="stroke:var(--accent); width:20px; height:20px;"><use href="#i-brush"/></svg>
-      <h3 style="margin:0; font-size:14px;">그림판</h3>
-      <span id="paintFileName" style="font-size:11px; color:var(--ink-soft); margin-left:8px;">무제</span>
-      <span style="flex:1;"></span>
-      <span id="paintStatus" style="font-size:11px; color:var(--ink-soft); margin-right:12px;"></span>
-      <button id="paintNew" class="ptb" title="새로 만들기 (Ctrl+N)"><svg class="ico"><use href="#i-plus"/></svg></button>
-      <button id="paintOpen" class="ptb" title="이미지 열기 (Ctrl+O)"><svg class="ico"><use href="#i-upload"/></svg></button>
-      <button id="paintSave" class="ptb" title="PNG로 저장 (Ctrl+S)"><svg class="ico"><use href="#i-download"/></svg></button>
-      <button id="paintInsert" class="ptb-primary" title="메모에 삽입 (Ctrl+Enter)">메모 삽입</button>
-      <button id="paintClose" class="ptb" title="닫기 (Esc)"><svg class="ico"><use href="#i-x"/></svg></button>
+    <div id="paintHeader" style="display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid var(--paper-edge); background:linear-gradient(180deg, color-mix(in srgb, var(--accent) 10%, white), color-mix(in srgb, var(--accent) 5%, white)); white-space:nowrap;">
+      <svg class="ico" style="stroke:var(--accent); width:22px; height:22px; flex-shrink:0;"><use href="#i-brush"/></svg>
+      <h3 style="margin:0; font-size:15px; font-weight:700; color:var(--accent); flex-shrink:0;">그림판</h3>
+      <span style="color:#bbb; flex-shrink:0;">·</span>
+      <span id="paintFileName" style="font-size:12px; color:var(--ink-soft); flex:1; overflow:hidden; text-overflow:ellipsis;">무제</span>
+      <span id="paintStatus" style="font-size:11px; color:var(--ink-soft); margin-right:4px;"></span>
+      <button id="paintNew" class="ptb" title="새로 만들기 (Ctrl+N)"><svg class="ico"><use href="#i-plus"/></svg>새로</button>
+      <button id="paintOpen" class="ptb" title="이미지 열기 (Ctrl+O)"><svg class="ico"><use href="#i-upload"/></svg>열기</button>
+      <button id="paintSave" class="ptb" title="PNG로 저장 (Ctrl+S)"><svg class="ico"><use href="#i-download"/></svg>저장</button>
+      <button id="paintInsert" class="ptb-primary" title="메모에 삽입 (Ctrl+Enter)"><svg class="ico" style="stroke:white;"><use href="#i-check"/></svg>메모 삽입</button>
+      <button id="paintClose" class="ptb" title="닫기 (Esc)" style="padding:6px 8px;"><svg class="ico"><use href="#i-x"/></svg></button>
     </div>
 
     <!-- 툴바 -->
-    <div id="paintToolbar" style="display:flex; gap:8px; padding:6px 10px; border-bottom:1px solid var(--paper-edge); background:#fafafa; flex-wrap:wrap; align-items:center;">
+    <div id="pt-toolbar" style="display:flex; gap:6px; padding:8px 12px; border-bottom:1px solid var(--paper-edge); background:linear-gradient(180deg, #fcfbff, #f6f1fc); flex-wrap:wrap; align-items:center;">
       <!-- Undo/Redo -->
       <div class="pt-group">
         <button class="pt-btn" id="pt-undo" title="되돌리기 (Ctrl+Z)"><svg class="ico"><use href="#i-undo"/></svg></button>
@@ -2274,46 +2274,52 @@
       </div>
       <div class="pt-sep"></div>
 
-      <!-- 도구 -->
-      <div class="pt-group">
+      <!-- 브러시 도구 -->
+      <div class="pt-group" title="브러시 도구">
         <button class="pt-btn pt-tool" data-tool="pencil" title="연필 (P)"><svg class="ico"><use href="#i-pencil"/></svg></button>
-        <button class="pt-btn pt-tool" data-tool="brush" title="브러시 (B)"><svg class="ico"><use href="#i-brush"/></svg></button>
-        <button class="pt-btn pt-tool" data-tool="marker" title="마커"><svg class="ico"><use href="#i-highlight"/></svg></button>
-        <button class="pt-btn pt-tool" data-tool="airbrush" title="에어브러시"><svg class="ico"><use href="#i-spray"/></svg></button>
+        <button class="pt-btn pt-tool" data-tool="brush" title="브러시 · 필압 감지 (B)"><svg class="ico"><use href="#i-brush"/></svg></button>
+        <button class="pt-btn pt-tool" data-tool="marker" title="마커 · 반투명"><svg class="ico"><use href="#i-highlight"/></svg></button>
+        <button class="pt-btn pt-tool" data-tool="airbrush" title="에어브러시 · 스프레이"><svg class="ico"><use href="#i-spray"/></svg></button>
         <button class="pt-btn pt-tool" data-tool="eraser" title="지우개 (E)"><svg class="ico"><use href="#i-eraser"/></svg></button>
-        <button class="pt-btn pt-tool" data-tool="fill" title="채우기 (G)"><svg class="ico"><use href="#i-bucket"/></svg></button>
-        <button class="pt-btn pt-tool" data-tool="eyedrop" title="스포이드 (I)"><svg class="ico"><use href="#i-eyedrop"/></svg></button>
-        <button class="pt-btn pt-tool" data-tool="text" title="텍스트 (T)"><svg class="ico"><use href="#i-text-t"/></svg></button>
-        <button class="pt-btn pt-tool" data-tool="select" title="영역 선택 (S)"><svg class="ico"><use href="#i-select"/></svg></button>
+      </div>
+      <div class="pt-sep"></div>
+
+      <!-- 기능 도구 -->
+      <div class="pt-group" title="기능 도구">
+        <button class="pt-btn pt-tool" data-tool="fill" title="채우기 - 같은색 영역 페인트 (G)"><svg class="ico"><use href="#i-bucket"/></svg></button>
+        <button class="pt-btn pt-tool" data-tool="eyedrop" title="스포이드 - 색 추출 (I)"><svg class="ico"><use href="#i-eyedrop"/></svg></button>
+        <button class="pt-btn pt-tool" data-tool="text" title="텍스트 입력 (T)"><svg class="ico"><use href="#i-text-t"/></svg></button>
+        <button class="pt-btn pt-tool" data-tool="select" title="영역 선택 - 자르기용 (S)"><svg class="ico"><use href="#i-select"/></svg></button>
       </div>
       <div class="pt-sep"></div>
 
       <!-- 도형 -->
-      <div class="pt-group">
-        <button class="pt-btn pt-tool" data-tool="line" title="직선"><svg class="ico"><use href="#i-line"/></svg></button>
+      <div class="pt-group" title="도형">
+        <button class="pt-btn pt-tool" data-tool="line" title="직선 (L)"><svg class="ico"><use href="#i-line"/></svg></button>
         <button class="pt-btn pt-tool" data-tool="rect" title="사각형"><svg class="ico"><use href="#i-square"/></svg></button>
-        <button class="pt-btn pt-tool" data-tool="roundRect" title="둥근사각형"><svg class="ico"><use href="#i-round-square"/></svg></button>
-        <button class="pt-btn pt-tool" data-tool="ellipse" title="타원/원"><svg class="ico"><use href="#i-circle"/></svg></button>
+        <button class="pt-btn pt-tool" data-tool="roundRect" title="둥근 사각형"><svg class="ico"><use href="#i-round-square"/></svg></button>
+        <button class="pt-btn pt-tool" data-tool="ellipse" title="타원·원"><svg class="ico"><use href="#i-circle"/></svg></button>
         <button class="pt-btn pt-tool" data-tool="triangle" title="삼각형"><svg class="ico"><use href="#i-triangle"/></svg></button>
         <button class="pt-btn pt-tool" data-tool="diamond" title="다이아몬드"><svg class="ico"><use href="#i-diamond"/></svg></button>
         <button class="pt-btn pt-tool" data-tool="arrow" title="화살표"><svg class="ico"><use href="#i-arrow-right"/></svg></button>
         <button class="pt-btn pt-tool" data-tool="star" title="별"><svg class="ico"><use href="#i-star"/></svg></button>
         <button class="pt-btn pt-tool" data-tool="heart" title="하트"><svg class="ico"><use href="#i-heart"/></svg></button>
-        <button class="pt-btn pt-tool" data-tool="polygon" title="다각형(클릭으로 점 추가, 더블클릭 완료)"><svg class="ico"><use href="#i-polygon"/></svg></button>
+        <button class="pt-btn pt-tool" data-tool="polygon" title="다각형 — 클릭으로 점 추가, 더블클릭 완료"><svg class="ico"><use href="#i-polygon"/></svg></button>
       </div>
       <div class="pt-sep"></div>
 
       <!-- 두께 -->
-      <div class="pt-group" style="gap:6px;">
-        <span style="font-size:11px; color:var(--ink-soft);">두께</span>
-        <input type="range" id="pt-size" min="1" max="50" value="3" style="width:80px;">
-        <span id="pt-size-val" style="font-size:11px; min-width:22px; text-align:right;">3px</span>
+      <div class="pt-group" style="gap:8px;">
+        <span class="pt-footer-label">두께</span>
+        <input type="range" id="pt-size" min="1" max="50" value="3" style="width:90px; accent-color:var(--accent);">
+        <span id="pt-size-val" style="font-size:11px; min-width:30px; text-align:right; font-weight:600; color:var(--accent);">3px</span>
       </div>
       <div class="pt-sep"></div>
 
       <!-- 채우기 스타일 -->
-      <div class="pt-group">
-        <select id="pt-fill-style" style="padding:4px; border:1px solid #ccc; border-radius:4px; font-size:11px;">
+      <div class="pt-group" style="gap:6px;">
+        <span class="pt-footer-label">스타일</span>
+        <select id="pt-fill-style" style="padding:5px 7px; border:1px solid #d0c8e0; border-radius:4px; font-size:11px; background:white; cursor:pointer;">
           <option value="stroke">테두리만</option>
           <option value="fill">채우기만</option>
           <option value="both">테두리+채우기</option>
@@ -2324,68 +2330,88 @@
     <!-- 본문: 좌측 레이어 | 캔버스 | 우측 색상 -->
     <div style="display:flex; flex:1; min-height:0; gap:0;">
       <!-- 레이어 패널 -->
-      <div id="pt-layers-panel" style="width:160px; border-right:1px solid var(--paper-edge); padding:10px 8px; background:#fafafa; overflow-y:auto; flex-shrink:0;">
-        <div style="display:flex; align-items:center; gap:4px; margin-bottom:8px;">
-          <span style="font-size:11px; font-weight:600;">레이어</span>
+      <div id="pt-layers-panel" style="width:190px; border-right:1px solid var(--paper-edge); padding:12px 10px; background:#fbfbfd; overflow-y:auto; flex-shrink:0;">
+        <div class="pt-panel-header">
+          <svg class="ico" style="width:14px; height:14px; stroke:var(--accent);"><use href="#i-pages"/></svg>
+          <span class="pt-panel-title">레이어</span>
           <span style="flex:1;"></span>
-          <button id="pt-layer-add" class="ptb-mini" title="레이어 추가"><svg class="ico" style="width:12px; height:12px;"><use href="#i-plus"/></svg></button>
-          <button id="pt-layer-dup" class="ptb-mini" title="복제"><svg class="ico" style="width:12px; height:12px;"><use href="#i-copy"/></svg></button>
-          <button id="pt-layer-del" class="ptb-mini" title="삭제"><svg class="ico" style="width:12px; height:12px;"><use href="#i-trash"/></svg></button>
+          <button id="pt-layer-add" class="ptb-mini" title="레이어 추가" style="padding:3px 6px;"><svg class="ico" style="width:12px; height:12px;"><use href="#i-plus"/></svg></button>
+          <button id="pt-layer-dup" class="ptb-mini" title="복제" style="padding:3px 6px;"><svg class="ico" style="width:12px; height:12px;"><use href="#i-copy"/></svg></button>
+          <button id="pt-layer-del" class="ptb-mini" title="삭제" style="padding:3px 6px;"><svg class="ico" style="width:12px; height:12px;"><use href="#i-trash"/></svg></button>
         </div>
         <div id="pt-layer-list"></div>
+        <div style="margin-top:12px; padding-top:10px; border-top:1px dashed #ddd;">
+          <div class="pt-footer-label" style="margin-bottom:4px;">레이어 투명도</div>
+          <input type="range" id="pt-layer-opacity" min="0" max="100" value="100" style="width:100%; accent-color:var(--accent);">
+          <div id="pt-layer-opacity-val" style="font-size:10px; text-align:center; color:var(--ink-soft);">100%</div>
+        </div>
       </div>
 
       <!-- 캔버스 영역 -->
-      <div id="pt-canvas-wrap" style="flex:1; display:flex; flex-direction:column; background:#e0e0e0; min-width:0;">
-        <div id="pt-canvas-scroll" style="flex:1; overflow:auto; position:relative; background:#ccc;">
+      <div id="pt-canvas-wrap" style="flex:1; display:flex; flex-direction:column; background:#e8e4f0; min-width:0;">
+        <div id="pt-canvas-scroll" style="flex:1; overflow:auto; position:relative; background:linear-gradient(135deg, #d8d0e0, #e8e0f0);">
           <div id="pt-canvas-container" style="padding:20px; width:max-content; height:max-content; position:relative;">
-            <div id="pt-canvas-stack" style="position:relative; background:white; box-shadow:0 4px 20px rgba(0,0,0,0.3);">
-              <!-- 레이어 캔버스들이 여기 겹쳐 렌더됨 -->
+            <div id="pt-canvas-stack" style="position:relative; background:white; box-shadow:0 6px 30px rgba(50,20,100,0.25), 0 1px 3px rgba(0,0,0,0.1);">
               <canvas id="pt-interactive" style="position:absolute; top:0; left:0; pointer-events:auto;"></canvas>
             </div>
           </div>
         </div>
         <!-- 하단 -->
-        <div id="pt-footer" style="display:flex; align-items:center; gap:6px; padding:6px 10px; border-top:1px solid var(--paper-edge); background:white; font-size:11px;">
-          <button class="ptb-mini" id="pt-zoom-out"><svg class="ico" style="width:12px; height:12px;"><use href="#i-minus"/></svg></button>
-          <span id="pt-zoom-val" style="min-width:42px; text-align:center;">100%</span>
-          <button class="ptb-mini" id="pt-zoom-in"><svg class="ico" style="width:12px; height:12px;"><use href="#i-plus-small"/></svg></button>
-          <button class="ptb-mini" id="pt-zoom-fit" title="맞춤">맞춤</button>
-          <button class="ptb-mini" id="pt-zoom-100" title="100%">1:1</button>
-          <div class="pt-sep" style="height:14px;"></div>
-          <span id="pt-canvas-info" style="color:var(--ink-soft);">800 × 600</span>
-          <span style="flex:1;"></span>
-          <span id="pt-cursor-info" style="color:var(--ink-soft); font-family:monospace;">—</span>
-          <div class="pt-sep" style="height:14px;"></div>
-          <button class="ptb-mini" id="pt-resize-btn">크기 변경</button>
-          <button class="ptb-mini" id="pt-rotate-btn" title="회전/반전">회전</button>
-          <button class="ptb-mini" id="pt-crop-btn" title="자르기 (선택 필요)">자르기</button>
-          <button class="ptb-mini" id="pt-filter-btn" title="필터">필터</button>
-          <button class="ptb-mini" id="pt-bg-remove" title="배경 제거 (Magic)">배경제거</button>
+        <div id="pt-footer" style="display:flex; align-items:center; gap:6px; padding:8px 12px; border-top:1px solid var(--paper-edge); background:white; font-size:11px; flex-wrap:nowrap; overflow-x:auto;">
+          <!-- 줌 그룹 -->
+          <div class="pt-group" style="gap:2px;">
+            <button class="ptb-mini" id="pt-zoom-out" title="축소"><svg class="ico" style="width:12px; height:12px;"><use href="#i-minus"/></svg></button>
+            <span id="pt-zoom-val" style="min-width:48px; text-align:center; font-weight:600; color:var(--accent);">100%</span>
+            <button class="ptb-mini" id="pt-zoom-in" title="확대"><svg class="ico" style="width:12px; height:12px;"><use href="#i-plus-small"/></svg></button>
+            <button class="ptb-mini" id="pt-zoom-fit" title="화면에 맞춤">맞춤</button>
+            <button class="ptb-mini" id="pt-zoom-100" title="실제 크기 (100%)">1:1</button>
+          </div>
+          <div class="pt-sep"></div>
+
+          <!-- 크기 정보 -->
+          <span class="pt-footer-label">캔버스</span>
+          <span id="pt-canvas-info" style="color:var(--ink); font-weight:600;">800 × 600</span>
+          <div class="pt-sep"></div>
+          <span class="pt-footer-label">커서</span>
+          <span id="pt-cursor-info" style="color:var(--ink); font-family:monospace; min-width:60px;">—</span>
+
+          <span style="flex:1; min-width:8px;"></span>
+
+          <!-- 이미지 편집 그룹 -->
+          <div class="pt-group" style="gap:3px;">
+            <button class="ptb-mini" id="pt-resize-btn" title="캔버스 크기 변경"><svg class="ico" style="width:12px; height:12px;"><use href="#i-resize"/></svg>크기변경</button>
+            <button class="ptb-mini" id="pt-rotate-btn" title="회전 / 반전"><svg class="ico" style="width:12px; height:12px;"><use href="#i-rotate"/></svg>회전</button>
+            <button class="ptb-mini" id="pt-crop-btn" title="자르기 (영역 선택 후)"><svg class="ico" style="width:12px; height:12px;"><use href="#i-crop"/></svg>자르기</button>
+            <button class="ptb-mini" id="pt-filter-btn" title="필터 적용"><svg class="ico" style="width:12px; height:12px;"><use href="#i-sparkles"/></svg>필터</button>
+            <button class="ptb-mini" id="pt-bg-remove" title="배경 제거 (자동)"><svg class="ico" style="width:12px; height:12px;"><use href="#i-wand"/></svg>배경제거</button>
+          </div>
         </div>
       </div>
 
       <!-- 색상 패널 -->
-      <div id="pt-color-panel" style="width:200px; border-left:1px solid var(--paper-edge); padding:10px; background:#fafafa; overflow-y:auto; flex-shrink:0;">
-        <div style="font-size:11px; font-weight:600; margin-bottom:6px;">색상</div>
-        <div style="display:flex; gap:6px; margin-bottom:10px; align-items:center;">
-          <div style="position:relative;">
-            <label style="font-size:9px; color:var(--ink-soft);">전경(색상1)</label>
-            <input type="color" id="pt-color1" value="#000000" style="width:50px; height:40px; border:2px solid #333; border-radius:4px; cursor:pointer;">
+      <div id="pt-color-panel" style="width:220px; border-left:1px solid var(--paper-edge); padding:12px; background:#fbfbfd; overflow-y:auto; flex-shrink:0;">
+        <div class="pt-panel-header" style="margin-bottom:10px;">
+          <svg class="ico" style="width:14px; height:14px; stroke:var(--accent);"><use href="#i-palette"/></svg>
+          <span class="pt-panel-title">색상</span>
+        </div>
+        <div style="display:flex; gap:8px; margin-bottom:14px; align-items:flex-end; justify-content:center;">
+          <div style="display:flex; flex-direction:column; align-items:center; gap:3px;">
+            <label style="font-size:9px; color:var(--ink-soft); font-weight:600;">전경</label>
+            <input type="color" id="pt-color1" value="#000000" style="width:56px; height:44px; border:2px solid var(--accent); border-radius:5px; cursor:pointer; padding:0; background:white; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
           </div>
-          <button id="pt-color-swap" class="ptb-mini" title="색상1↔2 전환" style="padding:4px 6px;"><svg class="ico" style="width:12px; height:12px;"><use href="#i-refresh"/></svg></button>
-          <div style="position:relative;">
-            <label style="font-size:9px; color:var(--ink-soft);">배경(색상2)</label>
-            <input type="color" id="pt-color2" value="#ffffff" style="width:50px; height:40px; border:2px solid #999; border-radius:4px; cursor:pointer;">
+          <button id="pt-color-swap" class="ptb-mini" title="전경↔배경 교체" style="padding:5px 6px; margin-bottom:4px;"><svg class="ico" style="width:13px; height:13px;"><use href="#i-refresh"/></svg></button>
+          <div style="display:flex; flex-direction:column; align-items:center; gap:3px;">
+            <label style="font-size:9px; color:var(--ink-soft); font-weight:600;">배경</label>
+            <input type="color" id="pt-color2" value="#ffffff" style="width:56px; height:44px; border:2px solid #bbb; border-radius:5px; cursor:pointer; padding:0; background:white; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
           </div>
         </div>
-        <div style="font-size:10px; color:var(--ink-soft); margin-bottom:4px;">팔레트</div>
-        <div id="pt-palette" style="display:grid; grid-template-columns:repeat(6, 1fr); gap:3px; margin-bottom:10px;"></div>
-        <div style="font-size:10px; color:var(--ink-soft); margin-bottom:4px;">최근 색상</div>
-        <div id="pt-recent" style="display:grid; grid-template-columns:repeat(6, 1fr); gap:3px; margin-bottom:10px; min-height:22px;"></div>
-        <div style="font-size:10px; color:var(--ink-soft); margin-bottom:4px;">투명도</div>
-        <input type="range" id="pt-alpha" min="0" max="100" value="100" style="width:100%;">
-        <div id="pt-alpha-val" style="font-size:10px; text-align:center; color:var(--ink-soft);">100%</div>
+        <div class="pt-footer-label" style="margin-bottom:5px;">팔레트 · 우클릭=배경색</div>
+        <div id="pt-palette" style="display:grid; grid-template-columns:repeat(6, 1fr); gap:4px; margin-bottom:14px;"></div>
+        <div class="pt-footer-label" style="margin-bottom:5px;">최근 색상</div>
+        <div id="pt-recent" style="display:grid; grid-template-columns:repeat(6, 1fr); gap:4px; margin-bottom:14px; min-height:24px;"></div>
+        <div class="pt-footer-label" style="margin-bottom:5px;">투명도</div>
+        <input type="range" id="pt-alpha" min="0" max="100" value="100" style="width:100%; accent-color:var(--accent);">
+        <div id="pt-alpha-val" style="font-size:11px; text-align:center; color:var(--ink); font-weight:600; margin-top:3px;">100%</div>
       </div>
     </div>
   </div>
@@ -2393,26 +2419,62 @@
 </div>
 
 <style>
-.ptb, .ptb-primary, .ptb-mini { background:transparent; border:1px solid #d0c8e0; padding:5px 8px; border-radius:4px; cursor:pointer; color:#555; }
-.ptb:hover, .ptb-mini:hover { background:#e8dcf5; color:var(--accent); }
-.ptb-primary { background:var(--accent); color:white; border-color:var(--accent); font-weight:600; }
-.ptb-primary:hover { background:#7a4fc7; color:white; }
-.ptb-mini { padding:3px 6px; font-size:10px; }
-.pt-group { display:flex; gap:2px; align-items:center; }
-.pt-btn { background:white; border:1px solid #d0d0d0; padding:5px 7px; border-radius:3px; cursor:pointer; color:#555; }
-.pt-btn:hover { background:#eee; }
-.pt-btn.active { background:var(--accent); color:white; border-color:var(--accent); }
-.pt-btn.active .ico { stroke:white; }
-.pt-btn .ico { width:14px; height:14px; }
-.pt-sep { width:1px; background:#ccc; height:22px; margin:0 4px; }
-.pt-swatch { width:100%; height:20px; border:1px solid rgba(0,0,0,0.2); cursor:pointer; border-radius:2px; }
-.pt-swatch:hover { outline:2px solid var(--accent); }
-.pt-layer-item { display:flex; align-items:center; gap:4px; padding:5px 6px; margin-bottom:3px; background:white; border:1px solid #ddd; border-radius:4px; cursor:pointer; font-size:11px; }
-.pt-layer-item.active { border-color:var(--accent); background:color-mix(in srgb, var(--accent) 10%, white); }
-.pt-layer-item .pt-layer-name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.pt-layer-thumb { width:28px; height:20px; background:#fff url(data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'><rect width='4' height='4' fill='%23ddd'/><rect x='4' y='4' width='4' height='4' fill='%23ddd'/></svg>) 0 0/8px 8px; border:1px solid #ccc; border-radius:2px; flex-shrink:0; }
+/* 공통: 모든 Paint 버튼은 줄바꿈 금지 + 축소 금지 (텍스트 찢어짐 방지) */
+.ptb, .ptb-primary, .ptb-mini, .pt-btn {
+  white-space:nowrap; flex-shrink:0; box-sizing:border-box;
+}
+.ptb, .ptb-primary, .ptb-mini {
+  background:white; border:1px solid #d0c8e0; padding:6px 10px;
+  border-radius:5px; cursor:pointer; color:#555; font-size:12px;
+  display:inline-flex; align-items:center; gap:5px; transition:all .12s;
+}
+.ptb:hover, .ptb-mini:hover { background:#f3ebff; color:var(--accent); border-color:var(--accent); }
+.ptb-primary { background:var(--accent); color:white; border-color:var(--accent); font-weight:600; padding:7px 14px; }
+.ptb-primary:hover { background:#7a4fc7; color:white; border-color:#7a4fc7; }
+.ptb-mini { padding:4px 9px; font-size:11px; }
+
+.pt-group { display:flex; gap:2px; align-items:center; flex-shrink:0; }
+.pt-btn {
+  background:white; border:1px solid #d0d0d0; padding:6px 8px;
+  border-radius:4px; cursor:pointer; color:#555;
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:30px; min-height:30px; transition:all .12s;
+}
+.pt-btn:hover { background:#f0eaff; border-color:#b89beb; }
+.pt-btn.active { background:var(--accent); color:white; border-color:var(--accent); box-shadow:0 1px 3px rgba(138,95,209,0.4); }
+.pt-btn.active .ico { stroke:white; color:white; }
+.pt-btn .ico { width:16px; height:16px; }
+.pt-sep { width:1px; background:#d8d0e0; height:24px; margin:0 6px; flex-shrink:0; }
+
+.pt-swatch { width:100%; height:22px; border:1px solid rgba(0,0,0,0.15); cursor:pointer; border-radius:3px; transition:transform .1s; }
+.pt-swatch:hover { outline:2px solid var(--accent); outline-offset:1px; transform:scale(1.1); z-index:5; position:relative; }
+
+.pt-layer-item { display:flex; align-items:center; gap:6px; padding:6px 7px; margin-bottom:4px; background:white; border:1px solid #ddd; border-radius:5px; cursor:pointer; font-size:11px; transition:all .12s; }
+.pt-layer-item:hover { border-color:#b89beb; background:#fafaff; }
+.pt-layer-item.active { border-color:var(--accent); background:color-mix(in srgb, var(--accent) 12%, white); box-shadow:0 1px 2px rgba(138,95,209,0.2); }
+.pt-layer-item .pt-layer-name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:500; }
+.pt-layer-item input[type=checkbox] { margin:0; flex-shrink:0; cursor:pointer; }
+.pt-layer-thumb {
+  width:32px; height:22px; background:#fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'><rect width='4' height='4' fill='%23ddd'/><rect x='4' y='4' width='4' height='4' fill='%23ddd'/></svg>") 0 0/8px 8px;
+  border:1px solid #ccc; border-radius:3px; flex-shrink:0;
+}
+
+.pt-panel-header { display:flex; align-items:center; gap:4px; margin-bottom:8px; white-space:nowrap; }
+.pt-panel-title { font-size:11px; font-weight:700; color:var(--ink); letter-spacing:0.5px; flex-shrink:0; }
+#pt-toolbar { row-gap:6px; }
+#pt-footer { gap:8px; white-space:nowrap; }
+#pt-footer .pt-sep { height:16px; margin:0 4px; }
+#pt-cursor-info, #pt-canvas-info { white-space:nowrap; flex-shrink:0; }
+.pt-footer-label { font-size:10px; color:var(--ink-soft); white-space:nowrap; flex-shrink:0; }
+
+/* 좁은 뷰포트에서 panel 축소 */
+@media (max-width: 1100px) {
+  #pt-layers-panel { width:150px !important; }
+  #pt-color-panel { width:180px !important; }
+}
 @media (max-width: 900px) {
   #pt-layers-panel, #pt-color-panel { display:none; }
+  #pt-footer { flex-wrap:wrap; }
 }
 </style>
 
@@ -9080,6 +9142,18 @@ const Paint = (function() {
         if (e.target.classList.contains('pt-layer-vis')) return;
         state.activeLayer = i;
         renderLayerList();
+        // 투명도 슬라이더 동기화
+        const op = $('pt-layer-opacity');
+        if (op) {
+          op.value = Math.round(l.opacity * 100);
+          $('pt-layer-opacity-val').textContent = op.value + '%';
+        }
+      });
+      // 레이어 이름 더블클릭 → 이름 변경
+      div.querySelector('.pt-layer-name').addEventListener('dblclick', async (e) => {
+        e.stopPropagation();
+        const newName = await prompt2('레이어 이름', l.name);
+        if (newName) { l.name = newName; renderLayerList(); }
       });
       wrap.appendChild(div);
       // 썸네일
@@ -9561,6 +9635,17 @@ const Paint = (function() {
     $('pt-size').addEventListener('input', (e) => { state.size = +e.target.value; $('pt-size-val').textContent = e.target.value + 'px'; });
     $('pt-fill-style').addEventListener('change', (e) => { state.fillStyle = e.target.value; });
     $('pt-alpha').addEventListener('input', (e) => { state.alpha = +e.target.value / 100; $('pt-alpha-val').textContent = e.target.value + '%'; });
+    // 레이어 투명도
+    const opacityInput = $('pt-layer-opacity');
+    if (opacityInput) {
+      opacityInput.addEventListener('input', (e) => {
+        const l = state.layers[state.activeLayer];
+        if (!l) return;
+        l.opacity = +e.target.value / 100;
+        l.canvas.style.opacity = l.opacity;
+        $('pt-layer-opacity-val').textContent = e.target.value + '%';
+      });
+    }
     // 줌
     $('pt-zoom-in').addEventListener('click', () => { state.zoom = Math.min(8, state.zoom * 1.25); applyZoom(); });
     $('pt-zoom-out').addEventListener('click', () => { state.zoom = Math.max(0.1, state.zoom / 1.25); applyZoom(); });
