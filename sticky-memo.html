@@ -9152,10 +9152,10 @@ init();
     authBtn.style.display = '';
     const s = window.JANSync.getSession && window.JANSync.getSession();
     if (s && s.user) {
-      authBtn.title = s.user.email + ' · 클릭하여 로그아웃';
+      authBtn.title = s.user.email + ' · 클릭하여 계정 관리';
       authBtn.style.background = 'rgba(255,255,255,0.25)';
     } else {
-      authBtn.title = 'Google로 로그인 — 여러 기기 동기화';
+      authBtn.title = '클라우드 로그인 — 여러 기기 동기화';
       authBtn.style.background = '';
     }
   }
@@ -9163,15 +9163,93 @@ init();
     if (!window.JANSync || !window.JANSync.enabled) return;
     const s = window.JANSync.getSession && window.JANSync.getSession();
     if (s && s.user) {
-      if (await confirm2('로그아웃', `${s.user.email}\n로그아웃하시겠습니까?`)) {
-        await window.JANSync.signOut();
-        toast('로그아웃됨');
-      }
+      showAccountModal(s);
     } else {
-      toast('Google 로그인 창으로 이동합니다…');
-      window.JANSync.signInGoogle();
+      showLoginModal();
     }
   });
+
+  function showLoginModal() {
+    showModalHtml('클라우드 로그인', `
+      <div style="padding:8px 0; text-align:center;">
+        <p style="color:var(--ink-soft); font-size:12px; margin-bottom:20px;">로그인하면 여러 기기 간 자동 동기화가 시작됩니다.<br>데이터는 당신의 계정에만 저장되며, 우리는 내용을 볼 수 없습니다.</p>
+        <div style="display:flex; flex-direction:column; gap:8px; max-width:280px; margin:0 auto;">
+          <button id="loginGoogle" style="background:white; border:1px solid #dadce0; padding:10px 14px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600; display:flex; align-items:center; gap:10px; justify-content:center;">
+            <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+            Google로 계속하기
+          </button>
+          <button id="loginKakao" style="background:#FEE500; border:none; padding:10px 14px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600; color:#3A1D1D;">
+            카카오로 계속하기
+          </button>
+          <button id="loginGithub" style="background:#24292e; color:white; border:none; padding:10px 14px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600;">
+            GitHub로 계속하기
+          </button>
+          <div style="text-align:center; color:var(--ink-soft); font-size:11px; margin:8px 0;">— 또는 —</div>
+          <input id="loginEmail" type="email" placeholder="이메일 주소" style="padding:10px; border:1px solid var(--paper-edge); border-radius:6px; font-size:13px;">
+          <button id="loginMagicLink" style="background:var(--accent); color:white; border:none; padding:10px 14px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600;">
+            매직 링크 전송
+          </button>
+          <small style="color:var(--ink-soft); font-size:10px; margin-top:4px;">비밀번호 없이 이메일 링크로 로그인</small>
+        </div>
+        <div style="margin-top:20px; padding:10px; background:#f9f5ff; border-radius:6px; font-size:11px; color:var(--ink-soft); text-align:left;">
+          <b>미설정 오류 시:</b> 관리자가 Supabase에서 해당 Provider를 활성화해야 합니다. Authentication → Providers 확인.
+        </div>
+      </div>
+    `);
+    setTimeout(() => {
+      $('loginGoogle').addEventListener('click', () => { window.JANSync.signInGoogle(); toast('Google 로그인…'); });
+      $('loginKakao').addEventListener('click', () => { window.JANSync.signInKakao(); toast('카카오 로그인…'); });
+      $('loginGithub').addEventListener('click', () => { window.JANSync.signInGithub(); toast('GitHub 로그인…'); });
+      $('loginMagicLink').addEventListener('click', async () => {
+        const email = $('loginEmail').value.trim();
+        if (!email || !/@/.test(email)) { toast('이메일을 입력하세요'); return; }
+        const res = await window.JANSync.signInEmail(email);
+        if (res.error) toast('오류: ' + res.error.message);
+        else {
+          $('modal').classList.remove('open');
+          toast(email + '로 매직 링크 전송됨. 메일 확인!', 6000);
+        }
+      });
+    }, 50);
+  }
+
+  function showAccountModal(s) {
+    const email = s.user.email || s.user.user_metadata?.email || '—';
+    const name = s.user.user_metadata?.full_name || s.user.user_metadata?.name || email.split('@')[0];
+    showModalHtml('계정', `
+      <div style="padding:8px 0; text-align:center;">
+        ${s.user.user_metadata?.avatar_url ? `<img src="${s.user.user_metadata.avatar_url}" style="width:64px; height:64px; border-radius:50%; margin-bottom:10px;">` : ''}
+        <h3 style="margin:8px 0 4px;">${escapeHtml(name)}</h3>
+        <div style="color:var(--ink-soft); font-size:12px; margin-bottom:20px;">${escapeHtml(email)}</div>
+        <div style="display:flex; flex-direction:column; gap:6px; max-width:260px; margin:0 auto;">
+          <button id="acctSyncNow" style="padding:10px; background:var(--accent); color:white; border:none; border-radius:6px; cursor:pointer;">지금 동기화</button>
+          <button id="acctPull" style="padding:10px; background:white; color:var(--accent); border:1px solid var(--accent); border-radius:6px; cursor:pointer;">클라우드에서 다시 받기</button>
+          <button id="acctLogout" style="padding:10px; background:#ef5350; color:white; border:none; border-radius:6px; cursor:pointer;">로그아웃</button>
+        </div>
+      </div>
+    `);
+    setTimeout(() => {
+      $('acctSyncNow').addEventListener('click', async () => {
+        const r = await window.JANSync.syncNow();
+        toast(r.ok ? '동기화 완료' : '실패: ' + (r.error || r.reason));
+      });
+      $('acctPull').addEventListener('click', async () => {
+        if (!confirm('클라우드 데이터로 로컬을 덮어씁니다. 계속?')) return;
+        const d = await window.JANSync.pullNow();
+        if (d && d.data) {
+          localStorage.setItem('sticky-memo-v4', JSON.stringify(d.data));
+          location.reload();
+        } else toast('클라우드 데이터 없음');
+      });
+      $('acctLogout').addEventListener('click', async () => {
+        if (!await confirm2('로그아웃', '로그아웃 후에도 로컬 데이터는 유지됩니다.')) return;
+        await window.JANSync.signOut();
+        $('modal').classList.remove('open');
+        toast('로그아웃됨');
+      });
+    }, 50);
+  }
+
   window.addEventListener('jan-auth-change', update);
   setTimeout(update, 1000);
 })();
