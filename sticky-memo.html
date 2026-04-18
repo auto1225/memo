@@ -1397,6 +1397,24 @@
   <symbol id="i-filter" viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></symbol>
   <symbol id="i-rotate" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></symbol>
   <symbol id="i-crop" viewBox="0 0 24 24"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></symbol>
+  <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></symbol>
+  <symbol id="i-eraser" viewBox="0 0 24 24"><path d="M20 20H7l-4-4 9-9 9 9-4 4z"/><path d="M8 8l8 8"/></symbol>
+  <symbol id="i-bucket" viewBox="0 0 24 24"><path d="M19 11l-7-7L3 13l7 7 9-9z"/><path d="M5 2v6"/><path d="M19 15v4a2 2 0 0 1-2 2h-1"/></symbol>
+  <symbol id="i-eyedrop" viewBox="0 0 24 24"><path d="M2 22l3-3"/><path d="M12 12L5 19l-2-2 7-7 5 5-3 3z"/><path d="M18 2l4 4-5 5-4-4 5-5z"/></symbol>
+  <symbol id="i-text-t" viewBox="0 0 24 24"><path d="M5 4h14M12 4v16M8 20h8"/></symbol>
+  <symbol id="i-select" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" stroke-dasharray="3 3"/></symbol>
+  <symbol id="i-spray" viewBox="0 0 24 24"><circle cx="5" cy="5" r="1" fill="currentColor"/><circle cx="10" cy="3" r="1" fill="currentColor"/><circle cx="8" cy="8" r="1" fill="currentColor"/><circle cx="14" cy="7" r="1" fill="currentColor"/><path d="M14 12l4-4 3 3-4 4-3-3z"/><path d="M10 18l4 4 4-4-4-4-4 4z"/></symbol>
+  <symbol id="i-line" viewBox="0 0 24 24"><line x1="4" y1="20" x2="20" y2="4"/></symbol>
+  <symbol id="i-square" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" fill="none"/></symbol>
+  <symbol id="i-round-square" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4" fill="none"/></symbol>
+  <symbol id="i-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none"/></symbol>
+  <symbol id="i-triangle" viewBox="0 0 24 24"><polygon points="12 4 20 20 4 20" fill="none"/></symbol>
+  <symbol id="i-diamond" viewBox="0 0 24 24"><polygon points="12 3 20 12 12 21 4 12" fill="none"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><polygon points="12 3 14.5 9 21 9.5 16 14 17.5 20.5 12 17 6.5 20.5 8 14 3 9.5 9.5 9" fill="none"/></symbol>
+  <symbol id="i-polygon" viewBox="0 0 24 24"><polygon points="12 3 21 9 18 20 6 20 3 9" fill="none"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><polyline points="3 10 7 6 3 2"/><path d="M3 10h12a5 5 0 0 1 0 10h-3"/></symbol>
+  <symbol id="i-redo" viewBox="0 0 24 24"><polyline points="21 10 17 6 21 2"/><path d="M21 10H9a5 5 0 0 0 0 10h3"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
   <symbol id="i-twitter" viewBox="0 0 24 24"><path d="M18 3h3l-7 9 8 9h-6l-5-6-6 6H2l8-9L2 3h6l4 5 6-5z" fill="currentColor" stroke="none"/></symbol>
   <symbol id="i-facebook" viewBox="0 0 24 24"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></symbol>
   <symbol id="i-instagram" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37a4 4 0 1 1-7.914 1.174A4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></symbol>
@@ -2228,6 +2246,174 @@
     </div>
   </div>
 </div>
+
+<!-- ========== 그림판 (Paint) 모달 ========== -->
+<div class="modal-backdrop" id="paintModal">
+  <div class="modal" style="width:min(1200px,98vw); height:min(800px,94vh); display:flex; flex-direction:column; padding:0; gap:0;">
+    <!-- 헤더 -->
+    <div id="paintHeader" style="display:flex; align-items:center; gap:6px; padding:8px 12px; border-bottom:1px solid var(--paper-edge); background:color-mix(in srgb, var(--accent) 8%, transparent);">
+      <svg class="ico" style="stroke:var(--accent); width:20px; height:20px;"><use href="#i-brush"/></svg>
+      <h3 style="margin:0; font-size:14px;">그림판</h3>
+      <span id="paintFileName" style="font-size:11px; color:var(--ink-soft); margin-left:8px;">무제</span>
+      <span style="flex:1;"></span>
+      <span id="paintStatus" style="font-size:11px; color:var(--ink-soft); margin-right:12px;"></span>
+      <button id="paintNew" class="ptb" title="새로 만들기 (Ctrl+N)"><svg class="ico"><use href="#i-plus"/></svg></button>
+      <button id="paintOpen" class="ptb" title="이미지 열기 (Ctrl+O)"><svg class="ico"><use href="#i-upload"/></svg></button>
+      <button id="paintSave" class="ptb" title="PNG로 저장 (Ctrl+S)"><svg class="ico"><use href="#i-download"/></svg></button>
+      <button id="paintInsert" class="ptb-primary" title="메모에 삽입 (Ctrl+Enter)">메모 삽입</button>
+      <button id="paintClose" class="ptb" title="닫기 (Esc)"><svg class="ico"><use href="#i-x"/></svg></button>
+    </div>
+
+    <!-- 툴바 -->
+    <div id="paintToolbar" style="display:flex; gap:8px; padding:6px 10px; border-bottom:1px solid var(--paper-edge); background:#fafafa; flex-wrap:wrap; align-items:center;">
+      <!-- Undo/Redo -->
+      <div class="pt-group">
+        <button class="pt-btn" id="pt-undo" title="되돌리기 (Ctrl+Z)"><svg class="ico"><use href="#i-undo"/></svg></button>
+        <button class="pt-btn" id="pt-redo" title="다시 (Ctrl+Y)"><svg class="ico"><use href="#i-redo"/></svg></button>
+      </div>
+      <div class="pt-sep"></div>
+
+      <!-- 도구 -->
+      <div class="pt-group">
+        <button class="pt-btn pt-tool" data-tool="pencil" title="연필 (P)"><svg class="ico"><use href="#i-pencil"/></svg></button>
+        <button class="pt-btn pt-tool" data-tool="brush" title="브러시 (B)"><svg class="ico"><use href="#i-brush"/></svg></button>
+        <button class="pt-btn pt-tool" data-tool="marker" title="마커"><svg class="ico"><use href="#i-highlight"/></svg></button>
+        <button class="pt-btn pt-tool" data-tool="airbrush" title="에어브러시"><svg class="ico"><use href="#i-spray"/></svg></button>
+        <button class="pt-btn pt-tool" data-tool="eraser" title="지우개 (E)"><svg class="ico"><use href="#i-eraser"/></svg></button>
+        <button class="pt-btn pt-tool" data-tool="fill" title="채우기 (G)"><svg class="ico"><use href="#i-bucket"/></svg></button>
+        <button class="pt-btn pt-tool" data-tool="eyedrop" title="스포이드 (I)"><svg class="ico"><use href="#i-eyedrop"/></svg></button>
+        <button class="pt-btn pt-tool" data-tool="text" title="텍스트 (T)"><svg class="ico"><use href="#i-text-t"/></svg></button>
+        <button class="pt-btn pt-tool" data-tool="select" title="영역 선택 (S)"><svg class="ico"><use href="#i-select"/></svg></button>
+      </div>
+      <div class="pt-sep"></div>
+
+      <!-- 도형 -->
+      <div class="pt-group">
+        <button class="pt-btn pt-tool" data-tool="line" title="직선"><svg class="ico"><use href="#i-line"/></svg></button>
+        <button class="pt-btn pt-tool" data-tool="rect" title="사각형"><svg class="ico"><use href="#i-square"/></svg></button>
+        <button class="pt-btn pt-tool" data-tool="roundRect" title="둥근사각형"><svg class="ico"><use href="#i-round-square"/></svg></button>
+        <button class="pt-btn pt-tool" data-tool="ellipse" title="타원/원"><svg class="ico"><use href="#i-circle"/></svg></button>
+        <button class="pt-btn pt-tool" data-tool="triangle" title="삼각형"><svg class="ico"><use href="#i-triangle"/></svg></button>
+        <button class="pt-btn pt-tool" data-tool="diamond" title="다이아몬드"><svg class="ico"><use href="#i-diamond"/></svg></button>
+        <button class="pt-btn pt-tool" data-tool="arrow" title="화살표"><svg class="ico"><use href="#i-arrow-right"/></svg></button>
+        <button class="pt-btn pt-tool" data-tool="star" title="별"><svg class="ico"><use href="#i-star"/></svg></button>
+        <button class="pt-btn pt-tool" data-tool="heart" title="하트"><svg class="ico"><use href="#i-heart"/></svg></button>
+        <button class="pt-btn pt-tool" data-tool="polygon" title="다각형(클릭으로 점 추가, 더블클릭 완료)"><svg class="ico"><use href="#i-polygon"/></svg></button>
+      </div>
+      <div class="pt-sep"></div>
+
+      <!-- 두께 -->
+      <div class="pt-group" style="gap:6px;">
+        <span style="font-size:11px; color:var(--ink-soft);">두께</span>
+        <input type="range" id="pt-size" min="1" max="50" value="3" style="width:80px;">
+        <span id="pt-size-val" style="font-size:11px; min-width:22px; text-align:right;">3px</span>
+      </div>
+      <div class="pt-sep"></div>
+
+      <!-- 채우기 스타일 -->
+      <div class="pt-group">
+        <select id="pt-fill-style" style="padding:4px; border:1px solid #ccc; border-radius:4px; font-size:11px;">
+          <option value="stroke">테두리만</option>
+          <option value="fill">채우기만</option>
+          <option value="both">테두리+채우기</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 본문: 좌측 레이어 | 캔버스 | 우측 색상 -->
+    <div style="display:flex; flex:1; min-height:0; gap:0;">
+      <!-- 레이어 패널 -->
+      <div id="pt-layers-panel" style="width:160px; border-right:1px solid var(--paper-edge); padding:10px 8px; background:#fafafa; overflow-y:auto; flex-shrink:0;">
+        <div style="display:flex; align-items:center; gap:4px; margin-bottom:8px;">
+          <span style="font-size:11px; font-weight:600;">레이어</span>
+          <span style="flex:1;"></span>
+          <button id="pt-layer-add" class="ptb-mini" title="레이어 추가"><svg class="ico" style="width:12px; height:12px;"><use href="#i-plus"/></svg></button>
+          <button id="pt-layer-dup" class="ptb-mini" title="복제"><svg class="ico" style="width:12px; height:12px;"><use href="#i-copy"/></svg></button>
+          <button id="pt-layer-del" class="ptb-mini" title="삭제"><svg class="ico" style="width:12px; height:12px;"><use href="#i-trash"/></svg></button>
+        </div>
+        <div id="pt-layer-list"></div>
+      </div>
+
+      <!-- 캔버스 영역 -->
+      <div id="pt-canvas-wrap" style="flex:1; display:flex; flex-direction:column; background:#e0e0e0; min-width:0;">
+        <div id="pt-canvas-scroll" style="flex:1; overflow:auto; position:relative; background:#ccc;">
+          <div id="pt-canvas-container" style="padding:20px; width:max-content; height:max-content; position:relative;">
+            <div id="pt-canvas-stack" style="position:relative; background:white; box-shadow:0 4px 20px rgba(0,0,0,0.3);">
+              <!-- 레이어 캔버스들이 여기 겹쳐 렌더됨 -->
+              <canvas id="pt-interactive" style="position:absolute; top:0; left:0; pointer-events:auto;"></canvas>
+            </div>
+          </div>
+        </div>
+        <!-- 하단 -->
+        <div id="pt-footer" style="display:flex; align-items:center; gap:6px; padding:6px 10px; border-top:1px solid var(--paper-edge); background:white; font-size:11px;">
+          <button class="ptb-mini" id="pt-zoom-out"><svg class="ico" style="width:12px; height:12px;"><use href="#i-minus"/></svg></button>
+          <span id="pt-zoom-val" style="min-width:42px; text-align:center;">100%</span>
+          <button class="ptb-mini" id="pt-zoom-in"><svg class="ico" style="width:12px; height:12px;"><use href="#i-plus-small"/></svg></button>
+          <button class="ptb-mini" id="pt-zoom-fit" title="맞춤">맞춤</button>
+          <button class="ptb-mini" id="pt-zoom-100" title="100%">1:1</button>
+          <div class="pt-sep" style="height:14px;"></div>
+          <span id="pt-canvas-info" style="color:var(--ink-soft);">800 × 600</span>
+          <span style="flex:1;"></span>
+          <span id="pt-cursor-info" style="color:var(--ink-soft); font-family:monospace;">—</span>
+          <div class="pt-sep" style="height:14px;"></div>
+          <button class="ptb-mini" id="pt-resize-btn">크기 변경</button>
+          <button class="ptb-mini" id="pt-rotate-btn" title="회전/반전">회전</button>
+          <button class="ptb-mini" id="pt-crop-btn" title="자르기 (선택 필요)">자르기</button>
+          <button class="ptb-mini" id="pt-filter-btn" title="필터">필터</button>
+          <button class="ptb-mini" id="pt-bg-remove" title="배경 제거 (Magic)">배경제거</button>
+        </div>
+      </div>
+
+      <!-- 색상 패널 -->
+      <div id="pt-color-panel" style="width:200px; border-left:1px solid var(--paper-edge); padding:10px; background:#fafafa; overflow-y:auto; flex-shrink:0;">
+        <div style="font-size:11px; font-weight:600; margin-bottom:6px;">색상</div>
+        <div style="display:flex; gap:6px; margin-bottom:10px; align-items:center;">
+          <div style="position:relative;">
+            <label style="font-size:9px; color:var(--ink-soft);">전경(색상1)</label>
+            <input type="color" id="pt-color1" value="#000000" style="width:50px; height:40px; border:2px solid #333; border-radius:4px; cursor:pointer;">
+          </div>
+          <button id="pt-color-swap" class="ptb-mini" title="색상1↔2 전환" style="padding:4px 6px;"><svg class="ico" style="width:12px; height:12px;"><use href="#i-refresh"/></svg></button>
+          <div style="position:relative;">
+            <label style="font-size:9px; color:var(--ink-soft);">배경(색상2)</label>
+            <input type="color" id="pt-color2" value="#ffffff" style="width:50px; height:40px; border:2px solid #999; border-radius:4px; cursor:pointer;">
+          </div>
+        </div>
+        <div style="font-size:10px; color:var(--ink-soft); margin-bottom:4px;">팔레트</div>
+        <div id="pt-palette" style="display:grid; grid-template-columns:repeat(6, 1fr); gap:3px; margin-bottom:10px;"></div>
+        <div style="font-size:10px; color:var(--ink-soft); margin-bottom:4px;">최근 색상</div>
+        <div id="pt-recent" style="display:grid; grid-template-columns:repeat(6, 1fr); gap:3px; margin-bottom:10px; min-height:22px;"></div>
+        <div style="font-size:10px; color:var(--ink-soft); margin-bottom:4px;">투명도</div>
+        <input type="range" id="pt-alpha" min="0" max="100" value="100" style="width:100%;">
+        <div id="pt-alpha-val" style="font-size:10px; text-align:center; color:var(--ink-soft);">100%</div>
+      </div>
+    </div>
+  </div>
+  <input type="file" id="pt-open-input" accept="image/*" style="display:none;">
+</div>
+
+<style>
+.ptb, .ptb-primary, .ptb-mini { background:transparent; border:1px solid #d0c8e0; padding:5px 8px; border-radius:4px; cursor:pointer; color:#555; }
+.ptb:hover, .ptb-mini:hover { background:#e8dcf5; color:var(--accent); }
+.ptb-primary { background:var(--accent); color:white; border-color:var(--accent); font-weight:600; }
+.ptb-primary:hover { background:#7a4fc7; color:white; }
+.ptb-mini { padding:3px 6px; font-size:10px; }
+.pt-group { display:flex; gap:2px; align-items:center; }
+.pt-btn { background:white; border:1px solid #d0d0d0; padding:5px 7px; border-radius:3px; cursor:pointer; color:#555; }
+.pt-btn:hover { background:#eee; }
+.pt-btn.active { background:var(--accent); color:white; border-color:var(--accent); }
+.pt-btn.active .ico { stroke:white; }
+.pt-btn .ico { width:14px; height:14px; }
+.pt-sep { width:1px; background:#ccc; height:22px; margin:0 4px; }
+.pt-swatch { width:100%; height:20px; border:1px solid rgba(0,0,0,0.2); cursor:pointer; border-radius:2px; }
+.pt-swatch:hover { outline:2px solid var(--accent); }
+.pt-layer-item { display:flex; align-items:center; gap:4px; padding:5px 6px; margin-bottom:3px; background:white; border:1px solid #ddd; border-radius:4px; cursor:pointer; font-size:11px; }
+.pt-layer-item.active { border-color:var(--accent); background:color-mix(in srgb, var(--accent) 10%, white); }
+.pt-layer-item .pt-layer-name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.pt-layer-thumb { width:28px; height:20px; background:#fff url(data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'><rect width='4' height='4' fill='%23ddd'/><rect x='4' y='4' width='4' height='4' fill='%23ddd'/></svg>) 0 0/8px 8px; border:1px solid #ccc; border-radius:2px; flex-shrink:0; }
+@media (max-width: 900px) {
+  #pt-layers-panel, #pt-color-panel { display:none; }
+}
+</style>
 
 <!-- ========== 명함관리 모달 ========== -->
 <div class="modal-backdrop" id="cardsModal">
@@ -8684,6 +8870,975 @@ document.addEventListener('keydown', (e) => {
 
 // 기존 openCalSide / todayMemoSide / openCardsSide는 DOM에 숨김 상태로 남았으나
 // 이전에 걸린 핸들러가 span을 클릭해도 작동은 안 됨 (요소 숨김). 안전함.
+
+/* ============================================================
+   Windows Paint 수준의 그림판 (Paint Editor)
+   ============================================================ */
+const Paint = (function() {
+  const state = {
+    width: 800,
+    height: 600,
+    zoom: 1,
+    layers: [],          // [{ id, name, canvas, visible, opacity }]
+    activeLayer: 0,
+    tool: 'pencil',
+    color1: '#000000',
+    color2: '#ffffff',
+    alpha: 1,
+    size: 3,
+    fillStyle: 'stroke', // 'stroke' | 'fill' | 'both'
+    undoStack: [],
+    redoStack: [],
+    isDrawing: false,
+    startX: 0, startY: 0, lastX: 0, lastY: 0,
+    polyPoints: [],
+    selection: null,      // { x, y, w, h }
+    recentColors: [],
+    onClose: null        // 닫을 때 콜백 (예: 메모에 삽입)
+  };
+
+  const PALETTE = [
+    '#000000','#5c5c5c','#8a8a8a','#c3c3c3','#eeeeee','#ffffff',
+    '#ff0000','#ff6600','#ffcc00','#ffff00','#a4ff00','#00ff00',
+    '#00ffcc','#00ffff','#0066ff','#0000ff','#9900ff','#ff00ff',
+    '#880000','#884400','#886600','#888800','#448800','#008800',
+    '#008866','#006688','#003366','#000088','#440088','#660044'
+  ];
+
+  function getCanvasStack() { return $('pt-canvas-stack'); }
+  function getInteractive() { return $('pt-interactive'); }
+
+  function newLayer(name) {
+    const c = document.createElement('canvas');
+    c.width = state.width;
+    c.height = state.height;
+    return { id: 'L'+Date.now()+Math.random().toString(36).slice(2,5), name, canvas: c, visible: true, opacity: 1 };
+  }
+
+  function setupCanvasDOM() {
+    const stack = getCanvasStack();
+    // 기존 레이어 캔버스 제거 (pt-interactive는 유지)
+    [...stack.querySelectorAll('canvas:not(#pt-interactive)')].forEach(c => c.remove());
+    stack.style.width = state.width + 'px';
+    stack.style.height = state.height + 'px';
+    // 레이어 순서대로 쌓기
+    state.layers.forEach((l, i) => {
+      l.canvas.style.position = 'absolute';
+      l.canvas.style.top = '0';
+      l.canvas.style.left = '0';
+      l.canvas.style.pointerEvents = 'none';
+      l.canvas.style.display = l.visible ? '' : 'none';
+      l.canvas.style.opacity = l.opacity;
+      l.canvas.style.width = state.width + 'px';
+      l.canvas.style.height = state.height + 'px';
+      stack.insertBefore(l.canvas, $('pt-interactive'));
+    });
+    const iv = getInteractive();
+    iv.width = state.width;
+    iv.height = state.height;
+    iv.style.width = state.width + 'px';
+    iv.style.height = state.height + 'px';
+    applyZoom();
+  }
+
+  function applyZoom() {
+    const stack = getCanvasStack();
+    stack.style.transform = `scale(${state.zoom})`;
+    stack.style.transformOrigin = '0 0';
+    // 스크롤 컨테이너가 확대 영역 전체를 커버하도록 컨테이너 크기 조정
+    const container = $('pt-canvas-container');
+    if (container) {
+      container.style.width = (state.width * state.zoom + 40) + 'px';
+      container.style.height = (state.height * state.zoom + 40) + 'px';
+    }
+    $('pt-zoom-val').textContent = Math.round(state.zoom * 100) + '%';
+    $('pt-canvas-info').textContent = `${state.width} × ${state.height}`;
+  }
+
+  function getActiveCtx() {
+    const l = state.layers[state.activeLayer];
+    return l ? l.canvas.getContext('2d') : null;
+  }
+
+  function pushUndo() {
+    try {
+      const snap = state.layers.map(l => ({
+        id: l.id, name: l.name, visible: l.visible, opacity: l.opacity,
+        data: l.canvas.toDataURL()
+      }));
+      state.undoStack.push({ layers: snap, activeLayer: state.activeLayer });
+      if (state.undoStack.length > 30) state.undoStack.shift();
+      state.redoStack = [];
+    } catch (e) { console.warn('undo push failed', e); }
+  }
+
+  function restoreSnapshot(snap) {
+    state.activeLayer = snap.activeLayer;
+    // 레이어 수가 다르면 새로 구성
+    state.layers = snap.layers.map(s => ({
+      id: s.id, name: s.name, canvas: document.createElement('canvas'),
+      visible: s.visible, opacity: s.opacity
+    }));
+    state.layers.forEach((l, i) => {
+      l.canvas.width = state.width;
+      l.canvas.height = state.height;
+      const img = new Image();
+      img.onload = () => l.canvas.getContext('2d').drawImage(img, 0, 0);
+      img.src = snap.layers[i].data;
+    });
+    setupCanvasDOM();
+    renderLayerList();
+  }
+
+  function undo() {
+    if (state.undoStack.length === 0) { toast('되돌릴 작업이 없습니다'); return; }
+    const cur = state.undoStack.pop();
+    state.redoStack.push({
+      layers: state.layers.map(l => ({ id:l.id, name:l.name, visible:l.visible, opacity:l.opacity, data: l.canvas.toDataURL() })),
+      activeLayer: state.activeLayer
+    });
+    restoreSnapshot(cur);
+  }
+  function redo() {
+    if (state.redoStack.length === 0) { toast('다시 할 작업이 없습니다'); return; }
+    const snap = state.redoStack.pop();
+    state.undoStack.push({
+      layers: state.layers.map(l => ({ id:l.id, name:l.name, visible:l.visible, opacity:l.opacity, data: l.canvas.toDataURL() })),
+      activeLayer: state.activeLayer
+    });
+    restoreSnapshot(snap);
+  }
+
+  function setTool(t) {
+    state.tool = t;
+    document.querySelectorAll('.pt-tool').forEach(b => b.classList.toggle('active', b.dataset.tool === t));
+    const iv = getInteractive();
+    iv.style.cursor = t === 'eyedrop' ? 'crosshair' : (t === 'text' ? 'text' : (t === 'fill' ? 'cell' : 'crosshair'));
+    // polygon 선을 초기화
+    if (t !== 'polygon') state.polyPoints = [];
+    clearInteractive();
+  }
+
+  function clearInteractive() {
+    const iv = getInteractive();
+    iv.getContext('2d').clearRect(0, 0, iv.width, iv.height);
+  }
+
+  function pickColor() {
+    return (state.button === 2 || state.useColor2) ? state.color2 : state.color1;
+  }
+
+  function applyColorInputs() {
+    $('pt-color1').style.borderWidth = (state.useColor2 ? '1px' : '2px');
+    $('pt-color2').style.borderWidth = (state.useColor2 ? '2px' : '1px');
+  }
+
+  function addRecentColor(c) {
+    c = c.toLowerCase();
+    state.recentColors = [c, ...state.recentColors.filter(x => x !== c)].slice(0, 12);
+    renderRecent();
+  }
+
+  function renderPalette() {
+    const wrap = $('pt-palette');
+    wrap.innerHTML = PALETTE.map(c => `<div class="pt-swatch" data-c="${c}" style="background:${c};"></div>`).join('');
+    wrap.querySelectorAll('.pt-swatch').forEach(sw => {
+      sw.addEventListener('click', () => {
+        state.color1 = sw.dataset.c;
+        $('pt-color1').value = state.color1;
+        addRecentColor(state.color1);
+      });
+      sw.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        state.color2 = sw.dataset.c;
+        $('pt-color2').value = state.color2;
+      });
+    });
+  }
+  function renderRecent() {
+    const wrap = $('pt-recent');
+    wrap.innerHTML = state.recentColors.map(c => `<div class="pt-swatch" data-c="${c}" style="background:${c};"></div>`).join('');
+    wrap.querySelectorAll('.pt-swatch').forEach(sw => {
+      sw.addEventListener('click', () => { state.color1 = sw.dataset.c; $('pt-color1').value = sw.dataset.c; });
+    });
+  }
+
+  function renderLayerList() {
+    const wrap = $('pt-layer-list');
+    wrap.innerHTML = '';
+    state.layers.slice().reverse().forEach((l, rI) => {
+      const i = state.layers.length - 1 - rI;
+      const div = document.createElement('div');
+      div.className = 'pt-layer-item' + (i === state.activeLayer ? ' active' : '');
+      div.innerHTML = `
+        <input type="checkbox" ${l.visible ? 'checked' : ''} data-i="${i}" class="pt-layer-vis">
+        <div class="pt-layer-thumb" id="pt-thumb-${i}"></div>
+        <div class="pt-layer-name" title="${escapeHtml(l.name)}">${escapeHtml(l.name)}</div>
+      `;
+      div.addEventListener('click', (e) => {
+        if (e.target.classList.contains('pt-layer-vis')) return;
+        state.activeLayer = i;
+        renderLayerList();
+      });
+      wrap.appendChild(div);
+      // 썸네일
+      setTimeout(() => {
+        const thumb = $('pt-thumb-' + i);
+        if (thumb && l.canvas) {
+          const tc = document.createElement('canvas');
+          tc.width = 28; tc.height = 20;
+          tc.getContext('2d').drawImage(l.canvas, 0, 0, 28, 20);
+          thumb.style.backgroundImage = `url(${tc.toDataURL()})`;
+          thumb.style.backgroundSize = 'cover';
+        }
+      }, 0);
+    });
+    wrap.querySelectorAll('.pt-layer-vis').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const i = +cb.dataset.i;
+        state.layers[i].visible = cb.checked;
+        state.layers[i].canvas.style.display = cb.checked ? '' : 'none';
+      });
+    });
+  }
+
+  function newCanvas(w = 800, h = 600, bg = '#ffffff') {
+    state.width = w;
+    state.height = h;
+    state.layers = [newLayer('배경')];
+    const ctx = state.layers[0].canvas.getContext('2d');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, w, h);
+    state.activeLayer = 0;
+    state.undoStack = []; state.redoStack = [];
+    setupCanvasDOM();
+    renderLayerList();
+  }
+
+  function loadImage(dataUrl) {
+    const img = new Image();
+    img.onload = () => {
+      state.width = img.width;
+      state.height = img.height;
+      state.layers = [newLayer('배경 이미지')];
+      state.layers[0].canvas.getContext('2d').drawImage(img, 0, 0);
+      state.activeLayer = 0;
+      state.undoStack = []; state.redoStack = [];
+      setupCanvasDOM();
+      renderLayerList();
+    };
+    img.onerror = () => toast('이미지 로드 실패');
+    img.src = dataUrl;
+  }
+
+  function compositeToDataURL(type = 'image/png') {
+    const c = document.createElement('canvas');
+    c.width = state.width; c.height = state.height;
+    const ctx = c.getContext('2d');
+    state.layers.forEach(l => {
+      if (!l.visible) return;
+      ctx.globalAlpha = l.opacity;
+      ctx.drawImage(l.canvas, 0, 0);
+    });
+    ctx.globalAlpha = 1;
+    return c.toDataURL(type);
+  }
+
+  /* ---- 그리기 함수들 ---- */
+  function getCoord(e) {
+    const iv = getInteractive();
+    const rect = iv.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / state.zoom;
+    const y = (e.clientY - rect.top) / state.zoom;
+    return { x: Math.round(x), y: Math.round(y) };
+  }
+
+  function drawLineSeg(ctx, x1, y1, x2, y2, color, size) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = size;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+  }
+
+  function drawShape(ctx, shape, x1, y1, x2, y2) {
+    const color = state.color1;
+    const fill = state.color2;
+    const size = state.size;
+    ctx.strokeStyle = color;
+    ctx.fillStyle = fill;
+    ctx.lineWidth = size;
+    ctx.globalAlpha = state.alpha;
+    const w = x2 - x1, h = y2 - y1;
+    const doFill = state.fillStyle === 'fill' || state.fillStyle === 'both';
+    const doStroke = state.fillStyle === 'stroke' || state.fillStyle === 'both';
+    ctx.beginPath();
+    if (shape === 'line') {
+      ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    } else if (shape === 'rect') {
+      ctx.rect(x1, y1, w, h);
+    } else if (shape === 'roundRect') {
+      const r = Math.min(Math.abs(w), Math.abs(h)) * 0.15;
+      if (ctx.roundRect) ctx.roundRect(x1, y1, w, h, r);
+      else {
+        ctx.moveTo(x1+r, y1); ctx.lineTo(x1+w-r, y1); ctx.quadraticCurveTo(x1+w, y1, x1+w, y1+r);
+        ctx.lineTo(x1+w, y1+h-r); ctx.quadraticCurveTo(x1+w, y1+h, x1+w-r, y1+h);
+        ctx.lineTo(x1+r, y1+h); ctx.quadraticCurveTo(x1, y1+h, x1, y1+h-r);
+        ctx.lineTo(x1, y1+r); ctx.quadraticCurveTo(x1, y1, x1+r, y1);
+      }
+    } else if (shape === 'ellipse') {
+      ctx.ellipse(x1+w/2, y1+h/2, Math.abs(w)/2, Math.abs(h)/2, 0, 0, Math.PI*2);
+    } else if (shape === 'triangle') {
+      ctx.moveTo(x1+w/2, y1); ctx.lineTo(x1, y1+h); ctx.lineTo(x1+w, y1+h); ctx.closePath();
+    } else if (shape === 'diamond') {
+      ctx.moveTo(x1+w/2, y1); ctx.lineTo(x1+w, y1+h/2); ctx.lineTo(x1+w/2, y1+h); ctx.lineTo(x1, y1+h/2); ctx.closePath();
+    } else if (shape === 'arrow') {
+      const headLen = Math.min(Math.sqrt(w*w+h*h)*0.3, 40);
+      const angle = Math.atan2(h, w);
+      ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+      ctx.lineTo(x2 - headLen * Math.cos(angle - Math.PI/6), y2 - headLen * Math.sin(angle - Math.PI/6));
+      ctx.moveTo(x2, y2);
+      ctx.lineTo(x2 - headLen * Math.cos(angle + Math.PI/6), y2 - headLen * Math.sin(angle + Math.PI/6));
+      ctx.stroke();
+      return;
+    } else if (shape === 'star') {
+      const cx = x1+w/2, cy = y1+h/2;
+      const rOut = Math.min(Math.abs(w), Math.abs(h))/2;
+      const rIn = rOut * 0.4;
+      for (let i = 0; i < 10; i++) {
+        const r = i % 2 === 0 ? rOut : rIn;
+        const a = (Math.PI*2*i)/10 - Math.PI/2;
+        const px = cx + r*Math.cos(a), py = cy + r*Math.sin(a);
+        i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+    } else if (shape === 'heart') {
+      const cx = x1+w/2, top = y1+h*0.3, bottom = y1+h;
+      ctx.moveTo(cx, bottom);
+      ctx.bezierCurveTo(x1, y1+h*0.7, x1, y1, cx, top);
+      ctx.bezierCurveTo(x1+w, y1, x1+w, y1+h*0.7, cx, bottom);
+    }
+    if (doFill && shape !== 'line' && shape !== 'arrow') ctx.fill();
+    if (doStroke) ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  function drawPolygon(ctx, points, close) {
+    if (points.length < 2) return;
+    ctx.strokeStyle = state.color1;
+    ctx.fillStyle = state.color2;
+    ctx.lineWidth = state.size;
+    ctx.globalAlpha = state.alpha;
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+    if (close) {
+      ctx.closePath();
+      if (state.fillStyle === 'fill' || state.fillStyle === 'both') ctx.fill();
+    }
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  function floodFill(ctx, x, y, fillColor) {
+    const w = ctx.canvas.width, h = ctx.canvas.height;
+    const imgData = ctx.getImageData(0, 0, w, h);
+    const data = imgData.data;
+    const stack = [[x, y]];
+    const getIdx = (x, y) => (y * w + x) * 4;
+    const startIdx = getIdx(x, y);
+    const tr = data[startIdx], tg = data[startIdx+1], tb = data[startIdx+2], ta = data[startIdx+3];
+    // 색상 파싱
+    const fc = document.createElement('canvas'); fc.width = fc.height = 1;
+    const fcx = fc.getContext('2d'); fcx.fillStyle = fillColor; fcx.fillRect(0,0,1,1);
+    const fd = fcx.getImageData(0,0,1,1).data;
+    if (tr === fd[0] && tg === fd[1] && tb === fd[2] && ta === fd[3]) return;
+    const visited = new Uint8Array(w*h);
+    while (stack.length) {
+      const [px, py] = stack.pop();
+      if (px < 0 || py < 0 || px >= w || py >= h) continue;
+      const vIdx = py * w + px;
+      if (visited[vIdx]) continue;
+      visited[vIdx] = 1;
+      const i = getIdx(px, py);
+      if (data[i] !== tr || data[i+1] !== tg || data[i+2] !== tb || data[i+3] !== ta) continue;
+      data[i] = fd[0]; data[i+1] = fd[1]; data[i+2] = fd[2]; data[i+3] = fd[3];
+      stack.push([px+1,py], [px-1,py], [px,py+1], [px,py-1]);
+    }
+    ctx.putImageData(imgData, 0, 0);
+  }
+
+  function eyedropperAt(x, y) {
+    // 모든 레이어를 합성한 임시 픽셀
+    const tc = document.createElement('canvas');
+    tc.width = state.width; tc.height = state.height;
+    const tx = tc.getContext('2d');
+    state.layers.forEach(l => { if (l.visible) tx.drawImage(l.canvas, 0, 0); });
+    const d = tx.getImageData(x, y, 1, 1).data;
+    const hex = '#' + [d[0],d[1],d[2]].map(v => v.toString(16).padStart(2,'0')).join('');
+    state.color1 = hex;
+    $('pt-color1').value = hex;
+    addRecentColor(hex);
+    toast('색상 추출: ' + hex);
+  }
+
+  /* ---- 포인터 이벤트 ---- */
+  function bindPointer() {
+    const iv = getInteractive();
+    iv.addEventListener('pointerdown', (e) => {
+      iv.setPointerCapture(e.pointerId);
+      state.button = e.button;
+      state.isDrawing = true;
+      const p = getCoord(e);
+      state.startX = state.lastX = p.x;
+      state.startY = state.lastY = p.y;
+      const ctx = getActiveCtx();
+      const ictx = iv.getContext('2d');
+      if (state.tool === 'eyedrop') {
+        eyedropperAt(p.x, p.y);
+        state.isDrawing = false;
+        return;
+      }
+      if (state.tool === 'fill') {
+        pushUndo();
+        floodFill(ctx, p.x, p.y, e.button === 2 ? state.color2 : state.color1);
+        state.isDrawing = false;
+        return;
+      }
+      if (state.tool === 'text') {
+        state.isDrawing = false;
+        insertText(p.x, p.y);
+        return;
+      }
+      if (state.tool === 'polygon') {
+        state.polyPoints.push({ x: p.x, y: p.y });
+        state.isDrawing = false;
+        drawPolygon(ictx, state.polyPoints, false);
+        return;
+      }
+      // 브러시류: 즉시 점 찍기
+      pushUndo();
+      if (['pencil','brush','marker','airbrush','eraser'].includes(state.tool)) {
+        drawBrush(ctx, p.x, p.y, p.x, p.y, e);
+      }
+    });
+    iv.addEventListener('pointermove', (e) => {
+      const p = getCoord(e);
+      $('pt-cursor-info').textContent = `${p.x}, ${p.y}`;
+      if (!state.isDrawing) return;
+      const ctx = getActiveCtx();
+      const ictx = iv.getContext('2d');
+      if (['pencil','brush','marker','airbrush','eraser'].includes(state.tool)) {
+        drawBrush(ctx, state.lastX, state.lastY, p.x, p.y, e);
+      } else if (['line','rect','roundRect','ellipse','triangle','diamond','arrow','star','heart'].includes(state.tool)) {
+        clearInteractive();
+        drawShape(ictx, state.tool, state.startX, state.startY, p.x, p.y);
+      } else if (state.tool === 'select') {
+        clearInteractive();
+        ictx.strokeStyle = '#000';
+        ictx.setLineDash([4, 4]);
+        ictx.lineWidth = 1;
+        ictx.strokeRect(state.startX, state.startY, p.x - state.startX, p.y - state.startY);
+        ictx.setLineDash([]);
+      }
+      state.lastX = p.x; state.lastY = p.y;
+    });
+    iv.addEventListener('pointerup', (e) => {
+      if (!state.isDrawing) return;
+      state.isDrawing = false;
+      const p = getCoord(e);
+      const ctx = getActiveCtx();
+      if (['line','rect','roundRect','ellipse','triangle','diamond','arrow','star','heart'].includes(state.tool)) {
+        drawShape(ctx, state.tool, state.startX, state.startY, p.x, p.y);
+        clearInteractive();
+      } else if (state.tool === 'select') {
+        state.selection = {
+          x: Math.min(state.startX, p.x), y: Math.min(state.startY, p.y),
+          w: Math.abs(p.x - state.startX), h: Math.abs(p.y - state.startY)
+        };
+      }
+    });
+    iv.addEventListener('pointerleave', () => { /* 캔버스 밖 나가면 그리기 중단 */ });
+    iv.addEventListener('contextmenu', (e) => { e.preventDefault(); });
+    iv.addEventListener('dblclick', (e) => {
+      if (state.tool === 'polygon' && state.polyPoints.length >= 2) {
+        pushUndo();
+        const ctx = getActiveCtx();
+        drawPolygon(ctx, state.polyPoints, true);
+        state.polyPoints = [];
+        clearInteractive();
+      }
+    });
+  }
+
+  function drawBrush(ctx, x1, y1, x2, y2, e) {
+    const color = state.tool === 'eraser' ? null : (state.button === 2 ? state.color2 : state.color1);
+    const size = state.size;
+    ctx.globalAlpha = state.alpha;
+    if (state.tool === 'eraser') {
+      ctx.save();
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.strokeStyle = 'rgba(0,0,0,1)';
+      ctx.lineWidth = size;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+      ctx.restore();
+    } else if (state.tool === 'pencil') {
+      drawLineSeg(ctx, x1, y1, x2, y2, color, Math.max(1, size * 0.5));
+    } else if (state.tool === 'brush') {
+      // 부드러운 브러시 (압력 감지 포함)
+      const pressure = (e && e.pressure) ? (0.2 + e.pressure * 1.5) : 1;
+      drawLineSeg(ctx, x1, y1, x2, y2, color, size * pressure);
+    } else if (state.tool === 'marker') {
+      ctx.save();
+      ctx.globalAlpha = 0.4 * state.alpha;
+      drawLineSeg(ctx, x1, y1, x2, y2, color, size * 1.5);
+      ctx.restore();
+    } else if (state.tool === 'airbrush') {
+      // 원 영역에 랜덤 점 뿌리기
+      const dist = Math.hypot(x2-x1, y2-y1);
+      const steps = Math.max(1, Math.floor(dist));
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        const cx = x1 + (x2-x1)*t, cy = y1 + (y2-y1)*t;
+        ctx.fillStyle = color;
+        for (let j = 0; j < size; j++) {
+          const r = Math.random() * size;
+          const a = Math.random() * Math.PI * 2;
+          ctx.globalAlpha = state.alpha * (0.1 + Math.random() * 0.3);
+          ctx.fillRect(cx + r*Math.cos(a), cy + r*Math.sin(a), 1, 1);
+        }
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function insertText(x, y) {
+    const text = prompt('입력할 텍스트:');
+    if (!text) return;
+    const size = prompt('글자 크기 (pt):', '20');
+    const fontSize = Math.max(8, Math.min(200, parseInt(size) || 20));
+    pushUndo();
+    const ctx = getActiveCtx();
+    ctx.font = `${fontSize}px sans-serif`;
+    ctx.fillStyle = state.color1;
+    ctx.textBaseline = 'top';
+    ctx.fillText(text, x, y);
+  }
+
+  /* ---- 이미지 변환 ---- */
+  function rotateCanvas(deg) {
+    pushUndo();
+    const rad = deg * Math.PI / 180;
+    const swap = deg === 90 || deg === 270;
+    const newW = swap ? state.height : state.width;
+    const newH = swap ? state.width : state.height;
+    state.layers.forEach(l => {
+      const tc = document.createElement('canvas');
+      tc.width = newW; tc.height = newH;
+      const tx = tc.getContext('2d');
+      tx.translate(newW/2, newH/2);
+      tx.rotate(rad);
+      tx.drawImage(l.canvas, -state.width/2, -state.height/2);
+      l.canvas.width = newW; l.canvas.height = newH;
+      l.canvas.getContext('2d').drawImage(tc, 0, 0);
+    });
+    state.width = newW; state.height = newH;
+    setupCanvasDOM();
+  }
+
+  function flipCanvas(axis) {
+    pushUndo();
+    state.layers.forEach(l => {
+      const tc = document.createElement('canvas');
+      tc.width = state.width; tc.height = state.height;
+      const tx = tc.getContext('2d');
+      if (axis === 'h') { tx.translate(state.width, 0); tx.scale(-1, 1); }
+      else { tx.translate(0, state.height); tx.scale(1, -1); }
+      tx.drawImage(l.canvas, 0, 0);
+      l.canvas.getContext('2d').clearRect(0, 0, state.width, state.height);
+      l.canvas.getContext('2d').drawImage(tc, 0, 0);
+    });
+  }
+
+  function applyFilter(filterName) {
+    pushUndo();
+    const ctx = getActiveCtx();
+    const img = ctx.getImageData(0, 0, state.width, state.height);
+    const d = img.data;
+    if (filterName === 'invert') {
+      for (let i = 0; i < d.length; i += 4) { d[i]=255-d[i]; d[i+1]=255-d[i+1]; d[i+2]=255-d[i+2]; }
+    } else if (filterName === 'grayscale') {
+      for (let i = 0; i < d.length; i += 4) { const g = (d[i]*0.3+d[i+1]*0.59+d[i+2]*0.11); d[i]=d[i+1]=d[i+2]=g; }
+    } else if (filterName === 'sepia') {
+      for (let i = 0; i < d.length; i += 4) {
+        const r=d[i], g=d[i+1], b=d[i+2];
+        d[i] = Math.min(255, r*0.393+g*0.769+b*0.189);
+        d[i+1] = Math.min(255, r*0.349+g*0.686+b*0.168);
+        d[i+2] = Math.min(255, r*0.272+g*0.534+b*0.131);
+      }
+    } else if (filterName === 'bright') {
+      for (let i = 0; i < d.length; i += 4) { d[i]+=30; d[i+1]+=30; d[i+2]+=30; }
+    } else if (filterName === 'contrast') {
+      for (let i = 0; i < d.length; i += 4) { d[i]=(d[i]-128)*1.5+128; d[i+1]=(d[i+1]-128)*1.5+128; d[i+2]=(d[i+2]-128)*1.5+128; }
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+
+  function removeBackground() {
+    // 가장자리 픽셀의 평균 색을 배경으로 보고 제거 (간단한 chroma key)
+    pushUndo();
+    const ctx = getActiveCtx();
+    const img = ctx.getImageData(0, 0, state.width, state.height);
+    const d = img.data;
+    // 가장자리 색 샘플링
+    const samples = [];
+    const step = 10;
+    for (let x = 0; x < state.width; x += step) {
+      samples.push([d[(0*state.width+x)*4], d[(0*state.width+x)*4+1], d[(0*state.width+x)*4+2]]);
+    }
+    let ar=0, ag=0, ab=0;
+    samples.forEach(s => { ar+=s[0]; ag+=s[1]; ab+=s[2]; });
+    ar/=samples.length; ag/=samples.length; ab/=samples.length;
+    const tol = 35;
+    for (let i = 0; i < d.length; i += 4) {
+      const dr=d[i]-ar, dg=d[i+1]-ag, db=d[i+2]-ab;
+      if (Math.sqrt(dr*dr+dg*dg+db*db) < tol) d[i+3] = 0;
+    }
+    ctx.putImageData(img, 0, 0);
+    toast('배경 제거 완료 (근사 알고리즘)');
+  }
+
+  function resizeCanvas(w, h) {
+    pushUndo();
+    state.layers.forEach(l => {
+      const tc = document.createElement('canvas');
+      tc.width = w; tc.height = h;
+      tc.getContext('2d').drawImage(l.canvas, 0, 0, w, h);
+      l.canvas.width = w; l.canvas.height = h;
+      l.canvas.getContext('2d').drawImage(tc, 0, 0);
+    });
+    state.width = w; state.height = h;
+    setupCanvasDOM();
+  }
+
+  function cropToSelection() {
+    if (!state.selection || state.selection.w < 2) { toast('먼저 영역을 선택하세요 (선택 도구)'); return; }
+    pushUndo();
+    const s = state.selection;
+    state.layers.forEach(l => {
+      const tc = document.createElement('canvas');
+      tc.width = s.w; tc.height = s.h;
+      tc.getContext('2d').drawImage(l.canvas, -s.x, -s.y);
+      l.canvas.width = s.w; l.canvas.height = s.h;
+      l.canvas.getContext('2d').drawImage(tc, 0, 0);
+    });
+    state.width = s.w; state.height = s.h;
+    state.selection = null;
+    setupCanvasDOM();
+  }
+
+  /* ---- 바인딩 ---- */
+  function bindUI() {
+    // 도구
+    document.querySelectorAll('.pt-tool').forEach(b => b.addEventListener('click', () => setTool(b.dataset.tool)));
+    // Undo/Redo
+    $('pt-undo').addEventListener('click', undo);
+    $('pt-redo').addEventListener('click', redo);
+    // 색상
+    $('pt-color1').addEventListener('input', (e) => { state.color1 = e.target.value; addRecentColor(state.color1); });
+    $('pt-color2').addEventListener('input', (e) => { state.color2 = e.target.value; });
+    $('pt-color-swap').addEventListener('click', () => {
+      [state.color1, state.color2] = [state.color2, state.color1];
+      $('pt-color1').value = state.color1; $('pt-color2').value = state.color2;
+    });
+    // 두께
+    $('pt-size').addEventListener('input', (e) => { state.size = +e.target.value; $('pt-size-val').textContent = e.target.value + 'px'; });
+    $('pt-fill-style').addEventListener('change', (e) => { state.fillStyle = e.target.value; });
+    $('pt-alpha').addEventListener('input', (e) => { state.alpha = +e.target.value / 100; $('pt-alpha-val').textContent = e.target.value + '%'; });
+    // 줌
+    $('pt-zoom-in').addEventListener('click', () => { state.zoom = Math.min(8, state.zoom * 1.25); applyZoom(); });
+    $('pt-zoom-out').addEventListener('click', () => { state.zoom = Math.max(0.1, state.zoom / 1.25); applyZoom(); });
+    $('pt-zoom-100').addEventListener('click', () => { state.zoom = 1; applyZoom(); });
+    $('pt-zoom-fit').addEventListener('click', () => {
+      const scroll = $('pt-canvas-scroll');
+      const sx = (scroll.clientWidth - 40) / state.width;
+      const sy = (scroll.clientHeight - 40) / state.height;
+      state.zoom = Math.max(0.1, Math.min(sx, sy));
+      applyZoom();
+    });
+    // 레이어
+    $('pt-layer-add').addEventListener('click', () => {
+      pushUndo();
+      const l = newLayer('레이어 ' + (state.layers.length + 1));
+      state.layers.push(l);
+      state.activeLayer = state.layers.length - 1;
+      setupCanvasDOM(); renderLayerList();
+    });
+    $('pt-layer-dup').addEventListener('click', () => {
+      pushUndo();
+      const src = state.layers[state.activeLayer];
+      if (!src) return;
+      const l = newLayer(src.name + ' 복사');
+      l.canvas.getContext('2d').drawImage(src.canvas, 0, 0);
+      state.layers.splice(state.activeLayer + 1, 0, l);
+      state.activeLayer++;
+      setupCanvasDOM(); renderLayerList();
+    });
+    $('pt-layer-del').addEventListener('click', () => {
+      if (state.layers.length <= 1) { toast('마지막 레이어는 삭제 불가'); return; }
+      pushUndo();
+      state.layers.splice(state.activeLayer, 1);
+      if (state.activeLayer >= state.layers.length) state.activeLayer = state.layers.length - 1;
+      setupCanvasDOM(); renderLayerList();
+    });
+    // 파일
+    $('paintNew').addEventListener('click', async () => {
+      const w = +(await prompt2('새 캔버스 너비', '800') || 800);
+      const h = +(await prompt2('새 캔버스 높이', '600') || 600);
+      if (w > 10 && h > 10) { newCanvas(w, h); $('paintFileName').textContent = '무제'; }
+    });
+    $('paintOpen').addEventListener('click', () => $('pt-open-input').click());
+    $('pt-open-input').addEventListener('change', (e) => {
+      const f = e.target.files[0]; if (!f) return;
+      const r = new FileReader();
+      r.onload = () => { loadImage(r.result); $('paintFileName').textContent = f.name; };
+      r.readAsDataURL(f);
+      e.target.value = '';
+    });
+    $('paintSave').addEventListener('click', () => {
+      const url = compositeToDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = ($('paintFileName').textContent || 'paint').replace(/\.[^.]+$/, '') + '.png';
+      document.body.appendChild(a); a.click(); a.remove();
+    });
+    $('paintInsert').addEventListener('click', () => {
+      const url = compositeToDataURL('image/png');
+      if (state.onClose) { state.onClose(url); state.onClose = null; }
+      else {
+        // 기본: 현재 메모에 삽입
+        $('paintModal').classList.remove('open');
+        restorePageSel();
+        pageEl.focus();
+        document.execCommand('insertImage', false, url);
+        scheduleSave();
+        toast('그림을 메모에 삽입했습니다');
+      }
+    });
+    $('paintClose').addEventListener('click', () => { $('paintModal').classList.remove('open'); state.onClose = null; });
+    // 이미지 변환
+    $('pt-resize-btn').addEventListener('click', async () => {
+      const w = +(await prompt2('새 너비 (px)', state.width) || state.width);
+      const h = +(await prompt2('새 높이 (px)', state.height) || state.height);
+      if (w > 10 && h > 10) resizeCanvas(w, h);
+    });
+    $('pt-rotate-btn').addEventListener('click', async () => {
+      const opts = `<div style="display:flex; flex-direction:column; gap:5px; padding:5px 0;">
+        <button class="pt-rot-opt" data-op="90" style="padding:8px; background:#eee; border:none; border-radius:4px; cursor:pointer;">90° 시계방향</button>
+        <button class="pt-rot-opt" data-op="180" style="padding:8px; background:#eee; border:none; border-radius:4px; cursor:pointer;">180°</button>
+        <button class="pt-rot-opt" data-op="270" style="padding:8px; background:#eee; border:none; border-radius:4px; cursor:pointer;">270° (반시계 90°)</button>
+        <button class="pt-rot-opt" data-op="h" style="padding:8px; background:#eee; border:none; border-radius:4px; cursor:pointer;">좌우 반전</button>
+        <button class="pt-rot-opt" data-op="v" style="padding:8px; background:#eee; border:none; border-radius:4px; cursor:pointer;">상하 반전</button>
+      </div>`;
+      showModalHtml('회전 / 반전', opts);
+      setTimeout(() => {
+        document.querySelectorAll('.pt-rot-opt').forEach(b => {
+          b.addEventListener('click', () => {
+            $('modal').classList.remove('open');
+            const op = b.dataset.op;
+            if (op === 'h' || op === 'v') flipCanvas(op);
+            else rotateCanvas(+op);
+          });
+        });
+      }, 50);
+    });
+    $('pt-crop-btn').addEventListener('click', cropToSelection);
+    $('pt-filter-btn').addEventListener('click', () => {
+      showModalHtml('필터', `<div style="display:flex; flex-direction:column; gap:5px; padding:5px 0;">
+        ${['invert:반전색','grayscale:흑백','sepia:세피아','bright:밝게','contrast:대비증가'].map(f => {
+          const [k,l] = f.split(':');
+          return `<button class="pt-fil-opt" data-f="${k}" style="padding:8px; background:#eee; border:none; border-radius:4px; cursor:pointer;">${l}</button>`;
+        }).join('')}
+      </div>`);
+      setTimeout(() => {
+        document.querySelectorAll('.pt-fil-opt').forEach(b => {
+          b.addEventListener('click', () => {
+            $('modal').classList.remove('open');
+            applyFilter(b.dataset.f);
+          });
+        });
+      }, 50);
+    });
+    $('pt-bg-remove').addEventListener('click', removeBackground);
+    // 키보드 단축키
+    document.addEventListener('keydown', (e) => {
+      if (!$('paintModal').classList.contains('open')) return;
+      const t = e.target;
+      if (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA') return;
+      const ctrl = e.ctrlKey || e.metaKey;
+      if (ctrl && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
+      if (ctrl && e.key.toLowerCase() === 'y') { e.preventDefault(); redo(); return; }
+      if (ctrl && e.key.toLowerCase() === 's') { e.preventDefault(); $('paintSave').click(); return; }
+      if (ctrl && e.key.toLowerCase() === 'n') { e.preventDefault(); $('paintNew').click(); return; }
+      if (ctrl && e.key.toLowerCase() === 'o') { e.preventDefault(); $('paintOpen').click(); return; }
+      if (ctrl && e.key === 'Enter') { e.preventDefault(); $('paintInsert').click(); return; }
+      if (e.key === 'Escape') { e.preventDefault(); $('paintClose').click(); return; }
+      // 도구 단축키
+      const keys = { p:'pencil', b:'brush', e:'eraser', g:'fill', i:'eyedrop', t:'text', s:'select', l:'line' };
+      if (!ctrl && keys[e.key.toLowerCase()]) { setTool(keys[e.key.toLowerCase()]); }
+    });
+  }
+
+  let inited = false;
+  function init() {
+    if (inited) return;
+    inited = true;
+    renderPalette();
+    bindUI();
+    bindPointer();
+  }
+
+  return {
+    open(dataUrl, onInsert) {
+      init();
+      $('paintModal').classList.add('open');
+      state.onClose = onInsert || null;
+      if (dataUrl) {
+        loadImage(dataUrl);
+        $('paintFileName').textContent = '편집 중…';
+      } else if (state.layers.length === 0) {
+        newCanvas();
+      }
+      setTool(state.tool || 'pencil');
+      setTimeout(() => $('pt-zoom-fit').click(), 150);
+    },
+    close() { $('paintModal').classList.remove('open'); state.onClose = null; },
+    getState() { return state; }
+  };
+})();
+window.Paint = Paint;
+
+/* ============================================================
+   Paint 통합: 토크바 버튼 + 이미지 편집 + 명함/캡쳐 연계
+   ============================================================ */
+// 명령 팔레트 추가
+if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
+  COMMANDS.push(
+    { ico:'i-brush', name:'그림판 열기', desc:'Windows 그림판 풀 기능', run: () => Paint.open() },
+    { ico:'i-crop', name:'선택 이미지 편집', desc:'메모에서 선택한 이미지를 그림판으로', run: () => editSelectedImageInPaint() }
+  );
+}
+
+function editSelectedImageInPaint() {
+  const sel = window.getSelection();
+  let img = null;
+  try {
+    if (sel.rangeCount > 0) {
+      const frag = sel.getRangeAt(0).cloneContents();
+      img = frag.querySelector && frag.querySelector('img');
+    }
+  } catch {}
+  if (!img) {
+    // 마지막 클릭된 이미지 찾기 폴백
+    img = document.querySelector('.page img:last-of-type');
+  }
+  if (!img || !img.src) { toast('편집할 이미지를 먼저 선택하세요'); return; }
+  const originalSrc = img.src;
+  Paint.open(originalSrc, (editedUrl) => {
+    // 원본 이미지 교체
+    const oldImg = [...pageEl.querySelectorAll('img')].find(i => i.src === originalSrc);
+    if (oldImg) oldImg.src = editedUrl;
+    else {
+      // 못 찾으면 현재 위치에 삽입
+      restorePageSel();
+      pageEl.focus();
+      document.execCommand('insertImage', false, editedUrl);
+    }
+    scheduleSave();
+    $('paintModal').classList.remove('open');
+    toast('이미지가 편집됐습니다');
+  });
+}
+
+// 메모 영역 이미지에 더블클릭 → 그림판 열기 (단, 리사이즈 핸들 등 다른 인터랙션과 충돌 방지)
+pageEl.addEventListener('dblclick', (e) => {
+  // 링크나 대화형 요소는 무시
+  if (e.target.closest('a, .mention, .date-tag, .resize-handle, .meeting-note')) return;
+  if (e.target.tagName === 'IMG' && e.target.src) {
+    e.preventDefault();
+    e.stopPropagation();
+    const originalSrc = e.target.src;
+    const imgEl = e.target;
+    // data URL이 아닌 외부 URL은 CORS로 편집 실패 가능 — 경고
+    if (!originalSrc.startsWith('data:') && !originalSrc.startsWith(location.origin)) {
+      toast('외부 이미지는 CORS 제한으로 편집이 제한될 수 있습니다');
+    }
+    Paint.open(originalSrc, (editedUrl) => {
+      imgEl.src = editedUrl;
+      scheduleSave();
+      $('paintModal').classList.remove('open');
+      toast('이미지가 편집됐습니다');
+    });
+  }
+});
+
+// 명함 편집 이미지에도 편집 연계: 명함 편집 모달에서 이미지 우클릭으로 Paint 호출
+(function cardPaintIntegration() {
+  const hookImg = (imgEl, storeKey) => {
+    if (!imgEl || imgEl.dataset.paintHooked) return;
+    imgEl.dataset.paintHooked = '1';
+    imgEl.addEventListener('dblclick', () => {
+      if (!imgEl.src) return;
+      Paint.open(imgEl.src, (edited) => {
+        imgEl.src = edited;
+        if (storeKey === 'front') cardsState.editingFront = edited;
+        else if (storeKey === 'back') cardsState.editingBack = edited;
+        $('paintModal').classList.remove('open');
+        toast('명함 이미지가 편집됐습니다');
+      });
+    });
+  };
+  // 편집 모달이 열릴 때 훅 시도 (MutationObserver 대신 주기적으로)
+  const checkAndHook = () => {
+    if ($('cardEditModal').classList.contains('open')) {
+      hookImg($('cardEditFrontImg'), 'front');
+      hookImg($('cardEditBackImg'), 'back');
+    }
+  };
+  // 명함 모달 열기 이벤트와 연동
+  const obs = new MutationObserver(checkAndHook);
+  obs.observe($('cardEditModal'), { attributes: true, attributeFilter: ['class'] });
+})();
+
+// 캡쳐 결과 → Paint로 편집하고 삽입할 수 있는 옵션
+function openCaptureInPaint(dataUrl) {
+  Paint.open(dataUrl, (edited) => {
+    restorePageSel();
+    pageEl.focus();
+    document.execCommand('insertImage', false, edited);
+    scheduleSave();
+    $('paintModal').classList.remove('open');
+    toast('편집된 캡쳐를 메모에 삽입했습니다');
+  });
+}
+window.openCaptureInPaint = openCaptureInPaint;
+
+// 토크바에 그림판 전용 버튼을 추가 (sketchBtn 옆)
+(function addPaintToolbarBtn() {
+  const sketchBtn = $('sketchBtn');
+  if (!sketchBtn) return;
+  const paintBtn = document.createElement('button');
+  paintBtn.id = 'paintBtn';
+  paintBtn.title = '그림판 (풀 기능)';
+  paintBtn.innerHTML = '<svg class="ico"><use href="#i-bucket"/></svg>';
+  paintBtn.addEventListener('click', () => Paint.open());
+  sketchBtn.parentNode.insertBefore(paintBtn, sketchBtn.nextSibling);
+})();
 
 /* ============================================================
    명함관리 (Business Cards)
