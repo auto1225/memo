@@ -61,11 +61,12 @@
     font-size:13px; outline:none; width:150px; }
   .app-logo { color:#fff; width:20px; height:20px; flex-shrink:0;
     filter: drop-shadow(0 1px 2px rgba(0,0,0,0.25)); }
+  .topbar #cardsTopBtn, .topbar #calOpenBtn { position:relative; }
   .topbar-badge { position:absolute; top:-2px; right:-2px; background:#ff5252; color:white;
-    font-size:9px; font-weight:700; padding:1px 4px; border-radius:8px; min-width:14px;
-    height:14px; line-height:12px; display:none; }
+    font-size:9px; font-weight:700; padding:0 4px; border-radius:8px; min-width:14px;
+    height:14px; line-height:14px; display:none; text-align:center; pointer-events:none; }
   .topbar-badge.show { display:inline-block; }
-  .topbar-drop { position:relative; }
+  .topbar-drop { position:relative; display:inline-flex; }
   .topbar-drop-menu { position:absolute; top:100%; right:0; background:white;
     border:1px solid rgba(0,0,0,0.1); border-radius:6px; box-shadow:0 4px 12px rgba(0,0,0,0.15);
     min-width:170px; z-index:1000; padding:4px; margin-top:4px; }
@@ -6650,21 +6651,19 @@ $('flashBtn').addEventListener('click', () => {
   renderFlashCard();
 });
 $('flashClose').addEventListener('click', () => $('flashModal').classList.remove('open'));
-// P2: 플래시카드를 메모로 영속화
+// P2: 플래시카드를 메모로 영속화 (전역 flashCards 배열 사용)
 $('flashSaveAsTab').addEventListener('click', () => {
-  const board = $('flashBoard');
-  if (!board || !board.children.length) { toast('저장할 카드가 없습니다'); return; }
-  const cards = [...board.querySelectorAll('.flash-card')];
-  if (cards.length === 0) { toast('저장할 카드가 없습니다'); return; }
-  const html = `<h2>플래시카드 · ${new Date().toLocaleDateString('ko-KR')}</h2>` +
-    cards.map((c, i) => {
-      const q = c.querySelector('.flash-q, .flash-front, [data-q]')?.textContent?.trim() || '';
-      const a = c.querySelector('.flash-a, .flash-back, [data-a]')?.textContent?.trim() || '';
-      return `<div style="border:1px solid var(--paper-edge); border-radius:6px; padding:10px; margin-bottom:8px;">
-        <div style="font-weight:600; margin-bottom:6px;">Q${i+1}. ${escapeHtml(q)}</div>
-        <div style="color:var(--ink-soft); padding-left:10px;">A: ${escapeHtml(a)}</div>
-      </div>`;
-    }).join('');
+  if (!Array.isArray(flashCards) || flashCards.length === 0) {
+    toast('저장할 카드가 없습니다'); return;
+  }
+  const html = `<h2>플래시카드 · ${new Date().toLocaleDateString('ko-KR')}</h2>
+    <p style="color:var(--ink-soft); font-size:12px;">총 ${flashCards.length}장 · Q/A 형식으로 저장됨 (다시 플래시카드 버튼으로 학습 가능)</p>` +
+    flashCards.map((c, i) => `<div style="border:1px solid var(--paper-edge); border-radius:6px; padding:10px; margin-bottom:8px;">
+      <div style="font-weight:600; margin-bottom:6px;">Q: ${escapeHtml(c.q)}</div>
+      <div style="color:var(--ink-soft);">A: ${escapeHtml(c.a)}</div>
+    </div>`).join('') +
+    `<hr><h3>원문 (플래시카드 파서용)</h3>` +
+    flashCards.map(c => `Q: ${escapeHtml(c.q)}<br>A: ${escapeHtml(c.a)}<br><br>`).join('');
   saveAiResultAsTab('플래시카드 ' + new Date().toLocaleDateString('ko-KR'), html);
   $('flashModal').classList.remove('open');
 });
@@ -8301,10 +8300,15 @@ pageEl.addEventListener('input', () => {
   });
   calBtn.addEventListener('pointerdown', () => {
     longPressed = false;
+    clearTimeout(longPressTimer);
     longPressTimer = setTimeout(() => { longPressed = true; toggleCalMenu(); }, 500);
   });
   calBtn.addEventListener('pointerup', () => clearTimeout(longPressTimer));
   calBtn.addEventListener('pointerleave', () => clearTimeout(longPressTimer));
+  calBtn.addEventListener('pointermove', (e) => {
+    // 움직임이 크면 취소 (스크롤/드래그 방지)
+    if (Math.abs(e.movementX) > 3 || Math.abs(e.movementY) > 3) clearTimeout(longPressTimer);
+  });
   // 클릭 시 longPress 플래그 확인 (longPress면 openCalendar 호출 막기)
   const origClick = calBtn.onclick;
   calBtn.addEventListener('click', (e) => {
@@ -8430,11 +8434,14 @@ window.getAllTags = getAllTags;
     const node = r.startContainer;
     if (node.nodeType !== 3) { closeMention(); return; }
     const text = node.textContent.slice(0, r.startOffset);
-    const m = text.match(/@([^\s@]{0,20})$/);
+    // @ 앞이 공백/줄시작이어야 멘션으로 인식 (이메일 오탐 방지)
+    const m = text.match(/(^|\s)@([^\s@]{0,20})$/);
     if (!m) { closeMention(); return; }
-    const query = m[1];
+    const query = m[2];
+    // @ 부터 커서까지만 범위 (앞쪽 공백은 제외)
+    const atLen = m[2].length + 1;  // @ + query 길이
     const mRange = document.createRange();
-    mRange.setStart(node, r.startOffset - m[0].length);
+    mRange.setStart(node, r.startOffset - atLen);
     mRange.setEnd(node, r.startOffset);
     mentionRange = mRange;
     const rect = r.getBoundingClientRect();
@@ -8465,7 +8472,10 @@ window.getAllTags = getAllTags;
       }, 100);
     } else if (m.classList.contains('mention-tab')) {
       const id = m.dataset.tabId;
-      if (state.tabs.find(t => t.id === id)) setActive(id);
+      const target = state.tabs.find(t => t.id === id);
+      if (!target) { toast('대상 메모가 삭제되었거나 찾을 수 없습니다'); return; }
+      if (target.locked) { toast('잠긴 탭입니다 — 먼저 해제하세요'); return; }
+      setActive(id);
     }
   });
 })();
@@ -8486,8 +8496,15 @@ window.getMemosReferencingCard = getMemosReferencingCard;
 function smartAiEntry() {
   const sel = window.getSelection();
   const selText = sel && sel.toString().trim();
-  // 이미지 선택?
-  const selImg = sel && sel.anchorNode && sel.anchorNode.querySelector && sel.anchorNode.querySelector('img');
+  // 이미지 선택 감지: 범위 내 fragment에 img가 있는지
+  let selImg = null;
+  try {
+    if (sel && sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0);
+      const frag = range.cloneContents();
+      selImg = frag.querySelector && frag.querySelector('img');
+    }
+  } catch {}
   if (selText && selText.length > 5) {
     // 텍스트 선택 → 요약/번역/개선 메뉴
     showModalHtml('AI 작업 선택', `
@@ -8511,11 +8528,45 @@ function smartAiEntry() {
         });
       });
     }, 50);
-  } else if (selImg) {
+  } else if (selImg && selImg.src) {
     // 이미지 선택 → OCR 메뉴
-    toast('이미지 AI 모드 (OCR 버튼 사용 권장)');
-    if (typeof openOcrPicker === 'function') openOcrPicker();
-    else $('aiBtn').click();
+    const imgSrc = selImg.src;
+    showModalHtml('선택한 이미지로 AI 작업', `
+      <div style="padding:4px 0;">
+        <img src="${imgSrc}" style="max-width:100%; max-height:160px; border:1px solid #ddd; border-radius:6px; margin-bottom:10px;" />
+        <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:6px;">
+          <button class="sai-img-btn" data-mode="text" style="padding:10px; background:var(--accent); color:white; border:none; border-radius:5px; cursor:pointer; font-size:12px;">텍스트 추출 (OCR)</button>
+          <button class="sai-img-btn" data-mode="math" style="padding:10px; background:#7e57c2; color:white; border:none; border-radius:5px; cursor:pointer; font-size:12px;">수식 (LaTeX)</button>
+          <button class="sai-img-btn" data-mode="table" style="padding:10px; background:#4caf50; color:white; border:none; border-radius:5px; cursor:pointer; font-size:12px;">표 (Markdown)</button>
+          <button class="sai-img-btn" data-mode="markdown" style="padding:10px; background:#ff9800; color:white; border:none; border-radius:5px; cursor:pointer; font-size:12px;">문서 (Markdown)</button>
+          <button class="sai-img-btn" data-mode="card" style="padding:10px; background:#2196f3; color:white; border:none; border-radius:5px; cursor:pointer; font-size:12px; grid-column:span 2;">명함으로 저장</button>
+        </div>
+      </div>
+    `);
+    setTimeout(() => {
+      document.querySelectorAll('.sai-img-btn').forEach(b => {
+        b.addEventListener('click', async () => {
+          $('modal').classList.remove('open');
+          const mode = b.dataset.mode;
+          if (mode === 'card') {
+            openCardsModal();
+            setTimeout(() => {
+              openCardEditor(null);
+              setTimeout(() => {
+                cardsState.editingFront = imgSrc;
+                $('cardEditFrontImg').src = imgSrc;
+                $('cardEditFrontImg').style.display = '';
+                $('cardEditFrontEmpty').style.display = 'none';
+                $('cardEditFrontTools').style.display = 'flex';
+                extractCardFromImageAI();
+              }, 150);
+            }, 100);
+          } else {
+            if (typeof runOCR === 'function') runOCR(imgSrc, mode, true);
+          }
+        });
+      });
+    }, 50);
   } else {
     // 기본 AI 모달
     $('aiBtn').click();
@@ -8781,6 +8832,8 @@ function collectSnsFromEditor() {
 function cardUid() { return 'bc_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,8); }
 
 function openCardsModal() {
+  // 현재 편집 중인 탭 내용을 state에 반영 (역참조 정확성)
+  if (typeof syncPageToState === 'function') try { syncPageToState(); } catch {}
   $('cardsModal').classList.add('open');
   renderCardsFilters();
   renderCardsList();
