@@ -9157,7 +9157,7 @@ const Paint = (function() {
     const c = document.createElement('canvas');
     c.width = state.width;
     c.height = state.height;
-    return { id: 'L'+Date.now()+Math.random().toString(36).slice(2,5), name, canvas: c, visible: true, opacity: 1 };
+    return { id: 'L'+Date.now()+Math.random().toString(36).slice(2,5), name, canvas: c, visible: true, opacity: 1, blend: 'source-over' };
   }
 
   function setupCanvasDOM() {
@@ -9205,13 +9205,20 @@ const Paint = (function() {
     return l ? l.canvas.getContext('2d') : null;
   }
 
+  function snapshotLayers() {
+    return state.layers.map(l => ({
+      id: l.id, name: l.name, visible: l.visible, opacity: l.opacity,
+      blend: l.blend || 'source-over',
+      data: l.canvas.toDataURL()
+    }));
+  }
   function pushUndo() {
     try {
-      const snap = state.layers.map(l => ({
-        id: l.id, name: l.name, visible: l.visible, opacity: l.opacity,
-        data: l.canvas.toDataURL()
-      }));
-      state.undoStack.push({ layers: snap, activeLayer: state.activeLayer });
+      state.undoStack.push({
+        layers: snapshotLayers(),
+        activeLayer: state.activeLayer,
+        width: state.width, height: state.height
+      });
       if (state.undoStack.length > 30) state.undoStack.shift();
       state.redoStack = [];
     } catch (e) { console.warn('undo push failed', e); }
@@ -9219,28 +9226,41 @@ const Paint = (function() {
 
   function restoreSnapshot(snap) {
     state.activeLayer = snap.activeLayer;
-    // 레이어 수가 다르면 새로 구성
+    // 캔버스 크기 복원 (resize/crop undo 시 필수)
+    if (snap.width && snap.height) {
+      state.width = snap.width;
+      state.height = snap.height;
+    }
+    // 레이어 복원 (blend 포함)
     state.layers = snap.layers.map(s => ({
       id: s.id, name: s.name, canvas: document.createElement('canvas'),
-      visible: s.visible, opacity: s.opacity
+      visible: s.visible, opacity: s.opacity,
+      blend: s.blend || 'source-over'
     }));
     state.layers.forEach((l, i) => {
       l.canvas.width = state.width;
       l.canvas.height = state.height;
+      l.canvas.style.mixBlendMode = l.blend === 'source-over' ? 'normal' : l.blend;
       const img = new Image();
       img.onload = () => l.canvas.getContext('2d').drawImage(img, 0, 0);
       img.src = snap.layers[i].data;
     });
     setupCanvasDOM();
     renderLayerList();
+    // 블렌드 select 동기화
+    const bs = $('pt-layer-blend');
+    if (bs && state.layers[state.activeLayer]) {
+      bs.value = state.layers[state.activeLayer].blend || 'source-over';
+    }
   }
 
   function undo() {
     if (state.undoStack.length === 0) { toast('되돌릴 작업이 없습니다'); return; }
     const cur = state.undoStack.pop();
     state.redoStack.push({
-      layers: state.layers.map(l => ({ id:l.id, name:l.name, visible:l.visible, opacity:l.opacity, data: l.canvas.toDataURL() })),
-      activeLayer: state.activeLayer
+      layers: snapshotLayers(),
+      activeLayer: state.activeLayer,
+      width: state.width, height: state.height
     });
     restoreSnapshot(cur);
   }
@@ -9248,8 +9268,9 @@ const Paint = (function() {
     if (state.redoStack.length === 0) { toast('다시 할 작업이 없습니다'); return; }
     const snap = state.redoStack.pop();
     state.undoStack.push({
-      layers: state.layers.map(l => ({ id:l.id, name:l.name, visible:l.visible, opacity:l.opacity, data: l.canvas.toDataURL() })),
-      activeLayer: state.activeLayer
+      layers: snapshotLayers(),
+      activeLayer: state.activeLayer,
+      width: state.width, height: state.height
     });
     restoreSnapshot(snap);
   }
@@ -9267,6 +9288,8 @@ const Paint = (function() {
   function clearInteractive() {
     const iv = getInteractive();
     iv.getContext('2d').clearRect(0, 0, iv.width, iv.height);
+    // 격자가 켜져 있으면 다시 그리기 (도구 전환·shape 그리기 후에도 유지)
+    if (state.gridOn) drawGrid(true);
   }
 
   function pickColor() {
@@ -9330,6 +9353,9 @@ const Paint = (function() {
           op.value = Math.round(l.opacity * 100);
           $('pt-layer-opacity-val').textContent = op.value + '%';
         }
+        // 블렌드 모드 select 동기화
+        const bs = $('pt-layer-blend');
+        if (bs) bs.value = l.blend || 'source-over';
       });
       // 레이어 이름 더블클릭 → 이름 변경
       div.querySelector('.pt-layer-name').addEventListener('dblclick', async (e) => {
@@ -10051,10 +10077,10 @@ const Paint = (function() {
     drawGrid();
     $('pt-grid-toggle').classList.toggle('active', state.gridOn);
   }
-  function drawGrid() {
+  function drawGrid(skipClear) {
     const iv = getInteractive();
     const ictx = iv.getContext('2d');
-    clearInteractive();
+    if (!skipClear) ictx.clearRect(0, 0, iv.width, iv.height);
     if (!state.gridOn) return;
     ictx.save();
     ictx.strokeStyle = 'rgba(100,100,150,0.25)';
@@ -10214,6 +10240,12 @@ const Paint = (function() {
       if (!src) return;
       const l = newLayer(src.name + ' 복사');
       l.canvas.getContext('2d').drawImage(src.canvas, 0, 0);
+      // 원본의 blend/opacity도 복사
+      l.blend = src.blend || 'source-over';
+      l.opacity = src.opacity;
+      l.visible = src.visible;
+      l.canvas.style.mixBlendMode = l.blend === 'source-over' ? 'normal' : l.blend;
+      l.canvas.style.opacity = l.opacity;
       state.layers.splice(state.activeLayer + 1, 0, l);
       state.activeLayer++;
       setupCanvasDOM(); renderLayerList();
