@@ -1417,6 +1417,7 @@
   <symbol id="i-chef" viewBox="0 0 24 24"><path d="M6 14c-2.2 0-4-1.8-4-4s1.8-4 4-4c0-2.2 2.7-4 6-4s6 1.8 6 4c2.2 0 4 1.8 4 4s-1.8 4-4 4v6H6v-6z"/><line x1="9" y1="18" x2="9" y2="14"/><line x1="15" y1="18" x2="15" y2="14"/></symbol>
   <symbol id="i-plane" viewBox="0 0 24 24"><path d="M17.8 19.2L16 11l3.5-3.5a3 3 0 0 0-4-4L12 7 3.8 5.2a1 1 0 0 0-.7 1.7L9 12l-2 3H4l-2 2 4 .5L6.5 22l2-2v-3l3-2 5.1 6a1 1 0 0 0 1.7-.7z"/></symbol>
   <symbol id="i-book-open" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></symbol>
+  <symbol id="i-briefcase" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></symbol>
   <symbol id="i-twitter" viewBox="0 0 24 24"><path d="M18 3h3l-7 9 8 9h-6l-5-6-6 6H2l8-9L2 3h6l4 5 6-5z" fill="currentColor" stroke="none"/></symbol>
   <symbol id="i-facebook" viewBox="0 0 24 24"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></symbol>
   <symbol id="i-instagram" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37a4 4 0 1 1-7.914 1.174A4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></symbol>
@@ -2788,6 +2789,53 @@
 .role-flash { animation:roleFlash 1s ease-in-out 4; border-radius:8px; padding:4px; }
 .role-flash h4 { color:var(--accent) !important; font-weight:800 !important; }
 </style>
+
+<!-- ========== 견적서/청구서 위젯 ========== -->
+<div class="modal-backdrop" id="invoiceModal">
+  <div class="modal" style="width:min(1100px,96vw); max-height:94vh; display:flex; flex-direction:column; padding:0;">
+    <div class="rw-header">
+      <svg class="ico" style="stroke:var(--accent); width:20px; height:20px;"><use href="#i-briefcase"/></svg>
+      <h3 style="margin:0; font-size:15px;">견적서 / 청구서</h3>
+      <span style="flex:1;"></span>
+      <select id="invList" style="padding:5px 8px; border:1px solid var(--paper-edge); border-radius:4px; font-size:11px;"><option value="new">+ 새 견적서</option></select>
+      <button id="invCompanyBtn" class="ptb" title="내 회사 정보 설정">내 회사</button>
+      <button id="invPrint" class="ptb-primary">인쇄/PDF</button>
+      <button id="invClose" class="ptb" style="padding:5px 8px;"><svg class="ico"><use href="#i-x"/></svg></button>
+    </div>
+    <div style="flex:1; overflow:auto; padding:20px; background:#f0ecf5;">
+      <div id="invPaper" style="max-width:780px; margin:0 auto; background:white; padding:40px; box-shadow:0 4px 20px rgba(0,0,0,0.1); min-height:1000px;">
+        <!-- 동적 렌더 -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 가계부 예산 설정 모달 ========== -->
+<div class="modal-backdrop" id="budgetModal">
+  <div class="modal" style="width:min(500px,96vw); max-height:80vh; display:flex; flex-direction:column; padding:0;">
+    <div class="rw-header">
+      <svg class="ico" style="stroke:var(--accent); width:18px; height:18px;"><use href="#i-stats"/></svg>
+      <h3 style="margin:0; font-size:14px;">월 예산 설정</h3>
+      <span style="flex:1;"></span>
+      <button id="budgetClose" class="ptb" style="padding:5px 8px;"><svg class="ico"><use href="#i-x"/></svg></button>
+    </div>
+    <div style="padding:16px; overflow-y:auto;" id="budgetBody"></div>
+  </div>
+</div>
+
+<!-- ========== 반복 거래 모달 ========== -->
+<div class="modal-backdrop" id="recurringModal">
+  <div class="modal" style="width:min(600px,96vw); max-height:80vh; display:flex; flex-direction:column; padding:0;">
+    <div class="rw-header">
+      <svg class="ico" style="stroke:var(--accent); width:18px; height:18px;"><use href="#i-refresh"/></svg>
+      <h3 style="margin:0; font-size:14px;">반복 거래 (월세·월급·구독)</h3>
+      <span style="flex:1;"></span>
+      <button id="recurAddBtn" class="ptb-primary">+ 추가</button>
+      <button id="recurClose" class="ptb" style="padding:5px 8px;"><svg class="ico"><use href="#i-x"/></svg></button>
+    </div>
+    <div style="padding:16px; overflow-y:auto;" id="recurList"></div>
+  </div>
+</div>
 
 <!-- ========== 이미지 변환기 모달 (크기/용량/포맷) ========== -->
 <div class="modal-backdrop" id="imgCvtModal">
@@ -13216,6 +13264,1024 @@ if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
     { ico:'i-book', name:'독서 목록', desc:'독서 통계 + 인용구 + 메모 연계', run: openBooks }
   );
 }
+
+/* ============================================================
+   업그레이드: 견적서 전용 위젯 (프리랜서 필수)
+   ============================================================ */
+ROLE_TOOLS.invoice = { name:'견적서/청구서', icon:'i-briefcase', opener: () => openInvoice() };
+if (ROLES['freelancer']) ROLES['freelancer'].tools = ['projPipe','timetrack','dday','ledger','invoice'];
+if (ROLES['office-senior']) ROLES['office-senior'].tools = ['projPipe','timetrack','dday','invoice'];
+
+function openInvoice() {
+  const s = getRoleStore('invoice');
+  s.list = s.list || [];
+  s.company = s.company || { name:'', address:'', ceo:'', biz:'', tel:'', email:'', logo:'', bank:'' };
+  s.seq = s.seq || 1;
+  s.current = s.current === undefined ? null : s.current;
+  // 없으면 자동 생성
+  if (s.list.length === 0) { createNewInvoice(); }
+  $('invoiceModal').classList.add('open');
+  renderInvoiceList();
+  renderInvoice();
+}
+function createNewInvoice() {
+  const s = getRoleStore('invoice');
+  const year = new Date().getFullYear();
+  const num = `INV-${year}-${String(s.seq).padStart(3,'0')}`;
+  s.seq++;
+  s.list = s.list || [];
+  s.list.push({
+    id: 'inv_' + Date.now(),
+    num,
+    type: '견적서',
+    date: new Date().toISOString().slice(0,10),
+    dueDate: new Date(Date.now()+14*86400000).toISOString().slice(0,10),
+    client: { name:'', address:'', contact:'' },
+    items: [{ desc:'', qty:1, price:0 }],
+    vat: 10,
+    note: '',
+    status: '초안'
+  });
+  s.current = s.list.length - 1;
+  scheduleSave();
+}
+function renderInvoiceList() {
+  const s = getRoleStore('invoice');
+  const sel = $('invList');
+  sel.innerHTML = '<option value="new">+ 새 견적서</option>' +
+    s.list.map((inv, i) => `<option value="${i}" ${i===s.current?'selected':''}>${inv.num} · ${inv.client.name || '미입력'} · ${inv.status}</option>`).join('');
+}
+function renderInvoice() {
+  const s = getRoleStore('invoice');
+  const inv = s.list[s.current];
+  if (!inv) { $('invPaper').innerHTML = '<div style="text-align:center; padding:40px; color:#888;">견적서가 없습니다. 상단 드롭다운에서 "+ 새 견적서"를 선택하세요.</div>'; return; }
+  const c = s.company;
+  // 합계 계산
+  const subtotal = inv.items.reduce((a,it) => a + (it.qty||0)*(it.price||0), 0);
+  const vatAmt = Math.round(subtotal * (inv.vat||0) / 100);
+  const total = subtotal + vatAmt;
+  $('invPaper').innerHTML = `
+    <div style="display:flex; justify-content:space-between; margin-bottom:30px; padding-bottom:20px; border-bottom:2px solid #333;">
+      <div>
+        <h1 contenteditable="true" data-inv-f="type" style="margin:0 0 8px; font-size:32px; color:var(--accent); outline:none;">${inv.type}</h1>
+        <div style="font-size:12px; color:#666;">
+          <div>문서번호: <span contenteditable="true" data-inv-f="num" style="outline:none;">${inv.num}</span></div>
+          <div>작성일: <span contenteditable="true" data-inv-f="date" style="outline:none;">${inv.date}</span></div>
+          <div>유효기간: <span contenteditable="true" data-inv-f="dueDate" style="outline:none;">${inv.dueDate}</span></div>
+        </div>
+      </div>
+      <div style="text-align:right; font-size:11px; color:#555;">
+        ${c.logo ? `<img src="${c.logo}" style="max-height:60px; margin-bottom:8px;">` : ''}
+        <div style="font-size:16px; font-weight:700; color:#333;">${escapeHtml(c.name || '[내 회사명 — "내 회사" 버튼 클릭]')}</div>
+        ${c.ceo ? `<div>대표: ${escapeHtml(c.ceo)}</div>` : ''}
+        ${c.biz ? `<div>사업자번호: ${escapeHtml(c.biz)}</div>` : ''}
+        ${c.address ? `<div>${escapeHtml(c.address)}</div>` : ''}
+        ${c.tel ? `<div>TEL: ${escapeHtml(c.tel)}</div>` : ''}
+        ${c.email ? `<div>EMAIL: ${escapeHtml(c.email)}</div>` : ''}
+      </div>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:30px; margin-bottom:30px;">
+      <div>
+        <div style="font-size:11px; color:#888; font-weight:700; margin-bottom:6px;">수신 (고객)</div>
+        <input type="text" class="inv-client-f" data-f="name" value="${escapeHtml(inv.client.name)}" placeholder="고객명" style="width:100%; border:none; border-bottom:1px solid #ccc; padding:4px 0; font-size:14px; margin-bottom:4px; outline:none;">
+        <input type="text" class="inv-client-f" data-f="contact" value="${escapeHtml(inv.client.contact)}" placeholder="담당자·연락처" style="width:100%; border:none; border-bottom:1px solid #ccc; padding:4px 0; font-size:12px; margin-bottom:4px; outline:none;">
+        <input type="text" class="inv-client-f" data-f="address" value="${escapeHtml(inv.client.address)}" placeholder="주소 (선택)" style="width:100%; border:none; border-bottom:1px solid #ccc; padding:4px 0; font-size:12px; outline:none;">
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:11px; color:#888; margin-bottom:6px;">총 금액</div>
+        <div style="font-size:32px; font-weight:800; color:var(--accent);">${total.toLocaleString('ko-KR')}원</div>
+        <div style="font-size:11px; color:#888;">(VAT ${inv.vat}% 포함)</div>
+      </div>
+    </div>
+    <table style="width:100%; border-collapse:collapse; margin-bottom:20px; font-size:13px;">
+      <thead><tr style="background:#f5f0fa; border-bottom:2px solid var(--accent);">
+        <th style="padding:10px; text-align:left; width:40px;">#</th>
+        <th style="padding:10px; text-align:left;">품목·설명</th>
+        <th style="padding:10px; text-align:center; width:80px;">수량</th>
+        <th style="padding:10px; text-align:right; width:120px;">단가(원)</th>
+        <th style="padding:10px; text-align:right; width:130px;">금액(원)</th>
+        <th style="width:40px;"></th>
+      </tr></thead>
+      <tbody>
+        ${inv.items.map((it, i) => `<tr style="border-bottom:1px solid #eee;">
+          <td style="padding:8px; text-align:center;">${i+1}</td>
+          <td style="padding:8px;"><input type="text" class="inv-it-f" data-i="${i}" data-f="desc" value="${escapeHtml(it.desc)}" placeholder="품목명 또는 설명" style="width:100%; border:none; padding:4px; font-size:13px; outline:none;"></td>
+          <td style="padding:8px; text-align:center;"><input type="number" class="inv-it-f" data-i="${i}" data-f="qty" value="${it.qty}" min="0" step="1" style="width:100%; border:none; text-align:center; padding:4px; font-size:13px; outline:none;"></td>
+          <td style="padding:8px; text-align:right;"><input type="number" class="inv-it-f" data-i="${i}" data-f="price" value="${it.price}" min="0" step="1000" style="width:100%; border:none; text-align:right; padding:4px; font-size:13px; outline:none;"></td>
+          <td style="padding:8px; text-align:right; font-weight:600;">${((it.qty||0)*(it.price||0)).toLocaleString('ko-KR')}</td>
+          <td style="text-align:center;"><button class="ptb inv-it-del" data-i="${i}" style="padding:2px 6px; font-size:11px;">✕</button></td>
+        </tr>`).join('')}
+      </tbody>
+      <tfoot>
+        <tr><td colspan="6" style="padding:6px;"><button id="invAddItem" class="ptb" style="width:100%;">+ 행 추가</button></td></tr>
+        <tr><td colspan="4" style="text-align:right; padding:8px; font-size:12px;">소계</td><td style="text-align:right; padding:8px; font-size:13px;">${subtotal.toLocaleString('ko-KR')}</td><td></td></tr>
+        <tr><td colspan="4" style="text-align:right; padding:8px; font-size:12px;">VAT (<input type="number" id="invVat" value="${inv.vat}" min="0" max="30" style="width:40px; text-align:center; border:1px solid #ccc; border-radius:3px; padding:2px;">%)</td><td style="text-align:right; padding:8px; font-size:13px;">${vatAmt.toLocaleString('ko-KR')}</td><td></td></tr>
+        <tr style="background:#f5f0fa;"><td colspan="4" style="text-align:right; padding:10px; font-size:14px; font-weight:700;">합계</td><td style="text-align:right; padding:10px; font-size:18px; font-weight:800; color:var(--accent);">${total.toLocaleString('ko-KR')}</td><td></td></tr>
+      </tfoot>
+    </table>
+    <div style="margin-top:20px;">
+      <div style="font-size:11px; color:#888; margin-bottom:4px;">비고·결제 조건</div>
+      <textarea id="invNote" rows="3" style="width:100%; border:1px solid #ddd; border-radius:4px; padding:8px; font-size:12px;">${escapeHtml(inv.note)}</textarea>
+    </div>
+    ${c.bank ? `<div style="margin-top:14px; padding:10px; background:#f9f5ff; border-radius:4px; font-size:12px;"><b>입금 계좌:</b> ${escapeHtml(c.bank)}</div>` : ''}
+    <div style="margin-top:30px; display:flex; gap:10px; justify-content:space-between; font-size:11px; color:#888;">
+      <div>감사합니다. 문의는 ${escapeHtml(c.email || c.tel || '담당자')}로 연락 부탁드립니다.</div>
+      <div>
+        상태:
+        <select id="invStatus" style="padding:2px 6px; border:1px solid #ccc; border-radius:3px;">
+          ${['초안','발송','승인','청구','입금완료'].map(st => `<option ${st===inv.status?'selected':''}>${st}</option>`).join('')}
+        </select>
+        <button id="invDelete" class="ptb" style="padding:3px 8px; font-size:11px; margin-left:5px; color:#c62828;">이 문서 삭제</button>
+      </div>
+    </div>
+  `;
+  // 바인딩
+  $('invPaper').querySelectorAll('[data-inv-f]').forEach(el => {
+    el.addEventListener('blur', () => { inv[el.dataset.invF] = el.textContent.trim(); scheduleSave(); renderInvoiceList(); });
+  });
+  $('invPaper').querySelectorAll('.inv-client-f').forEach(inp => {
+    inp.addEventListener('input', () => { inv.client[inp.dataset.f] = inp.value; scheduleSave(); renderInvoiceList(); });
+  });
+  $('invPaper').querySelectorAll('.inv-it-f').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const i = +inp.dataset.i, f = inp.dataset.f;
+      inv.items[i][f] = f === 'desc' ? inp.value : (+inp.value || 0);
+      scheduleSave();
+      renderInvoice();  // 합계 재계산을 위해 재렌더
+    });
+  });
+  $('invPaper').querySelectorAll('.inv-it-del').forEach(b => b.addEventListener('click', () => {
+    if (inv.items.length > 1) { inv.items.splice(+b.dataset.i, 1); scheduleSave(); renderInvoice(); }
+    else toast('최소 1개 행은 유지되어야 합니다');
+  }));
+  $('invAddItem').addEventListener('click', () => {
+    inv.items.push({ desc:'', qty:1, price:0 });
+    scheduleSave(); renderInvoice();
+  });
+  $('invVat').addEventListener('input', (e) => { inv.vat = +e.target.value || 0; scheduleSave(); renderInvoice(); });
+  $('invNote').addEventListener('input', (e) => { inv.note = e.target.value; scheduleSave(); });
+  $('invStatus').addEventListener('change', (e) => { inv.status = e.target.value; scheduleSave(); renderInvoiceList(); });
+  $('invDelete').addEventListener('click', async () => {
+    if (await confirm2('견적서 삭제', `${inv.num}을(를) 삭제하시겠습니까?`)) {
+      s.list.splice(s.current, 1);
+      s.current = s.list.length > 0 ? 0 : null;
+      scheduleSave();
+      if (s.list.length === 0) createNewInvoice();
+      renderInvoiceList(); renderInvoice();
+    }
+  });
+}
+$('invList').addEventListener('change', (e) => {
+  const s = getRoleStore('invoice');
+  if (e.target.value === 'new') { createNewInvoice(); renderInvoiceList(); renderInvoice(); }
+  else { s.current = +e.target.value; renderInvoice(); }
+});
+$('invClose').addEventListener('click', () => $('invoiceModal').classList.remove('open'));
+$('invCompanyBtn').addEventListener('click', async () => {
+  const s = getRoleStore('invoice');
+  const c = s.company;
+  const fields = [
+    ['name','회사명 / 이름'], ['ceo','대표자명'], ['biz','사업자등록번호'],
+    ['address','주소'], ['tel','전화번호'], ['email','이메일'],
+    ['bank','입금 계좌 (예: 신한 110-xxx-xxx 홍길동)']
+  ];
+  for (const [f, label] of fields) {
+    const v = await prompt2(label, c[f] || '');
+    if (v === null) return;
+    c[f] = v;
+  }
+  scheduleSave();
+  toast('회사 정보 저장됨');
+  renderInvoice();
+});
+$('invPrint').addEventListener('click', () => {
+  // 인쇄용 새 창
+  const s = getRoleStore('invoice');
+  const inv = s.list[s.current]; if (!inv) return;
+  const paper = $('invPaper').cloneNode(true);
+  // contenteditable/input을 평문으로
+  paper.querySelectorAll('input, textarea, select, button').forEach(el => {
+    if (el.tagName === 'BUTTON' || el.id === 'invAddItem' || el.id === 'invDelete') el.remove();
+    else {
+      const span = document.createElement('span');
+      span.textContent = el.value || el.textContent;
+      span.style.cssText = el.style.cssText;
+      el.parentNode.replaceChild(span, el);
+    }
+  });
+  paper.querySelectorAll('[contenteditable]').forEach(el => el.removeAttribute('contenteditable'));
+  const w = window.open('', '_blank');
+  if (!w) { toast('팝업 차단됨 — 허용 후 다시 시도하세요'); return; }
+  w.document.write(`<html><head><title>${inv.num}</title><style>
+    body { font-family:'맑은 고딕', sans-serif; padding:20px; }
+    table { border-collapse:collapse; }
+  </style></head><body>${paper.outerHTML}</body></html>`);
+  w.document.close();
+  setTimeout(() => w.print(), 300);
+});
+
+/* ============================================================
+   업그레이드: 가계부 (예산 + 반복거래 + 월 추이 차트)
+   ============================================================ */
+// openLedger에 버튼 추가 - 예산/반복 버튼 동적 주입
+const _origOpenLedger = openLedger;
+openLedger = function() {
+  _origOpenLedger.apply(this, arguments);
+  setTimeout(() => {
+    const header = $('ledgerModal').querySelector('.rw-header');
+    if (header && !document.getElementById('ledgerBudgetBtn')) {
+      const btn1 = document.createElement('button');
+      btn1.id = 'ledgerBudgetBtn';
+      btn1.className = 'ptb';
+      btn1.textContent = '예산 설정';
+      btn1.addEventListener('click', openBudget);
+      header.insertBefore(btn1, $('ledgerExport'));
+      const btn2 = document.createElement('button');
+      btn2.id = 'ledgerRecurBtn';
+      btn2.className = 'ptb';
+      btn2.textContent = '반복 거래';
+      btn2.addEventListener('click', openRecurring);
+      header.insertBefore(btn2, $('ledgerExport'));
+    }
+    // 반복 거래 체크 (월 경계 시 자동 기록)
+    runRecurringTransactions();
+    // 예산 바 표시 영역 추가
+    const summaryEl = $('ledgerSummary');
+    if (summaryEl && !document.getElementById('ledgerBudgetBars')) {
+      const bars = document.createElement('div');
+      bars.id = 'ledgerBudgetBars';
+      bars.style.cssText = 'margin-top:10px;';
+      summaryEl.parentNode.insertBefore(bars, summaryEl.nextSibling);
+      renderBudgetBars();
+    }
+    // 월 추이 차트 추가 (파이 차트 아래)
+    const pieChart = $('ledgerChart');
+    if (pieChart && !document.getElementById('ledgerTrendChart')) {
+      const trend = document.createElement('canvas');
+      trend.id = 'ledgerTrendChart';
+      trend.width = 280; trend.height = 140;
+      trend.style.cssText = 'margin-top:8px; border:1px solid var(--paper-edge); border-radius:4px; display:block;';
+      pieChart.parentNode.insertBefore(trend, pieChart.nextSibling);
+      const label = document.createElement('div');
+      label.style.cssText = 'font-size:10px; color:var(--ink-soft); text-align:center; margin-top:4px;';
+      label.textContent = '최근 6개월 지출 추이';
+      pieChart.parentNode.insertBefore(label, trend.nextSibling);
+    }
+    renderTrendChart();
+  }, 50);
+};
+// 예산 설정
+function openBudget() {
+  const s = getRoleStore('ledger');
+  s.budget = s.budget || {};
+  const body = $('budgetBody');
+  body.innerHTML = `<div style="font-size:11px; color:var(--ink-soft); margin-bottom:10px;">카테고리별 월 예산을 설정하면 가계부에서 달성률을 확인할 수 있습니다.</div>` +
+    LEDGER_CATS.expense.map(cat => `<div style="display:flex; gap:10px; align-items:center; margin-bottom:6px;">
+      <span style="width:70px; font-size:12px;">${cat}</span>
+      <input type="number" class="bg-input rw-input" data-cat="${cat}" value="${s.budget[cat]||''}" placeholder="0" style="flex:1; margin:0;">
+      <span style="font-size:11px; color:var(--ink-soft);">원</span>
+    </div>`).join('') +
+    `<button id="budgetSave" class="ptb-primary" style="width:100%; margin-top:10px;">저장</button>`;
+  body.querySelectorAll('.bg-input').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const v = +inp.value || 0;
+      if (v > 0) s.budget[inp.dataset.cat] = v;
+      else delete s.budget[inp.dataset.cat];
+    });
+  });
+  $('budgetSave').addEventListener('click', () => {
+    scheduleSave();
+    $('budgetModal').classList.remove('open');
+    renderBudgetBars();
+    toast('예산 저장됨');
+  });
+  $('budgetModal').classList.add('open');
+}
+$('budgetClose').addEventListener('click', () => $('budgetModal').classList.remove('open'));
+
+function renderBudgetBars() {
+  const wrap = $('ledgerBudgetBars');
+  if (!wrap) return;
+  const s = getRoleStore('ledger');
+  const month = $('ledgerMonth')?.value || new Date().toISOString().slice(0,7);
+  const monthEntries = (s.entries || []).filter(e => e.type === 'expense' && e.date.startsWith(month));
+  const budgets = s.budget || {};
+  const keys = Object.keys(budgets);
+  if (keys.length === 0) {
+    wrap.innerHTML = `<div style="font-size:10px; color:var(--ink-soft); text-align:center; padding:8px;">예산 미설정 · <a href="#" id="bgSetupLnk" style="color:var(--accent);">예산 설정</a></div>`;
+    const lnk = $('bgSetupLnk');
+    if (lnk) lnk.addEventListener('click', (e) => { e.preventDefault(); openBudget(); });
+    return;
+  }
+  wrap.innerHTML = '<div class="rw-h" style="margin-top:0;">예산 대비 소비</div>' +
+    keys.map(cat => {
+      const used = monthEntries.filter(e => e.category === cat).reduce((a,b)=>a+Number(b.amount),0);
+      const limit = budgets[cat];
+      const pct = Math.round(used/limit*100);
+      const color = pct >= 100 ? '#d32f2f' : pct >= 80 ? '#ff9800' : '#4caf50';
+      return `<div style="margin-bottom:6px; font-size:10px;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
+          <span>${cat}</span>
+          <span style="color:${color};">${used.toLocaleString('ko-KR')}/${limit.toLocaleString('ko-KR')} (${pct}%)</span>
+        </div>
+        <div style="background:#eee; height:5px; border-radius:3px; overflow:hidden;">
+          <div style="background:${color}; height:100%; width:${Math.min(100,pct)}%;"></div>
+        </div>
+      </div>`;
+    }).join('');
+}
+
+function renderTrendChart() {
+  const canvas = $('ledgerTrendChart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const s = getRoleStore('ledger');
+  const entries = s.entries || [];
+  // 최근 6개월
+  const months = [];
+  const now = new Date();
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push(d.toISOString().slice(0,7));
+  }
+  const data = months.map(m => entries.filter(e => e.type === 'expense' && e.date.startsWith(m)).reduce((a,b)=>a+Number(b.amount),0));
+  const maxVal = Math.max(...data, 1);
+  // 축
+  const pad = 20;
+  const w = canvas.width - pad*2, h = canvas.height - pad*2;
+  ctx.strokeStyle = '#ddd'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(pad, pad); ctx.lineTo(pad, pad+h); ctx.lineTo(pad+w, pad+h); ctx.stroke();
+  // 라인
+  ctx.strokeStyle = '#d32f2f'; ctx.lineWidth = 2; ctx.fillStyle = '#d32f2f';
+  ctx.beginPath();
+  data.forEach((v, i) => {
+    const x = pad + (i / (data.length - 1)) * w;
+    const y = pad + h - (v / maxVal) * h;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+  // 점
+  data.forEach((v, i) => {
+    const x = pad + (i / (data.length - 1)) * w;
+    const y = pad + h - (v / maxVal) * h;
+    ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI*2); ctx.fill();
+  });
+  // 라벨
+  ctx.fillStyle = '#888'; ctx.font = '9px sans-serif'; ctx.textAlign = 'center';
+  months.forEach((m, i) => {
+    const x = pad + (i / (data.length - 1)) * w;
+    ctx.fillText(m.slice(5), x, canvas.height - 3);
+  });
+}
+
+// 반복 거래
+function openRecurring() {
+  const s = getRoleStore('ledger');
+  s.recurring = s.recurring || [];
+  renderRecurring();
+  $('recurringModal').classList.add('open');
+}
+function renderRecurring() {
+  const s = getRoleStore('ledger');
+  const wrap = $('recurList');
+  if (s.recurring.length === 0) {
+    wrap.innerHTML = '<div style="text-align:center; padding:30px; color:var(--ink-soft); font-size:12px;">반복 거래를 추가하세요<br>(예: 월세, 월급, 구독료)</div>';
+    return;
+  }
+  wrap.innerHTML = s.recurring.map((r, i) => `<div style="border:1px solid var(--paper-edge); border-radius:5px; padding:10px; margin-bottom:6px;">
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+      <span style="color:${r.type==='income'?'#2e7d32':'#c62828'}; font-weight:600;">${r.type==='income'?'+':'-'}${Number(r.amount).toLocaleString('ko-KR')}원</span>
+      <b style="flex:1;">${escapeHtml(r.note || r.category)}</b>
+      <span style="font-size:11px; color:var(--ink-soft);">매달 ${r.day}일</span>
+      <button class="ptb recur-del" data-r="${i}" style="padding:3px 6px;"><svg class="ico"><use href="#i-trash"/></svg></button>
+    </div>
+    <div style="font-size:10px; color:var(--ink-soft);">${r.category} · 마지막 기록: ${r.lastRun || '없음'}</div>
+  </div>`).join('');
+  wrap.querySelectorAll('.recur-del').forEach(b => b.addEventListener('click', () => {
+    s.recurring.splice(+b.dataset.r, 1); scheduleSave(); renderRecurring();
+  }));
+}
+$('recurAddBtn').addEventListener('click', async () => {
+  const s = getRoleStore('ledger');
+  s.recurring = s.recurring || [];
+  const type = await prompt2('구분 (income/expense)', 'expense');
+  if (!type || !['income','expense'].includes(type)) return;
+  const cats = LEDGER_CATS[type];
+  const category = await prompt2('카테고리 (' + cats.join('/') + ')', cats[0]);
+  if (!cats.includes(category)) { toast('유효한 카테고리를 선택하세요'); return; }
+  const amount = +(await prompt2('금액 (원)', '500000') || 0);
+  if (!amount) return;
+  const day = +(await prompt2('매달 몇 일에 발생? (1~28)', '1') || 1);
+  const note = await prompt2('메모 (예: 월세, 넷플릭스)', '');
+  s.recurring.push({ type, category, amount, day: Math.max(1, Math.min(28, day)), note: note||'', lastRun: null });
+  scheduleSave();
+  renderRecurring();
+  runRecurringTransactions();
+});
+$('recurClose').addEventListener('click', () => $('recurringModal').classList.remove('open'));
+
+function runRecurringTransactions() {
+  const s = getRoleStore('ledger');
+  s.entries = s.entries || [];
+  s.recurring = s.recurring || [];
+  const today = new Date();
+  const curMonth = today.toISOString().slice(0,7);
+  s.recurring.forEach(r => {
+    if (r.lastRun === curMonth) return;  // 이번 달 이미 처리
+    if (today.getDate() < r.day) return;  // 아직 발생일 전
+    // 기록
+    const date = curMonth + '-' + String(r.day).padStart(2,'0');
+    s.entries.push({ type: r.type, date, category: r.category, amount: r.amount, note: '[반복] ' + (r.note||r.category) });
+    r.lastRun = curMonth;
+  });
+  scheduleSave();
+}
+
+/* ============================================================
+   업그레이드: 강의표 (에브리타임 붙여넣기 파싱 + 이미지 내보내기)
+   ============================================================ */
+// openTimetable 확장 — 추가 버튼
+const _origOpenTimetable = openTimetable;
+openTimetable = function() {
+  _origOpenTimetable.apply(this, arguments);
+  setTimeout(() => {
+    const header = $('timetableModal').querySelector('.rw-header');
+    if (header && !document.getElementById('ttPaste')) {
+      const btn1 = document.createElement('button');
+      btn1.id = 'ttPaste';
+      btn1.className = 'ptb';
+      btn1.title = '에브리타임이나 학교 포털 시간표 텍스트를 붙여넣어 자동 입력';
+      btn1.textContent = '자동 파싱';
+      btn1.addEventListener('click', pasteTimetable);
+      header.insertBefore(btn1, $('ttClear'));
+      const btn2 = document.createElement('button');
+      btn2.id = 'ttExportImg';
+      btn2.className = 'ptb';
+      btn2.textContent = '이미지 저장';
+      btn2.addEventListener('click', exportTimetableImage);
+      header.insertBefore(btn2, $('ttClear'));
+    }
+  }, 50);
+};
+
+async function pasteTimetable() {
+  const text = await prompt2('시간표 텍스트를 붙여넣으세요\n(예: "자료구조 월 09:00 정B-201 김교수")\n각 강의를 줄바꿈으로 구분', '');
+  if (!text) return;
+  const store = getRoleStore('timetable');
+  const sem = $('ttSemester').value;
+  store[sem] = store[sem] || { cells: {} };
+  const dayMap = { '월':0, '화':1, '수':2, '목':3, '금':4 };
+  const colors = ['#ef5350','#ab47bc','#5c6bc0','#29b6f6','#26a69a','#66bb6a','#ffa726','#8d6e63'];
+  let cnt = 0;
+  text.split('\n').forEach(line => {
+    line = line.trim(); if (!line) return;
+    // 요일 찾기
+    const dayM = line.match(/([월화수목금])/);
+    if (!dayM) return;
+    const di = dayMap[dayM[1]];
+    // 시간 찾기 (HH:MM)
+    const timeM = line.match(/(\d{1,2}):(\d{2})/);
+    if (!timeM) return;
+    const hour = +timeM[1];
+    const pi = Math.max(0, Math.min(9, hour - 9));
+    // 강의명 (요일/시간 이외)
+    const name = line.replace(dayM[0], '').replace(timeM[0], '').trim().split(/\s+/)[0] || '강의';
+    const room = line.match(/[가-힣A-Z]+[-]?\d+[-]?\d*/) ? line.match(/[가-힣A-Z]+[-]?\d+[-]?\d*/)[0] : '';
+    const color = colors[cnt % colors.length];
+    store[sem].cells[pi + '-' + di] = { name, room, prof:'', color };
+    cnt++;
+  });
+  scheduleSave();
+  renderTimetable();
+  toast(`${cnt}개 강의를 인식했습니다`);
+}
+
+function exportTimetableImage() {
+  const grid = $('ttGrid');
+  if (!grid) return;
+  // 캔버스로 렌더
+  const rows = [...grid.querySelectorAll('tr')];
+  const cellW = 140, cellH = 60, headerH = 40;
+  const w = 60 + cellW * 5 + 20;
+  const h = headerH + cellH * 10 + 40;
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = 'white'; ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = '#333'; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText($('ttSemester').value + ' 시간표', w/2, 20);
+  // 요일 헤더
+  ctx.font = '11px sans-serif';
+  const days = ['시간','월','화','수','목','금'];
+  days.forEach((d, i) => {
+    const x = i === 0 ? 0 : 60 + (i-1)*cellW;
+    const cw = i === 0 ? 60 : cellW;
+    ctx.fillStyle = '#f5f0fa';
+    ctx.fillRect(x, 30, cw, headerH-10);
+    ctx.fillStyle = '#333';
+    ctx.fillText(d, x + cw/2, 45);
+    ctx.strokeStyle = '#ddd'; ctx.strokeRect(x, 30, cw, headerH-10);
+  });
+  // 셀
+  const periods = ['09','10','11','12','13','14','15','16','17','18'];
+  const store = getRoleStore('timetable');
+  const cells = store[$('ttSemester').value]?.cells || {};
+  for (let p = 0; p < 10; p++) {
+    for (let d = 0; d < 5; d++) {
+      const x = 60 + d * cellW;
+      const y = headerH + p * cellH;
+      ctx.fillStyle = '#fafafa';
+      ctx.fillRect(x, y, cellW, cellH);
+      ctx.strokeStyle = '#eee'; ctx.strokeRect(x, y, cellW, cellH);
+      const cell = cells[p + '-' + d];
+      if (cell) {
+        ctx.fillStyle = cell.color;
+        ctx.fillRect(x+2, y+2, cellW-4, cellH-4);
+        ctx.fillStyle = 'white'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText(cell.name, x + cellW/2, y + 22);
+        if (cell.room) { ctx.font = '10px sans-serif'; ctx.fillText(cell.room, x + cellW/2, y + 40); }
+      }
+    }
+    // 시간
+    ctx.fillStyle = '#666'; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(periods[p] + ':00', 30, headerH + p * cellH + cellH/2);
+  }
+  // 다운로드
+  const url = canvas.toDataURL('image/png');
+  const a = document.createElement('a');
+  a.href = url; a.download = 'timetable-' + $('ttSemester').value + '.png';
+  document.body.appendChild(a); a.click(); a.remove();
+  toast('시간표 이미지 저장됨');
+}
+
+// 명령 팔레트 추가
+if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
+  COMMANDS.push(
+    { ico:'i-briefcase', name:'견적서/청구서', desc:'프로 수준 견적서 + PDF/인쇄', run: openInvoice }
+  );
+}
+
+/* ============================================================
+   업그레이드: GPA 계산기 (학기별 히스토리 + 목표 GPA)
+   ============================================================ */
+const _origComputeGpa = computeGpa;
+computeGpa = function() {
+  _origComputeGpa.apply(this, arguments);
+  // 목표 GPA 대비 차이 표시
+  const store = getRoleStore('gpa');
+  const scale = +$('gpaScale').value;
+  const cur = +$('gpaResult').textContent || 0;
+  const target = store.targetGPA;
+  let extraInfo = '';
+  if (target && target > cur) {
+    const courses = (store.courses || []).filter(c => c.credit > 0);
+    const totalCredit = courses.reduce((a,b)=>a+(+b.credit||0), 0);
+    const nextCredit = +(store.nextSemCredit || 18);
+    // 다음 학기 몇 점 받아야 목표 GPA?
+    const needed = ((target*(totalCredit+nextCredit) - cur*totalCredit) / nextCredit);
+    extraInfo = ` · 목표 ${target} 위해 다음 학기 ${nextCredit}학점에서 평균 ${Math.min(scale, Math.max(0, needed)).toFixed(2)} 필요`;
+  }
+  // 결과 근처에 표시
+  const resultEl = $('gpaResult').parentElement;
+  let infoEl = document.getElementById('gpaExtraInfo');
+  if (!infoEl) {
+    infoEl = document.createElement('div');
+    infoEl.id = 'gpaExtraInfo';
+    infoEl.style.cssText = 'font-size:11px; color:var(--ink-soft); margin-top:3px;';
+    resultEl.parentNode.appendChild(infoEl);
+  }
+  infoEl.textContent = extraInfo;
+};
+// GPA 모달 열 때 '목표 GPA' 설정 버튼 추가
+const _origOpenGpa = openGpa;
+openGpa = function() {
+  _origOpenGpa.apply(this, arguments);
+  setTimeout(() => {
+    if (!document.getElementById('gpaTargetBtn')) {
+      const btn = document.createElement('button');
+      btn.id = 'gpaTargetBtn';
+      btn.className = 'ptb';
+      btn.textContent = '목표 GPA 설정';
+      btn.addEventListener('click', async () => {
+        const store = getRoleStore('gpa');
+        const t = await prompt2('목표 GPA (예: 4.0)', store.targetGPA || '');
+        if (t === null) return;
+        store.targetGPA = +t || null;
+        const c = await prompt2('다음 학기 수강 예정 학점', store.nextSemCredit || 18);
+        store.nextSemCredit = +c || 18;
+        scheduleSave();
+        computeGpa();
+        toast('목표 GPA 설정됨');
+      });
+      const saveBtn = $('gpaSaveMemo');
+      if (saveBtn) saveBtn.parentNode.insertBefore(btn, saveBtn);
+    }
+  }, 50);
+};
+
+/* ============================================================
+   업그레이드: D-Day (카테고리 + 반복)
+   ============================================================ */
+const _origRenderDday = renderDday;
+renderDday = function() {
+  // 카테고리별 필터 UI 추가
+  const list = getDdays();
+  const today = new Date(); today.setHours(0,0,0,0);
+  const sorted = list.map((d, idx) => ({ ...d, idx })).sort((a,b) => new Date(a.date) - new Date(b.date));
+  const wrap = $('ddayList');
+  if (!wrap) return;
+  if (sorted.length === 0) { _origRenderDday.apply(this); return; }
+  // 카테고리 집계
+  const cats = {};
+  sorted.forEach(d => { const c = d.cat || '기타'; (cats[c] = cats[c] || []).push(d); });
+  wrap.innerHTML = Object.entries(cats).map(([cat, items]) => `
+    <div style="margin-bottom:12px;">
+      <div class="rw-h">${escapeHtml(cat)} (${items.length})</div>
+      ${items.map(d => {
+        const target = new Date(d.date); target.setHours(0,0,0,0);
+        const diff = isNaN(target.getTime()) ? null : Math.round((target - today) / 86400000);
+        let label, cls;
+        if (diff === null) { label = '날짜 오류'; cls = 'style="color:#888;"'; }
+        else if (diff > 0) { label = `D-${diff}`; cls = ''; }
+        else if (diff === 0) { label = 'D-Day'; cls = 'style="color:#ef5350;"'; }
+        else { label = `D+${-diff}`; cls = 'class="dday-past"'; }
+        return `<div class="dday-item">
+          <div class="dday-count" ${cls}>${label}</div>
+          <div style="flex:1;">
+            <div style="font-weight:600;">${escapeHtml(d.title)}</div>
+            <div style="font-size:11px; color:var(--ink-soft);">${d.date}${d.memo?' · '+escapeHtml(d.memo):''}</div>
+          </div>
+          <button class="ptb" data-dd-edit="${d.idx}" style="padding:4px 8px;"><svg class="ico"><use href="#i-edit"/></svg></button>
+          <button class="ptb" data-dd-del="${d.idx}" style="padding:4px 8px;"><svg class="ico"><use href="#i-trash"/></svg></button>
+        </div>`;
+      }).join('')}
+    </div>
+  `).join('');
+  wrap.querySelectorAll('[data-dd-edit]').forEach(b => b.addEventListener('click', () => editDday(+b.dataset.ddEdit)));
+  wrap.querySelectorAll('[data-dd-del]').forEach(b => b.addEventListener('click', () => { list.splice(+b.dataset.ddDel, 1); scheduleSave(); renderDday(); }));
+};
+// editDday 확장 — 카테고리 입력 추가
+const _origEditDday = editDday;
+editDday = async function(idx) {
+  const list = getDdays();
+  const cur = idx >= 0 ? list[idx] : { title:'', date:new Date().toISOString().slice(0,10), memo:'', cat:'' };
+  const title = await prompt2('이름', cur.title);
+  if (!title) return;
+  const date = await prompt2('날짜 (YYYY-MM-DD)', cur.date);
+  if (!date || !/^\d{4}-\d{1,2}-\d{1,2}$/.test(date)) { toast('날짜 형식이 잘못됐습니다'); return; }
+  const cat = await prompt2('카테고리 (예: 시험, 기념일, 마감, 기타)', cur.cat || '기타');
+  const memo = await prompt2('메모 (선택)', cur.memo || '');
+  const entry = { title, date, memo: memo||'', cat: cat||'기타' };
+  if (idx >= 0) list[idx] = entry; else list.push(entry);
+  scheduleSave();
+  renderDday();
+};
+
+/* ============================================================
+   업그레이드: 혈압·혈당 — 정상 범위 + 평균
+   ============================================================ */
+const VITAL_RANGES = {
+  bp: { normal: [90, 140], diaNormal: [60, 90] },
+  glucose: { normal: [70, 140] },
+  weight: { normal: [null, null] }
+};
+const _origRenderVital = renderVital;
+renderVital = function() {
+  _origRenderVital.apply(this, arguments);
+  // 통계 추가
+  const type = $('vitalType').value;
+  const recs = getVitals().filter(r => r.type === type);
+  let statsEl = document.getElementById('vitalStats');
+  if (!statsEl) {
+    const list = $('vitalList');
+    if (list) {
+      statsEl = document.createElement('div');
+      statsEl.id = 'vitalStats';
+      statsEl.style.cssText = 'margin-top:10px; padding:10px; background:color-mix(in srgb, var(--accent) 6%, transparent); border-radius:5px; font-size:11px;';
+      list.parentNode.insertBefore(statsEl, list);
+    }
+  }
+  if (statsEl) {
+    if (recs.length === 0) { statsEl.innerHTML = '<span style="color:var(--ink-soft);">데이터 없음</span>'; }
+    else {
+      const v1s = recs.map(r => r.v1).filter(v => v);
+      const avg = v1s.reduce((a,b)=>a+b, 0) / v1s.length;
+      const min = Math.min(...v1s), max = Math.max(...v1s);
+      let status = '-';
+      if (type === 'bp') {
+        status = avg < 90 ? '저혈압' : avg > 140 ? '고혈압' : '정상';
+      } else if (type === 'glucose') {
+        status = avg < 70 ? '저혈당' : avg > 140 ? '고혈당' : '정상';
+      }
+      const color = status === '정상' ? '#2e7d32' : '#d32f2f';
+      statsEl.innerHTML = `<b>최근 ${recs.length}회 통계:</b> 평균 <span style="color:${color}; font-weight:700;">${avg.toFixed(1)} (${status})</span> · 최저 ${min} · 최고 ${max}`;
+    }
+  }
+};
+
+/* ============================================================
+   업그레이드: 타임트래킹 (주간 차트)
+   ============================================================ */
+const _origRenderTimetrack = renderTimetrack;
+renderTimetrack = function() {
+  _origRenderTimetrack.apply(this, arguments);
+  const s = getTtk();
+  let chartEl = document.getElementById('ttkWeekChart');
+  if (!chartEl && $('ttkSummary')) {
+    chartEl = document.createElement('canvas');
+    chartEl.id = 'ttkWeekChart';
+    chartEl.width = 700; chartEl.height = 150;
+    chartEl.style.cssText = 'margin-top:10px; border:1px solid var(--paper-edge); border-radius:4px; width:100%; background:white;';
+    $('ttkSummary').parentNode.insertBefore(chartEl, $('ttkSummary').nextSibling);
+  }
+  if (!chartEl) return;
+  const ctx = chartEl.getContext('2d');
+  ctx.clearRect(0, 0, chartEl.width, chartEl.height);
+  // 최근 7일 데이터
+  const today = new Date(); today.setHours(0,0,0,0);
+  const data = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today); d.setDate(d.getDate() - i);
+    const dayStr = d.toDateString();
+    const dayEntries = s.entries.filter(e => new Date(e.start).toDateString() === dayStr);
+    const total = dayEntries.reduce((a,b) => a + (b.end - b.start), 0);
+    data.push({ label: (d.getMonth()+1) + '/' + d.getDate(), hours: total / 3600000 });
+  }
+  const maxH = Math.max(...data.map(d => d.hours), 1);
+  const pad = 30, w = chartEl.width - pad*2, h = chartEl.height - pad*2;
+  ctx.strokeStyle = '#ddd'; ctx.beginPath(); ctx.moveTo(pad, pad); ctx.lineTo(pad, pad+h); ctx.lineTo(pad+w, pad+h); ctx.stroke();
+  const barW = w / 7 * 0.6;
+  data.forEach((d, i) => {
+    const x = pad + (i + 0.5) * (w/7);
+    const bh = (d.hours / maxH) * h;
+    const y = pad + h - bh;
+    ctx.fillStyle = 'var(--accent)';
+    ctx.fillStyle = '#8A5FD1';
+    ctx.fillRect(x - barW/2, y, barW, bh);
+    ctx.fillStyle = '#555'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(d.label, x, pad + h + 14);
+    if (d.hours > 0) { ctx.fillText(d.hours.toFixed(1) + 'h', x, y - 3); }
+  });
+  ctx.fillStyle = '#888'; ctx.font = '10px sans-serif'; ctx.textAlign = 'right';
+  ctx.fillText('최근 7일 작업 시간', chartEl.width - 10, 15);
+};
+
+/* ============================================================
+   업그레이드: 독서 — 월별 독서량 차트
+   ============================================================ */
+const _origRenderBooks = renderBooks;
+renderBooks = function() {
+  _origRenderBooks.apply(this, arguments);
+  let chartEl = document.getElementById('bkMonthlyChart');
+  if (!chartEl && $('bkStats')) {
+    chartEl = document.createElement('canvas');
+    chartEl.id = 'bkMonthlyChart';
+    chartEl.width = 500; chartEl.height = 120;
+    chartEl.style.cssText = 'margin-top:8px; width:100%; max-width:500px;';
+    $('bkStats').appendChild(chartEl);
+  }
+  if (!chartEl) return;
+  const ctx = chartEl.getContext('2d');
+  ctx.clearRect(0, 0, chartEl.width, chartEl.height);
+  const s = getRoleStore('books');
+  const year = new Date().getFullYear();
+  const monthly = Array(12).fill(0);
+  (s.books || []).forEach(b => {
+    if (b.status === '완독' && b.finished?.startsWith(year)) {
+      monthly[+b.finished.slice(5,7) - 1]++;
+    }
+  });
+  const maxC = Math.max(...monthly, 1);
+  const pad = 20, w = chartEl.width - pad*2, h = chartEl.height - pad*2;
+  const barW = w / 12 * 0.7;
+  monthly.forEach((c, i) => {
+    const x = pad + (i + 0.5) * (w/12);
+    const bh = (c / maxC) * h;
+    const y = pad + h - bh;
+    ctx.fillStyle = c > 0 ? '#8d6e63' : '#eee';
+    ctx.fillRect(x - barW/2, y, barW, bh);
+    ctx.fillStyle = '#888'; ctx.font = '9px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText((i+1)+'월', x, pad + h + 12);
+    if (c > 0) { ctx.fillStyle = '#333'; ctx.fillText(c, x, y - 2); }
+  });
+};
+
+/* ============================================================
+   업그레이드: 레시피 — 조리 타이머 + 즐겨찾기
+   ============================================================ */
+let recipeTimerId = null;
+function startCookTimer(minutes, name) {
+  if (recipeTimerId) clearInterval(recipeTimerId);
+  const endTime = Date.now() + minutes * 60000;
+  const id = 'ck-timer-' + Date.now();
+  const timerEl = document.createElement('div');
+  timerEl.id = id;
+  timerEl.style.cssText = 'position:fixed; bottom:70px; right:20px; background:#fff3e0; border:2px solid #ff7043; border-radius:8px; padding:12px 16px; box-shadow:0 4px 16px rgba(0,0,0,0.15); z-index:10000; font-size:13px; min-width:200px;';
+  timerEl.innerHTML = `<div style="font-weight:700; margin-bottom:6px;">⏱ ${escapeHtml(name)}</div><div id="${id}-time" style="font-size:22px; font-family:monospace; color:#ef6c00;"></div><button class="ptb" style="margin-top:6px;" onclick="document.getElementById('${id}').remove();">정지</button>`;
+  document.body.appendChild(timerEl);
+  recipeTimerId = setInterval(() => {
+    const left = endTime - Date.now();
+    if (left <= 0) {
+      clearInterval(recipeTimerId);
+      document.getElementById(id+'-time').textContent = '완료!';
+      timerEl.style.background = '#c8e6c9'; timerEl.style.borderColor = '#2e7d32';
+      if (window.Notification && Notification.permission === 'granted') {
+        new Notification('요리 완료', { body: name + ' 시간이 되었습니다' });
+      }
+      toast('⏰ ' + name + ' 조리 시간 종료!');
+      setTimeout(() => timerEl.remove(), 10000);
+      return;
+    }
+    const m = Math.floor(left / 60000), sec = Math.floor((left % 60000) / 1000);
+    document.getElementById(id+'-time').textContent = `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+  }, 500);
+}
+// 레시피 위젯 확장 — 타이머 버튼 추가
+const _origRenderRecipe = renderRecipe;
+renderRecipe = function() {
+  _origRenderRecipe.apply(this, arguments);
+  const wrap = $('rcList'); if (!wrap) return;
+  wrap.querySelectorAll('[data-rc]').forEach(el => {
+    const rc = +el.dataset.rc;
+    if (el.tagName === 'DIV' && el.parentElement === wrap) {
+      // 카드 div 찾기
+    }
+  });
+  // 재료 영역 옆에 타이머 버튼 추가 (동적 삽입)
+  const cards = wrap.querySelectorAll('.rc-shop');
+  cards.forEach(b => {
+    if (b.nextElementSibling && b.nextElementSibling.classList?.contains('rc-timer')) return;
+    const timerBtn = document.createElement('button');
+    timerBtn.className = 'ptb rc-timer';
+    timerBtn.style.cssText = 'padding:3px 8px; font-size:11px;';
+    timerBtn.textContent = '⏱ 타이머';
+    timerBtn.addEventListener('click', async () => {
+      const s = getRoleStore('recipe');
+      const r = s.items[+b.dataset.rc];
+      const mins = +(await prompt2('조리 시간 (분)', r.time || 10) || 0);
+      if (mins > 0) startCookTimer(mins, r.name);
+    });
+    b.parentNode.insertBefore(timerBtn, b.nextSibling);
+  });
+};
+
+/* ============================================================
+   업그레이드: 약 복용 — 브라우저 알림 + 주간 준수율
+   ============================================================ */
+const _origRenderMed = renderMed;
+renderMed = function() {
+  _origRenderMed.apply(this, arguments);
+  const s = getMeds();
+  // 주간 준수율
+  const wrap = $('medList');
+  if (!wrap) return;
+  let statsEl = document.getElementById('medStats');
+  if (!statsEl) {
+    statsEl = document.createElement('div');
+    statsEl.id = 'medStats';
+    statsEl.style.cssText = 'margin-top:12px; padding:10px; background:color-mix(in srgb, var(--accent) 6%, transparent); border-radius:5px; font-size:12px;';
+    wrap.parentNode.insertBefore(statsEl, wrap.nextSibling);
+  }
+  if (s.list.length === 0) { statsEl.innerHTML = ''; return; }
+  const today = new Date();
+  let totalDoses = 0, takenDoses = 0;
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(today); d.setDate(d.getDate() - i);
+    const key = d.toISOString().slice(0,10);
+    s.list.forEach((m, mi) => {
+      m.times.forEach((t, ti) => {
+        totalDoses++;
+        if (s.log[key]?.[mi+':'+ti]) takenDoses++;
+      });
+    });
+  }
+  const pct = totalDoses > 0 ? Math.round(takenDoses/totalDoses*100) : 0;
+  const color = pct >= 90 ? '#2e7d32' : pct >= 70 ? '#f57c00' : '#d32f2f';
+  statsEl.innerHTML = `<b>주간 복약 준수율:</b> <span style="color:${color}; font-size:14px; font-weight:700;">${pct}%</span> (${takenDoses}/${totalDoses})
+    <button id="medNotifBtn" class="ptb" style="margin-left:10px; padding:2px 8px; font-size:10px;">알림 허용</button>`;
+  const notifBtn = $('medNotifBtn');
+  if (notifBtn) notifBtn.addEventListener('click', async () => {
+    if (!('Notification' in window)) { toast('이 브라우저는 알림을 지원하지 않습니다'); return; }
+    const perm = await Notification.requestPermission();
+    toast(perm === 'granted' ? '알림 허용됨 — 복약 시간에 알려드립니다' : '알림 거부됨');
+  });
+};
+
+/* ============================================================
+   업그레이드: 조별과제 — 팀원별 부담 균형
+   ============================================================ */
+const _origRenderGroupProj = renderGroupProj;
+renderGroupProj = function() {
+  _origRenderGroupProj.apply(this, arguments);
+  const s = getRoleStore('groupProj');
+  const wrap = $('gpList'); if (!wrap) return;
+  // 각 프로젝트 카드에 팀원 부담 표시 추가
+  wrap.querySelectorAll('[data-gp-del]').forEach(delBtn => {
+    const pi = +delBtn.dataset.gpDel;
+    const p = s.projects[pi]; if (!p) return;
+    const card = delBtn.closest('div[style*="border:1px solid var(--paper-edge)"]');
+    if (!card || card.querySelector('.gp-balance')) return;
+    const balance = document.createElement('div');
+    balance.className = 'gp-balance';
+    balance.style.cssText = 'font-size:11px; margin-top:6px; padding:6px; background:#fafafa; border-radius:4px;';
+    const byOwner = {};
+    (p.tasks || []).forEach(t => {
+      const own = t.owner || '미할당';
+      byOwner[own] = byOwner[own] || { total:0, done:0 };
+      byOwner[own].total++;
+      if (t.done) byOwner[own].done++;
+    });
+    if (Object.keys(byOwner).length > 0) {
+      balance.innerHTML = '<b>팀원 부담:</b> ' + Object.entries(byOwner).map(([n,v]) => `<span style="margin-right:8px;">${escapeHtml(n)}: ${v.done}/${v.total}</span>`).join('');
+      card.appendChild(balance);
+    }
+  });
+};
+
+/* ============================================================
+   업그레이드: 파이프라인 — 검색·필터·총액
+   ============================================================ */
+const _origRenderProjPipe = renderProjPipe;
+renderProjPipe = function() {
+  _origRenderProjPipe.apply(this, arguments);
+  const s = getRoleStore('projPipe');
+  const board = $('ppBoard');
+  if (!board) return;
+  // 상단에 검색 + 총 매출 표시
+  let summaryEl = document.getElementById('ppSummary');
+  if (!summaryEl) {
+    summaryEl = document.createElement('div');
+    summaryEl.id = 'ppSummary';
+    summaryEl.style.cssText = 'margin-bottom:12px; padding:10px; background:color-mix(in srgb, var(--accent) 6%, transparent); border-radius:5px; font-size:12px;';
+    board.parentNode.insertBefore(summaryEl, board);
+  }
+  const projs = s.projects || [];
+  const totalByStage = {};
+  projs.forEach(p => {
+    totalByStage[p.stage] = (totalByStage[p.stage] || 0) + (+p.amount || 0);
+  });
+  const all = projs.reduce((a,b) => a + (+b.amount || 0), 0);
+  const completed = totalByStage['완료'] || 0;
+  summaryEl.innerHTML = `<b>파이프라인 요약:</b>
+    총 가치 <span style="color:var(--accent); font-weight:700;">${all.toLocaleString('ko-KR')}원</span> ·
+    완료 <span style="color:#2e7d32;">${completed.toLocaleString('ko-KR')}</span> ·
+    진행 ${((totalByStage['진행중']||0) + (totalByStage['리뷰']||0)).toLocaleString('ko-KR')} ·
+    제안 ${(totalByStage['제안']||0).toLocaleString('ko-KR')}
+    · 전환율 ${all>0?Math.round(completed/all*100):0}%`;
+};
+
+/* ============================================================
+   업그레이드: 여행 — 여행 일기 연계
+   ============================================================ */
+const _origRenderTravel = renderTravel;
+renderTravel = function() {
+  _origRenderTravel.apply(this, arguments);
+  const s = getRoleStore('travel');
+  const wrap = $('tvList'); if (!wrap) return;
+  wrap.querySelectorAll('[data-tv-del]').forEach(delBtn => {
+    const ti = +delBtn.dataset.tvDel;
+    const t = s.trips[ti]; if (!t) return;
+    const card = delBtn.closest('div[style*="border:1px solid var(--paper-edge)"]');
+    if (!card || card.querySelector('.tv-diary-btn')) return;
+    const btn = document.createElement('button');
+    btn.className = 'ptb tv-diary-btn';
+    btn.style.cssText = 'margin-top:6px; font-size:11px;';
+    btn.textContent = '📝 여행 일기 메모 생성';
+    btn.addEventListener('click', () => {
+      const html = `<h2>${escapeHtml(t.name)} 여행 일기</h2>
+        <p><b>기간:</b> ${t.start} ~ ${t.end}</p>
+        <p><b>목적지:</b> ${escapeHtml(t.dest||'')}</p>
+        <h3>Day 1</h3><p>오늘의 하이라이트: </p><p>사진/추억: </p>
+        <h3>Day 2</h3><p></p><h3>Day 3</h3><p></p>`;
+      if (typeof addTab === 'function') { addTab('✈️ ' + t.name + ' 일기', html); toast('여행 일기 메모 생성됨'); }
+    });
+    card.appendChild(btn);
+  });
+};
+
+/* ============================================================
+   업그레이드: 논문 — DOI 링크 + 읽기 진행률
+   ============================================================ */
+const _origRenderPaperList = renderPaperList;
+renderPaperList = function() {
+  _origRenderPaperList.apply(this, arguments);
+  const s = getRoleStore('paperList');
+  const wrap = $('plList'); if (!wrap) return;
+  // 통계 추가
+  const total = (s.papers || []).length;
+  const done = (s.papers || []).filter(p => p.status === '완독' || p.status === '핵심').length;
+  const reading = (s.papers || []).filter(p => p.status === '읽는중').length;
+  let statsEl = document.getElementById('plStats');
+  if (!statsEl) {
+    statsEl = document.createElement('div');
+    statsEl.id = 'plStats';
+    statsEl.style.cssText = 'margin-bottom:10px; padding:8px; background:color-mix(in srgb, var(--accent) 6%, transparent); border-radius:5px; font-size:11px;';
+    wrap.parentNode.insertBefore(statsEl, wrap);
+  }
+  statsEl.innerHTML = total === 0 ? '논문을 추가하세요' :
+    `<b>총 ${total}편</b> · 완독/핵심 ${done} (${Math.round(done/total*100)}%) · 읽는중 ${reading} · 진행률 <div style="display:inline-block; width:100px; height:6px; background:#eee; border-radius:3px; vertical-align:middle; margin-left:6px;"><div style="width:${Math.round(done/total*100)}%; height:100%; background:var(--accent); border-radius:3px;"></div></div>`;
+};
 
 // Esc 핸들러에 4개 신규 모달 추가 - 이미 modal-backdrop 공통이므로 showModalHtml 방식은 Esc로 닫힘
 
