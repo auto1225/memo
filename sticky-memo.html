@@ -2264,9 +2264,9 @@
       <span id="paintStatus" style="font-size:11px; color:var(--ink-soft); margin-right:4px;"></span>
       <button id="paintNew" class="ptb" title="새로 만들기 (Ctrl+N)"><svg class="ico"><use href="#i-plus"/></svg>새로</button>
       <button id="paintOpen" class="ptb" title="이미지 열기 (Ctrl+O)"><svg class="ico"><use href="#i-upload"/></svg>열기</button>
-      <button id="paintSave" class="ptb" title="PNG로 저장 (Ctrl+S)"><svg class="ico"><use href="#i-download"/></svg>저장</button>
+      <button id="paintSave" class="ptb" title="저장 — 크기·용량·포맷 선택 후 저장 (Ctrl+S)"><svg class="ico"><use href="#i-download"/></svg>저장</button>
+      <button id="paintQuickSave" class="ptb" title="빠른 PNG 저장 (변환기 없이 바로) (Ctrl+Shift+S)" style="padding:6px 8px;"><svg class="ico"><use href="#i-md-dl"/></svg></button>
       <button id="paintAI" class="ptb" title="AI로 이미지 생성" style="background:linear-gradient(135deg, #7e57c2, #5e35b1); color:white; border:none;"><svg class="ico" style="stroke:white;"><use href="#i-sparkles"/></svg>AI 생성</button>
-      <button id="paintConvert" class="ptb" title="크기/용량/포맷 변환 후 저장"><svg class="ico"><use href="#i-resize"/></svg>변환</button>
       <button id="paintInsert" class="ptb-primary" title="메모에 삽입 (Ctrl+Enter)"><svg class="ico" style="stroke:white;"><use href="#i-check"/></svg>메모 삽입</button>
       <button id="paintClose" class="ptb" title="닫기 (Esc)" style="padding:6px 8px;"><svg class="ico"><use href="#i-x"/></svg></button>
     </div>
@@ -10231,12 +10231,30 @@ const Paint = (function() {
       r.readAsDataURL(f);
       e.target.value = '';
     });
+    // 저장 = 변환기 자동 오픈 (크기/용량/포맷 선택 후 저장)
     $('paintSave').addEventListener('click', () => {
+      const url = compositeToDataURL('image/png');
+      const fileName = ($('paintFileName').textContent || 'paint').replace(/\.[^.]+$/, '');
+      if (window.ImageConverter) {
+        ImageConverter.open(url, fileName);
+      } else {
+        // 폴백: 변환기 모듈 없으면 바로 PNG 저장
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName + '.png';
+        document.body.appendChild(a); a.click(); a.remove();
+      }
+    });
+    // 빠른 저장 (변환기 거치지 않고 바로 PNG)
+    const quickSave = $('paintQuickSave');
+    if (quickSave) quickSave.addEventListener('click', () => {
       const url = compositeToDataURL('image/png');
       const a = document.createElement('a');
       a.href = url;
-      a.download = ($('paintFileName').textContent || 'paint').replace(/\.[^.]+$/, '') + '.png';
+      const fn = ($('paintFileName').textContent || 'paint').replace(/\.[^.]+$/, '');
+      a.download = fn + '.png';
       document.body.appendChild(a); a.click(); a.remove();
+      toast('빠른 PNG 저장 완료');
     });
     $('paintInsert').addEventListener('click', () => {
       const url = compositeToDataURL('image/png');
@@ -10252,17 +10270,6 @@ const Paint = (function() {
       }
     });
     $('paintClose').addEventListener('click', () => { $('paintModal').classList.remove('open'); state.onClose = null; });
-    // Paint → ImageConverter 연계
-    const convertBtn = $('paintConvert');
-    if (convertBtn) convertBtn.addEventListener('click', () => {
-      const url = compositeToDataURL('image/png');
-      if (window.ImageConverter) {
-        // Paint 모달 유지 (뒤에 열림) — 변환기 닫으면 Paint로 돌아옴
-        ImageConverter.open(url, 'paint-export');
-      } else {
-        toast('변환기 모듈 로드 실패');
-      }
-    });
     // 이미지 변환
     $('pt-resize-btn').addEventListener('click', async () => {
       const w = +(await prompt2('새 너비 (px)', state.width) || state.width);
@@ -10365,7 +10372,11 @@ const Paint = (function() {
       const ctrl = e.ctrlKey || e.metaKey;
       if (ctrl && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
       if (ctrl && e.key.toLowerCase() === 'y') { e.preventDefault(); redo(); return; }
-      if (ctrl && e.key.toLowerCase() === 's') { e.preventDefault(); $('paintSave').click(); return; }
+      if (ctrl && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        (e.shiftKey ? $('paintQuickSave') : $('paintSave')).click();
+        return;
+      }
       if (ctrl && e.key.toLowerCase() === 'n') { e.preventDefault(); $('paintNew').click(); return; }
       if (ctrl && e.key.toLowerCase() === 'o') { e.preventDefault(); $('paintOpen').click(); return; }
       if (ctrl && e.key.toLowerCase() === 'c') { e.preventDefault(); copySelection(); return; }
