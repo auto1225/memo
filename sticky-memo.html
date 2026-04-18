@@ -9,6 +9,21 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%238A5FD1'/%3E%3Ctext x='16' y='24' font-family='Georgia,serif' font-size='22' font-weight='900' font-style='italic' fill='white' text-anchor='middle'%3Ej.%3C/text%3E%3C/svg%3E" />
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%238A5FD1'/%3E%3Ctext x='90' y='130' font-family='Georgia,serif' font-size='120' font-weight='900' font-style='italic' fill='white' text-anchor='middle'%3Ej.%3C/text%3E%3C/svg%3E" />
 <meta name="theme-color" content="#8A5FD1" />
+<!-- PWA -->
+<link rel="manifest" href="/manifest.json" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="JustANotepad" />
+<meta name="mobile-web-app-capable" content="yes" />
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:title" content="JustANotepad" />
+<meta property="og:description" content="그냥 메모장이 되려 했으나... 수십 가지 기능을 담은 메모장. 로그인 없이 바로 쓰세요." />
+<meta property="og:url" content="https://justanotepad.com" />
+<meta property="og:site_name" content="JustANotepad" />
+<meta property="og:locale" content="ko_KR" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="JustANotepad" />
+<meta name="twitter:description" content="it was supposed to be just a notepad." />
 <style>
   :root,
   [data-theme="lavender"] {
@@ -9118,6 +9133,81 @@ function init() {
   setTimeout(checkTodayReminders, 2000);
 }
 init();
+
+/* ============================================================
+   PWA Service Worker 등록 + 자동 업데이트 감지
+   ============================================================ */
+(function registerSW() {
+  if (!('serviceWorker' in navigator)) return;
+  if (location.protocol !== 'https:' && location.hostname !== 'localhost') return;
+
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').then(reg => {
+      console.log('[PWA] Service Worker 등록됨');
+
+      // 이미 대기 중인 새 SW가 있다면 즉시 프롬프트
+      if (reg.waiting && navigator.serviceWorker.controller) {
+        showUpdatePrompt(reg.waiting);
+      }
+
+      // 새 SW가 설치될 때
+      reg.addEventListener('updatefound', () => {
+        const newSW = reg.installing;
+        if (!newSW) return;
+        newSW.addEventListener('statechange', () => {
+          if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+            showUpdatePrompt(newSW);
+          }
+        });
+      });
+
+      // 1시간마다 업데이트 체크
+      setInterval(() => reg.update().catch(() => {}), 3600000);
+      // 페이지 포커스 복귀 시에도 체크
+      window.addEventListener('focus', () => reg.update().catch(() => {}));
+    }).catch(err => console.warn('[PWA] SW 등록 실패:', err));
+
+    // SW가 컨트롤러 전환하면 페이지 자동 새로고침 (사용자 승인 후)
+    let reloading = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (reloading) return;
+      reloading = true;
+      location.reload();
+    });
+  });
+
+  function showUpdatePrompt(worker) {
+    // 기존 토스트 활용
+    const banner = document.createElement('div');
+    banner.id = 'pwaUpdateBanner';
+    banner.style.cssText = `
+      position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+      background:linear-gradient(135deg, #8A5FD1, #7a4fc7); color:white;
+      padding:12px 18px; border-radius:10px;
+      box-shadow:0 6px 24px rgba(0,0,0,0.25);
+      z-index:10000; display:flex; align-items:center; gap:12px;
+      font-size:13px; max-width:90vw;
+      animation: pwaSlideUp .3s ease-out;
+    `;
+    banner.innerHTML = `
+      <style>@keyframes pwaSlideUp { from { transform:translate(-50%, 20px); opacity:0; } to { transform:translate(-50%, 0); opacity:1; } }</style>
+      <div style="flex:1;">
+        <div style="font-weight:700; margin-bottom:2px;">새 버전이 있습니다</div>
+        <div style="font-size:11px; opacity:0.9;">업데이트하면 최신 기능을 사용할 수 있어요</div>
+      </div>
+      <button id="pwaUpdateNow" style="background:white; color:var(--accent); border:none; padding:7px 14px; border-radius:6px; cursor:pointer; font-weight:700; font-size:12px;">업데이트</button>
+      <button id="pwaUpdateLater" style="background:transparent; color:white; border:1px solid rgba(255,255,255,0.3); padding:7px 10px; border-radius:6px; cursor:pointer; font-size:11px;">나중에</button>
+    `;
+    document.body.appendChild(banner);
+    document.getElementById('pwaUpdateNow').addEventListener('click', () => {
+      banner.remove();
+      worker.postMessage({ type: 'SKIP_WAITING' });
+    });
+    document.getElementById('pwaUpdateLater').addEventListener('click', () => {
+      banner.remove();
+    });
+  }
+})();
 
 // 입력이 생기면 스트릭 업데이트
 pageEl.addEventListener('input', () => {

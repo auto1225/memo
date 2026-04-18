@@ -1,0 +1,41 @@
+{
+  "name": "JustANotepad",
+  "short_name": "Notepad",
+  "description": "it was supposed to be just a notepad.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f4eefb",
+  "theme_color": "#8A5FD1",
+  "lang": "ko",
+  "categories": [
+    "productivity",
+    "utilities"
+  ],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "새 메모",
+      "url": "/?new=1",
+      "description": "빈 메모 바로 열기"
+    },
+    {
+      "name": "명함 관리",
+      "url": "/?open=cards",
+      "description": "명함 목록 열기"
+    },
+    {
+      "name": "그림판",
+      "url": "/?open=paint",
+      "description": "그림판 열기"
+    }
+  ]
+}
