@@ -24,6 +24,9 @@
 <meta name="twitter:card" content="summary" />
 <meta name="twitter:title" content="JustANotepad" />
 <meta name="twitter:description" content="it was supposed to be just a notepad." />
+<!-- 클라우드 동기화 (선택적) -->
+<script src="/config.js" onerror="console.log('[Config] config.js 없음 — 오프라인 전용');"></script>
+<script src="/sync.js" defer></script>
 <style>
   :root,
   [data-theme="lavender"] {
@@ -1493,6 +1496,7 @@
     <button id="searchToggle" title="검색 (Ctrl+F)"><svg class="ico"><use href="#i-search"/></svg></button>
     <button id="focusBtn" title="집중 모드"><svg class="ico"><use href="#i-target"/></svg></button>
     <button id="helpBtn" title="도움말"><svg class="ico"><use href="#i-help"/></svg></button>
+    <button id="authBtn" title="로그인" style="display:none;"><svg class="ico"><use href="#i-users"/></svg></button>
     <button id="minBtn" title="최소화"><svg class="ico"><use href="#i-min"/></svg></button>
     <button id="closeBtn" title="닫기"><svg class="ico"><use href="#i-x"/></svg></button>
   </div>
@@ -9133,6 +9137,44 @@ function init() {
   setTimeout(checkTodayReminders, 2000);
 }
 init();
+
+/* ============================================================
+   클라우드 로그인 UI (Supabase 설정 시만 활성)
+   ============================================================ */
+(function() {
+  const authBtn = $('authBtn');
+  if (!authBtn) return;
+  function update() {
+    if (!window.JANSync || !window.JANSync.enabled) {
+      authBtn.style.display = 'none';
+      return;
+    }
+    authBtn.style.display = '';
+    const s = window.JANSync.getSession && window.JANSync.getSession();
+    if (s && s.user) {
+      authBtn.title = s.user.email + ' · 클릭하여 로그아웃';
+      authBtn.style.background = 'rgba(255,255,255,0.25)';
+    } else {
+      authBtn.title = 'Google로 로그인 — 여러 기기 동기화';
+      authBtn.style.background = '';
+    }
+  }
+  authBtn.addEventListener('click', async () => {
+    if (!window.JANSync || !window.JANSync.enabled) return;
+    const s = window.JANSync.getSession && window.JANSync.getSession();
+    if (s && s.user) {
+      if (await confirm2('로그아웃', `${s.user.email}\n로그아웃하시겠습니까?`)) {
+        await window.JANSync.signOut();
+        toast('로그아웃됨');
+      }
+    } else {
+      toast('Google 로그인 창으로 이동합니다…');
+      window.JANSync.signInGoogle();
+    }
+  });
+  window.addEventListener('jan-auth-change', update);
+  setTimeout(update, 1000);
+})();
 
 /* ============================================================
    PWA Service Worker 등록 + 자동 업데이트 감지
