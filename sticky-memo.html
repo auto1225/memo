@@ -5452,7 +5452,7 @@ function createLinkCard(url, customTitle = '', customDesc = '') {
     </div>`;
 
   return `<div class="link-card ${cardClass}" data-card-url="${safeUrl}" contenteditable="false">
-    <button class="link-card-delete" title="삭제" contenteditable="false">×</button>
+    <button class="link-card-delete" title="삭제" contenteditable="false"><svg class="ico" style="width:10px; height:10px;"><use href="#i-x"/></svg></button>
     ${thumbHtml}${playOverlay}${bodyHtml}
   </div>`;
 }
@@ -6551,7 +6551,7 @@ function updateSplitPane() {
   wrap.className = 'page-wrap split-pane';
   wrap.style.position = 'relative';
   wrap.innerHTML = `
-    <button class="split-close" title="분할 닫기">×</button>
+    <button class="split-close" title="분할 닫기"><svg class="ico" style="width:10px; height:10px;"><use href="#i-x"/></svg></button>
     <div class="page" style="padding:18px 22px 40px 46px; background-image:none;">
       <div style="font-size:11px; color:var(--ink-soft); margin-bottom:8px; display:flex; align-items:center; gap:4px;"><svg class="ico" style="width:12px;height:12px;"><use href="#i-note"/></svg>${escapeHtml(t.name)}</div>
       ${t.html || '<div style="color:#aaa;">내용 없음</div>'}
@@ -11450,14 +11450,14 @@ const ROLES = {
   'high': { name:'고등학생', icon:'i-target', color:'#ef5350',
     desc:'수능 D-Day, 오답노트, 학습 타이머', tools:['dday','timetable'],
     templates:[
-      { name:'오답노트', html:`<h2>오답노트 — ${new Date().toLocaleDateString('ko-KR')}</h2><table><thead><tr><th>과목</th><th>문제</th><th>내 답</th><th>정답</th><th>해설</th><th>재풀이</th></tr></thead><tbody><tr><td></td><td></td><td></td><td></td><td></td><td>☐</td></tr></tbody></table>` },
+      { name:'오답노트', html:`<h2>오답노트 — ${new Date().toLocaleDateString('ko-KR')}</h2><table><thead><tr><th>과목</th><th>문제</th><th>내 답</th><th>정답</th><th>해설</th><th>재풀이</th></tr></thead><tbody><tr><td></td><td></td><td></td><td></td><td></td><td><input type="checkbox" disabled></td></tr></tbody></table>` },
       { name:'모의고사 기록', html:`<h2>모의고사 성적</h2><table><thead><tr><th>회차</th><th>국어</th><th>수학</th><th>영어</th><th>탐구</th><th>총점</th></tr></thead><tbody><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr></tbody></table>` }
     ]
   },
   'college': { name:'대학생', icon:'i-cards', color:'#4caf50',
     desc:'강의 시간표, GPA, 과제', tools:['timetable','gpa','dday'],
     templates:[
-      { name:'과제 트래커', html:`<h2>과제 목록</h2><table><thead><tr><th>과목</th><th>과제명</th><th>마감일</th><th>상태</th></tr></thead><tbody><tr><td></td><td></td><td></td><td>☐ 진행중</td></tr></tbody></table>` },
+      { name:'과제 트래커', html:`<h2>과제 목록</h2><table><thead><tr><th>과목</th><th>과제명</th><th>마감일</th><th>상태</th></tr></thead><tbody><tr><td></td><td></td><td></td><td><input type="checkbox" disabled> 진행중</td></tr></tbody></table>` },
       { name:'조별 과제 노트', html:`<h2>조별 과제</h2><h3>팀원</h3><ul><li></li></ul><h3>역할 분담</h3><p></p><h3>진행 상황</h3><p></p>` }
     ]
   },
@@ -12589,7 +12589,7 @@ function renderGroupProj() {
         <button class="ptb gp-member-add" data-pi="${pi}" style="padding:4px 10px; font-size:11px;">+</button>
       </div>
       <div style="margin-bottom:6px; display:flex; flex-wrap:wrap; gap:3px;">
-        ${p.members.map((m, mi) => `<span style="background:color-mix(in srgb, var(--accent) 12%, transparent); padding:2px 8px; border-radius:10px; font-size:10px;">${escapeHtml(m)} <a href="#" class="gp-member-del" data-pi="${pi}" data-mi="${mi}" style="color:#888; text-decoration:none;">×</a></span>`).join('')}
+        ${p.members.map((m, mi) => `<span style="background:color-mix(in srgb, var(--accent) 12%, transparent); padding:2px 8px; border-radius:10px; font-size:10px;">${escapeHtml(m)} <a href="#" class="gp-member-del" data-pi="${pi}" data-mi="${mi}" style="color:#888; text-decoration:none;"><svg class="ico" style="width:10px; height:10px;"><use href="#i-x"/></svg></a></span>`).join('')}
       </div>
       <div style="display:flex; gap:4px; margin-bottom:4px;">
         <input type="text" class="rw-input gp-task-inp" style="flex:1; margin:0; font-size:11px;" placeholder="할 일 추가" data-pi="${pi}">
@@ -12988,7 +12988,7 @@ function renderRecipe() {
       <button class="ptb rc-shop" data-rc="${r.idx}" style="padding:3px 8px; font-size:11px;" title="재료를 장보기 리스트로 보내기">→장보기</button>
     </div>
     <div style="display:flex; flex-wrap:wrap; gap:3px; margin-bottom:6px;">
-      ${(r.ingredients||[]).map((ing, ii) => `<span style="background:#fff3e0; padding:2px 8px; border-radius:10px; font-size:10px;">${escapeHtml(ing)} <a href="#" class="rc-ing-del" data-rc="${r.idx}" data-ii="${ii}" style="color:#888; text-decoration:none;">×</a></span>`).join('')}
+      ${(r.ingredients||[]).map((ing, ii) => `<span style="background:#fff3e0; padding:2px 8px; border-radius:10px; font-size:10px;">${escapeHtml(ing)} <a href="#" class="rc-ing-del" data-rc="${r.idx}" data-ii="${ii}" style="color:#888; text-decoration:none;"><svg class="ico" style="width:10px; height:10px;"><use href="#i-x"/></svg></a></span>`).join('')}
     </div>
     <textarea class="rw-input rc-steps" data-rc="${r.idx}" placeholder="조리법 (한 단계씩 줄바꿈)" rows="3" style="font-size:11px; margin:0;">${escapeHtml(r.steps||'')}</textarea>
   </div>`).join('');
@@ -14158,7 +14158,7 @@ function showRandomTip() {
 
   const card = $('tipCard');
   card.innerHTML = `
-    <button class="tip-close" id="tipClose">×</button>
+    <button class="tip-close" id="tipClose"><svg class="ico" style="width:10px; height:10px;"><use href="#i-x"/></svg></button>
     <div class="tip-title" style="display:flex; align-items:center; gap:5px;"><svg class="ico" style="width:12px; height:12px; stroke:var(--accent);"><use href="#i-info"/></svg>알고 계셨나요?</div>
     <div style="font-weight:700; margin-bottom:3px;">${escapeHtml(tip.title)}</div>
     <div class="tip-body">${escapeHtml(tip.body)}</div>
