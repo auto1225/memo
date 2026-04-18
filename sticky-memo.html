@@ -8271,13 +8271,14 @@ function renderCardsFilters() {
   // 그룹
   const gWrap = $('cardsGroups');
   const groups = state.cardGroups || [];
-  gWrap.innerHTML = groups.map(g => {
-    const n = all.filter(c => c.company === g || c.group === g).length;
-    const active = cardsState.filter === `group:${g}` ? 'active' : '';
-    return `<div class="card-filter-item ${active}" data-filter="group:${escapeHtml(g)}">
-      <svg class="ico"><use href="#i-building"/></svg>${escapeHtml(g)}<span class="cf-count">${n}</span>
-    </div>`;
-  }).join('');
+  gWrap.innerHTML = groups.length === 0 ? '<div style="font-size:11px; color:var(--ink-soft); padding:4px 8px;">(그룹 없음)</div>' :
+    groups.map(g => {
+      const n = all.filter(c => c.group === g).length;
+      const active = cardsState.filter === `group:${g}` ? 'active' : '';
+      return `<div class="card-filter-item ${active}" data-filter="group:${escapeHtml(g)}" data-gname="${escapeHtml(g)}">
+        <svg class="ico"><use href="#i-building"/></svg><span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(g)}</span><span class="cf-count">${n}</span>
+      </div>`;
+    }).join('');
 
   // 태그 (상위 10개)
   const tagMap = {};
@@ -8299,6 +8300,32 @@ function renderCardsFilters() {
       renderCardsFilters();
       renderCardsList();
     });
+    // 그룹 우클릭 → 이름변경/삭제
+    if (el.dataset.gname) {
+      el.addEventListener('contextmenu', async (e) => {
+        e.preventDefault();
+        const gname = el.dataset.gname;
+        const action = await confirm2(`그룹: ${gname}`, '이 그룹을 어떻게 하시겠습니까?\n(확인=이름변경 / 취소=삭제)', '이름변경', '삭제');
+        if (action) {
+          const newName = await prompt2('새 그룹명', gname);
+          if (!newName || newName === gname) return;
+          state.cardGroups = (state.cardGroups || []).map(x => x === gname ? newName : x);
+          (state.businessCards || []).forEach(c => { if (c.group === gname) c.group = newName; });
+          if (cardsState.filter === `group:${gname}`) cardsState.filter = `group:${newName}`;
+          scheduleSave();
+          renderCardsFilters(); renderCardsList();
+          toast('그룹 이름을 변경했습니다');
+        } else {
+          if (!await confirm2('그룹 삭제', `"${gname}" 그룹을 삭제하시겠습니까?\n(명함은 삭제되지 않고 그룹만 제거됩니다)`, '삭제', '취소')) return;
+          state.cardGroups = (state.cardGroups || []).filter(x => x !== gname);
+          (state.businessCards || []).forEach(c => { if (c.group === gname) c.group = ''; });
+          if (cardsState.filter === `group:${gname}`) cardsState.filter = 'all';
+          scheduleSave();
+          renderCardsFilters(); renderCardsList();
+          toast('그룹을 삭제했습니다');
+        }
+      });
+    }
   });
 }
 
@@ -8339,7 +8366,7 @@ function renderCardsList() {
     }
   } else {
     wrap.innerHTML = `
-      <div class="card-list-row" style="font-weight:600; background:color-mix(in srgb, var(--paper-edge) 30%, transparent); position:sticky; top:0;">
+      <div class="card-list-header" style="display:grid; grid-template-columns:40px 1.5fr 1.5fr 1fr 1.2fr 80px; gap:8px; padding:8px 10px; font-weight:600; font-size:11px; color:var(--ink-soft); background:color-mix(in srgb, var(--paper-edge) 30%, transparent); position:sticky; top:0; border-bottom:1px solid var(--paper-edge);">
         <div></div>
         <div>이름</div>
         <div>회사 / 부서</div>
@@ -8498,6 +8525,7 @@ function renderCardsDetail(id) {
     const today = new Date().toISOString().slice(0,10);
     const date = await prompt2('미팅 날짜 (YYYY-MM-DD)', today);
     if (!date) return;
+    if (!/^\d{4}-\d{1,2}-\d{1,2}$/.test(date)) { toast('형식: YYYY-MM-DD'); return; }
     const place = await prompt2('장소 (선택)', '');
     const note = await prompt2('메모 (선택)', '');
     c.meetingHistory = c.meetingHistory || [];
@@ -8618,7 +8646,19 @@ function exportVCard(cards) {
     if (c.memo) lines.push(`NOTE:${c.memo.replace(/\n/g, '\\n')}`);
     if (c.frontImg && c.frontImg.startsWith('data:image')) {
       const m = c.frontImg.match(/^data:image\/(jpeg|jpg|png);base64,(.+)$/i);
-      if (m) lines.push(`PHOTO;ENCODING=b;TYPE=${m[1].toUpperCase()}:${m[2]}`);
+      if (m) {
+        // vCard 3.0: 75자 이상 줄은 폴딩 (다음 줄 첫 문자가 공백이어야 연속)
+        const b64 = m[2];
+        const header = `PHOTO;ENCODING=b;TYPE=${m[1].toUpperCase()}:`;
+        const maxLen = 72;
+        const folded = [];
+        let first = header + b64.slice(0, maxLen - header.length);
+        folded.push(first);
+        for (let k = maxLen - header.length; k < b64.length; k += maxLen) {
+          folded.push(' ' + b64.slice(k, k + maxLen));
+        }
+        lines.push(folded.join('\r\n'));
+      }
     }
     lines.push('END:VCARD');
     return lines.join('\r\n');
@@ -8639,7 +8679,6 @@ function exportCardsCSV(cards) {
   const esc = v => {
     if (v == null) return '';
     let s = Array.isArray(v) ? v.join(', ') : String(v);
-    if (typeof v === 'number' && keys[keys.length-1] === 'createdAt') s = new Date(v).toISOString().slice(0,10);
     if (/[",\n]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
     return s;
   };
@@ -8766,10 +8805,15 @@ function openCardEditor(id) {
   $('cardEditTitle').textContent = isNew ? '명함 추가' : '명함 편집';
   $('cardEditDelete').style.display = isNew ? 'none' : '';
 
-  // 그룹 옵션
+  // 그룹 옵션 — 편집 중인 카드의 그룹도 누락되지 않도록 합침
+  const existingGroups = new Set(state.cardGroups || []);
+  if (id) {
+    const c0 = (state.businessCards || []).find(x => x.id === id);
+    if (c0 && c0.group) existingGroups.add(c0.group);
+  }
   const sel = $('ceGroup');
   sel.innerHTML = '<option value="">(없음)</option>' +
-    (state.cardGroups || []).map(g => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join('');
+    Array.from(existingGroups).map(g => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join('');
 
   const fields = ['ceName','ceNameEn','ceCompany','ceDept','cePosition','ceMobile','cePhone','ceFax','ceEmail','ceWebsite','ceAddress','ceLinkedin','ceSns','ceTags','ceMemo','ceGroup'];
   fields.forEach(f => { $(f).value = ''; });
@@ -8891,16 +8935,24 @@ async function extractCardFromImageAI() {
 - 명함에 없는 필드는 절대 추측하지 말고 빈 문자열`;
 
     const result = await callAIVision(prompt, cardsState.editingFront);
-    if (!result) { $('cardEditAIStatus').textContent = '추출 실패'; return; }
-    // JSON 추출
-    const match = result.match(/\{[\s\S]*\}/);
+    if (!result) { $('cardEditAIStatus').textContent = '추출 실패 (AI 키/모델 확인)'; return; }
+    // JSON 추출 (마크다운 코드블록 제거)
+    const cleaned = result.replace(/```(?:json)?/gi, '').trim();
+    const match = cleaned.match(/\{[\s\S]*\}/);
     if (!match) { $('cardEditAIStatus').textContent = '응답을 파싱할 수 없습니다'; return; }
     let data;
     try { data = JSON.parse(match[0]); }
     catch (e) { $('cardEditAIStatus').textContent = 'JSON 파싱 오류: ' + e.message; return; }
 
-    // 필드 채우기 (비어있으면만 or 덮어쓰기)
-    const fill = (id, val) => { if (val) $(id).value = val; };
+    // 필드 채우기 — 빈 값은 덮어쓰지 않음 (기존 수동 입력 보존)
+    const fill = (id, val) => {
+      if (val == null) return;
+      const s = String(val).trim();
+      if (!s) return;
+      // 기존 값이 비어있을 때만 채움
+      const el = $(id);
+      if (!el.value || !el.value.trim()) el.value = s;
+    };
     fill('ceName', data.name);
     fill('ceNameEn', data.nameEn);
     fill('ceCompany', data.company);
@@ -8918,8 +8970,9 @@ async function extractCardFromImageAI() {
     checkCardDuplicate();
   } catch (e) {
     $('cardEditAIStatus').innerHTML = '<span style="color:#c62828;">오류: '+escapeHtml(e.message)+'</span>';
+  } finally {
+    $('cardEditAIBtn').disabled = false;
   }
-  $('cardEditAIBtn').disabled = false;
 }
 
 function saveCardFromEditor() {
@@ -8973,7 +9026,10 @@ function saveCardFromEditor() {
 }
 
 /* --- 이벤트 바인딩 --- */
-$('openCardsSide').addEventListener('click', openCardsModal);
+$('openCardsSide').addEventListener('click', () => {
+  padEl.classList.remove('show-sidebar');
+  openCardsModal();
+});
 $('cardsClose').addEventListener('click', closeCardsModal);
 $('cardsAddBtn').addEventListener('click', () => openCardEditor(null));
 $('cardsViewGrid').addEventListener('click', () => {
@@ -9104,47 +9160,60 @@ $('cardsStatsBtn').addEventListener('click', () => {
 });
 
 // 내 명함 (QR로 공유)
+async function myCardSetup() {
+  const cur = state.myCard || {};
+  const name = await prompt2('이름', cur.name || '');
+  if (name === null) return;
+  const company = await prompt2('회사', cur.company || '');
+  if (company === null) return;
+  const position = await prompt2('직책', cur.position || '');
+  const mobile = await prompt2('휴대폰', cur.mobile || '');
+  const email = await prompt2('이메일', cur.email || '');
+  const website = await prompt2('웹사이트 (선택)', cur.website || '');
+  state.myCard = { name: name||'', company: company||'', position: position||'', mobile: mobile||'', email: email||'', website: website||'' };
+  scheduleSave();
+  toast('내 명함이 저장되었습니다');
+}
+function showMyCardQR() {
+  const my = state.myCard;
+  if (!my || !my.name) { toast('내 명함 정보를 먼저 입력하세요'); return; }
+  const vcf = [
+    'BEGIN:VCARD', 'VERSION:3.0',
+    `FN:${my.name || ''}`,
+    my.company ? `ORG:${my.company}` : '',
+    my.position ? `TITLE:${my.position}` : '',
+    my.mobile ? `TEL;TYPE=CELL:${my.mobile}` : '',
+    my.email ? `EMAIL:${my.email}` : '',
+    my.website ? `URL:${my.website}` : '',
+    'END:VCARD'
+  ].filter(Boolean).join('\r\n');
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(vcf)}`;
+  showModalHtml('내 명함 QR 코드', `
+    <div style="text-align:center; padding:10px;">
+      <img src="${qrUrl}" style="border:1px solid var(--paper-edge); border-radius:6px;" onerror="this.replaceWith(Object.assign(document.createElement('div'),{style:'padding:30px;color:#999;',textContent:'QR 생성 실패 — 인터넷 연결 확인'}))" />
+      <div style="margin-top:10px; font-size:14px;"><b>${escapeHtml(my.name||'')}</b></div>
+      <div style="font-size:12px; color:var(--ink-soft);">${escapeHtml(my.company||'')}${my.position?' · '+escapeHtml(my.position):''}</div>
+      ${my.mobile?`<div style="font-size:11px; color:var(--ink-soft); margin-top:4px;">${escapeHtml(my.mobile)}</div>`:''}
+      ${my.email?`<div style="font-size:11px; color:var(--ink-soft);">${escapeHtml(my.email)}</div>`:''}
+      <div style="font-size:11px; color:var(--ink-soft); margin-top:10px;">상대방이 스캔하면 연락처로 바로 저장됩니다</div>
+      <button id="myCardEditBtn" style="margin-top:10px; background:transparent; border:1px solid var(--paper-edge); padding:6px 12px; border-radius:5px; cursor:pointer; font-size:12px;">정보 수정</button>
+    </div>
+  `);
+  setTimeout(() => {
+    const btn = $('myCardEditBtn');
+    if (btn) btn.addEventListener('click', async () => {
+      $('modal').classList.remove('open');
+      await myCardSetup();
+    });
+  }, 50);
+}
 $('cardsMyBtn').addEventListener('click', async () => {
   const my = state.myCard;
-  const action = await confirm2('내 명함', my ? `현재 설정된 내 명함: ${my.name || ''}\n\nQR 코드로 공유하거나 편집할 수 있습니다.` : '아직 내 명함이 설정되지 않았습니다. 설정하시겠습니까?', my ? 'QR 보기' : '내 명함 설정', my ? '편집' : '취소');
-  if (my && action) {
-    // QR 생성 (vCard 내용을 담은 QR)
-    const vcf = [
-      'BEGIN:VCARD', 'VERSION:3.0',
-      `FN:${my.name || ''}`,
-      my.company ? `ORG:${my.company}` : '',
-      my.position ? `TITLE:${my.position}` : '',
-      my.mobile ? `TEL;TYPE=CELL:${my.mobile}` : '',
-      my.email ? `EMAIL:${my.email}` : '',
-      my.website ? `URL:${my.website}` : '',
-      'END:VCARD'
-    ].filter(Boolean).join('\r\n');
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(vcf)}`;
-    showModalHtml('내 명함 QR', `
-      <div style="text-align:center; padding:10px;">
-        <img src="${qrUrl}" style="border:1px solid var(--paper-edge); border-radius:6px;" />
-        <div style="margin-top:10px; font-size:13px;"><b>${escapeHtml(my.name||'')}</b></div>
-        <div style="font-size:12px; color:var(--ink-soft);">${escapeHtml(my.company||'')} · ${escapeHtml(my.position||'')}</div>
-        <div style="font-size:11px; color:var(--ink-soft); margin-top:10px;">스캔하면 연락처에 추가됩니다</div>
-      </div>
-    `);
-  } else if (!my || !action) {
-    // 설정/편집
-    if (my) {
-      // 편집 흐름 — 임시로 businessCards에 추가해서 편집
-      toast('편집 기능은 명함 목록에서 "내 명함"을 선택 후 편집하세요');
-    } else {
-      // 새로 설정
-      const name = await prompt2('이름', '');
-      if (!name) return;
-      const company = await prompt2('회사', '');
-      const position = await prompt2('직책', '');
-      const mobile = await prompt2('휴대폰', '');
-      const email = await prompt2('이메일', '');
-      state.myCard = { name, company, position, mobile, email };
-      scheduleSave();
-      toast('내 명함이 설정되었습니다');
-    }
+  if (my && my.name) {
+    showMyCardQR();
+  } else {
+    await myCardSetup();
+    if (state.myCard && state.myCard.name) showMyCardQR();
   }
 });
 
