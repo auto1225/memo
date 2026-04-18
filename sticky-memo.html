@@ -1365,6 +1365,18 @@
   <symbol id="i-style" viewBox="0 0 24 24"><path d="M4 20h16"/><path d="M7 4h10"/><path d="M12 4v16"/><path d="M9 4l-1 3M15 4l1 3"/></symbol>
   <symbol id="i-audio-play" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8" fill="currentColor"/></symbol>
   <symbol id="i-file" viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></symbol>
+  <symbol id="i-id-card" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="9" cy="12" r="2.5"/><line x1="14" y1="10" x2="19" y2="10"/><line x1="14" y1="13" x2="19" y2="13"/><line x1="14" y1="16" x2="17" y2="16"/><path d="M5 17c.7-1.5 2.2-2.5 4-2.5s3.3 1 4 2.5"/></symbol>
+  <symbol id="i-user-plus" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></symbol>
+  <symbol id="i-scan" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="12" x2="17" y2="12"/></symbol>
+  <symbol id="i-vcard" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M6 17c0-1.7 1.3-3 3-3s3 1.3 3 3"/><line x1="14" y1="9" x2="18" y2="9"/><line x1="14" y1="12" x2="18" y2="12"/><line x1="14" y1="15" x2="17" y2="15"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15 15 0 0 1 4 10 15 15 0 0 1-4 10 15 15 0 0 1-4-10 15 15 0 0 1 4-10z"/></symbol>
+  <symbol id="i-map-pin" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></symbol>
+  <symbol id="i-building" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="1"/><line x1="9" y1="6" x2="11" y2="6"/><line x1="13" y1="6" x2="15" y2="6"/><line x1="9" y1="10" x2="11" y2="10"/><line x1="13" y1="10" x2="15" y2="10"/><line x1="9" y1="14" x2="11" y2="14"/><line x1="13" y1="14" x2="15" y2="14"/><path d="M10 22v-4h4v4"/></symbol>
+  <symbol id="i-linkedin" viewBox="0 0 24 24"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="i-filter" viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></symbol>
+  <symbol id="i-rotate" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></symbol>
+  <symbol id="i-crop" viewBox="0 0 24 24"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></symbol>
 </svg>
 
 <div class="pad" id="pad">
@@ -1410,6 +1422,7 @@
     <h4 style="margin-top:12px;">기타</h4>
     <div class="item" id="todayMemoSide"><svg class="ico"><use href="#i-today"/></svg>오늘 메모</div>
     <div class="item" id="openCalSide"><svg class="ico"><use href="#i-calendar"/></svg>캘린더 열기</div>
+    <div class="item" id="openCardsSide"><svg class="ico"><use href="#i-id-card"/></svg>명함관리 <span class="badge" id="cardsCount">0</span></div>
     <div class="item" id="openTrash"><svg class="ico"><use href="#i-trash"/></svg>휴지통 <span class="badge" id="trashCount">0</span></div>
     <div class="item" id="openHistory"><svg class="ico"><use href="#i-history"/></svg>버전 히스토리</div>
     <div class="item" id="cornerSnap"><svg class="ico"><use href="#i-corner"/></svg>화면 구석으로</div>
@@ -2143,6 +2156,196 @@
   </div>
 </div>
 
+<!-- ========== 명함관리 모달 ========== -->
+<div class="modal-backdrop" id="cardsModal">
+  <div class="modal" style="width:min(1100px,96vw); max-height:92vh; display:flex; flex-direction:column; padding:0;">
+    <div style="display:flex; align-items:center; gap:10px; padding:14px 18px; border-bottom:1px solid var(--paper-edge);">
+      <svg class="ico" style="stroke:var(--accent); width:22px; height:22px;"><use href="#i-id-card"/></svg>
+      <h3 style="margin:0; font-size:16px;">명함관리</h3>
+      <span id="cardsStat" style="font-size:11px; color:var(--ink-soft);"></span>
+      <span style="flex:1;"></span>
+      <button id="cardsAddBtn" style="background:var(--accent); color:white; border:none; padding:7px 12px; border-radius:6px; cursor:pointer; font-weight:600; display:flex; align-items:center; gap:5px;">
+        <svg class="ico" style="stroke:white;"><use href="#i-user-plus"/></svg>명함 추가
+      </button>
+      <button id="cardsImportBtn" title="CSV/vCard 가져오기" style="background:transparent; border:1px solid var(--paper-edge); padding:7px 10px; border-radius:6px; cursor:pointer;">
+        <svg class="ico"><use href="#i-download"/></svg>
+      </button>
+      <button id="cardsExportBtn" title="vCard로 내보내기" style="background:transparent; border:1px solid var(--paper-edge); padding:7px 10px; border-radius:6px; cursor:pointer;">
+        <svg class="ico"><use href="#i-upload"/></svg>
+      </button>
+      <button id="cardsStatsBtn" title="통계" style="background:transparent; border:1px solid var(--paper-edge); padding:7px 10px; border-radius:6px; cursor:pointer;">
+        <svg class="ico"><use href="#i-stats"/></svg>
+      </button>
+      <button id="cardsMyBtn" title="내 명함 / QR 공유" style="background:transparent; border:1px solid var(--paper-edge); padding:7px 10px; border-radius:6px; cursor:pointer;">
+        <svg class="ico"><use href="#i-qr"/></svg>
+      </button>
+      <button id="cardsClose" title="닫기 (Esc)" style="background:transparent; border:none; padding:6px; cursor:pointer;">
+        <svg class="ico"><use href="#i-x"/></svg>
+      </button>
+    </div>
+    <div style="display:flex; gap:0; flex:1; min-height:0;">
+      <!-- 왼쪽 필터 영역 -->
+      <div id="cardsSide" style="width:200px; border-right:1px solid var(--paper-edge); padding:10px 12px; overflow-y:auto; background:color-mix(in srgb, var(--paper-edge) 25%, transparent);">
+        <div style="font-size:10px; color:var(--ink-soft); letter-spacing:1px; margin-bottom:6px;">보기</div>
+        <div class="card-filter-item active" data-filter="all"><svg class="ico"><use href="#i-users"/></svg>전체<span class="cf-count"></span></div>
+        <div class="card-filter-item" data-filter="favorite"><svg class="ico"><use href="#i-heart"/></svg>즐겨찾기<span class="cf-count"></span></div>
+        <div class="card-filter-item" data-filter="recent"><svg class="ico"><use href="#i-history"/></svg>최근 7일<span class="cf-count"></span></div>
+        <div style="font-size:10px; color:var(--ink-soft); letter-spacing:1px; margin:12px 0 6px;">그룹</div>
+        <div id="cardsGroups"></div>
+        <div class="card-filter-item" id="cardsAddGroup" style="color:var(--accent);"><svg class="ico"><use href="#i-plus"/></svg>그룹 추가</div>
+        <div style="font-size:10px; color:var(--ink-soft); letter-spacing:1px; margin:12px 0 6px;">태그</div>
+        <div id="cardsTags"></div>
+      </div>
+      <!-- 가운데 리스트 -->
+      <div id="cardsListArea" style="flex:1; display:flex; flex-direction:column; min-width:0;">
+        <div style="display:flex; gap:8px; padding:10px 14px; border-bottom:1px solid var(--paper-edge); align-items:center;">
+          <div style="position:relative; flex:1;">
+            <svg class="ico" style="position:absolute; left:8px; top:8px; stroke:var(--ink-soft);"><use href="#i-search"/></svg>
+            <input id="cardsSearch" placeholder="이름, 회사, 직책, 전화, 이메일 검색…" style="width:100%; padding:8px 10px 8px 32px; border:1px solid var(--paper-edge); border-radius:6px; font-size:13px;" />
+          </div>
+          <select id="cardsSort" style="padding:7px 8px; border:1px solid var(--paper-edge); border-radius:6px; font-size:12px;">
+            <option value="updatedAt">최근 수정순</option>
+            <option value="createdAt">추가순</option>
+            <option value="name">이름순</option>
+            <option value="company">회사순</option>
+          </select>
+          <div style="display:flex; border:1px solid var(--paper-edge); border-radius:6px; overflow:hidden;">
+            <button id="cardsViewGrid" class="cards-view active" title="격자 보기" style="padding:6px 10px; background:transparent; border:none; cursor:pointer;"><svg class="ico"><use href="#i-grid-view"/></svg></button>
+            <button id="cardsViewList" class="cards-view" title="목록 보기" style="padding:6px 10px; background:transparent; border:none; cursor:pointer;"><svg class="ico"><use href="#i-list"/></svg></button>
+          </div>
+        </div>
+        <div id="cardsList" style="flex:1; overflow-y:auto; padding:14px;"></div>
+      </div>
+      <!-- 오른쪽 상세 패널 -->
+      <div id="cardsDetail" style="width:380px; border-left:1px solid var(--paper-edge); display:none; flex-direction:column;">
+        <div id="cardsDetailBody" style="flex:1; overflow-y:auto; padding:16px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 명함 추가/편집 모달 -->
+<div class="modal-backdrop" id="cardEditModal">
+  <div class="modal" style="width:min(920px,96vw); max-height:92vh; display:flex; flex-direction:column; padding:0;">
+    <div style="display:flex; align-items:center; gap:10px; padding:14px 18px; border-bottom:1px solid var(--paper-edge);">
+      <svg class="ico" style="stroke:var(--accent); width:20px; height:20px;"><use href="#i-scan"/></svg>
+      <h3 style="margin:0; font-size:15px;" id="cardEditTitle">명함 추가</h3>
+      <span style="flex:1;"></span>
+      <button id="cardEditClose" style="background:transparent; border:none; padding:6px; cursor:pointer;">
+        <svg class="ico"><use href="#i-x"/></svg>
+      </button>
+    </div>
+    <div style="display:grid; grid-template-columns:340px 1fr; gap:0; flex:1; min-height:0;">
+      <!-- 이미지 영역 -->
+      <div style="padding:14px; border-right:1px solid var(--paper-edge); overflow-y:auto;">
+        <div style="font-size:11px; font-weight:600; margin-bottom:6px;">명함 앞면</div>
+        <div id="cardEditFrontWrap" style="border:2px dashed var(--paper-edge); border-radius:8px; padding:10px; text-align:center; background:color-mix(in srgb, var(--paper-edge) 20%, transparent); min-height:180px; display:flex; align-items:center; justify-content:center; position:relative;">
+          <div id="cardEditFrontEmpty" style="color:var(--ink-soft); font-size:12px;">
+            이미지를 드래그, 클릭, 붙여넣기(Ctrl+V), 또는 카메라<br>
+            <div style="display:flex; gap:6px; justify-content:center; margin-top:10px;">
+              <button id="cardEditUploadBtn" style="background:var(--accent); color:white; border:none; padding:7px 12px; border-radius:6px; cursor:pointer; font-size:11px;">파일 업로드</button>
+              <button id="cardEditCameraBtn" style="background:#4caf50; color:white; border:none; padding:7px 12px; border-radius:6px; cursor:pointer; font-size:11px;">카메라</button>
+            </div>
+          </div>
+          <img id="cardEditFrontImg" style="max-width:100%; max-height:220px; border-radius:6px; display:none;" />
+          <div id="cardEditFrontTools" style="position:absolute; top:6px; right:6px; display:none; gap:4px;">
+            <button id="cardEditFrontRotate" title="회전" style="background:rgba(0,0,0,0.6); color:white; border:none; padding:5px; border-radius:4px; cursor:pointer;"><svg class="ico"><use href="#i-rotate"/></svg></button>
+            <button id="cardEditFrontClear" title="제거" style="background:rgba(0,0,0,0.6); color:white; border:none; padding:5px; border-radius:4px; cursor:pointer;"><svg class="ico"><use href="#i-x"/></svg></button>
+          </div>
+        </div>
+        <div style="font-size:11px; font-weight:600; margin:10px 0 6px;">명함 뒷면 (선택)</div>
+        <div id="cardEditBackWrap" style="border:2px dashed var(--paper-edge); border-radius:8px; padding:10px; text-align:center; background:color-mix(in srgb, var(--paper-edge) 20%, transparent); min-height:100px; display:flex; align-items:center; justify-content:center; position:relative;">
+          <div id="cardEditBackEmpty" style="color:var(--ink-soft); font-size:11px;">
+            뒷면 이미지 (선택)
+            <button id="cardEditBackUploadBtn" style="background:#888; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-size:11px; margin-left:6px;">업로드</button>
+          </div>
+          <img id="cardEditBackImg" style="max-width:100%; max-height:140px; border-radius:6px; display:none;" />
+          <div id="cardEditBackTools" style="position:absolute; top:6px; right:6px; display:none; gap:4px;">
+            <button id="cardEditBackClear" title="제거" style="background:rgba(0,0,0,0.6); color:white; border:none; padding:5px; border-radius:4px; cursor:pointer;"><svg class="ico"><use href="#i-x"/></svg></button>
+          </div>
+        </div>
+        <button id="cardEditAIBtn" style="width:100%; margin-top:10px; background:linear-gradient(135deg, #7e57c2, #5e35b1); color:white; border:none; padding:10px; border-radius:6px; cursor:pointer; font-weight:600; display:flex; align-items:center; justify-content:center; gap:6px;">
+          <svg class="ico" style="stroke:white;"><use href="#i-sparkles"/></svg>AI로 자동 추출
+        </button>
+        <div id="cardEditAIStatus" style="font-size:11px; color:var(--ink-soft); margin-top:6px; text-align:center;"></div>
+      </div>
+      <!-- 입력 폼 -->
+      <div style="padding:14px; overflow-y:auto;">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+          <div><label class="ce-label">이름 (한글) *</label><input id="ceName" class="ce-input" placeholder="홍길동" /></div>
+          <div><label class="ce-label">이름 (영문)</label><input id="ceNameEn" class="ce-input" placeholder="Hong Gildong" /></div>
+          <div style="grid-column:span 2;"><label class="ce-label">회사 *</label><input id="ceCompany" class="ce-input" placeholder="(주)회사명" /></div>
+          <div><label class="ce-label">부서</label><input id="ceDept" class="ce-input" placeholder="영업부" /></div>
+          <div><label class="ce-label">직책</label><input id="cePosition" class="ce-input" placeholder="팀장" /></div>
+          <div><label class="ce-label">휴대폰</label><input id="ceMobile" class="ce-input" placeholder="010-1234-5678" /></div>
+          <div><label class="ce-label">대표전화</label><input id="cePhone" class="ce-input" placeholder="02-123-4567" /></div>
+          <div><label class="ce-label">팩스</label><input id="ceFax" class="ce-input" /></div>
+          <div><label class="ce-label">이메일</label><input id="ceEmail" class="ce-input" type="email" placeholder="hong@company.com" /></div>
+          <div style="grid-column:span 2;"><label class="ce-label">웹사이트</label><input id="ceWebsite" class="ce-input" placeholder="www.company.com" /></div>
+          <div style="grid-column:span 2;"><label class="ce-label">주소</label><input id="ceAddress" class="ce-input" placeholder="서울시 강남구..." /></div>
+          <div><label class="ce-label">LinkedIn</label><input id="ceLinkedin" class="ce-input" /></div>
+          <div><label class="ce-label">기타 SNS</label><input id="ceSns" class="ce-input" placeholder="@handle" /></div>
+          <div><label class="ce-label">그룹</label>
+            <select id="ceGroup" class="ce-input"><option value="">(없음)</option></select>
+          </div>
+          <div><label class="ce-label">태그 (쉼표 구분)</label><input id="ceTags" class="ce-input" placeholder="고객, VIP" /></div>
+          <div style="grid-column:span 2;"><label class="ce-label">메모</label><textarea id="ceMemo" class="ce-input" rows="3" style="resize:vertical;"></textarea></div>
+          <div style="grid-column:span 2; display:flex; gap:12px; align-items:center; margin-top:4px;">
+            <label style="display:flex; align-items:center; gap:6px; font-size:12px;"><input type="checkbox" id="ceFavorite" />즐겨찾기</label>
+            <span style="flex:1;"></span>
+            <span id="ceDupWarn" style="font-size:11px; color:#d84315; display:none;">동일 이메일/전화의 명함이 존재합니다</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex; gap:8px; padding:12px 18px; border-top:1px solid var(--paper-edge); justify-content:flex-end;">
+      <button id="cardEditDelete" class="cancel" style="margin-right:auto; color:#c62828; display:none;">삭제</button>
+      <button id="cardEditCancel" class="cancel">취소</button>
+      <button id="cardEditSave" style="background:var(--accent); color:white; border:none; padding:8px 18px; border-radius:6px; cursor:pointer; font-weight:600;">저장</button>
+    </div>
+    <input type="file" id="cardEditFileInput" accept="image/*" style="display:none;" />
+    <input type="file" id="cardEditBackFileInput" accept="image/*" style="display:none;" />
+    <input type="file" id="cardEditCameraInput" accept="image/*" capture="environment" style="display:none;" />
+  </div>
+</div>
+
+<style>
+.cards-view { color:var(--ink-soft); }
+.cards-view.active { background:var(--accent); color:white; }
+.card-filter-item { display:flex; align-items:center; gap:6px; padding:6px 8px; border-radius:5px; cursor:pointer; font-size:12px; color:var(--ink); margin-bottom:2px; }
+.card-filter-item:hover { background:var(--tab-hover); }
+.card-filter-item.active { background:var(--accent); color:white; }
+.card-filter-item.active .ico { stroke:white; }
+.card-filter-item .ico { flex-shrink:0; width:14px; height:14px; }
+.card-filter-item .cf-count { margin-left:auto; font-size:10px; opacity:0.7; }
+.card-grid-item { background:white; border:1px solid var(--paper-edge); border-radius:8px; padding:10px; cursor:pointer; transition:all 0.15s; position:relative; }
+.card-grid-item:hover { transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,0.1); }
+.card-grid-item.selected { border-color:var(--accent); box-shadow:0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent); }
+.card-grid-item .cg-fav { position:absolute; top:8px; right:8px; color:#ffc107; }
+.card-grid-item .cg-thumb { width:100%; height:96px; background:#f5f5f5; border-radius:4px; margin-bottom:8px; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+.card-grid-item .cg-thumb img { width:100%; height:100%; object-fit:cover; }
+.card-grid-item .cg-name { font-weight:600; font-size:13px; color:var(--ink); margin-bottom:2px; }
+.card-grid-item .cg-pos { font-size:11px; color:var(--ink-soft); }
+.card-grid-item .cg-company { font-size:11px; color:var(--ink); margin-top:2px; }
+.card-grid-item .cg-tags { margin-top:6px; display:flex; flex-wrap:wrap; gap:3px; }
+.card-grid-item .cg-tag { font-size:9px; padding:1px 5px; border-radius:8px; background:color-mix(in srgb, var(--accent) 15%, transparent); color:var(--accent); }
+.card-list-row { display:grid; grid-template-columns:40px 1.5fr 1.5fr 1fr 1.2fr 80px; gap:8px; padding:8px 10px; border-bottom:1px solid var(--paper-edge); align-items:center; font-size:12px; cursor:pointer; }
+.card-list-row:hover { background:var(--tab-hover); }
+.card-list-row.selected { background:color-mix(in srgb, var(--accent) 10%, transparent); }
+.card-list-row .clr-thumb { width:32px; height:32px; border-radius:4px; background:#eee; overflow:hidden; display:flex; align-items:center; justify-content:center; }
+.card-list-row .clr-thumb img { width:100%; height:100%; object-fit:cover; }
+.ce-label { display:block; font-size:11px; color:var(--ink-soft); margin-bottom:2px; font-weight:600; }
+.ce-input { width:100%; padding:7px 9px; border:1px solid var(--paper-edge); border-radius:5px; font-size:12px; background:white; color:var(--ink); }
+.ce-input:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent); }
+.cd-field { display:flex; gap:8px; align-items:center; padding:6px 0; border-bottom:1px dashed var(--paper-edge); font-size:12px; }
+.cd-field .cd-key { width:60px; color:var(--ink-soft); font-size:11px; flex-shrink:0; }
+.cd-field .cd-val { flex:1; color:var(--ink); word-break:break-all; }
+.cd-action-btn { background:transparent; border:none; padding:4px; cursor:pointer; color:var(--accent); }
+.cd-action-btn:hover { background:var(--tab-hover); border-radius:4px; }
+.cg-company-group { margin-bottom:16px; }
+.cg-company-title { font-size:12px; font-weight:600; color:var(--ink-soft); margin-bottom:8px; display:flex; align-items:center; gap:6px; padding:4px 0; border-bottom:1px solid var(--paper-edge); }
+</style>
+
 <script>
 /* ============================================================
    상수 & 상태
@@ -2168,7 +2371,10 @@ const defaultData = {
   ],
   trash: [],
   history: [],
-  clipboard: []
+  clipboard: [],
+  businessCards: [],
+  cardGroups: [],
+  myCard: null
 };
 
 function stripEmoji(s) {
@@ -2208,6 +2414,9 @@ function load() {
     d.trash = d.trash || [];
     d.history = d.history || [];
     d.clipboard = d.clipboard || [];
+    d.businessCards = d.businessCards || [];
+    d.cardGroups = d.cardGroups || [];
+    d.myCard = d.myCard || null;
     d.tabs.forEach(t => {
       if (t.pinned === undefined) t.pinned = false;
       if (t.starred === undefined) t.starred = false;
@@ -7974,6 +8183,1126 @@ pageEl.addEventListener('input', () => {
   updateStreak();
   if (+(localStorage.getItem('sticky-streak-count') || 0) !== prev) renderStreak();
 }, { once: false });
+
+/* ============================================================
+   명함관리 (Business Cards)
+   ============================================================ */
+let cardsState = {
+  filter: 'all',       // 'all' | 'favorite' | 'recent' | 'group:xxx' | 'tag:xxx'
+  view: 'grid',        // 'grid' | 'list'
+  sort: 'updatedAt',
+  search: '',
+  selectedId: null,
+  editingId: null,
+  editingFront: null,
+  editingBack: null,
+  frontRotation: 0
+};
+
+function cardUid() { return 'bc_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,8); }
+
+function openCardsModal() {
+  $('cardsModal').classList.add('open');
+  renderCardsFilters();
+  renderCardsList();
+  updateCardsCountBadge();
+}
+function closeCardsModal() {
+  $('cardsModal').classList.remove('open');
+  $('cardsDetail').style.display = 'none';
+  cardsState.selectedId = null;
+}
+function updateCardsCountBadge() {
+  const el = $('cardsCount'); if (!el) return;
+  const n = (state.businessCards || []).length;
+  el.textContent = n;
+  el.style.display = n > 0 ? '' : 'none';
+}
+
+function getVisibleCards() {
+  const all = state.businessCards || [];
+  let list = all.slice();
+  const f = cardsState.filter;
+  if (f === 'favorite') list = list.filter(c => c.favorite);
+  else if (f === 'recent') {
+    const cutoff = Date.now() - 7*24*3600*1000;
+    list = list.filter(c => (c.createdAt || 0) >= cutoff);
+  } else if (f.startsWith('group:')) {
+    const g = f.slice(6);
+    list = list.filter(c => c.group === g);
+  } else if (f.startsWith('tag:')) {
+    const t = f.slice(4);
+    list = list.filter(c => (c.tags || []).includes(t));
+  }
+  const q = (cardsState.search || '').trim().toLowerCase();
+  if (q) {
+    list = list.filter(c => {
+      const hay = [c.name, c.nameEn, c.company, c.department, c.position,
+                   c.phone, c.mobile, c.email, c.address, c.memo,
+                   (c.tags||[]).join(' ')].join(' ').toLowerCase();
+      return hay.includes(q);
+    });
+  }
+  list.sort((a, b) => {
+    const k = cardsState.sort;
+    if (k === 'name') return (a.name || '').localeCompare(b.name || '', 'ko');
+    if (k === 'company') return (a.company || '').localeCompare(b.company || '', 'ko');
+    if (k === 'createdAt') return (b.createdAt||0) - (a.createdAt||0);
+    return (b.updatedAt||0) - (a.updatedAt||0);
+  });
+  return list;
+}
+
+function renderCardsFilters() {
+  const all = state.businessCards || [];
+  // 전체 카운트
+  document.querySelectorAll('.card-filter-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.filter === cardsState.filter);
+  });
+  const setCount = (sel, n) => {
+    const el = document.querySelector(`.card-filter-item[data-filter="${sel}"] .cf-count`);
+    if (el) el.textContent = n > 0 ? n : '';
+  };
+  setCount('all', all.length);
+  setCount('favorite', all.filter(c => c.favorite).length);
+  const cutoff = Date.now() - 7*24*3600*1000;
+  setCount('recent', all.filter(c => (c.createdAt||0) >= cutoff).length);
+
+  // 그룹
+  const gWrap = $('cardsGroups');
+  const groups = state.cardGroups || [];
+  gWrap.innerHTML = groups.map(g => {
+    const n = all.filter(c => c.company === g || c.group === g).length;
+    const active = cardsState.filter === `group:${g}` ? 'active' : '';
+    return `<div class="card-filter-item ${active}" data-filter="group:${escapeHtml(g)}">
+      <svg class="ico"><use href="#i-building"/></svg>${escapeHtml(g)}<span class="cf-count">${n}</span>
+    </div>`;
+  }).join('');
+
+  // 태그 (상위 10개)
+  const tagMap = {};
+  all.forEach(c => (c.tags||[]).forEach(t => { tagMap[t] = (tagMap[t]||0)+1; }));
+  const topTags = Object.entries(tagMap).sort((a,b) => b[1]-a[1]).slice(0, 15);
+  const tWrap = $('cardsTags');
+  tWrap.innerHTML = topTags.length === 0 ? '<div style="font-size:11px; color:var(--ink-soft); padding:4px 8px;">(태그 없음)</div>' :
+    topTags.map(([t, n]) => {
+      const active = cardsState.filter === `tag:${t}` ? 'active' : '';
+      return `<div class="card-filter-item ${active}" data-filter="tag:${escapeHtml(t)}">
+        <svg class="ico"><use href="#i-tag"/></svg>${escapeHtml(t)}<span class="cf-count">${n}</span>
+      </div>`;
+    }).join('');
+
+  // 핸들러
+  document.querySelectorAll('.card-filter-item[data-filter]').forEach(el => {
+    el.addEventListener('click', () => {
+      cardsState.filter = el.dataset.filter;
+      renderCardsFilters();
+      renderCardsList();
+    });
+  });
+}
+
+function renderCardsList() {
+  const list = getVisibleCards();
+  const wrap = $('cardsList');
+  $('cardsStat').textContent = `${list.length}개`;
+
+  if (list.length === 0) {
+    wrap.innerHTML = `<div style="text-align:center; padding:50px 20px; color:var(--ink-soft);">
+      <svg class="ico" style="width:48px; height:48px; opacity:0.4;"><use href="#i-id-card"/></svg>
+      <div style="margin-top:12px; font-size:14px;">명함이 없습니다</div>
+      <div style="font-size:11px; margin-top:4px;">"명함 추가" 버튼을 눌러 시작하세요</div>
+    </div>`;
+    return;
+  }
+
+  if (cardsState.view === 'grid') {
+    // 회사별 그룹핑 (정렬이 회사순일 때)
+    if (cardsState.sort === 'company') {
+      const groups = {};
+      list.forEach(c => {
+        const g = c.company || '(회사 없음)';
+        (groups[g] = groups[g] || []).push(c);
+      });
+      wrap.innerHTML = Object.keys(groups).map(g => {
+        return `<div class="cg-company-group">
+          <div class="cg-company-title"><svg class="ico"><use href="#i-building"/></svg>${escapeHtml(g)} (${groups[g].length})</div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:10px;">
+            ${groups[g].map(c => cardGridHTML(c)).join('')}
+          </div>
+        </div>`;
+      }).join('');
+    } else {
+      wrap.innerHTML = `<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:10px;">
+        ${list.map(c => cardGridHTML(c)).join('')}
+      </div>`;
+    }
+  } else {
+    wrap.innerHTML = `
+      <div class="card-list-row" style="font-weight:600; background:color-mix(in srgb, var(--paper-edge) 30%, transparent); position:sticky; top:0;">
+        <div></div>
+        <div>이름</div>
+        <div>회사 / 부서</div>
+        <div>직책</div>
+        <div>연락처</div>
+        <div></div>
+      </div>
+      ${list.map(c => cardListRowHTML(c)).join('')}
+    `;
+  }
+
+  // 클릭 핸들러
+  wrap.querySelectorAll('[data-cid]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      if (e.target.closest('.cg-action')) return;
+      const id = el.dataset.cid;
+      cardsState.selectedId = id;
+      renderCardsList();
+      renderCardsDetail(id);
+    });
+    el.addEventListener('dblclick', () => {
+      openCardEditor(el.dataset.cid);
+    });
+  });
+  wrap.querySelectorAll('.cg-action').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = el.dataset.cid;
+      const act = el.dataset.act;
+      handleCardQuickAction(id, act);
+    });
+  });
+}
+
+function cardGridHTML(c) {
+  const sel = cardsState.selectedId === c.id ? 'selected' : '';
+  const thumb = c.frontImg
+    ? `<img src="${c.frontImg}" alt="${escapeHtml(c.name||'')}" />`
+    : `<svg class="ico" style="width:32px; height:32px; stroke:var(--ink-soft); opacity:0.5;"><use href="#i-id-card"/></svg>`;
+  const fav = c.favorite ? `<svg class="ico cg-fav" style="fill:currentColor; width:14px; height:14px;"><use href="#i-heart-fill"/></svg>` : '';
+  const tags = (c.tags || []).slice(0, 3).map(t => `<span class="cg-tag">${escapeHtml(t)}</span>`).join('');
+  return `<div class="card-grid-item ${sel}" data-cid="${c.id}">
+    ${fav}
+    <div class="cg-thumb">${thumb}</div>
+    <div class="cg-name">${escapeHtml(c.name || '(이름 없음)')}</div>
+    <div class="cg-pos">${escapeHtml(c.position || '')}${c.department ? ' · '+escapeHtml(c.department) : ''}</div>
+    <div class="cg-company">${escapeHtml(c.company || '')}</div>
+    <div class="cg-tags">${tags}</div>
+  </div>`;
+}
+
+function cardListRowHTML(c) {
+  const sel = cardsState.selectedId === c.id ? 'selected' : '';
+  const thumb = c.frontImg
+    ? `<img src="${c.frontImg}" />`
+    : `<svg class="ico" style="stroke:var(--ink-soft); opacity:0.5;"><use href="#i-id-card"/></svg>`;
+  const contact = c.mobile || c.phone || c.email || '';
+  return `<div class="card-list-row ${sel}" data-cid="${c.id}">
+    <div class="clr-thumb">${thumb}</div>
+    <div style="font-weight:600;">${c.favorite?'<svg class="ico" style="fill:#ffc107; stroke:none; width:12px; height:12px;"><use href="#i-heart-fill"/></svg> ':''}${escapeHtml(c.name || '(이름 없음)')}</div>
+    <div>${escapeHtml(c.company || '')}<br><span style="color:var(--ink-soft); font-size:11px;">${escapeHtml(c.department || '')}</span></div>
+    <div>${escapeHtml(c.position || '')}</div>
+    <div style="color:var(--ink-soft); font-size:11px;">${escapeHtml(contact)}</div>
+    <div style="display:flex; gap:2px; justify-content:flex-end;">
+      ${c.mobile||c.phone ? `<button class="cd-action-btn cg-action" data-cid="${c.id}" data-act="call" title="전화"><svg class="ico" style="width:14px; height:14px;"><use href="#i-phone"/></svg></button>` : ''}
+      ${c.email ? `<button class="cd-action-btn cg-action" data-cid="${c.id}" data-act="email" title="이메일"><svg class="ico" style="width:14px; height:14px;"><use href="#i-mail"/></svg></button>` : ''}
+    </div>
+  </div>`;
+}
+
+function renderCardsDetail(id) {
+  const c = (state.businessCards || []).find(x => x.id === id);
+  if (!c) { $('cardsDetail').style.display = 'none'; return; }
+  $('cardsDetail').style.display = 'flex';
+  const body = $('cardsDetailBody');
+  const fav = c.favorite ? '#ffc107' : '#ccc';
+  const img = c.frontImg
+    ? `<img src="${c.frontImg}" style="width:100%; border:1px solid var(--paper-edge); border-radius:6px; cursor:pointer;" id="cdFrontImg" title="클릭하면 확대" />`
+    : `<div style="height:120px; background:color-mix(in srgb, var(--paper-edge) 30%, transparent); border-radius:6px; display:flex; align-items:center; justify-content:center; color:var(--ink-soft);"><svg class="ico" style="width:40px; height:40px;"><use href="#i-id-card"/></svg></div>`;
+  const backImg = c.backImg
+    ? `<img src="${c.backImg}" style="width:100%; border:1px solid var(--paper-edge); border-radius:6px; margin-top:6px; cursor:pointer;" id="cdBackImg" />` : '';
+  const field = (key, val, icon, action) => val ? `<div class="cd-field">
+    <div class="cd-key">${icon ? `<svg class="ico" style="width:12px; height:12px; stroke:var(--ink-soft);"><use href="#i-${icon}"/></svg> `:''}${key}</div>
+    <div class="cd-val">${escapeHtml(val)}</div>
+    ${action ? `<button class="cd-action-btn" data-cdact="${action}">${action==='call'?'<svg class="ico"><use href="#i-phone"/></svg>':action==='email'?'<svg class="ico"><use href="#i-mail"/></svg>':action==='map'?'<svg class="ico"><use href="#i-map-pin"/></svg>':'<svg class="ico"><use href="#i-globe"/></svg>'}</button>` : ''}
+  </div>` : '';
+
+  const tags = (c.tags||[]).map(t => `<span style="font-size:10px; padding:2px 7px; border-radius:10px; background:color-mix(in srgb, var(--accent) 15%, transparent); color:var(--accent);">${escapeHtml(t)}</span>`).join(' ');
+  const history = (c.meetingHistory||[]).slice().reverse().map(h => `
+    <div style="padding:6px 8px; background:color-mix(in srgb, var(--paper-edge) 20%, transparent); border-radius:4px; margin-bottom:4px; font-size:11px;">
+      <div style="font-weight:600;">${escapeHtml(h.date||'')}${h.place?' · '+escapeHtml(h.place):''}</div>
+      ${h.note?`<div style="color:var(--ink-soft); margin-top:2px;">${escapeHtml(h.note)}</div>`:''}
+    </div>
+  `).join('') || '<div style="font-size:11px; color:var(--ink-soft);">미팅 기록이 없습니다</div>';
+
+  body.innerHTML = `
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+      <h3 style="margin:0; font-size:16px; flex:1;">${escapeHtml(c.name || '(이름 없음)')}</h3>
+      <button id="cdFavBtn" title="즐겨찾기" style="background:transparent; border:none; cursor:pointer; color:${fav};">
+        <svg class="ico" style="fill:currentColor; stroke:currentColor;"><use href="#i-heart-fill"/></svg>
+      </button>
+      <button id="cdEditBtn" title="편집" style="background:transparent; border:none; cursor:pointer;"><svg class="ico"><use href="#i-edit"/></svg></button>
+      <button id="cdDeleteBtn" title="삭제" style="background:transparent; border:none; cursor:pointer; color:#c62828;"><svg class="ico"><use href="#i-trash"/></svg></button>
+    </div>
+    ${c.nameEn ? `<div style="font-size:12px; color:var(--ink-soft); margin-bottom:4px;">${escapeHtml(c.nameEn)}</div>` : ''}
+    <div style="font-size:13px; color:var(--ink); margin-bottom:10px;">
+      <b>${escapeHtml(c.company || '')}</b>
+      ${c.department ? ` · ${escapeHtml(c.department)}` : ''}
+      ${c.position ? `<br><span style="color:var(--ink-soft);">${escapeHtml(c.position)}</span>` : ''}
+    </div>
+    ${img}
+    ${backImg}
+    <div style="margin-top:10px;">
+      ${field('휴대폰', c.mobile, 'phone', 'call')}
+      ${field('전화', c.phone, 'phone', 'call')}
+      ${field('팩스', c.fax, 'phone', null)}
+      ${field('이메일', c.email, 'mail', 'email')}
+      ${field('웹사이트', c.website, 'globe', 'web')}
+      ${field('주소', c.address, 'map-pin', 'map')}
+      ${field('LinkedIn', c.linkedin, 'linkedin', 'web')}
+    </div>
+    ${tags ? `<div style="margin-top:10px;">${tags}</div>` : ''}
+    ${c.memo ? `<div style="margin-top:10px; padding:8px; background:color-mix(in srgb, var(--paper-edge) 20%, transparent); border-radius:4px; font-size:12px; white-space:pre-wrap;">${escapeHtml(c.memo)}</div>` : ''}
+    <div style="margin-top:12px;">
+      <div style="font-size:11px; font-weight:600; color:var(--ink-soft); margin-bottom:6px; display:flex; align-items:center; justify-content:space-between;">
+        <span>미팅 기록</span>
+        <button id="cdAddMeeting" style="background:transparent; border:none; cursor:pointer; color:var(--accent); font-size:11px;">+ 추가</button>
+      </div>
+      ${history}
+    </div>
+    <div style="margin-top:14px; display:flex; gap:6px; flex-wrap:wrap;">
+      <button class="cd-bulk-btn" id="cdInsertBtn" style="flex:1; background:var(--accent); color:white; border:none; padding:8px; border-radius:5px; cursor:pointer; font-size:12px;">메모에 삽입</button>
+      <button class="cd-bulk-btn" id="cdVcardBtn" style="background:#4caf50; color:white; border:none; padding:8px 12px; border-radius:5px; cursor:pointer; font-size:12px;">vCard</button>
+      <button class="cd-bulk-btn" id="cdShareBtn" style="background:#888; color:white; border:none; padding:8px 12px; border-radius:5px; cursor:pointer; font-size:12px;">복사</button>
+    </div>
+  `;
+
+  // 핸들러
+  $('cdFavBtn').addEventListener('click', () => {
+    c.favorite = !c.favorite; c.updatedAt = Date.now();
+    scheduleSave(); renderCardsList(); renderCardsDetail(id); renderCardsFilters();
+  });
+  $('cdEditBtn').addEventListener('click', () => openCardEditor(id));
+  $('cdDeleteBtn').addEventListener('click', async () => {
+    if (await confirm2('명함 삭제', `"${c.name || '이 명함'}"을(를) 삭제하시겠습니까?`, '삭제', '취소')) {
+      const idx = state.businessCards.findIndex(x => x.id === id);
+      if (idx >= 0) state.businessCards.splice(idx, 1);
+      scheduleSave();
+      cardsState.selectedId = null;
+      $('cardsDetail').style.display = 'none';
+      renderCardsList(); renderCardsFilters(); updateCardsCountBadge();
+      toast('삭제됨');
+    }
+  });
+  $('cdAddMeeting').addEventListener('click', async () => {
+    const today = new Date().toISOString().slice(0,10);
+    const date = await prompt2('미팅 날짜 (YYYY-MM-DD)', today);
+    if (!date) return;
+    const place = await prompt2('장소 (선택)', '');
+    const note = await prompt2('메모 (선택)', '');
+    c.meetingHistory = c.meetingHistory || [];
+    c.meetingHistory.push({ date, place: place||'', note: note||'' });
+    c.updatedAt = Date.now();
+    scheduleSave();
+    renderCardsDetail(id);
+  });
+  $('cdInsertBtn').addEventListener('click', () => insertCardToMemo(c));
+  $('cdVcardBtn').addEventListener('click', () => exportVCard([c]));
+  $('cdShareBtn').addEventListener('click', () => {
+    const txt = formatCardAsText(c);
+    navigator.clipboard.writeText(txt).then(() => toast('클립보드에 복사됨'));
+  });
+  body.querySelectorAll('[data-cdact]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const act = el.dataset.cdact;
+      handleCardQuickAction(id, act);
+    });
+  });
+  const fImg = $('cdFrontImg');
+  if (fImg) fImg.addEventListener('click', () => openImageViewer(c.frontImg));
+  const bImg = $('cdBackImg');
+  if (bImg) bImg.addEventListener('click', () => openImageViewer(c.backImg));
+}
+
+function openImageViewer(dataUrl) {
+  if (!dataUrl) return;
+  const v = document.createElement('div');
+  v.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:10000; display:flex; align-items:center; justify-content:center; cursor:zoom-out;';
+  v.innerHTML = `<img src="${dataUrl}" style="max-width:94vw; max-height:94vh; border-radius:8px; box-shadow:0 8px 40px rgba(0,0,0,0.6);" />`;
+  v.addEventListener('click', () => v.remove());
+  document.body.appendChild(v);
+}
+
+function handleCardQuickAction(id, act) {
+  const c = (state.businessCards || []).find(x => x.id === id);
+  if (!c) return;
+  if (act === 'call') {
+    const n = c.mobile || c.phone;
+    if (n) window.open(`tel:${n.replace(/[^\d+]/g,'')}`, '_blank');
+  } else if (act === 'email') {
+    if (c.email) window.open(`mailto:${c.email}`, '_blank');
+  } else if (act === 'map') {
+    if (c.address) window.open(`https://maps.google.com/?q=${encodeURIComponent(c.address)}`, '_blank');
+  } else if (act === 'web') {
+    // 웹사이트/링크드인
+    let url = c.website || c.linkedin;
+    if (!url) return;
+    if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+    // 인앱 브라우저로 열기 (있으면)
+    const webBtn = $('webBtn');
+    if (webBtn && typeof navigateWeb === 'function') {
+      closeCardsModal();
+      webBtn.click();
+      navigateWeb(url);
+    } else {
+      window.open(url, '_blank');
+    }
+  }
+}
+
+function formatCardAsText(c) {
+  const lines = [];
+  if (c.name) lines.push(c.name + (c.nameEn ? ` (${c.nameEn})` : ''));
+  if (c.company) lines.push((c.department ? c.department + ' · ' : '') + c.company + (c.position ? ' / '+c.position : ''));
+  if (c.mobile) lines.push('휴대폰: ' + c.mobile);
+  if (c.phone) lines.push('전화: ' + c.phone);
+  if (c.fax) lines.push('팩스: ' + c.fax);
+  if (c.email) lines.push('이메일: ' + c.email);
+  if (c.website) lines.push('웹: ' + c.website);
+  if (c.address) lines.push('주소: ' + c.address);
+  if (c.linkedin) lines.push('LinkedIn: ' + c.linkedin);
+  return lines.join('\n');
+}
+
+function insertCardToMemo(c) {
+  closeCardsModal();
+  restorePageSel();
+  pageEl.focus();
+  const parts = [];
+  if (c.name) parts.push(`<b>${escapeHtml(c.name)}</b>${c.nameEn?` <span style="color:#888;">(${escapeHtml(c.nameEn)})</span>`:''}`);
+  const companyLine = [c.department, c.company, c.position].filter(Boolean).map(escapeHtml).join(' · ');
+  if (companyLine) parts.push(companyLine);
+  const contact = [];
+  if (c.mobile) contact.push(`<a href="tel:${escapeHtml(c.mobile.replace(/[^\d+]/g,''))}">${escapeHtml(c.mobile)}</a>`);
+  if (c.phone) contact.push(`<a href="tel:${escapeHtml(c.phone.replace(/[^\d+]/g,''))}">${escapeHtml(c.phone)}</a>`);
+  if (c.email) contact.push(`<a href="mailto:${escapeHtml(c.email)}">${escapeHtml(c.email)}</a>`);
+  if (contact.length) parts.push(contact.join(' / '));
+  if (c.address) parts.push(`<span style="color:#666; font-size:90%;">${escapeHtml(c.address)}</span>`);
+  const block = `<div style="border-left:3px solid var(--accent); padding:6px 10px; margin:6px 0; background:color-mix(in srgb, var(--accent) 6%, transparent); border-radius:0 4px 4px 0; font-size:13px;">
+    ${parts.join('<br>')}
+  </div><br>`;
+  document.execCommand('insertHTML', false, block);
+  scheduleSave();
+  toast('명함 정보를 메모에 삽입했습니다');
+}
+
+function exportVCard(cards) {
+  const vcf = cards.map(c => {
+    const lines = ['BEGIN:VCARD', 'VERSION:3.0'];
+    if (c.name || c.nameEn) lines.push(`FN:${c.name || c.nameEn}`);
+    if (c.name) {
+      const parts = c.name.split(/\s+/);
+      lines.push(`N:${parts[0] || c.name};${parts.slice(1).join(' ')};;;`);
+    }
+    if (c.nameEn) lines.push(`X-NAME-EN:${c.nameEn}`);
+    if (c.company) lines.push(`ORG:${c.company}${c.department ? ';' + c.department : ''}`);
+    if (c.position) lines.push(`TITLE:${c.position}`);
+    if (c.mobile) lines.push(`TEL;TYPE=CELL:${c.mobile}`);
+    if (c.phone) lines.push(`TEL;TYPE=WORK:${c.phone}`);
+    if (c.fax) lines.push(`TEL;TYPE=FAX:${c.fax}`);
+    if (c.email) lines.push(`EMAIL;TYPE=WORK:${c.email}`);
+    if (c.website) lines.push(`URL:${c.website}`);
+    if (c.address) lines.push(`ADR;TYPE=WORK:;;${c.address};;;;`);
+    if (c.linkedin) lines.push(`X-SOCIALPROFILE;TYPE=linkedin:${c.linkedin}`);
+    if (c.memo) lines.push(`NOTE:${c.memo.replace(/\n/g, '\\n')}`);
+    if (c.frontImg && c.frontImg.startsWith('data:image')) {
+      const m = c.frontImg.match(/^data:image\/(jpeg|jpg|png);base64,(.+)$/i);
+      if (m) lines.push(`PHOTO;ENCODING=b;TYPE=${m[1].toUpperCase()}:${m[2]}`);
+    }
+    lines.push('END:VCARD');
+    return lines.join('\r\n');
+  }).join('\r\n');
+  const blob = new Blob([vcf], { type: 'text/vcard;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = (cards.length === 1 ? (cards[0].name || 'card') : `cards_${cards.length}`) + '.vcf';
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 200);
+  toast(`${cards.length}개 명함을 .vcf로 내보냈습니다`);
+}
+
+function exportCardsCSV(cards) {
+  const headers = ['이름','영문이름','회사','부서','직책','휴대폰','전화','팩스','이메일','웹사이트','주소','LinkedIn','태그','메모','즐겨찾기','그룹','등록일'];
+  const keys = ['name','nameEn','company','department','position','mobile','phone','fax','email','website','address','linkedin','tags','memo','favorite','group','createdAt'];
+  const esc = v => {
+    if (v == null) return '';
+    let s = Array.isArray(v) ? v.join(', ') : String(v);
+    if (typeof v === 'number' && keys[keys.length-1] === 'createdAt') s = new Date(v).toISOString().slice(0,10);
+    if (/[",\n]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  };
+  const rows = cards.map(c => keys.map(k => {
+    if (k === 'createdAt') return esc(new Date(c[k] || Date.now()).toISOString().slice(0,10));
+    if (k === 'favorite') return c[k] ? 'Y' : '';
+    return esc(c[k]);
+  }).join(','));
+  const csv = '\uFEFF' + headers.join(',') + '\r\n' + rows.join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `cards_${cards.length}.csv`;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 200);
+  toast(`${cards.length}개 명함을 CSV로 내보냈습니다`);
+}
+
+function importFromCSV(text) {
+  const lines = text.replace(/^\uFEFF/, '').split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) { toast('빈 CSV'); return 0; }
+  const parseRow = line => {
+    const result = []; let cur = ''; let inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (inQ) {
+        if (ch === '"' && line[i+1] === '"') { cur += '"'; i++; }
+        else if (ch === '"') inQ = false;
+        else cur += ch;
+      } else {
+        if (ch === '"') inQ = true;
+        else if (ch === ',') { result.push(cur); cur = ''; }
+        else cur += ch;
+      }
+    }
+    result.push(cur);
+    return result;
+  };
+  const headers = parseRow(lines[0]).map(h => h.trim());
+  // 한글/영문 헤더 매핑
+  const map = {
+    '이름':'name', 'name':'name', '성함':'name',
+    '영문이름':'nameEn', 'nameEn':'nameEn', '영문':'nameEn', '영문명':'nameEn',
+    '회사':'company', 'company':'company', '회사명':'company', 'organization':'company', 'org':'company',
+    '부서':'department', 'department':'department', 'dept':'department',
+    '직책':'position', 'position':'position', 'title':'position', '직위':'position',
+    '휴대폰':'mobile', 'mobile':'mobile', 'cell':'mobile', '핸드폰':'mobile',
+    '전화':'phone', 'phone':'phone', 'tel':'phone', '대표전화':'phone',
+    '팩스':'fax', 'fax':'fax',
+    '이메일':'email', 'email':'email', 'e-mail':'email',
+    '웹사이트':'website', 'website':'website', 'url':'website', 'homepage':'website',
+    '주소':'address', 'address':'address',
+    'linkedin':'linkedin', 'LinkedIn':'linkedin',
+    '태그':'tags', 'tags':'tags',
+    '메모':'memo', 'memo':'memo', 'note':'memo', 'notes':'memo',
+    '즐겨찾기':'favorite',
+    '그룹':'group', 'group':'group'
+  };
+  let added = 0;
+  const existing = state.businessCards || [];
+  for (let i = 1; i < lines.length; i++) {
+    const row = parseRow(lines[i]);
+    const c = { id: cardUid(), createdAt: Date.now(), updatedAt: Date.now(), meetingHistory: [] };
+    headers.forEach((h, idx) => {
+      const key = map[h] || map[h.toLowerCase()];
+      if (!key) return;
+      let v = (row[idx] || '').trim();
+      if (!v) return;
+      if (key === 'tags') c[key] = v.split(/[,;]/).map(t => t.trim()).filter(Boolean);
+      else if (key === 'favorite') c[key] = /^[yt1]/i.test(v);
+      else c[key] = v;
+    });
+    if (!c.name && !c.company && !c.email) continue;
+    // 중복 체크
+    const dup = existing.find(e => (c.email && e.email === c.email) || (c.mobile && e.mobile === c.mobile));
+    if (dup) continue;
+    existing.push(c);
+    added++;
+  }
+  state.businessCards = existing;
+  scheduleSave();
+  return added;
+}
+
+function parseVCard(text) {
+  const cards = [];
+  const blocks = text.split(/BEGIN:VCARD/i).slice(1);
+  blocks.forEach(b => {
+    const lines = b.split(/\r?\n/);
+    const c = { id: cardUid(), createdAt: Date.now(), updatedAt: Date.now(), meetingHistory: [] };
+    lines.forEach(line => {
+      const m = line.match(/^([^:;]+)([^:]*):(.*)$/);
+      if (!m) return;
+      const key = m[1].toUpperCase();
+      const val = m[3].trim();
+      if (key === 'FN') c.name = val;
+      else if (key === 'N') { if (!c.name) c.name = val.split(';').filter(Boolean).join(' '); }
+      else if (key === 'ORG') { const p = val.split(';'); c.company = p[0]; if (p[1]) c.department = p[1]; }
+      else if (key === 'TITLE') c.position = val;
+      else if (key === 'TEL') {
+        const params = m[2].toUpperCase();
+        if (params.includes('CELL')) c.mobile = val;
+        else if (params.includes('FAX')) c.fax = val;
+        else c.phone = val;
+      }
+      else if (key === 'EMAIL') c.email = val;
+      else if (key === 'URL') c.website = val;
+      else if (key === 'ADR') c.address = val.split(';').filter(Boolean).join(' ').trim();
+      else if (key === 'NOTE') c.memo = val.replace(/\\n/g, '\n');
+    });
+    if (c.name || c.company || c.email) cards.push(c);
+  });
+  return cards;
+}
+
+/* --- 편집 모달 --- */
+function openCardEditor(id) {
+  cardsState.editingId = id;
+  cardsState.editingFront = null;
+  cardsState.editingBack = null;
+  cardsState.frontRotation = 0;
+
+  const isNew = !id;
+  $('cardEditTitle').textContent = isNew ? '명함 추가' : '명함 편집';
+  $('cardEditDelete').style.display = isNew ? 'none' : '';
+
+  // 그룹 옵션
+  const sel = $('ceGroup');
+  sel.innerHTML = '<option value="">(없음)</option>' +
+    (state.cardGroups || []).map(g => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join('');
+
+  const fields = ['ceName','ceNameEn','ceCompany','ceDept','cePosition','ceMobile','cePhone','ceFax','ceEmail','ceWebsite','ceAddress','ceLinkedin','ceSns','ceTags','ceMemo','ceGroup'];
+  fields.forEach(f => { $(f).value = ''; });
+  $('ceFavorite').checked = false;
+  $('cardEditFrontImg').style.display = 'none';
+  $('cardEditFrontImg').src = '';
+  $('cardEditFrontImg').style.transform = '';
+  $('cardEditFrontEmpty').style.display = '';
+  $('cardEditFrontTools').style.display = 'none';
+  $('cardEditBackImg').style.display = 'none';
+  $('cardEditBackImg').src = '';
+  $('cardEditBackEmpty').style.display = '';
+  $('cardEditBackTools').style.display = 'none';
+  $('cardEditAIStatus').textContent = '';
+  $('ceDupWarn').style.display = 'none';
+
+  if (!isNew) {
+    const c = state.businessCards.find(x => x.id === id);
+    if (c) {
+      $('ceName').value = c.name || '';
+      $('ceNameEn').value = c.nameEn || '';
+      $('ceCompany').value = c.company || '';
+      $('ceDept').value = c.department || '';
+      $('cePosition').value = c.position || '';
+      $('ceMobile').value = c.mobile || '';
+      $('cePhone').value = c.phone || '';
+      $('ceFax').value = c.fax || '';
+      $('ceEmail').value = c.email || '';
+      $('ceWebsite').value = c.website || '';
+      $('ceAddress').value = c.address || '';
+      $('ceLinkedin').value = c.linkedin || '';
+      $('ceSns').value = c.sns || '';
+      $('ceTags').value = (c.tags || []).join(', ');
+      $('ceMemo').value = c.memo || '';
+      $('ceGroup').value = c.group || '';
+      $('ceFavorite').checked = !!c.favorite;
+      if (c.frontImg) {
+        $('cardEditFrontImg').src = c.frontImg;
+        $('cardEditFrontImg').style.display = '';
+        $('cardEditFrontEmpty').style.display = 'none';
+        $('cardEditFrontTools').style.display = 'flex';
+        cardsState.editingFront = c.frontImg;
+      }
+      if (c.backImg) {
+        $('cardEditBackImg').src = c.backImg;
+        $('cardEditBackImg').style.display = '';
+        $('cardEditBackEmpty').style.display = 'none';
+        $('cardEditBackTools').style.display = 'flex';
+        cardsState.editingBack = c.backImg;
+      }
+    }
+  }
+  $('cardEditModal').classList.add('open');
+  // 중복 경고 표시
+  setTimeout(checkCardDuplicate, 100);
+}
+
+function checkCardDuplicate() {
+  const email = $('ceEmail').value.trim().toLowerCase();
+  const mobile = $('ceMobile').value.replace(/\D/g,'');
+  if (!email && !mobile) { $('ceDupWarn').style.display = 'none'; return; }
+  const dup = (state.businessCards||[]).find(c => {
+    if (c.id === cardsState.editingId) return false;
+    if (email && (c.email||'').toLowerCase() === email) return true;
+    if (mobile && (c.mobile||'').replace(/\D/g,'') === mobile) return true;
+    return false;
+  });
+  $('ceDupWarn').style.display = dup ? '' : 'none';
+}
+
+function readImageFile(file, maxW = 1600) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const scale = Math.min(1, maxW / img.width);
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', 0.88));
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function extractCardFromImageAI() {
+  if (!cardsState.editingFront) { toast('먼저 이미지를 업로드하세요'); return; }
+  $('cardEditAIStatus').textContent = 'AI가 명함을 분석하는 중…';
+  $('cardEditAIBtn').disabled = true;
+  try {
+    const prompt = `이 이미지는 명함입니다. 아래 JSON 형식으로 정보를 정확히 추출하여 **JSON 객체만** 반환하세요. 마크다운이나 설명 없이, 중괄호로 시작하고 중괄호로 끝나야 합니다. 없는 필드는 빈 문자열 ""로 두세요.
+
+{
+  "name": "이름(한글 또는 원문)",
+  "nameEn": "영문 이름",
+  "company": "회사명",
+  "department": "부서",
+  "position": "직책/직위",
+  "phone": "대표전화(지역번호 포함, 하이픈 있는 형식)",
+  "mobile": "휴대폰(010-xxxx-xxxx 형식)",
+  "fax": "팩스",
+  "email": "이메일",
+  "website": "웹사이트(http 프로토콜 없이)",
+  "address": "전체 주소",
+  "linkedin": "LinkedIn URL 또는 핸들"
+}
+
+주의사항:
+- 전화번호는 명함에 적힌 그대로의 형식을 유지하되, 하이픈(-) 구분 사용
+- 휴대폰은 010/011/016/017/018/019로 시작하는 번호
+- 이름이 한글과 영문 둘 다 있으면 분리하여 저장
+- 직책과 부서를 구분 (예: "영업1팀 팀장"이면 department=영업1팀, position=팀장)
+- 명함에 없는 필드는 절대 추측하지 말고 빈 문자열`;
+
+    const result = await callAIVision(prompt, cardsState.editingFront);
+    if (!result) { $('cardEditAIStatus').textContent = '추출 실패'; return; }
+    // JSON 추출
+    const match = result.match(/\{[\s\S]*\}/);
+    if (!match) { $('cardEditAIStatus').textContent = '응답을 파싱할 수 없습니다'; return; }
+    let data;
+    try { data = JSON.parse(match[0]); }
+    catch (e) { $('cardEditAIStatus').textContent = 'JSON 파싱 오류: ' + e.message; return; }
+
+    // 필드 채우기 (비어있으면만 or 덮어쓰기)
+    const fill = (id, val) => { if (val) $(id).value = val; };
+    fill('ceName', data.name);
+    fill('ceNameEn', data.nameEn);
+    fill('ceCompany', data.company);
+    fill('ceDept', data.department);
+    fill('cePosition', data.position);
+    fill('cePhone', data.phone);
+    fill('ceMobile', data.mobile);
+    fill('ceFax', data.fax);
+    fill('ceEmail', data.email);
+    fill('ceWebsite', data.website);
+    fill('ceAddress', data.address);
+    fill('ceLinkedin', data.linkedin);
+
+    $('cardEditAIStatus').innerHTML = '<span style="color:#2e7d32;">추출 완료 · 필요하면 수정하세요</span>';
+    checkCardDuplicate();
+  } catch (e) {
+    $('cardEditAIStatus').innerHTML = '<span style="color:#c62828;">오류: '+escapeHtml(e.message)+'</span>';
+  }
+  $('cardEditAIBtn').disabled = false;
+}
+
+function saveCardFromEditor() {
+  const name = $('ceName').value.trim();
+  const company = $('ceCompany').value.trim();
+  if (!name && !company) { toast('이름 또는 회사는 최소 하나 필요합니다'); return; }
+  const now = Date.now();
+  let card;
+  if (cardsState.editingId) {
+    card = state.businessCards.find(x => x.id === cardsState.editingId);
+    if (!card) return;
+  } else {
+    card = { id: cardUid(), createdAt: now, meetingHistory: [] };
+    state.businessCards = state.businessCards || [];
+    state.businessCards.push(card);
+  }
+  card.name = name;
+  card.nameEn = $('ceNameEn').value.trim();
+  card.company = company;
+  card.department = $('ceDept').value.trim();
+  card.position = $('cePosition').value.trim();
+  card.mobile = $('ceMobile').value.trim();
+  card.phone = $('cePhone').value.trim();
+  card.fax = $('ceFax').value.trim();
+  card.email = $('ceEmail').value.trim();
+  card.website = $('ceWebsite').value.trim();
+  card.address = $('ceAddress').value.trim();
+  card.linkedin = $('ceLinkedin').value.trim();
+  card.sns = $('ceSns').value.trim();
+  card.tags = $('ceTags').value.split(/[,;]/).map(t => t.trim()).filter(Boolean);
+  card.memo = $('ceMemo').value.trim();
+  card.group = $('ceGroup').value;
+  card.favorite = $('ceFavorite').checked;
+  card.frontImg = cardsState.editingFront;
+  card.backImg = cardsState.editingBack;
+  card.updatedAt = now;
+
+  // 그룹이 신규면 그룹 리스트에 추가
+  if (card.group && !(state.cardGroups || []).includes(card.group)) {
+    state.cardGroups = state.cardGroups || [];
+    state.cardGroups.push(card.group);
+  }
+
+  scheduleSave();
+  $('cardEditModal').classList.remove('open');
+  renderCardsList(); renderCardsFilters();
+  renderCardsDetail(card.id);
+  cardsState.selectedId = card.id;
+  updateCardsCountBadge();
+  toast(cardsState.editingId ? '수정되었습니다' : '새 명함이 추가되었습니다');
+}
+
+/* --- 이벤트 바인딩 --- */
+$('openCardsSide').addEventListener('click', openCardsModal);
+$('cardsClose').addEventListener('click', closeCardsModal);
+$('cardsAddBtn').addEventListener('click', () => openCardEditor(null));
+$('cardsViewGrid').addEventListener('click', () => {
+  cardsState.view = 'grid';
+  $('cardsViewGrid').classList.add('active');
+  $('cardsViewList').classList.remove('active');
+  renderCardsList();
+});
+$('cardsViewList').addEventListener('click', () => {
+  cardsState.view = 'list';
+  $('cardsViewList').classList.add('active');
+  $('cardsViewGrid').classList.remove('active');
+  renderCardsList();
+});
+$('cardsSort').addEventListener('change', (e) => {
+  cardsState.sort = e.target.value;
+  renderCardsList();
+});
+$('cardsSearch').addEventListener('input', (e) => {
+  cardsState.search = e.target.value;
+  renderCardsList();
+});
+
+// 그룹 추가
+$('cardsAddGroup').addEventListener('click', async () => {
+  const name = await prompt2('새 그룹 이름', '');
+  if (!name) return;
+  state.cardGroups = state.cardGroups || [];
+  if (!state.cardGroups.includes(name)) state.cardGroups.push(name);
+  scheduleSave();
+  renderCardsFilters();
+});
+
+// CSV/vCard 가져오기
+$('cardsImportBtn').addEventListener('click', async () => {
+  const inp = document.createElement('input');
+  inp.type = 'file';
+  inp.accept = '.csv,.vcf,.vcard,text/csv,text/vcard';
+  inp.onchange = async () => {
+    const f = inp.files[0]; if (!f) return;
+    const text = await f.text();
+    let added = 0;
+    if (/BEGIN:VCARD/i.test(text)) {
+      const cards = parseVCard(text);
+      const existing = state.businessCards || [];
+      cards.forEach(c => {
+        const dup = existing.find(e => (c.email && e.email === c.email) || (c.mobile && e.mobile === c.mobile));
+        if (!dup) { existing.push(c); added++; }
+      });
+      state.businessCards = existing;
+      scheduleSave();
+    } else {
+      added = importFromCSV(text);
+    }
+    renderCardsList(); renderCardsFilters(); updateCardsCountBadge();
+    toast(`${added}개 가져왔습니다 (중복 제외)`);
+  };
+  inp.click();
+});
+
+// 내보내기
+$('cardsExportBtn').addEventListener('click', async () => {
+  const list = getVisibleCards();
+  if (list.length === 0) { toast('내보낼 명함이 없습니다'); return; }
+  const fmt = await new Promise(resolve => {
+    showModalHtml(`${list.length}개 명함 내보내기`, `
+      <div style="display:flex; flex-direction:column; gap:10px; margin:10px 0;">
+        <button class="exp-opt" data-fmt="vcf" style="padding:10px; background:#4caf50; color:white; border:none; border-radius:6px; cursor:pointer; font-size:13px;">vCard (.vcf) — 연락처 앱에서 바로 가져오기 가능</button>
+        <button class="exp-opt" data-fmt="csv" style="padding:10px; background:#2196f3; color:white; border:none; border-radius:6px; cursor:pointer; font-size:13px;">CSV (.csv) — 엑셀/구글시트</button>
+      </div>
+    `);
+    document.querySelectorAll('.exp-opt').forEach(b => {
+      b.addEventListener('click', () => {
+        $('modal').classList.remove('open');
+        resolve(b.dataset.fmt);
+      });
+    });
+  });
+  if (fmt === 'vcf') exportVCard(list);
+  else if (fmt === 'csv') exportCardsCSV(list);
+});
+
+// 통계
+$('cardsStatsBtn').addEventListener('click', () => {
+  const all = state.businessCards || [];
+  if (all.length === 0) { toast('명함이 없습니다'); return; }
+  const byCompany = {};
+  const byTag = {};
+  let withEmail = 0, withMobile = 0, withAddress = 0;
+  all.forEach(c => {
+    if (c.company) byCompany[c.company] = (byCompany[c.company]||0)+1;
+    (c.tags||[]).forEach(t => { byTag[t] = (byTag[t]||0)+1; });
+    if (c.email) withEmail++;
+    if (c.mobile) withMobile++;
+    if (c.address) withAddress++;
+  });
+  const topCompanies = Object.entries(byCompany).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const topTags = Object.entries(byTag).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  showModalHtml('명함 통계', `
+    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:10px 0;">
+      <div style="padding:12px; background:color-mix(in srgb, var(--accent) 10%, transparent); border-radius:6px; text-align:center;">
+        <div style="font-size:22px; font-weight:700; color:var(--accent);">${all.length}</div>
+        <div style="font-size:11px; color:var(--ink-soft);">전체 명함</div>
+      </div>
+      <div style="padding:12px; background:color-mix(in srgb, #4caf50 10%, transparent); border-radius:6px; text-align:center;">
+        <div style="font-size:22px; font-weight:700; color:#2e7d32;">${withMobile}</div>
+        <div style="font-size:11px; color:var(--ink-soft);">휴대폰 등록</div>
+      </div>
+      <div style="padding:12px; background:color-mix(in srgb, #2196f3 10%, transparent); border-radius:6px; text-align:center;">
+        <div style="font-size:22px; font-weight:700; color:#1565c0;">${withEmail}</div>
+        <div style="font-size:11px; color:var(--ink-soft);">이메일 등록</div>
+      </div>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+      <div>
+        <h4 style="margin:0 0 8px; font-size:12px;">상위 회사 (${topCompanies.length})</h4>
+        ${topCompanies.length === 0 ? '<div style="color:var(--ink-soft); font-size:11px;">없음</div>' :
+          topCompanies.map(([n,c]) => `<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px dashed var(--paper-edge); font-size:12px;"><span>${escapeHtml(n)}</span><b>${c}</b></div>`).join('')}
+      </div>
+      <div>
+        <h4 style="margin:0 0 8px; font-size:12px;">상위 태그 (${topTags.length})</h4>
+        ${topTags.length === 0 ? '<div style="color:var(--ink-soft); font-size:11px;">없음</div>' :
+          topTags.map(([n,c]) => `<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px dashed var(--paper-edge); font-size:12px;"><span>${escapeHtml(n)}</span><b>${c}</b></div>`).join('')}
+      </div>
+    </div>
+    <div style="margin-top:12px; font-size:11px; color:var(--ink-soft);">주소 등록: ${withAddress} · 가장 오래된 명함: ${all.length ? new Date(Math.min(...all.map(c=>c.createdAt||Date.now()))).toLocaleDateString('ko-KR') : '-'}</div>
+  `);
+});
+
+// 내 명함 (QR로 공유)
+$('cardsMyBtn').addEventListener('click', async () => {
+  const my = state.myCard;
+  const action = await confirm2('내 명함', my ? `현재 설정된 내 명함: ${my.name || ''}\n\nQR 코드로 공유하거나 편집할 수 있습니다.` : '아직 내 명함이 설정되지 않았습니다. 설정하시겠습니까?', my ? 'QR 보기' : '내 명함 설정', my ? '편집' : '취소');
+  if (my && action) {
+    // QR 생성 (vCard 내용을 담은 QR)
+    const vcf = [
+      'BEGIN:VCARD', 'VERSION:3.0',
+      `FN:${my.name || ''}`,
+      my.company ? `ORG:${my.company}` : '',
+      my.position ? `TITLE:${my.position}` : '',
+      my.mobile ? `TEL;TYPE=CELL:${my.mobile}` : '',
+      my.email ? `EMAIL:${my.email}` : '',
+      my.website ? `URL:${my.website}` : '',
+      'END:VCARD'
+    ].filter(Boolean).join('\r\n');
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(vcf)}`;
+    showModalHtml('내 명함 QR', `
+      <div style="text-align:center; padding:10px;">
+        <img src="${qrUrl}" style="border:1px solid var(--paper-edge); border-radius:6px;" />
+        <div style="margin-top:10px; font-size:13px;"><b>${escapeHtml(my.name||'')}</b></div>
+        <div style="font-size:12px; color:var(--ink-soft);">${escapeHtml(my.company||'')} · ${escapeHtml(my.position||'')}</div>
+        <div style="font-size:11px; color:var(--ink-soft); margin-top:10px;">스캔하면 연락처에 추가됩니다</div>
+      </div>
+    `);
+  } else if (!my || !action) {
+    // 설정/편집
+    if (my) {
+      // 편집 흐름 — 임시로 businessCards에 추가해서 편집
+      toast('편집 기능은 명함 목록에서 "내 명함"을 선택 후 편집하세요');
+    } else {
+      // 새로 설정
+      const name = await prompt2('이름', '');
+      if (!name) return;
+      const company = await prompt2('회사', '');
+      const position = await prompt2('직책', '');
+      const mobile = await prompt2('휴대폰', '');
+      const email = await prompt2('이메일', '');
+      state.myCard = { name, company, position, mobile, email };
+      scheduleSave();
+      toast('내 명함이 설정되었습니다');
+    }
+  }
+});
+
+// 편집 모달 이벤트
+$('cardEditClose').addEventListener('click', () => $('cardEditModal').classList.remove('open'));
+$('cardEditCancel').addEventListener('click', () => $('cardEditModal').classList.remove('open'));
+$('cardEditSave').addEventListener('click', saveCardFromEditor);
+$('cardEditDelete').addEventListener('click', async () => {
+  if (!cardsState.editingId) return;
+  if (await confirm2('명함 삭제', '이 명함을 삭제하시겠습니까?', '삭제', '취소')) {
+    const idx = state.businessCards.findIndex(x => x.id === cardsState.editingId);
+    if (idx >= 0) state.businessCards.splice(idx, 1);
+    scheduleSave();
+    $('cardEditModal').classList.remove('open');
+    cardsState.selectedId = null;
+    $('cardsDetail').style.display = 'none';
+    renderCardsList(); renderCardsFilters(); updateCardsCountBadge();
+    toast('삭제됨');
+  }
+});
+$('cardEditAIBtn').addEventListener('click', extractCardFromImageAI);
+$('cardEditUploadBtn').addEventListener('click', () => $('cardEditFileInput').click());
+$('cardEditCameraBtn').addEventListener('click', () => $('cardEditCameraInput').click());
+$('cardEditBackUploadBtn').addEventListener('click', () => $('cardEditBackFileInput').click());
+$('cardEditFileInput').addEventListener('change', async (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  const dataUrl = await readImageFile(f);
+  cardsState.editingFront = dataUrl;
+  $('cardEditFrontImg').src = dataUrl;
+  $('cardEditFrontImg').style.display = '';
+  $('cardEditFrontEmpty').style.display = 'none';
+  $('cardEditFrontTools').style.display = 'flex';
+  e.target.value = '';
+});
+$('cardEditCameraInput').addEventListener('change', async (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  const dataUrl = await readImageFile(f);
+  cardsState.editingFront = dataUrl;
+  $('cardEditFrontImg').src = dataUrl;
+  $('cardEditFrontImg').style.display = '';
+  $('cardEditFrontEmpty').style.display = 'none';
+  $('cardEditFrontTools').style.display = 'flex';
+  e.target.value = '';
+});
+$('cardEditBackFileInput').addEventListener('change', async (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  const dataUrl = await readImageFile(f);
+  cardsState.editingBack = dataUrl;
+  $('cardEditBackImg').src = dataUrl;
+  $('cardEditBackImg').style.display = '';
+  $('cardEditBackEmpty').style.display = 'none';
+  $('cardEditBackTools').style.display = 'flex';
+  e.target.value = '';
+});
+$('cardEditFrontRotate').addEventListener('click', () => {
+  // 회전 — canvas 재생성
+  if (!cardsState.editingFront) return;
+  const img = new Image();
+  img.onload = () => {
+    const c = document.createElement('canvas');
+    c.width = img.height; c.height = img.width;
+    const ctx = c.getContext('2d');
+    ctx.translate(c.width/2, c.height/2);
+    ctx.rotate(Math.PI/2);
+    ctx.drawImage(img, -img.width/2, -img.height/2);
+    cardsState.editingFront = c.toDataURL('image/jpeg', 0.88);
+    $('cardEditFrontImg').src = cardsState.editingFront;
+  };
+  img.src = cardsState.editingFront;
+});
+$('cardEditFrontClear').addEventListener('click', () => {
+  cardsState.editingFront = null;
+  $('cardEditFrontImg').style.display = 'none';
+  $('cardEditFrontEmpty').style.display = '';
+  $('cardEditFrontTools').style.display = 'none';
+});
+$('cardEditBackClear').addEventListener('click', () => {
+  cardsState.editingBack = null;
+  $('cardEditBackImg').style.display = 'none';
+  $('cardEditBackEmpty').style.display = '';
+  $('cardEditBackTools').style.display = 'none';
+});
+
+// 드래그앤드롭
+['cardEditFrontWrap'].forEach(id => {
+  const el = $(id);
+  el.addEventListener('dragover', (e) => { e.preventDefault(); el.style.borderColor = 'var(--accent)'; });
+  el.addEventListener('dragleave', () => { el.style.borderColor = 'var(--paper-edge)'; });
+  el.addEventListener('drop', async (e) => {
+    e.preventDefault(); el.style.borderColor = 'var(--paper-edge)';
+    const f = e.dataTransfer.files[0];
+    if (f && f.type.startsWith('image/')) {
+      const dataUrl = await readImageFile(f);
+      cardsState.editingFront = dataUrl;
+      $('cardEditFrontImg').src = dataUrl;
+      $('cardEditFrontImg').style.display = '';
+      $('cardEditFrontEmpty').style.display = 'none';
+      $('cardEditFrontTools').style.display = 'flex';
+    }
+  });
+});
+$('cardEditBackWrap').addEventListener('dragover', (e) => { e.preventDefault(); });
+$('cardEditBackWrap').addEventListener('drop', async (e) => {
+  e.preventDefault();
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) {
+    const dataUrl = await readImageFile(f);
+    cardsState.editingBack = dataUrl;
+    $('cardEditBackImg').src = dataUrl;
+    $('cardEditBackImg').style.display = '';
+    $('cardEditBackEmpty').style.display = 'none';
+    $('cardEditBackTools').style.display = 'flex';
+  }
+});
+
+// 편집 모달 붙여넣기
+$('cardEditModal').addEventListener('paste', async (e) => {
+  const items = e.clipboardData?.items;
+  if (!items) return;
+  for (const it of items) {
+    if (it.type.startsWith('image/')) {
+      e.preventDefault();
+      const file = it.getAsFile();
+      const dataUrl = await readImageFile(file);
+      cardsState.editingFront = dataUrl;
+      $('cardEditFrontImg').src = dataUrl;
+      $('cardEditFrontImg').style.display = '';
+      $('cardEditFrontEmpty').style.display = 'none';
+      $('cardEditFrontTools').style.display = 'flex';
+      return;
+    }
+  }
+});
+
+// 중복 경고 — 실시간
+['ceEmail','ceMobile'].forEach(id => {
+  $(id).addEventListener('input', checkCardDuplicate);
+});
+
+// Esc로 닫기
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    if ($('cardEditModal').classList.contains('open')) $('cardEditModal').classList.remove('open');
+    else if ($('cardsModal').classList.contains('open')) closeCardsModal();
+  }
+});
+
+// 초기 배지 업데이트
+updateCardsCountBadge();
+
+// 명령 팔레트에 명함관리 명령 추가
+if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
+  COMMANDS.push(
+    { ico:'i-id-card', name:'명함관리 열기', desc:'명함 목록/추가/검색', run:() => openCardsModal() },
+    { ico:'i-user-plus', name:'새 명함 추가', desc:'명함 촬영/업로드로 추가', run:() => { openCardsModal(); setTimeout(() => openCardEditor(null), 100); } },
+    { ico:'i-scan', name:'명함 AI 스캔', desc:'사진을 AI로 분석해 자동 입력', run:() => { openCardsModal(); setTimeout(() => openCardEditor(null), 100); } }
+  );
+}
 </script>
 </body>
 </html>
