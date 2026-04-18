@@ -11812,9 +11812,10 @@ function renderDday() {
   }
   wrap.innerHTML = sorted.map(d => {
     const target = new Date(d.date); target.setHours(0,0,0,0);
-    const diff = Math.round((target - today) / 86400000);
+    const diff = isNaN(target.getTime()) ? null : Math.round((target - today) / 86400000);
     let label, cls;
-    if (diff > 0) { label = `D-${diff}`; cls = ''; }
+    if (diff === null) { label = '날짜 오류'; cls = 'style="color:#888;"'; }
+    else if (diff > 0) { label = `D-${diff}`; cls = ''; }
     else if (diff === 0) { label = 'D-Day'; cls = 'style="color:#ef5350;"'; }
     else { label = `D+${-diff}`; cls = 'class="dday-past"'; }
     return `<div class="dday-item">
@@ -12201,11 +12202,14 @@ setTimeout(() => {
 // 초기 배지
 updateRoleBadge();
 
-// Esc로 모든 역할 위젯 모달 닫기
+// Esc로 모든 역할 위젯 모달 닫기 (전용 모달 + 공유 modal)
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
-  const modals = ['rolesModal','timetableModal','ledgerModal','gpaModal','ddayModal','medModal','vitalModal','shopModal','mealModal','timetrackModal','roleDashModal','attendanceModal','groupProjModal','examPlanModal','projPipeModal','paperListModal'];
-  modals.forEach(id => { const m = $(id); if (m && m.classList.contains('open')) m.classList.remove('open'); });
+  // 전용 모달들 (각자 자기 ID 가진 것)
+  const dedicatedModals = ['rolesModal','timetableModal','ledgerModal','gpaModal','ddayModal','medModal','vitalModal','shopModal','mealModal','timetrackModal','roleDashModal'];
+  dedicatedModals.forEach(id => { const m = $(id); if (m && m.classList.contains('open')) m.classList.remove('open'); });
+  // showModalHtml이 쓰는 공유 modal — Paint/AI/팔레트 등 이미 자체 Esc 핸들러가 있는 경우 중복 실행 안되도록 이미 닫혀있으면 스킵
+  // (widgets using showModalHtml: attendance/groupProj/examPlan/projPipe/paperList/recipe/portfolio/travel/books/vCard 등)
 });
 
 /* =========================================================
@@ -12399,7 +12403,11 @@ function renderGroupProj() {
     const done = p.tasks.filter(t => t.done).length;
     const total = p.tasks.length;
     const pct = total > 0 ? Math.round((done/total)*100) : 0;
-    const diff = p.deadline ? Math.round((new Date(p.deadline) - today) / 86400000) : null;
+    let diff = null;
+    if (p.deadline) {
+      const td = new Date(p.deadline);
+      if (!isNaN(td.getTime())) diff = Math.round((td - today) / 86400000);
+    }
     return `<div style="border:1px solid var(--paper-edge); border-radius:6px; padding:12px; margin-bottom:10px;">
       <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
         <b style="flex:1;">${escapeHtml(p.title)}</b>
@@ -12499,13 +12507,14 @@ function renderExamPlan() {
   }
   const today = new Date(); today.setHours(0,0,0,0);
   wrap.innerHTML = s.exams.map((ex, ei) => {
-    const diff = Math.round((new Date(ex.date) - today) / 86400000);
+    const targetEx = new Date(ex.date);
+    const diff = isNaN(targetEx.getTime()) ? null : Math.round((targetEx - today) / 86400000);
     const done = ex.subjects.filter(sub => sub.done).length;
     const total = ex.subjects.length;
     return `<div style="border:1px solid var(--paper-edge); border-radius:6px; padding:12px; margin-bottom:10px;">
       <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
         <b style="flex:1;">${escapeHtml(ex.name)}</b>
-        <span style="font-size:16px; font-weight:800; color:${diff<7?'#d32f2f':'var(--accent)'};">${diff>=0?'D-'+diff:'D+'+(-diff)}</span>
+        <span style="font-size:16px; font-weight:800; color:${diff===null?'#888':diff<7?'#d32f2f':'var(--accent)'};">${diff===null?'날짜 오류':diff>=0?'D-'+diff:'D+'+(-diff)}</span>
         <button class="ptb" data-ep-del="${ei}" style="padding:3px 6px;"><svg class="ico"><use href="#i-trash"/></svg></button>
       </div>
       <div style="font-size:11px; color:var(--ink-soft); margin-bottom:6px;">${ex.date} · ${total>0?`${done}/${total} 과목 완료`:'과목을 추가하세요'}</div>
@@ -12964,7 +12973,8 @@ function renderTravel() {
   if (!wrap) return;
   if ((s.trips || []).length === 0) { wrap.innerHTML = '<div style="text-align:center; padding:30px; color:var(--ink-soft);">여행을 추가하세요</div>'; return; }
   wrap.innerHTML = s.trips.map((t, ti) => {
-    const diff = Math.round((new Date(t.start) - today) / 86400000);
+    const tStart = new Date(t.start);
+    const diff = isNaN(tStart.getTime()) ? null : Math.round((tStart - today) / 86400000);
     const doneCount = (t.checklist||[]).filter((_, i) => t.items?.includes(i)).length;
     const totalCount = (t.checklist||[]).length;
     const pct = totalCount > 0 ? Math.round(doneCount/totalCount*100) : 0;
@@ -12972,7 +12982,7 @@ function renderTravel() {
     return `<div style="border:1px solid var(--paper-edge); border-radius:8px; padding:12px; margin-bottom:10px;">
       <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
         <b style="flex:1; font-size:14px;">${escapeHtml(t.name)}</b>
-        <span style="font-size:18px; font-weight:800; color:${diff<7 && diff>=0?'#d32f2f':diff<0?'#888':'#42a5f5'};">${diff>=0?'D-'+diff:'D+'+(-diff)}</span>
+        <span style="font-size:18px; font-weight:800; color:${diff===null?'#888':diff<7 && diff>=0?'#d32f2f':diff<0?'#888':'#42a5f5'};">${diff===null?'날짜 오류':diff>=0?'D-'+diff:'D+'+(-diff)}</span>
         <button class="ptb tv-del" data-tv="${ti}" style="padding:3px 6px;"><svg class="ico"><use href="#i-trash"/></svg></button>
       </div>
       <div style="font-size:11px; color:var(--ink-soft); margin-bottom:8px;">📍 ${escapeHtml(t.dest||'')} · ${t.start} ~ ${t.end}</div>
