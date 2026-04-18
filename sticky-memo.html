@@ -1473,6 +1473,7 @@
     <button id="cardsTopBtn" title="명함관리"><svg class="ico"><use href="#i-id-card"/></svg><span id="cardsTopBadge" class="topbar-badge"></span></button>
     <button id="paintTopBtn" title="그림판 (Paint)"><svg class="ico"><use href="#i-bucket"/></svg></button>
     <button id="imgCvtTopBtn" title="이미지 변환기 (크기·용량·포맷)"><svg class="ico"><use href="#i-resize"/></svg></button>
+    <button id="roleDashTopBtn" title="내 도구 모음 (역할별)"><svg class="ico"><use href="#i-users"/></svg><span id="roleDashBadge" class="topbar-badge"></span></button>
     <button id="themeBtn" title="테마 변경"><svg class="ico"><use href="#i-palette"/></svg></button>
     <button id="searchToggle" title="검색 (Ctrl+F)"><svg class="ico"><use href="#i-search"/></svg></button>
     <button id="focusBtn" title="집중 모드"><svg class="ico"><use href="#i-target"/></svg></button>
@@ -2509,6 +2510,277 @@
 }
 </style>
 
+<!-- ========== 역할 선택 모달 ========== -->
+<div class="modal-backdrop" id="rolesModal">
+  <div class="modal" style="width:min(900px,96vw); max-height:92vh; display:flex; flex-direction:column; padding:0;">
+    <div style="display:flex; align-items:center; gap:10px; padding:16px 20px; border-bottom:1px solid var(--paper-edge); background:linear-gradient(135deg, color-mix(in srgb, var(--accent) 12%, white), white);">
+      <svg class="ico" style="stroke:var(--accent); width:22px; height:22px;"><use href="#i-users"/></svg>
+      <div>
+        <h3 style="margin:0; font-size:16px; color:var(--accent);">어떻게 쓰실 건가요?</h3>
+        <div style="font-size:11px; color:var(--ink-soft); margin-top:2px;">필요한 것만 골라드립니다 · 여러 개 선택 가능 · 나중에 변경 가능</div>
+      </div>
+      <span style="flex:1;"></span>
+      <button id="rolesClose" class="ptb" style="padding:5px 8px;"><svg class="ico"><use href="#i-x"/></svg></button>
+    </div>
+    <div id="rolesGrid" style="flex:1; overflow-y:auto; padding:16px; display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:10px;"></div>
+    <div style="display:flex; gap:8px; padding:12px 20px; border-top:1px solid var(--paper-edge); background:#fafafa;">
+      <button id="rolesSkip" class="ptb">일단 그냥 메모장으로</button>
+      <span style="flex:1;"></span>
+      <span id="rolesSelCount" style="font-size:12px; color:var(--ink-soft); align-self:center;">선택: 0개</span>
+      <button id="rolesApply" class="ptb-primary" style="padding:8px 20px;">적용</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 시간표 위젯 ========== -->
+<div class="modal-backdrop" id="timetableModal">
+  <div class="modal" style="width:min(1000px,96vw); max-height:92vh; display:flex; flex-direction:column; padding:0;">
+    <div class="rw-header">
+      <svg class="ico" style="stroke:var(--accent); width:20px; height:20px;"><use href="#i-grid"/></svg>
+      <h3 style="margin:0; font-size:15px;">시간표</h3>
+      <select id="ttSemester" style="padding:5px 8px; border:1px solid var(--paper-edge); border-radius:4px; font-size:11px; margin-left:8px;"><option>2025-1학기</option><option>2025-2학기</option><option>2024-2학기</option><option>2024-1학기</option></select>
+      <span style="flex:1;"></span>
+      <button id="ttClear" class="ptb">전체 지우기</button>
+      <button id="ttSaveMemo" class="ptb-primary">메모에 저장</button>
+      <button id="ttClose" class="ptb" style="padding:5px 8px;"><svg class="ico"><use href="#i-x"/></svg></button>
+    </div>
+    <div style="flex:1; overflow:auto; padding:14px;">
+      <table id="ttGrid" class="rw-table"></table>
+      <div style="margin-top:10px; font-size:11px; color:var(--ink-soft);">각 칸 클릭 → 강의 추가/편집. 색상은 과목별로 자동 배정.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 가계부 위젯 ========== -->
+<div class="modal-backdrop" id="ledgerModal">
+  <div class="modal" style="width:min(900px,96vw); max-height:92vh; display:flex; flex-direction:column; padding:0;">
+    <div class="rw-header">
+      <svg class="ico" style="stroke:var(--accent); width:20px; height:20px;"><use href="#i-stats"/></svg>
+      <h3 style="margin:0; font-size:15px;">가계부</h3>
+      <input type="month" id="ledgerMonth" style="padding:5px 8px; border:1px solid var(--paper-edge); border-radius:4px; font-size:11px; margin-left:8px;">
+      <span style="flex:1;"></span>
+      <button id="ledgerExport" class="ptb">CSV 내보내기</button>
+      <button id="ledgerClose" class="ptb" style="padding:5px 8px;"><svg class="ico"><use href="#i-x"/></svg></button>
+    </div>
+    <div style="flex:1; display:grid; grid-template-columns:320px 1fr; gap:0; min-height:0;">
+      <div style="padding:14px; border-right:1px solid var(--paper-edge); overflow-y:auto;">
+        <div class="rw-h">새 내역 추가</div>
+        <select id="ldType" class="rw-input"><option value="expense">지출</option><option value="income">수입</option></select>
+        <input type="date" id="ldDate" class="rw-input">
+        <select id="ldCategory" class="rw-input"></select>
+        <input type="number" id="ldAmount" class="rw-input" placeholder="금액 (원)">
+        <input type="text" id="ldNote" class="rw-input" placeholder="메모 (선택)">
+        <button id="ldAdd" class="ptb-primary" style="width:100%; margin-top:6px;">추가</button>
+        <div style="margin-top:14px;">
+          <div class="rw-h">이번 달 요약</div>
+          <div id="ledgerSummary" style="font-size:12px;"></div>
+          <canvas id="ledgerChart" width="280" height="180" style="margin-top:10px; border:1px solid var(--paper-edge); border-radius:4px;"></canvas>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; min-width:0;">
+        <div style="padding:10px 14px; border-bottom:1px solid var(--paper-edge); display:flex; gap:8px;">
+          <input type="search" id="ledgerSearch" class="rw-input" placeholder="검색 (카테고리/메모)" style="flex:1; margin:0;">
+          <select id="ledgerFilter" class="rw-input" style="width:100px; margin:0;"><option value="">전체</option><option value="expense">지출</option><option value="income">수입</option></select>
+        </div>
+        <div id="ledgerList" style="flex:1; overflow-y:auto; padding:10px 14px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== GPA 계산기 ========== -->
+<div class="modal-backdrop" id="gpaModal">
+  <div class="modal" style="width:min(700px,96vw); max-height:92vh; display:flex; flex-direction:column; padding:0;">
+    <div class="rw-header">
+      <svg class="ico" style="stroke:var(--accent); width:20px; height:20px;"><use href="#i-stats"/></svg>
+      <h3 style="margin:0; font-size:15px;">GPA 계산기</h3>
+      <span style="flex:1;"></span>
+      <button id="gpaSaveMemo" class="ptb">메모 저장</button>
+      <button id="gpaClose" class="ptb" style="padding:5px 8px;"><svg class="ico"><use href="#i-x"/></svg></button>
+    </div>
+    <div style="padding:14px; overflow-y:auto; flex:1;">
+      <div style="display:flex; gap:6px; align-items:center; margin-bottom:10px;">
+        <select id="gpaScale" class="rw-input" style="width:auto;"><option value="4.5">4.5 만점</option><option value="4.3">4.3 만점</option><option value="4.0">4.0 만점</option></select>
+        <button id="gpaAddCourse" class="ptb">+ 과목 추가</button>
+        <span style="flex:1;"></span>
+        <div style="font-size:14px; font-weight:700;">평점 평균 (GPA): <span id="gpaResult" style="color:var(--accent); font-size:20px;">0.00</span> <span id="gpaResultOf" style="font-size:12px; color:var(--ink-soft);">/ 4.5</span></div>
+      </div>
+      <table class="rw-table"><thead><tr><th>과목명</th><th style="width:80px;">학점</th><th style="width:120px;">성적</th><th style="width:60px;"></th></tr></thead><tbody id="gpaBody"></tbody></table>
+      <div style="margin-top:10px; padding:10px; background:color-mix(in srgb, var(--accent) 6%, transparent); border-radius:5px; font-size:11px; color:var(--ink-soft);">
+        <b>성적 환산:</b> A+ 4.5 · A 4.0 · B+ 3.5 · B 3.0 · C+ 2.5 · C 2.0 · D+ 1.5 · D 1.0 · F 0 (4.5 만점 기준)
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== D-Day 관리자 ========== -->
+<div class="modal-backdrop" id="ddayModal">
+  <div class="modal" style="width:min(600px,96vw); max-height:92vh; display:flex; flex-direction:column; padding:0;">
+    <div class="rw-header">
+      <svg class="ico" style="stroke:var(--accent); width:20px; height:20px;"><use href="#i-today"/></svg>
+      <h3 style="margin:0; font-size:15px;">D-Day 관리</h3>
+      <span style="flex:1;"></span>
+      <button id="ddayAddBtn" class="ptb-primary">+ 추가</button>
+      <button id="ddayClose" class="ptb" style="padding:5px 8px;"><svg class="ico"><use href="#i-x"/></svg></button>
+    </div>
+    <div id="ddayList" style="flex:1; overflow-y:auto; padding:14px;"></div>
+  </div>
+</div>
+
+<!-- ========== 약 복용 관리 ========== -->
+<div class="modal-backdrop" id="medModal">
+  <div class="modal" style="width:min(700px,96vw); max-height:92vh; display:flex; flex-direction:column; padding:0;">
+    <div class="rw-header">
+      <svg class="ico" style="stroke:var(--accent); width:20px; height:20px;"><use href="#i-heart"/></svg>
+      <h3 style="margin:0; font-size:15px;">약 복용 관리</h3>
+      <span style="flex:1;"></span>
+      <button id="medAddBtn" class="ptb-primary">+ 약 추가</button>
+      <button id="medClose" class="ptb" style="padding:5px 8px;"><svg class="ico"><use href="#i-x"/></svg></button>
+    </div>
+    <div id="medList" style="flex:1; overflow-y:auto; padding:14px;"></div>
+    <div style="padding:10px 14px; border-top:1px solid var(--paper-edge); font-size:11px; color:var(--ink-soft);">
+      오늘 복용한 약을 체크하면 기록됩니다. 브라우저 알림 권한 허용 시 시간대별 알림.
+    </div>
+  </div>
+</div>
+
+<!-- ========== 혈압/혈당 기록 ========== -->
+<div class="modal-backdrop" id="vitalModal">
+  <div class="modal" style="width:min(800px,96vw); max-height:92vh; display:flex; flex-direction:column; padding:0;">
+    <div class="rw-header">
+      <svg class="ico" style="stroke:var(--accent); width:20px; height:20px;"><use href="#i-heart"/></svg>
+      <h3 style="margin:0; font-size:15px;">건강 기록 (혈압·혈당)</h3>
+      <select id="vitalType" style="padding:5px 8px; border:1px solid var(--paper-edge); border-radius:4px; font-size:11px;"><option value="bp">혈압</option><option value="glucose">혈당</option><option value="weight">체중</option></select>
+      <span style="flex:1;"></span>
+      <button id="vitalClose" class="ptb" style="padding:5px 8px;"><svg class="ico"><use href="#i-x"/></svg></button>
+    </div>
+    <div style="padding:14px;">
+      <div style="display:flex; gap:6px; align-items:center; margin-bottom:10px;">
+        <input type="datetime-local" id="vitalDt" class="rw-input" style="width:auto;">
+        <input type="number" id="vitalV1" class="rw-input" placeholder="수축기" style="width:90px;">
+        <span id="vitalSep" style="color:#888;">/</span>
+        <input type="number" id="vitalV2" class="rw-input" placeholder="이완기" style="width:90px;">
+        <input type="number" id="vitalPulse" class="rw-input" placeholder="맥박" style="width:80px;">
+        <input type="text" id="vitalNote" class="rw-input" placeholder="메모" style="flex:1;">
+        <button id="vitalAdd" class="ptb-primary">기록</button>
+      </div>
+      <canvas id="vitalChart" width="760" height="220" style="border:1px solid var(--paper-edge); border-radius:4px; background:white;"></canvas>
+      <div id="vitalList" style="margin-top:10px; max-height:220px; overflow-y:auto;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 장보기 리스트 ========== -->
+<div class="modal-backdrop" id="shopModal">
+  <div class="modal" style="width:min(700px,96vw); max-height:92vh; display:flex; flex-direction:column; padding:0;">
+    <div class="rw-header">
+      <svg class="ico" style="stroke:var(--accent); width:20px; height:20px;"><use href="#i-check"/></svg>
+      <h3 style="margin:0; font-size:15px;">장보기 리스트</h3>
+      <span style="flex:1;"></span>
+      <button id="shopClearChecked" class="ptb">완료 항목 삭제</button>
+      <button id="shopClose" class="ptb" style="padding:5px 8px;"><svg class="ico"><use href="#i-x"/></svg></button>
+    </div>
+    <div style="padding:14px; flex:1; overflow-y:auto;">
+      <div style="display:flex; gap:6px; margin-bottom:12px;">
+        <input type="text" id="shopItem" class="rw-input" placeholder="추가할 항목" style="flex:1;">
+        <select id="shopCategory" class="rw-input" style="width:110px;"><option>채소</option><option>과일</option><option>육류</option><option>수산</option><option>유제품</option><option>냉동</option><option>곡류</option><option>조미료</option><option>간식</option><option>생활용품</option><option>기타</option></select>
+        <button id="shopAdd" class="ptb-primary">추가</button>
+      </div>
+      <div id="shopList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 식단 계획 ========== -->
+<div class="modal-backdrop" id="mealModal">
+  <div class="modal" style="width:min(900px,96vw); max-height:92vh; display:flex; flex-direction:column; padding:0;">
+    <div class="rw-header">
+      <svg class="ico" style="stroke:var(--accent); width:20px; height:20px;"><use href="#i-table"/></svg>
+      <h3 style="margin:0; font-size:15px;">주간 식단</h3>
+      <input type="week" id="mealWeek" style="padding:5px 8px; border:1px solid var(--paper-edge); border-radius:4px; font-size:11px; margin-left:8px;">
+      <span style="flex:1;"></span>
+      <button id="mealSaveMemo" class="ptb-primary">메모 저장</button>
+      <button id="mealClose" class="ptb" style="padding:5px 8px;"><svg class="ico"><use href="#i-x"/></svg></button>
+    </div>
+    <div style="padding:14px; overflow:auto;">
+      <table id="mealGrid" class="rw-table"></table>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 타임트래킹 ========== -->
+<div class="modal-backdrop" id="timetrackModal">
+  <div class="modal" style="width:min(800px,96vw); max-height:92vh; display:flex; flex-direction:column; padding:0;">
+    <div class="rw-header">
+      <svg class="ico" style="stroke:var(--accent); width:20px; height:20px;"><use href="#i-clock"/></svg>
+      <h3 style="margin:0; font-size:15px;">타임 트래킹</h3>
+      <span style="flex:1;"></span>
+      <button id="ttkClose" class="ptb" style="padding:5px 8px;"><svg class="ico"><use href="#i-x"/></svg></button>
+    </div>
+    <div style="padding:14px; flex:1; overflow-y:auto;">
+      <div style="display:flex; gap:6px; margin-bottom:12px;">
+        <input type="text" id="ttkProj" class="rw-input" placeholder="프로젝트/작업명" style="flex:1;">
+        <button id="ttkStart" class="ptb-primary">▶ 시작</button>
+      </div>
+      <div id="ttkCurrent" style="padding:12px; background:color-mix(in srgb, var(--accent) 8%, transparent); border-radius:6px; margin-bottom:14px; display:none;">
+        <div style="font-weight:700; margin-bottom:4px;" id="ttkCurName">—</div>
+        <div style="font-size:24px; color:var(--accent); font-family:monospace;" id="ttkCurTime">00:00:00</div>
+        <button id="ttkStop" class="ptb" style="margin-top:6px; background:#ef5350; color:white; border:none;">■ 정지</button>
+      </div>
+      <div id="ttkEntries"></div>
+      <div id="ttkSummary" style="margin-top:12px; padding:10px; background:#fafafa; border-radius:5px; font-size:12px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 역할별 도구 대시보드 ========== -->
+<div class="modal-backdrop" id="roleDashModal">
+  <div class="modal" style="width:min(800px,96vw); max-height:92vh; display:flex; flex-direction:column; padding:0;">
+    <div class="rw-header">
+      <svg class="ico" style="stroke:var(--accent); width:20px; height:20px;"><use href="#i-users"/></svg>
+      <h3 style="margin:0; font-size:15px;">내 도구 모음</h3>
+      <span style="flex:1;"></span>
+      <button id="roleDashManage" class="ptb">역할 관리</button>
+      <button id="roleDashClose" class="ptb" style="padding:5px 8px;"><svg class="ico"><use href="#i-x"/></svg></button>
+    </div>
+    <div id="roleDashBody" style="padding:16px; overflow-y:auto;"></div>
+  </div>
+</div>
+
+<style>
+.rw-header { display:flex; align-items:center; gap:8px; padding:12px 16px; border-bottom:1px solid var(--paper-edge); background:linear-gradient(180deg, color-mix(in srgb, var(--accent) 8%, white), white); white-space:nowrap; }
+.rw-input { padding:7px 9px; border:1px solid var(--paper-edge); border-radius:4px; font-size:12px; background:white; margin-bottom:6px; display:block; width:100%; box-sizing:border-box; }
+.rw-h { font-size:11px; font-weight:700; color:var(--ink); margin:8px 0 5px; letter-spacing:0.3px; }
+.rw-table { border-collapse:collapse; width:100%; font-size:12px; }
+.rw-table th, .rw-table td { border:1px solid var(--paper-edge); padding:6px 8px; text-align:center; }
+.rw-table th { background:color-mix(in srgb, var(--accent) 8%, transparent); font-weight:600; font-size:11px; }
+.role-card { background:white; border:2px solid var(--paper-edge); border-radius:8px; padding:14px; cursor:pointer; transition:all .15s; position:relative; }
+.role-card:hover { transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,0.08); border-color:var(--accent); }
+.role-card.selected { border-color:var(--accent); background:color-mix(in srgb, var(--accent) 8%, white); box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent); }
+.role-card .role-ico { width:28px; height:28px; margin-bottom:8px; }
+.role-card .role-name { font-weight:700; font-size:14px; margin-bottom:4px; color:var(--ink); }
+.role-card .role-desc { font-size:11px; color:var(--ink-soft); line-height:1.4; }
+.role-card .role-check { position:absolute; top:8px; right:8px; width:20px; height:20px; border-radius:50%; background:var(--accent); color:white; display:none; align-items:center; justify-content:center; font-size:12px; }
+.role-card.selected .role-check { display:flex; }
+.tt-cell { min-height:60px; cursor:pointer; font-size:11px; padding:4px; }
+.tt-cell:hover { background:#fafaff; }
+.tt-course { color:white; border-radius:3px; padding:2px 4px; font-weight:600; }
+.ld-item { display:grid; grid-template-columns:80px 60px 1fr 90px 30px; gap:8px; padding:7px 10px; align-items:center; border-bottom:1px solid var(--paper-edge); font-size:12px; }
+.ld-item:hover { background:#fafaff; }
+.ld-expense { color:#d32f2f; }
+.ld-income { color:#2e7d32; }
+.dday-item { display:flex; align-items:center; gap:10px; padding:10px 12px; background:white; border:1px solid var(--paper-edge); border-radius:6px; margin-bottom:8px; }
+.dday-item .dday-count { font-size:22px; font-weight:800; min-width:80px; text-align:center; color:var(--accent); }
+.dday-item .dday-past { color:#888; }
+.shop-item { display:flex; align-items:center; gap:8px; padding:7px 10px; border-bottom:1px solid var(--paper-edge); font-size:12px; }
+.shop-item.done { opacity:0.5; text-decoration:line-through; }
+.role-tool-card { background:white; border:1px solid var(--paper-edge); border-radius:8px; padding:14px; cursor:pointer; transition:all .15s; text-align:center; }
+.role-tool-card:hover { border-color:var(--accent); background:#fafaff; transform:translateY(-2px); }
+.role-tool-card .rtc-ico { width:32px; height:32px; margin-bottom:6px; stroke:var(--accent); }
+.role-tool-card .rtc-name { font-weight:600; font-size:12px; }
+.role-tool-card .rtc-desc { font-size:10px; color:var(--ink-soft); margin-top:3px; }
+</style>
+
 <!-- ========== 이미지 변환기 모달 (크기/용량/포맷) ========== -->
 <div class="modal-backdrop" id="imgCvtModal">
   <div class="modal" style="width:min(980px,96vw); max-height:94vh; display:flex; flex-direction:column; padding:0;">
@@ -2886,7 +3158,9 @@ const defaultData = {
   clipboard: [],
   businessCards: [],
   cardGroups: [],
-  myCard: null
+  myCard: null,
+  userRoles: [],
+  roleData: {}
 };
 
 function stripEmoji(s) {
@@ -2929,6 +3203,8 @@ function load() {
     d.businessCards = d.businessCards || [];
     d.cardGroups = d.cardGroups || [];
     d.myCard = d.myCard || null;
+    d.userRoles = d.userRoles || [];
+    d.roleData = d.roleData || {};
     d.tabs.forEach(t => {
       if (t.pinned === undefined) t.pinned = false;
       if (t.starred === undefined) t.starred = false;
@@ -11017,6 +11293,919 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && $('imgCvtModal').classList.contains('open')) {
     $('imgCvtModal').classList.remove('open');
   }
+});
+
+/* ============================================================
+   역할 기반 기능 시스템
+   ============================================================ */
+const ROLES = {
+  'elementary': { name:'초등학생', icon:'i-pencil', color:'#ff9800',
+    desc:'그림일기, 숙제, 받아쓰기', tools:['dday','shop'],
+    templates:[
+      { name:'오늘의 일기', html:`<h2>${new Date().toLocaleDateString('ko-KR')} 일기</h2><p>날씨: ☀️</p><p>기분: </p><p>오늘 있었던 일: </p><p>내일 할 일: </p>` },
+      { name:'숙제 체크리스트', html:`<h2>숙제 체크</h2><div class="todo"><input type="checkbox"><span>국어 </span></div><div class="todo"><input type="checkbox"><span>수학 </span></div><div class="todo"><input type="checkbox"><span>영어 </span></div>` }
+    ]
+  },
+  'middle': { name:'중학생', icon:'i-note', color:'#29b6f6',
+    desc:'시간표, 시험, 단어장', tools:['timetable','dday'],
+    templates:[
+      { name:'영단어장', html:`<h2>영단어장</h2><p>Q: apple<br>A: 사과</p><p>Q: school<br>A: 학교</p>` },
+      { name:'과목별 노트', html:`<h2>오늘 수업 정리</h2><h3>1교시 · </h3><p></p>` }
+    ]
+  },
+  'high': { name:'고등학생', icon:'i-target', color:'#ef5350',
+    desc:'수능 D-Day, 오답노트, 학습 타이머', tools:['dday','timetable'],
+    templates:[
+      { name:'오답노트', html:`<h2>오답노트 — ${new Date().toLocaleDateString('ko-KR')}</h2><table><thead><tr><th>과목</th><th>문제</th><th>내 답</th><th>정답</th><th>해설</th><th>재풀이</th></tr></thead><tbody><tr><td></td><td></td><td></td><td></td><td></td><td>☐</td></tr></tbody></table>` },
+      { name:'모의고사 기록', html:`<h2>모의고사 성적</h2><table><thead><tr><th>회차</th><th>국어</th><th>수학</th><th>영어</th><th>탐구</th><th>총점</th></tr></thead><tbody><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr></tbody></table>` }
+    ]
+  },
+  'college': { name:'대학생', icon:'i-cards', color:'#4caf50',
+    desc:'강의 시간표, GPA, 과제', tools:['timetable','gpa','dday'],
+    templates:[
+      { name:'과제 트래커', html:`<h2>과제 목록</h2><table><thead><tr><th>과목</th><th>과제명</th><th>마감일</th><th>상태</th></tr></thead><tbody><tr><td></td><td></td><td></td><td>☐ 진행중</td></tr></tbody></table>` },
+      { name:'조별 과제 노트', html:`<h2>조별 과제</h2><h3>팀원</h3><ul><li></li></ul><h3>역할 분담</h3><p></p><h3>진행 상황</h3><p></p>` }
+    ]
+  },
+  'grad': { name:'대학원생', icon:'i-book', color:'#7e57c2',
+    desc:'논문 관리, 연구노트, 인용', tools:['dday','timetrack'],
+    templates:[
+      { name:'논문 노트', html:`<h2>논문 리뷰</h2><p><b>제목:</b> </p><p><b>저자:</b> </p><p><b>DOI:</b> </p><h3>핵심 요약</h3><p></p><h3>방법론</h3><p></p><h3>결과</h3><p></p><h3>비판/인사이트</h3><p></p>` },
+      { name:'실험 노트', html:`<h2>실험 노트 — ${new Date().toLocaleDateString('ko-KR')}</h2><h3>목적</h3><p></p><h3>프로토콜</h3><p></p><h3>결과</h3><p></p><h3>고찰</h3><p></p>` },
+      { name:'지도교수 미팅', html:`<h2>지도교수 미팅 — ${new Date().toLocaleDateString('ko-KR')}</h2><h3>보고 사항</h3><ul><li></li></ul><h3>피드백</h3><p></p><h3>다음 과제</h3><ul><li></li></ul>` }
+    ]
+  },
+  'office-junior': { name:'회사원(주니어)', icon:'i-building', color:'#26a69a',
+    desc:'회의록, 일정, To-do', tools:['dday','timetrack'],
+    templates:[
+      { name:'회의록 (템플릿)', html:`<h2>회의록 — ${new Date().toLocaleDateString('ko-KR')}</h2><p><b>참석자:</b> </p><p><b>일시/장소:</b> </p><h3>아젠다</h3><ol><li></li></ol><h3>논의</h3><p></p><h3>결정 사항</h3><ul><li></li></ul><h3>액션 아이템</h3><table><thead><tr><th>담당</th><th>내용</th><th>마감</th></tr></thead><tbody><tr><td></td><td></td><td></td></tr></tbody></table>` },
+      { name:'오늘 할 일', html:`<h2>오늘 할 일 — ${new Date().toLocaleDateString('ko-KR')}</h2><h3>🔴 긴급·중요</h3><div class="todo"><input type="checkbox"><span></span></div><h3>🟡 중요</h3><div class="todo"><input type="checkbox"><span></span></div><h3>🟢 평소</h3><div class="todo"><input type="checkbox"><span></span></div>` }
+    ]
+  },
+  'office-senior': { name:'회사원(시니어/매니저)', icon:'i-users', color:'#ef6c00',
+    desc:'팀 미팅, 프로젝트, 1:1, OKR', tools:['dday','timetrack'],
+    templates:[
+      { name:'1:1 미팅 노트', html:`<h2>1:1 미팅 — [상대] · ${new Date().toLocaleDateString('ko-KR')}</h2><h3>체크인</h3><p></p><h3>업무 진행</h3><p></p><h3>커리어 논의</h3><p></p><h3>피드백 (양방향)</h3><p></p><h3>액션 아이템</h3><ul><li></li></ul>` },
+      { name:'주간 리포트', html:`<h2>주간 리포트 — ${new Date().toLocaleDateString('ko-KR')}</h2><h3>✅ 이번 주 완료</h3><ul><li></li></ul><h3>🔄 진행 중</h3><ul><li></li></ul><h3>📅 다음 주 계획</h3><ul><li></li></ul><h3>⚠ 리스크</h3><ul><li></li></ul>` },
+      { name:'OKR 트래커', html:`<h2>Q OKR</h2><h3>Objective 1</h3><p></p><ul><li>KR1: </li><li>KR2: </li><li>KR3: </li></ul>` }
+    ]
+  },
+  'freelancer': { name:'프리랜서', icon:'i-briefcase', color:'#8d6e63',
+    desc:'견적서, 타임트래킹, 고객 CRM', tools:['timetrack','dday'],
+    templates:[
+      { name:'견적서', html:`<h2>견적서 — ${new Date().toLocaleDateString('ko-KR')}</h2><p><b>고객:</b> </p><p><b>프로젝트:</b> </p><table><thead><tr><th>항목</th><th>수량</th><th>단가</th><th>금액</th></tr></thead><tbody><tr><td></td><td></td><td></td><td></td></tr></tbody></table><p><b>합계:</b> </p>` },
+      { name:'청구서', html:`<h2>청구서 #INV-${Date.now()}</h2><p><b>청구일:</b> ${new Date().toLocaleDateString('ko-KR')}</p><p><b>지급 기한:</b> </p><p><b>입금 계좌:</b> </p>` }
+    ]
+  },
+  'homemaker': { name:'가정주부', icon:'i-heart', color:'#ec407a',
+    desc:'가계부, 장보기, 식단, 가족 일정', tools:['ledger','shop','meal'],
+    templates:[
+      { name:'가족 일정', html:`<h2>가족 이번 달 일정</h2><table><thead><tr><th>날짜</th><th>내용</th><th>참여자</th></tr></thead><tbody><tr><td></td><td></td><td></td></tr></tbody></table>` },
+      { name:'요리 레시피', html:`<h2>레시피: </h2><p><b>재료:</b></p><ul><li></li></ul><p><b>조리법:</b></p><ol><li></li></ol>` }
+    ]
+  },
+  'senior': { name:'노년층', icon:'i-heart', color:'#8a5fd1',
+    desc:'약 복용, 혈압·혈당, 병원 일정', tools:['med','vital','dday'],
+    templates:[
+      { name:'병원 일정', html:`<h2 style="font-size:22px;">병원 예약</h2><p style="font-size:16px;"><b>날짜:</b> </p><p style="font-size:16px;"><b>병원:</b> </p><p style="font-size:16px;"><b>의사:</b> </p><p style="font-size:16px;"><b>증상·궁금한 점:</b> </p>` }
+    ]
+  }
+};
+
+const ROLE_TOOLS = {
+  'timetable': { name:'시간표', icon:'i-grid', opener: () => openTimetable() },
+  'ledger': { name:'가계부', icon:'i-stats', opener: () => openLedger() },
+  'gpa': { name:'GPA 계산기', icon:'i-stats', opener: () => openGpa() },
+  'dday': { name:'D-Day', icon:'i-today', opener: () => openDday() },
+  'med': { name:'약 복용', icon:'i-heart', opener: () => openMed() },
+  'vital': { name:'혈압·혈당', icon:'i-heart', opener: () => openVital() },
+  'shop': { name:'장보기', icon:'i-check', opener: () => openShop() },
+  'meal': { name:'식단', icon:'i-table', opener: () => openMeal() },
+  'timetrack': { name:'타임 트래킹', icon:'i-clock', opener: () => openTimetrack() }
+};
+
+/* --- 역할 선택 모달 --- */
+function openRolesModal() {
+  $('rolesModal').classList.add('open');
+  renderRolesGrid();
+  updateRolesSelCount();
+}
+function renderRolesGrid() {
+  const wrap = $('rolesGrid');
+  wrap.innerHTML = Object.entries(ROLES).map(([k, r]) => {
+    const sel = state.userRoles.includes(k) ? 'selected' : '';
+    return `<div class="role-card ${sel}" data-role="${k}" style="--accent-role:${r.color};">
+      <svg class="ico role-ico" style="stroke:${r.color};"><use href="#${r.icon}"/></svg>
+      <div class="role-name">${r.name}</div>
+      <div class="role-desc">${r.desc}</div>
+      <div class="role-check">✓</div>
+    </div>`;
+  }).join('');
+  wrap.querySelectorAll('.role-card').forEach(card => {
+    card.addEventListener('click', () => {
+      card.classList.toggle('selected');
+      updateRolesSelCount();
+    });
+  });
+}
+function updateRolesSelCount() {
+  const n = document.querySelectorAll('#rolesGrid .role-card.selected').length;
+  $('rolesSelCount').textContent = '선택: ' + n + '개';
+}
+function applyRoles() {
+  const selected = [...document.querySelectorAll('#rolesGrid .role-card.selected')].map(c => c.dataset.role);
+  const newOnes = selected.filter(r => !state.userRoles.includes(r));
+  state.userRoles = selected;
+  scheduleSave();
+  updateRoleBadge();
+  renderSidebar();
+  $('rolesModal').classList.remove('open');
+  // 처음 선택한 역할에 대해 템플릿 생성 제안
+  if (newOnes.length > 0) {
+    const templateCount = newOnes.reduce((acc, r) => acc + (ROLES[r].templates?.length || 0), 0);
+    if (templateCount > 0) {
+      confirm2('템플릿 자동 생성', `선택하신 역할에 맞는 메모 템플릿 ${templateCount}개를 자동 생성할까요?`, '생성', '나중에').then(ok => {
+        if (ok) generateRoleTemplates(newOnes);
+      });
+    }
+  }
+  toast(selected.length > 0 ? `${selected.length}개 역할 설정됨` : '역할 해제됨');
+}
+function generateRoleTemplates(roleKeys) {
+  let created = 0;
+  roleKeys.forEach(rk => {
+    const r = ROLES[rk];
+    if (!r || !r.templates) return;
+    r.templates.forEach(t => {
+      if (typeof addTab === 'function') {
+        addTab(t.name, t.html);
+        created++;
+      }
+    });
+  });
+  toast(`${created}개 템플릿 메모 생성됨`);
+  renderTabs();
+}
+function updateRoleBadge() {
+  const b = $('roleDashBadge');
+  if (!b) return;
+  const n = (state.userRoles || []).length;
+  b.textContent = n;
+  b.classList.toggle('show', n > 0);
+}
+
+$('rolesClose').addEventListener('click', () => $('rolesModal').classList.remove('open'));
+$('rolesSkip').addEventListener('click', () => $('rolesModal').classList.remove('open'));
+$('rolesApply').addEventListener('click', applyRoles);
+
+/* --- 역할 대시보드 --- */
+function openRoleDashboard() {
+  $('roleDashModal').classList.add('open');
+  const body = $('roleDashBody');
+  if (!state.userRoles || state.userRoles.length === 0) {
+    body.innerHTML = `<div style="text-align:center; padding:40px 20px; color:var(--ink-soft);">
+      <svg class="ico" style="width:48px; height:48px; opacity:0.4;"><use href="#i-users"/></svg>
+      <div style="margin-top:12px; font-size:14px;">아직 역할을 선택하지 않았습니다</div>
+      <div style="font-size:11px; margin:6px 0 14px;">학생·회사원·주부 등 당신의 상황에 맞춘 도구를 꺼내드립니다</div>
+      <button class="ptb-primary" onclick="openRolesModal()">역할 선택하기</button>
+    </div>`;
+    return;
+  }
+  const allTools = new Set();
+  state.userRoles.forEach(rk => (ROLES[rk]?.tools || []).forEach(t => allTools.add(t)));
+  body.innerHTML = `
+    <div style="margin-bottom:14px;">
+      <div style="font-size:11px; color:var(--ink-soft); margin-bottom:6px;">활성 역할</div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap;">
+        ${state.userRoles.map(rk => {
+          const r = ROLES[rk]; if (!r) return '';
+          return `<span style="background:${r.color}22; color:${r.color}; padding:4px 10px; border-radius:12px; font-size:11px; font-weight:600;">${r.name}</span>`;
+        }).join('')}
+      </div>
+    </div>
+    <div style="font-size:11px; color:var(--ink-soft); margin-bottom:6px;">내 도구 (${allTools.size}개)</div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(130px, 1fr)); gap:10px;">
+      ${[...allTools].map(tk => {
+        const t = ROLE_TOOLS[tk]; if (!t) return '';
+        return `<div class="role-tool-card" data-tool="${tk}">
+          <svg class="rtc-ico"><use href="#${t.icon}"/></svg>
+          <div class="rtc-name">${t.name}</div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div style="margin-top:16px; padding-top:14px; border-top:1px solid var(--paper-edge);">
+      <div style="font-size:11px; color:var(--ink-soft); margin-bottom:6px;">템플릿 생성</div>
+      <button id="roleDashGenTpl" class="ptb">역할 템플릿 다시 생성</button>
+    </div>
+  `;
+  body.querySelectorAll('.role-tool-card').forEach(c => {
+    c.addEventListener('click', () => {
+      $('roleDashModal').classList.remove('open');
+      ROLE_TOOLS[c.dataset.tool]?.opener();
+    });
+  });
+  const genBtn = $('roleDashGenTpl');
+  if (genBtn) genBtn.addEventListener('click', () => {
+    $('roleDashModal').classList.remove('open');
+    generateRoleTemplates(state.userRoles);
+  });
+}
+$('roleDashTopBtn').addEventListener('click', openRoleDashboard);
+$('roleDashClose').addEventListener('click', () => $('roleDashModal').classList.remove('open'));
+$('roleDashManage').addEventListener('click', () => { $('roleDashModal').classList.remove('open'); openRolesModal(); });
+
+/* =========================================================
+   위젯: 시간표
+   ========================================================= */
+function getRoleStore(key) {
+  state.roleData = state.roleData || {};
+  state.roleData[key] = state.roleData[key] || {};
+  return state.roleData[key];
+}
+function openTimetable() {
+  $('timetableModal').classList.add('open');
+  renderTimetable();
+}
+function renderTimetable() {
+  const store = getRoleStore('timetable');
+  const sem = $('ttSemester').value;
+  store[sem] = store[sem] || { cells: {} };
+  const cells = store[sem].cells;
+  const days = ['월','화','수','목','금'];
+  const periods = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'];
+  let html = '<thead><tr><th style="width:60px;">시간</th>';
+  days.forEach(d => html += `<th style="width:18%;">${d}</th>`);
+  html += '</tr></thead><tbody>';
+  periods.forEach((p, pi) => {
+    html += `<tr><th>${p}</th>`;
+    days.forEach((d, di) => {
+      const key = pi + '-' + di;
+      const c = cells[key];
+      if (c) {
+        html += `<td class="tt-cell" data-k="${key}"><div class="tt-course" style="background:${c.color};">${escapeHtml(c.name)}<br><small>${escapeHtml(c.room||'')}</small></div></td>`;
+      } else {
+        html += `<td class="tt-cell" data-k="${key}"></td>`;
+      }
+    });
+    html += '</tr>';
+  });
+  html += '</tbody>';
+  $('ttGrid').innerHTML = html;
+  $('ttGrid').querySelectorAll('.tt-cell').forEach(td => {
+    td.addEventListener('click', async () => {
+      const key = td.dataset.k;
+      const cur = cells[key];
+      const name = await prompt2('강의명 (빈값이면 삭제)', cur?.name || '');
+      if (name === null) return;
+      if (!name.trim()) { delete cells[key]; scheduleSave(); renderTimetable(); return; }
+      const room = await prompt2('강의실 (선택)', cur?.room || '');
+      const prof = await prompt2('교수 (선택)', cur?.prof || '');
+      const colors = ['#ef5350','#ab47bc','#5c6bc0','#29b6f6','#26a69a','#66bb6a','#ffa726','#8d6e63'];
+      const color = cur?.color || colors[Object.keys(cells).length % colors.length];
+      cells[key] = { name: name.trim(), room: room||'', prof: prof||'', color };
+      scheduleSave();
+      renderTimetable();
+    });
+  });
+}
+$('ttClose').addEventListener('click', () => $('timetableModal').classList.remove('open'));
+$('ttSemester').addEventListener('change', renderTimetable);
+$('ttClear').addEventListener('click', async () => {
+  if (!await confirm2('시간표 지우기', '이 학기 시간표를 모두 지울까요?')) return;
+  const store = getRoleStore('timetable');
+  store[$('ttSemester').value] = { cells: {} };
+  scheduleSave();
+  renderTimetable();
+});
+$('ttSaveMemo').addEventListener('click', () => {
+  const html = $('ttGrid').outerHTML;
+  if (typeof addTab === 'function') {
+    addTab('시간표 ' + $('ttSemester').value, `<h2>${$('ttSemester').value} 시간표</h2>` + html);
+    $('timetableModal').classList.remove('open');
+    toast('시간표가 메모로 저장됨');
+  }
+});
+
+/* =========================================================
+   위젯: 가계부
+   ========================================================= */
+const LEDGER_CATS = { expense:['식비','교통','주거','쇼핑','의료','문화','교육','통신','경조사','기타'], income:['급여','용돈','투자','환급','기타'] };
+function openLedger() {
+  $('ledgerModal').classList.add('open');
+  if (!$('ledgerMonth').value) {
+    $('ledgerMonth').value = new Date().toISOString().slice(0,7);
+  }
+  const dt = $('ldDate');
+  if (!dt.value) dt.value = new Date().toISOString().slice(0,10);
+  updateLedgerCategory();
+  renderLedger();
+}
+function updateLedgerCategory() {
+  const t = $('ldType').value;
+  $('ldCategory').innerHTML = LEDGER_CATS[t].map(c => `<option>${c}</option>`).join('');
+}
+function getLedger() {
+  const s = getRoleStore('ledger');
+  s.entries = s.entries || [];
+  return s.entries;
+}
+function renderLedger() {
+  const entries = getLedger();
+  const month = $('ledgerMonth').value;
+  const filter = $('ledgerFilter').value;
+  const q = $('ledgerSearch').value.trim().toLowerCase();
+  const monthEntries = entries.filter(e => e.date.startsWith(month));
+  const filtered = monthEntries.filter(e => {
+    if (filter && e.type !== filter) return false;
+    if (q && !((e.category + ' ' + (e.note||'')).toLowerCase().includes(q))) return false;
+    return true;
+  }).sort((a,b) => b.date.localeCompare(a.date));
+
+  // 리스트
+  const list = $('ledgerList');
+  if (filtered.length === 0) {
+    list.innerHTML = '<div style="text-align:center; padding:30px; color:var(--ink-soft); font-size:12px;">내역이 없습니다</div>';
+  } else {
+    list.innerHTML = filtered.map((e, idx) => `
+      <div class="ld-item" data-idx="${entries.indexOf(e)}">
+        <span style="color:var(--ink-soft); font-size:11px;">${e.date.slice(5)}</span>
+        <span class="${e.type==='expense'?'ld-expense':'ld-income'}" style="font-weight:600;">${e.type==='expense'?'지출':'수입'}</span>
+        <span>${escapeHtml(e.category)}${e.note?' · <small style="color:#888;">'+escapeHtml(e.note)+'</small>':''}</span>
+        <span class="${e.type==='expense'?'ld-expense':'ld-income'}" style="text-align:right; font-weight:600;">${e.type==='expense'?'-':'+'}${Number(e.amount).toLocaleString('ko-KR')}원</span>
+        <button class="ptb" style="padding:2px 6px; font-size:10px;" data-del="${entries.indexOf(e)}">✕</button>
+      </div>
+    `).join('');
+    list.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => {
+      entries.splice(+b.dataset.del, 1);
+      scheduleSave();
+      renderLedger();
+    }));
+  }
+
+  // 요약
+  const income = monthEntries.filter(e=>e.type==='income').reduce((a,b)=>a+Number(b.amount),0);
+  const expense = monthEntries.filter(e=>e.type==='expense').reduce((a,b)=>a+Number(b.amount),0);
+  $('ledgerSummary').innerHTML = `
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+      <div style="padding:8px; background:#e8f5e9; border-radius:4px;"><div style="font-size:10px; color:#2e7d32;">수입</div><div style="font-weight:700; color:#2e7d32;">+${income.toLocaleString('ko-KR')}</div></div>
+      <div style="padding:8px; background:#ffebee; border-radius:4px;"><div style="font-size:10px; color:#c62828;">지출</div><div style="font-weight:700; color:#c62828;">-${expense.toLocaleString('ko-KR')}</div></div>
+    </div>
+    <div style="margin-top:6px; padding:8px; background:color-mix(in srgb, var(--accent) 8%, transparent); border-radius:4px; text-align:center;">
+      <div style="font-size:10px; color:var(--ink-soft);">잔액</div>
+      <div style="font-weight:700; font-size:16px; color:${income-expense>=0?'#2e7d32':'#c62828'};">${(income-expense).toLocaleString('ko-KR')}원</div>
+    </div>
+  `;
+
+  // 차트 (카테고리별 지출)
+  const catSum = {};
+  monthEntries.filter(e=>e.type==='expense').forEach(e => { catSum[e.category] = (catSum[e.category]||0) + Number(e.amount); });
+  drawLedgerChart(catSum);
+}
+function drawLedgerChart(catSum) {
+  const canvas = $('ledgerChart');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const entries = Object.entries(catSum).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  if (entries.length === 0) {
+    ctx.fillStyle = '#999'; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('데이터 없음', canvas.width/2, canvas.height/2);
+    return;
+  }
+  const total = entries.reduce((a,b)=>a+b[1],0);
+  const colors = ['#ef5350','#ab47bc','#5c6bc0','#29b6f6','#66bb6a','#ffa726'];
+  // 원형 파이 차트
+  const cx = 70, cy = 90, r = 60;
+  let angle = -Math.PI/2;
+  entries.forEach(([cat, amt], i) => {
+    const slice = (amt / total) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, angle, angle + slice);
+    ctx.closePath();
+    ctx.fillStyle = colors[i];
+    ctx.fill();
+    angle += slice;
+  });
+  // 범례
+  ctx.font = '10px sans-serif'; ctx.textAlign = 'left';
+  entries.forEach(([cat, amt], i) => {
+    const y = 20 + i * 22;
+    ctx.fillStyle = colors[i];
+    ctx.fillRect(150, y, 12, 12);
+    ctx.fillStyle = '#333';
+    ctx.fillText(`${cat} ${Math.round(amt/total*100)}%`, 166, y+10);
+  });
+}
+$('ldType').addEventListener('change', updateLedgerCategory);
+$('ldAdd').addEventListener('click', () => {
+  const amt = +$('ldAmount').value;
+  if (!amt || amt <= 0) { toast('금액을 입력하세요'); return; }
+  const entry = { type: $('ldType').value, date: $('ldDate').value, category: $('ldCategory').value, amount: amt, note: $('ldNote').value.trim() };
+  getLedger().push(entry);
+  scheduleSave();
+  $('ldAmount').value = ''; $('ldNote').value = '';
+  renderLedger();
+  toast('추가됨');
+});
+$('ledgerMonth').addEventListener('change', renderLedger);
+$('ledgerSearch').addEventListener('input', renderLedger);
+$('ledgerFilter').addEventListener('change', renderLedger);
+$('ledgerExport').addEventListener('click', () => {
+  const entries = getLedger();
+  const csv = '\uFEFF일자,구분,카테고리,금액,메모\r\n' + entries.map(e => `${e.date},${e.type==='expense'?'지출':'수입'},"${e.category}",${e.amount},"${(e.note||'').replace(/"/g,'""')}"`).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'ledger-' + new Date().toISOString().slice(0,10) + '.csv';
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 200);
+  toast('CSV 내보내기 완료');
+});
+$('ledgerClose').addEventListener('click', () => $('ledgerModal').classList.remove('open'));
+
+/* =========================================================
+   위젯: GPA 계산기
+   ========================================================= */
+const GPA_GRADES_45 = [['A+',4.5],['A',4.0],['B+',3.5],['B',3.0],['C+',2.5],['C',2.0],['D+',1.5],['D',1.0],['F',0]];
+function openGpa() {
+  $('gpaModal').classList.add('open');
+  const store = getRoleStore('gpa');
+  store.courses = store.courses || [{ name:'', credit:3, grade:4.5 }];
+  renderGpa();
+}
+function renderGpa() {
+  const store = getRoleStore('gpa');
+  const scale = +$('gpaScale').value;
+  const body = $('gpaBody');
+  body.innerHTML = store.courses.map((c, i) => `
+    <tr>
+      <td><input type="text" class="rw-input" style="margin:0; text-align:left;" value="${escapeHtml(c.name)}" data-i="${i}" data-f="name"></td>
+      <td><input type="number" class="rw-input" style="margin:0; text-align:center; width:70px;" value="${c.credit}" data-i="${i}" data-f="credit" min="0" max="10"></td>
+      <td><select class="rw-input" style="margin:0;" data-i="${i}" data-f="grade">${GPA_GRADES_45.map(([n,v])=>`<option value="${v}" ${+c.grade===v?'selected':''}>${n} (${v.toFixed(1)})</option>`).join('')}</select></td>
+      <td><button class="ptb" data-del="${i}" style="padding:3px 8px; font-size:11px;">✕</button></td>
+    </tr>
+  `).join('');
+  body.querySelectorAll('input, select').forEach(el => {
+    el.addEventListener('input', () => {
+      const i = +el.dataset.i, f = el.dataset.f;
+      store.courses[i][f] = f === 'name' ? el.value : +el.value;
+      scheduleSave();
+      computeGpa();
+    });
+  });
+  body.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => {
+    store.courses.splice(+b.dataset.del, 1);
+    if (store.courses.length === 0) store.courses.push({ name:'', credit:3, grade:4.5 });
+    scheduleSave();
+    renderGpa();
+  }));
+  $('gpaResultOf').textContent = '/ ' + scale.toFixed(1);
+  computeGpa();
+}
+function computeGpa() {
+  const store = getRoleStore('gpa');
+  const scale = +$('gpaScale').value;
+  const courses = (store.courses || []).filter(c => c.credit > 0);
+  if (courses.length === 0) { $('gpaResult').textContent = '0.00'; return; }
+  const totalCredit = courses.reduce((a,b)=>a+(+b.credit||0), 0);
+  const totalPoint = courses.reduce((a,b)=>a+((+b.credit||0)*(+b.grade||0)), 0);
+  // 4.5 만점 → 지정 스케일로 변환
+  let gpa = totalCredit > 0 ? totalPoint / totalCredit : 0;
+  if (scale !== 4.5) gpa = (gpa / 4.5) * scale;
+  $('gpaResult').textContent = gpa.toFixed(2);
+}
+$('gpaAddCourse').addEventListener('click', () => {
+  const store = getRoleStore('gpa');
+  store.courses.push({ name:'', credit:3, grade:4.5 });
+  scheduleSave();
+  renderGpa();
+});
+$('gpaScale').addEventListener('change', computeGpa);
+$('gpaClose').addEventListener('click', () => $('gpaModal').classList.remove('open'));
+$('gpaSaveMemo').addEventListener('click', () => {
+  const store = getRoleStore('gpa');
+  const scale = $('gpaScale').value;
+  const rows = (store.courses||[]).map(c => `<tr><td>${escapeHtml(c.name)}</td><td>${c.credit}</td><td>${GPA_GRADES_45.find(g=>g[1]===+c.grade)?.[0] || c.grade}</td></tr>`).join('');
+  const html = `<h2>GPA 기록 — ${new Date().toLocaleDateString('ko-KR')}</h2><p>평점 평균: <b>${$('gpaResult').textContent}</b> / ${scale}</p><table><thead><tr><th>과목</th><th>학점</th><th>성적</th></tr></thead><tbody>${rows}</tbody></table>`;
+  if (typeof addTab === 'function') { addTab('GPA 기록', html); toast('GPA가 메모로 저장됨'); }
+});
+
+/* =========================================================
+   위젯: D-Day 관리
+   ========================================================= */
+function openDday() {
+  $('ddayModal').classList.add('open');
+  renderDday();
+}
+function getDdays() { const s = getRoleStore('dday'); s.list = s.list || []; return s.list; }
+function renderDday() {
+  const list = getDdays();
+  const today = new Date(); today.setHours(0,0,0,0);
+  const sorted = list.map((d, idx) => ({ ...d, idx })).sort((a,b) => new Date(a.date) - new Date(b.date));
+  const wrap = $('ddayList');
+  if (sorted.length === 0) {
+    wrap.innerHTML = `<div style="text-align:center; padding:40px 20px; color:var(--ink-soft);">
+      <svg class="ico" style="width:40px; height:40px; opacity:0.4;"><use href="#i-today"/></svg>
+      <div style="margin-top:10px;">등록된 D-Day가 없습니다</div>
+      <div style="font-size:11px; margin-top:4px;">우측 상단 "+ 추가" 버튼으로 시작하세요</div>
+    </div>`;
+    return;
+  }
+  wrap.innerHTML = sorted.map(d => {
+    const target = new Date(d.date); target.setHours(0,0,0,0);
+    const diff = Math.round((target - today) / 86400000);
+    let label, cls;
+    if (diff > 0) { label = `D-${diff}`; cls = ''; }
+    else if (diff === 0) { label = 'D-Day'; cls = 'style="color:#ef5350;"'; }
+    else { label = `D+${-diff}`; cls = 'class="dday-past"'; }
+    return `<div class="dday-item">
+      <div class="dday-count" ${cls}>${label}</div>
+      <div style="flex:1;">
+        <div style="font-weight:600;">${escapeHtml(d.title)}</div>
+        <div style="font-size:11px; color:var(--ink-soft);">${d.date}${d.memo?' · '+escapeHtml(d.memo):''}</div>
+      </div>
+      <button class="ptb" data-dd-edit="${d.idx}" style="padding:4px 8px;"><svg class="ico"><use href="#i-edit"/></svg></button>
+      <button class="ptb" data-dd-del="${d.idx}" style="padding:4px 8px;"><svg class="ico"><use href="#i-trash"/></svg></button>
+    </div>`;
+  }).join('');
+  wrap.querySelectorAll('[data-dd-edit]').forEach(b => b.addEventListener('click', () => editDday(+b.dataset.ddEdit)));
+  wrap.querySelectorAll('[data-dd-del]').forEach(b => b.addEventListener('click', () => { list.splice(+b.dataset.ddDel, 1); scheduleSave(); renderDday(); }));
+}
+async function editDday(idx) {
+  const list = getDdays();
+  const cur = idx >= 0 ? list[idx] : { title:'', date:new Date().toISOString().slice(0,10), memo:'' };
+  const title = await prompt2('이름', cur.title);
+  if (!title) return;
+  const date = await prompt2('날짜 (YYYY-MM-DD)', cur.date);
+  if (!date || !/^\d{4}-\d{1,2}-\d{1,2}$/.test(date)) { toast('날짜 형식이 잘못됐습니다'); return; }
+  const memo = await prompt2('메모 (선택)', cur.memo || '');
+  const entry = { title, date, memo: memo||'' };
+  if (idx >= 0) list[idx] = entry; else list.push(entry);
+  scheduleSave();
+  renderDday();
+}
+$('ddayAddBtn').addEventListener('click', () => editDday(-1));
+$('ddayClose').addEventListener('click', () => $('ddayModal').classList.remove('open'));
+
+/* =========================================================
+   위젯: 약 복용 관리
+   ========================================================= */
+function openMed() {
+  $('medModal').classList.add('open');
+  renderMed();
+}
+function getMeds() { const s = getRoleStore('med'); s.list = s.list || []; s.log = s.log || {}; return s; }
+function renderMed() {
+  const s = getMeds();
+  const today = new Date().toISOString().slice(0,10);
+  const wrap = $('medList');
+  if (s.list.length === 0) {
+    wrap.innerHTML = `<div style="text-align:center; padding:40px; color:var(--ink-soft);">등록된 약이 없습니다</div>`;
+    return;
+  }
+  s.log[today] = s.log[today] || {};
+  wrap.innerHTML = s.list.map((m, i) => {
+    const times = m.times.map((t, ti) => {
+      const taken = s.log[today][i + ':' + ti];
+      return `<label style="display:inline-flex; align-items:center; gap:4px; margin-right:10px; font-size:12px; ${taken?'color:#2e7d32; font-weight:600;':''}"><input type="checkbox" data-m="${i}" data-t="${ti}" ${taken?'checked':''}> ${t}</label>`;
+    }).join('');
+    return `<div style="padding:12px; border:1px solid var(--paper-edge); border-radius:6px; margin-bottom:8px;">
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+        <b>${escapeHtml(m.name)}</b>
+        <span style="color:var(--ink-soft); font-size:11px;">${m.dose||''}</span>
+        <span style="flex:1;"></span>
+        <button class="ptb" data-med-del="${i}" style="padding:3px 8px;"><svg class="ico"><use href="#i-trash"/></svg></button>
+      </div>
+      <div>${times}</div>
+    </div>`;
+  }).join('');
+  wrap.querySelectorAll('input[type=checkbox]').forEach(cb => cb.addEventListener('change', (e) => {
+    const k = cb.dataset.m + ':' + cb.dataset.t;
+    if (cb.checked) s.log[today][k] = Date.now();
+    else delete s.log[today][k];
+    scheduleSave();
+    renderMed();
+  }));
+  wrap.querySelectorAll('[data-med-del]').forEach(b => b.addEventListener('click', async () => {
+    if (await confirm2('약 삭제', '이 약을 삭제하시겠습니까?')) {
+      s.list.splice(+b.dataset.medDel, 1);
+      scheduleSave();
+      renderMed();
+    }
+  }));
+}
+$('medAddBtn').addEventListener('click', async () => {
+  const name = await prompt2('약 이름', '');
+  if (!name) return;
+  const dose = await prompt2('용량 (예: 1정)', '1정');
+  const timesStr = await prompt2('복용 시간 (쉼표 구분, 예: 08:00, 13:00, 19:00)', '08:00, 20:00');
+  const times = (timesStr||'').split(',').map(t=>t.trim()).filter(Boolean);
+  if (times.length === 0) { toast('시간을 하나 이상 입력하세요'); return; }
+  getMeds().list.push({ name, dose: dose||'', times });
+  scheduleSave();
+  renderMed();
+});
+$('medClose').addEventListener('click', () => $('medModal').classList.remove('open'));
+
+/* =========================================================
+   위젯: 혈압·혈당 기록
+   ========================================================= */
+function openVital() {
+  $('vitalModal').classList.add('open');
+  if (!$('vitalDt').value) $('vitalDt').value = new Date().toISOString().slice(0,16);
+  updateVitalUI();
+  renderVital();
+}
+function updateVitalUI() {
+  const t = $('vitalType').value;
+  const sep = $('vitalSep');
+  const v2 = $('vitalV2');
+  const pulse = $('vitalPulse');
+  if (t === 'bp') {
+    sep.style.display = ''; v2.style.display = ''; pulse.style.display = '';
+    $('vitalV1').placeholder = '수축기'; v2.placeholder = '이완기';
+  } else if (t === 'glucose') {
+    sep.style.display = 'none'; v2.style.display = 'none'; pulse.style.display = 'none';
+    $('vitalV1').placeholder = '혈당 (mg/dL)';
+  } else {
+    sep.style.display = 'none'; v2.style.display = 'none'; pulse.style.display = 'none';
+    $('vitalV1').placeholder = '체중 (kg)';
+  }
+}
+function getVitals() { const s = getRoleStore('vital'); s.records = s.records || []; return s.records; }
+function renderVital() {
+  const type = $('vitalType').value;
+  const recs = getVitals().filter(r => r.type === type).sort((a,b)=>new Date(a.dt)-new Date(b.dt));
+  // 차트
+  const canvas = $('vitalChart');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (recs.length === 0) {
+    ctx.fillStyle = '#999'; ctx.font = '12px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('데이터 없음', canvas.width/2, canvas.height/2);
+  } else {
+    const pad = 30;
+    const w = canvas.width - pad*2, h = canvas.height - pad*2;
+    // 축
+    ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad, pad); ctx.lineTo(pad, pad+h); ctx.lineTo(pad+w, pad+h); ctx.stroke();
+    // 라인 그리기
+    const drawLine = (vals, color) => {
+      if (!vals.length) return;
+      const max = Math.max(...vals), min = Math.min(...vals);
+      const range = max - min || 1;
+      ctx.strokeStyle = color; ctx.lineWidth = 2;
+      ctx.beginPath();
+      vals.forEach((v, i) => {
+        const x = pad + (i / Math.max(1, vals.length - 1)) * w;
+        const y = pad + h - ((v - min) / range) * h;
+        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      // 점
+      vals.forEach((v, i) => {
+        const x = pad + (i / Math.max(1, vals.length - 1)) * w;
+        const y = pad + h - ((v - min) / range) * h;
+        ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI*2); ctx.fill();
+      });
+    };
+    if (type === 'bp') {
+      drawLine(recs.map(r=>r.v1), '#ef5350');
+      drawLine(recs.map(r=>r.v2), '#42a5f5');
+    } else {
+      drawLine(recs.map(r=>r.v1), '#7e57c2');
+    }
+  }
+  // 리스트
+  $('vitalList').innerHTML = recs.slice().reverse().slice(0, 20).map((r, ri) => {
+    const realIdx = getVitals().indexOf(r);
+    return `<div style="display:flex; gap:10px; padding:5px 8px; border-bottom:1px dashed #eee; font-size:11px;">
+      <span style="color:#888;">${new Date(r.dt).toLocaleString('ko-KR')}</span>
+      <span style="font-weight:600;">${type==='bp'?r.v1+'/'+r.v2:r.v1}${type==='bp' && r.pulse?' · 맥박'+r.pulse:''}</span>
+      <span style="flex:1; color:#666;">${escapeHtml(r.note||'')}</span>
+      <button class="ptb" data-v-del="${realIdx}" style="padding:1px 6px; font-size:10px;">✕</button>
+    </div>`;
+  }).join('');
+  $('vitalList').querySelectorAll('[data-v-del]').forEach(b => b.addEventListener('click', () => {
+    getVitals().splice(+b.dataset.vDel, 1);
+    scheduleSave();
+    renderVital();
+  }));
+}
+$('vitalType').addEventListener('change', () => { updateVitalUI(); renderVital(); });
+$('vitalAdd').addEventListener('click', () => {
+  const v1 = +$('vitalV1').value;
+  if (!v1) { toast('값을 입력하세요'); return; }
+  const entry = { type: $('vitalType').value, dt: $('vitalDt').value, v1, v2: +$('vitalV2').value || null, pulse: +$('vitalPulse').value || null, note: $('vitalNote').value.trim() };
+  getVitals().push(entry);
+  scheduleSave();
+  $('vitalV1').value = ''; $('vitalV2').value = ''; $('vitalPulse').value = ''; $('vitalNote').value = '';
+  renderVital();
+  toast('기록 추가됨');
+});
+$('vitalClose').addEventListener('click', () => $('vitalModal').classList.remove('open'));
+
+/* =========================================================
+   위젯: 장보기 리스트
+   ========================================================= */
+function openShop() {
+  $('shopModal').classList.add('open');
+  renderShop();
+}
+function getShop() { const s = getRoleStore('shop'); s.list = s.list || []; return s.list; }
+function renderShop() {
+  const list = getShop();
+  const wrap = $('shopList');
+  if (list.length === 0) {
+    wrap.innerHTML = `<div style="text-align:center; padding:30px; color:var(--ink-soft);">품목을 추가하세요</div>`;
+    return;
+  }
+  const grouped = {};
+  list.forEach((it, i) => { (grouped[it.cat] = grouped[it.cat] || []).push({ ...it, idx: i }); });
+  wrap.innerHTML = Object.entries(grouped).map(([cat, items]) => `
+    <div style="margin-bottom:14px;">
+      <div class="rw-h">${cat} (${items.length})</div>
+      ${items.map(it => `<div class="shop-item ${it.done?'done':''}">
+        <input type="checkbox" ${it.done?'checked':''} data-s-done="${it.idx}">
+        <span style="flex:1;">${escapeHtml(it.name)}</span>
+        <button class="ptb" data-s-del="${it.idx}" style="padding:2px 6px; font-size:10px;">✕</button>
+      </div>`).join('')}
+    </div>
+  `).join('');
+  wrap.querySelectorAll('[data-s-done]').forEach(cb => cb.addEventListener('change', () => {
+    list[+cb.dataset.sDone].done = cb.checked;
+    scheduleSave(); renderShop();
+  }));
+  wrap.querySelectorAll('[data-s-del]').forEach(b => b.addEventListener('click', () => {
+    list.splice(+b.dataset.sDel, 1); scheduleSave(); renderShop();
+  }));
+}
+$('shopAdd').addEventListener('click', () => {
+  const name = $('shopItem').value.trim();
+  if (!name) return;
+  getShop().push({ name, cat: $('shopCategory').value, done:false });
+  $('shopItem').value = '';
+  scheduleSave(); renderShop();
+});
+$('shopItem').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('shopAdd').click(); });
+$('shopClearChecked').addEventListener('click', () => {
+  const list = getShop();
+  for (let i = list.length - 1; i >= 0; i--) if (list[i].done) list.splice(i, 1);
+  scheduleSave(); renderShop();
+  toast('완료 항목 삭제됨');
+});
+$('shopClose').addEventListener('click', () => $('shopModal').classList.remove('open'));
+
+/* =========================================================
+   위젯: 식단 계획
+   ========================================================= */
+function openMeal() {
+  $('mealModal').classList.add('open');
+  if (!$('mealWeek').value) {
+    const d = new Date(); d.setDate(d.getDate() - d.getDay() + 1);
+    $('mealWeek').value = d.getFullYear() + '-W' + String(Math.ceil(((d - new Date(d.getFullYear(),0,1))/86400000 + new Date(d.getFullYear(),0,1).getDay()+1)/7)).padStart(2,'0');
+  }
+  renderMeal();
+}
+function getMealPlan(wk) { const s = getRoleStore('meal'); s.plans = s.plans || {}; s.plans[wk] = s.plans[wk] || {}; return s.plans[wk]; }
+function renderMeal() {
+  const wk = $('mealWeek').value;
+  const plan = getMealPlan(wk);
+  const days = ['월','화','수','목','금','토','일'];
+  const meals = [['breakfast','아침'],['lunch','점심'],['dinner','저녁']];
+  let html = '<thead><tr><th style="width:80px;"></th>';
+  days.forEach(d => html += `<th>${d}</th>`);
+  html += '</tr></thead><tbody>';
+  meals.forEach(([mk, ml]) => {
+    html += `<tr><th>${ml}</th>`;
+    days.forEach((d, di) => {
+      const k = mk + '-' + di;
+      html += `<td style="min-width:100px;"><textarea data-mk="${k}" style="width:100%; border:none; resize:none; min-height:50px; font-size:11px; padding:4px;">${escapeHtml(plan[k]||'')}</textarea></td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody>';
+  $('mealGrid').innerHTML = html;
+  $('mealGrid').querySelectorAll('textarea').forEach(ta => {
+    ta.addEventListener('input', () => { plan[ta.dataset.mk] = ta.value; scheduleSave(); });
+  });
+}
+$('mealWeek').addEventListener('change', renderMeal);
+$('mealSaveMemo').addEventListener('click', () => {
+  if (typeof addTab === 'function') { addTab('식단 ' + $('mealWeek').value, '<h2>식단 ' + $('mealWeek').value + '</h2>' + $('mealGrid').outerHTML); toast('메모에 저장됨'); }
+});
+$('mealClose').addEventListener('click', () => $('mealModal').classList.remove('open'));
+
+/* =========================================================
+   위젯: 타임 트래킹
+   ========================================================= */
+let ttkTimer = null;
+function openTimetrack() {
+  $('timetrackModal').classList.add('open');
+  renderTimetrack();
+}
+function getTtk() { const s = getRoleStore('timetrack'); s.entries = s.entries || []; s.current = s.current || null; return s; }
+function renderTimetrack() {
+  const s = getTtk();
+  // 현재 진행 중
+  if (s.current) {
+    $('ttkCurrent').style.display = '';
+    $('ttkCurName').textContent = s.current.name;
+    updateTtkTimer();
+    if (!ttkTimer) ttkTimer = setInterval(updateTtkTimer, 1000);
+  } else {
+    $('ttkCurrent').style.display = 'none';
+    if (ttkTimer) { clearInterval(ttkTimer); ttkTimer = null; }
+  }
+  // 목록
+  const recent = s.entries.slice().reverse().slice(0, 20);
+  $('ttkEntries').innerHTML = recent.length === 0 ? '<div style="color:var(--ink-soft); padding:20px; text-align:center;">기록 없음</div>' :
+    recent.map((e, i) => {
+      const realIdx = s.entries.length - 1 - i;
+      const dur = e.end - e.start;
+      const h = Math.floor(dur/3600000), m = Math.floor((dur%3600000)/60000);
+      return `<div style="display:flex; gap:10px; padding:7px 10px; border-bottom:1px solid #eee; font-size:12px; align-items:center;">
+        <b style="flex:1;">${escapeHtml(e.name)}</b>
+        <span style="color:#666;">${new Date(e.start).toLocaleString('ko-KR', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'})}</span>
+        <span style="font-weight:700; color:var(--accent); font-family:monospace;">${h}h ${m}m</span>
+        <button class="ptb" data-ttk-del="${realIdx}" style="padding:2px 6px; font-size:10px;">✕</button>
+      </div>`;
+    }).join('');
+  $('ttkEntries').querySelectorAll('[data-ttk-del]').forEach(b => b.addEventListener('click', () => {
+    s.entries.splice(+b.dataset.ttkDel, 1); scheduleSave(); renderTimetrack();
+  }));
+  // 요약
+  const today = new Date().toDateString();
+  const todayEntries = s.entries.filter(e => new Date(e.start).toDateString() === today);
+  const byProj = {};
+  todayEntries.forEach(e => { byProj[e.name] = (byProj[e.name]||0) + (e.end - e.start); });
+  const total = Object.values(byProj).reduce((a,b)=>a+b, 0);
+  $('ttkSummary').innerHTML = total === 0 ? '<b>오늘 누적:</b> 0분' :
+    `<b>오늘 누적:</b> ${Math.floor(total/3600000)}시간 ${Math.floor((total%3600000)/60000)}분<br>` +
+    Object.entries(byProj).sort((a,b)=>b[1]-a[1]).map(([n,t]) => `· ${escapeHtml(n)}: ${Math.floor(t/3600000)}시간 ${Math.floor((t%3600000)/60000)}분`).join('<br>');
+}
+function updateTtkTimer() {
+  const s = getTtk();
+  if (!s.current) return;
+  const dur = Date.now() - s.current.start;
+  const h = Math.floor(dur/3600000), m = Math.floor((dur%3600000)/60000), sec = Math.floor((dur%60000)/1000);
+  $('ttkCurTime').textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+}
+$('ttkStart').addEventListener('click', () => {
+  const name = $('ttkProj').value.trim();
+  if (!name) { toast('프로젝트/작업명을 입력하세요'); return; }
+  const s = getTtk();
+  if (s.current) { toast('이미 진행 중인 작업이 있습니다. 먼저 정지하세요'); return; }
+  s.current = { name, start: Date.now() };
+  scheduleSave(); renderTimetrack();
+  toast('시작: ' + name);
+});
+$('ttkStop').addEventListener('click', () => {
+  const s = getTtk();
+  if (!s.current) return;
+  s.entries.push({ name: s.current.name, start: s.current.start, end: Date.now() });
+  s.current = null;
+  scheduleSave();
+  $('ttkProj').value = '';
+  renderTimetrack();
+  toast('기록됨');
+});
+$('ttkClose').addEventListener('click', () => $('timetrackModal').classList.remove('open'));
+
+/* =========================================================
+   명령 팔레트 통합 + 초기화
+   ========================================================= */
+if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
+  COMMANDS.push(
+    { ico:'i-users', name:'역할 선택', desc:'학생·회사원·주부 등 내 역할 선택', run: openRolesModal },
+    { ico:'i-users', name:'내 도구 모음', desc:'역할별 전용 도구 대시보드', run: openRoleDashboard },
+    { ico:'i-grid', name:'시간표', desc:'대학 강의·학생 시간표', run: openTimetable },
+    { ico:'i-stats', name:'가계부', desc:'수입/지출 기록·월별 차트', run: openLedger },
+    { ico:'i-stats', name:'GPA 계산기', desc:'학점 평균 계산', run: openGpa },
+    { ico:'i-today', name:'D-Day 관리', desc:'여러 D-Day 한 눈에', run: openDday },
+    { ico:'i-heart', name:'약 복용', desc:'약 복용 시간·체크', run: openMed },
+    { ico:'i-heart', name:'혈압·혈당', desc:'건강 수치 기록·그래프', run: openVital },
+    { ico:'i-check', name:'장보기 리스트', desc:'카테고리별 장바구니', run: openShop },
+    { ico:'i-table', name:'주간 식단', desc:'아침/점심/저녁 계획', run: openMeal },
+    { ico:'i-clock', name:'타임 트래킹', desc:'프로젝트별 시간 기록', run: openTimetrack }
+  );
+}
+
+// 첫 실행 시 역할 선택 유도 (로컬스토리지 플래그)
+setTimeout(() => {
+  if (!localStorage.getItem('role-onboarded') && (!state.userRoles || state.userRoles.length === 0)) {
+    localStorage.setItem('role-onboarded', '1');
+    openRolesModal();
+  }
+}, 2500);
+
+// 초기 배지
+updateRoleBadge();
+
+// Esc로 모든 역할 위젯 모달 닫기
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  const modals = ['rolesModal','timetableModal','ledgerModal','gpaModal','ddayModal','medModal','vitalModal','shopModal','mealModal','timetrackModal','roleDashModal'];
+  modals.forEach(id => { const m = $(id); if (m && m.classList.contains('open')) m.classList.remove('open'); });
 });
 
 // 토크바에 그림판 전용 버튼을 추가 (sketchBtn 옆, 보조 진입점)
