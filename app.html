@@ -7094,34 +7094,51 @@ async function callClaude(sys, user) {
   return d.content?.[0]?.text || '';
 }
 
-/* 기본 AI (Supabase Edge Function 경유 Gemini) */
+/* 기본 AI (Vercel Serverless 경유 Gemini) */
 async function callDefault(sys, user) {
   if (!isLoggedIn()) {
     toast('기본 AI를 사용하려면 무료 회원가입이 필요합니다');
-    // 로그인 모달 열기 (있으면)
     const authBtn = document.getElementById('authBtn');
     if (authBtn) authBtn.click();
     return null;
   }
-  const sb = window.JANSync?.getSupabase?.();
-  if (!sb) { toast('클라우드 연결 실패'); return null; }
+  const session = window.JANSync.getSession();
+  const token = session?.access_token;
+  if (!token) { toast('세션 토큰 없음 — 다시 로그인하세요'); return null; }
+
+  // 간이 일일 한도 (클라이언트, 허니시스템)
+  const today = new Date().toISOString().slice(0,10);
+  const usageKey = 'sticky-ai-usage-' + today;
+  const used = parseInt(localStorage.getItem(usageKey) || '0');
+  if (used >= 50) {
+    toast('오늘 무료 AI 한도 50회 소진. 본인 API 키로 무제한 사용 가능.', 6000);
+    setTimeout(() => openApiKeyGuide(), 2000);
+    return null;
+  }
+
   try {
-    const { data, error } = await sb.functions.invoke('gemini-proxy', {
-      body: { sys, user }
+    const r = await fetch('/api/gemini', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      body: JSON.stringify({ sys, user })
     });
-    if (error) throw new Error(error.message || String(error));
-    if (data.error) {
-      if (data.code === 'rate_limit') {
-        toast(data.error, 6000);
-        // API 키 안내 모달 자동 열기
+    const data = await r.json();
+    if (!r.ok) {
+      if (r.status === 429 || data.code === 'rate_limit') {
+        toast(data.error || '한도 초과', 6000);
         setTimeout(() => openApiKeyGuide(), 2000);
         return null;
       }
-      throw new Error(data.error);
+      throw new Error(data.error || `HTTP ${r.status}`);
     }
+    // 사용량 증가
+    localStorage.setItem(usageKey, String(used + 1));
     // 남은 한도 표시
-    if (typeof data.remaining === 'number' && data.remaining <= 5) {
-      toast(`오늘 무료 AI ${data.remaining}회 남음`, 3000);
+    if (used + 1 >= 45) {
+      toast(`오늘 무료 AI ${50 - used - 1}회 남음`, 3000);
     }
     return data.text;
   } catch (e) {
