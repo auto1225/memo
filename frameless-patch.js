@@ -25,10 +25,12 @@
   if (window.__justanotepadFramelessPatch__) return;
   window.__justanotepadFramelessPatch__ = true;
 
+  // Flip to true for debugging via DevTools Console.
+  const JNP_DEBUG = /[?&]jnp_debug=1\b/.test(location.search);
   const isTauri = !!(window.__TAURI__ || window.__TAURI_INTERNALS__);
   // Verbose diagnostic so we can see what's going on from the user side
   try {
-    console.log('[JNP-FRAMELESS] boot',
+    JNP_DEBUG && console.log('[JNP-FRAMELESS] boot',
       { isTauri,
         hasTauri: !!window.__TAURI__,
         hasInternals: !!window.__TAURI_INTERNALS__,
@@ -158,28 +160,28 @@
   //
   async function enforceFrameless() {
     const win = getWin();
-    console.log('[JNP-FRAMELESS] enforceFrameless() — win=', !!win,
+    JNP_DEBUG && console.log('[JNP-FRAMELESS] enforceFrameless() — win=', !!win,
       win ? 'methods=' + Object.keys(Object.getPrototypeOf(win) || {}).slice(0, 15) : '');
     if (!win) {
       // Fallback: try direct invoke of window commands
       try {
         const invoke = window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke;
         if (invoke) {
-          console.log('[JNP-FRAMELESS] trying invoke fallback');
+          JNP_DEBUG && console.log('[JNP-FRAMELESS] trying invoke fallback');
           await invoke('plugin:window|set_decorations', { label: 'main', value: false });
         }
-      } catch (e) { console.warn('[JNP-FRAMELESS] invoke fallback failed:', e && e.message); }
+      } catch (e) { JNP_DEBUG && console.warn('[JNP-FRAMELESS] invoke fallback failed:', e && e.message); }
       return;
     }
     try {
       if (typeof win.setDecorations === 'function') {
-        console.log('[JNP-FRAMELESS] calling setDecorations(false)');
+        JNP_DEBUG && console.log('[JNP-FRAMELESS] calling setDecorations(false)');
         await win.setDecorations(false);
-        console.log('[JNP-FRAMELESS] setDecorations OK');
+        JNP_DEBUG && console.log('[JNP-FRAMELESS] setDecorations OK');
       } else {
-        console.warn('[JNP-FRAMELESS] win.setDecorations not a function');
+        JNP_DEBUG && console.warn('[JNP-FRAMELESS] win.setDecorations not a function');
       }
-    } catch (e) { console.warn('[JNP-FRAMELESS] setDecorations failed:', e && e.message); }
+    } catch (e) { JNP_DEBUG && console.warn('[JNP-FRAMELESS] setDecorations failed:', e && e.message); }
     try {
       if (typeof win.setShadow === 'function') {
         await win.setShadow(true);

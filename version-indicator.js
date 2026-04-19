@@ -77,6 +77,13 @@
       background: rgba(0,0,0,.06);
       letter-spacing: 0.04em; text-transform: uppercase;
     }
+    .jnp-version-indicator .jnp-vi-status {
+      font-size: 10px; font-weight: 600;
+      padding: 2px 6px; border-radius: 999px;
+      letter-spacing: 0.02em;
+    }
+    .jnp-version-indicator .jnp-vi-status.jnp-vi-fresh  { color:#1c6b3a; background:#e8f5ed; }
+    .jnp-version-indicator .jnp-vi-status.jnp-vi-behind { color:#8a4a00; background:#fff2d9; }
     .jnp-version-indicator .jnp-vi-env.jnp-env-desktop { background:#d6f5e0; color:#1c6b3a; }
     .jnp-version-indicator .jnp-vi-env.jnp-env-pwa     { background:#ffe7b3; color:#8a5a00; }
     .jnp-version-indicator .jnp-vi-env.jnp-env-web     { background:#e2e8f0; color:#495567; }
@@ -94,6 +101,33 @@
   style.textContent = CSS;
   document.head.appendChild(style);
 
+  // ---- latest version lookup ----------------------------------------
+  async function getLatestVersion() {
+    try {
+      const res = await fetch(
+        'https://github.com/auto1225/memo/releases/latest/download/latest.json',
+        { cache: 'no-store' }
+      );
+      if (!res.ok) return null;
+      const j = await res.json();
+      return (j && j.version) || null;
+    } catch {
+      return null;
+    }
+  }
+
+  // Semver-ish compare: returns -1, 0, 1.
+  function cmpVersion(a, b) {
+    const pa = String(a || '').split('.').map(n => parseInt(n, 10) || 0);
+    const pb = String(b || '').split('.').map(n => parseInt(n, 10) || 0);
+    const len = Math.max(pa.length, pb.length);
+    for (let i = 0; i < len; i++) {
+      const d = (pa[i] || 0) - (pb[i] || 0);
+      if (d !== 0) return d > 0 ? 1 : -1;
+    }
+    return 0;
+  }
+
   // ---- render -------------------------------------------------------
   async function render() {
     // Remove any old instance (in case of rerender)
@@ -107,6 +141,7 @@
     const envClass = 'jnp-env-' + env.toLowerCase();
     el.innerHTML = `
       <span class="jnp-vi-ver">v${escapeHtml(version)}</span>
+      <span class="jnp-vi-status" aria-live="polite"></span>
       <span class="jnp-vi-env ${envClass}">${escapeHtml(env)}</span>
     `;
 
@@ -116,6 +151,36 @@
     } else {
       el.classList.add('jnp-vi-floating');
       document.body.appendChild(el);
+    }
+
+    // Fetch latest version in background and annotate status.
+    const statusEl = el.querySelector('.jnp-vi-status');
+    if (version && version !== '?') {
+      getLatestVersion().then(latest => {
+        if (!latest) return;
+        const diff = cmpVersion(version, latest);
+        if (diff >= 0) {
+          statusEl.textContent = '✓';
+          statusEl.className = 'jnp-vi-status jnp-vi-fresh';
+          statusEl.title = '최신 버전입니다 (' + latest + ')';
+        } else {
+          statusEl.textContent = '↑ 업데이트';
+          statusEl.className = 'jnp-vi-status jnp-vi-behind';
+          statusEl.title = '최신 v' + latest + ' 사용 가능';
+          statusEl.style.cursor = 'pointer';
+          statusEl.addEventListener('click', () => {
+            // Desktop → ask the palette command. Web → open releases page.
+            if (env === 'Desktop' && window.justanotepadPalette) {
+              window.justanotepadPalette.open();
+            } else {
+              window.open(
+                'https://github.com/auto1225/memo/releases/latest',
+                '_blank'
+              );
+            }
+          });
+        }
+      }).catch(() => {});
     }
   }
 
