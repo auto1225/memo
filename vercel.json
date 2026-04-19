@@ -18,6 +18,13 @@
       ]
     },
     {
+      "source": "/admin.html",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" },
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
+      ]
+    },
+    {
       "source": "/index.html",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
@@ -36,6 +43,7 @@
     { "source": "/sticky-memo.html", "destination": "/app", "permanent": true }
   ],
   "rewrites": [
-    { "source": "/app", "destination": "/app.html" }
+    { "source": "/app", "destination": "/app.html" },
+    { "source": "/admin", "destination": "/admin.html" }
   ]
 }
