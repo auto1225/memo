@@ -46,13 +46,23 @@
   $('btnLoginGitHub').addEventListener('click', () => signInWith('github'));
 
   async function loadProfile(user) {
-    const { data, error } = await sb
+    // Try full schema first; fall back to legacy schema without 'role' column.
+    let { data, error } = await sb
       .from('profiles')
       .select('role, display_name, plan')
       .eq('id', user.id)
       .maybeSingle();
+    if (error && /role|column/i.test(error.message || '')) {
+      // role column missing — query with just display_name/plan
+      const r2 = await sb
+        .from('profiles')
+        .select('display_name, plan')
+        .eq('id', user.id)
+        .maybeSingle();
+      data = r2.data;
+      error = r2.error;
+    }
     if (error) {
-      // table likely missing — bootstrap a dummy admin if email matches env list
       return { role: 'user', display_name: user.email };
     }
     return data || { role: 'user', display_name: user.email };
@@ -201,6 +211,25 @@
   async function render(v) {
     setTitle(v);
     view.innerHTML = '<div style="color:var(--ink-soft);padding:20px;">로딩 중...</div>';
+    // Friendly setup banner if cms_content table is missing
+    const { error: probe } = await sb.from('cms_content').select('key', { head: true, count: 'exact' });
+    if (probe && /relation .*cms_content.* does not exist|could not find the table/i.test(probe.message || '')) {
+      view.innerHTML = `
+        <div class="panel" style="border-left:4px solid var(--warn, #f59e0b);">
+          <div class="panel-title">초기 설정이 필요합니다</div>
+          <p>Supabase에 CMS 테이블(<code>cms_content</code>, <code>cms_notices</code> 등)이 아직 만들어지지 않았습니다.
+          아래 SQL을 한 번만 실행해주세요 (30초).</p>
+          <ol style="line-height:1.8;">
+            <li><a href="https://app.supabase.com/project/rbscvtnfveakwjwrteux/sql/new" target="_blank" rel="noopener"><b>Supabase SQL Editor 열기</b></a></li>
+            <li><a href="https://raw.githubusercontent.com/auto1225/memo/main/supabase-SETUP-ALL.sql" target="_blank" rel="noopener"><b>SETUP SQL 전체 복사</b></a> → Editor에 붙여넣기</li>
+            <li>우측 하단 <b>Run</b> 클릭</li>
+            <li>추가로 한 줄 더: <code>update public.profiles set role='admin' where email='auto0104@gmail.com';</code></li>
+          </ol>
+          <p style="color:var(--ink-soft);font-size:12px;">또는 <b>Personal Access Token</b>을 공유해주시면 자동으로 세팅됩니다.
+          토큰 발급: <a href="https://supabase.com/dashboard/account/tokens" target="_blank" rel="noopener">supabase.com/dashboard/account/tokens</a></p>
+        </div>`;
+      return;
+    }
     try {
       if (v === 'dashboard')     await renderDashboard();
       else if (v === 'users')    await renderUsers();
