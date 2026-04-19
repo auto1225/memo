@@ -75,7 +75,7 @@ fn main() {
                         }
                     }
                     "quit" => {
-                        app.exit(0);
+                        std::process::exit(0);
                     }
                     _ => {}
                 })
@@ -97,13 +97,14 @@ fn main() {
             Ok(())
         })
         .on_window_event(|window, event| {
-            // X 누르면 앱 전체 종료 (트레이 잔존 방지).
-            // 이전에는 hide+prevent_close로 트레이에 숨기게 했는데,
-            // Windows 11 DWM이 숨겨진 창의 shadow 잔상을 유지하면서
-            // '유령 흰 창'으로 보이는 혼란이 있었음.
+            // X 누르면 프로세스를 강제로 즉시 종료.
+            // Tauri v2의 app_handle.exit(0)은 tray 아이콘이 붙어있으면
+            // "graceful" exit 경로로 가면서 실제 프로세스가 안 죽고
+            // background에 남는 이슈가 있었음 (v1.0.9에서 관찰).
+            // std::process::exit는 OS 레벨 즉시 종료라 확실함.
             if let tauri::WindowEvent::CloseRequested { .. } = event {
                 if window.label() == "main" {
-                    window.app_handle().exit(0);
+                    std::process::exit(0);
                 }
             }
         })
