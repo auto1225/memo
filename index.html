@@ -22,7 +22,7 @@
 <link rel="canonical" href="https://justanotepad.com/" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Pretendard:wght@400;500;600;700;800;900&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Pretendard:wght@400;500;600;700;800;900&family=Noto+Sans+KR:wght@400;500;700;900&family=Caveat:wght@500;700&family=Instrument+Serif:ital,wght@0,400;1,400&display=swap" rel="stylesheet" />
 <link rel="preconnect" href="https://images.unsplash.com" crossorigin />
 <script type="application/ld+json">
 {
@@ -47,6 +47,7 @@ body, h1, h2, h3, h4, h5, h6, p, span, div, a, li, button, strong, em, small {
 :root {
   --bg: #FFFFFF;
   --bg-soft: #F7F7F7;
+  --bg-cream: #F5F0E6;
   --bg-dark: #191919;
   --bg-yellow-soft: #FFFBE5;
   --text: #191919;
@@ -56,11 +57,16 @@ body, h1, h2, h3, h4, h5, h6, p, span, div, a, li, button, strong, em, small {
   --kakao-yellow: #FAE100;
   --kakao-yellow-dark: #E5CD00;
   --kakao-brown: #3C1E1E;
+  --claude-orange: #D97757;
+  --claude-orange-dark: #BF5D3E;
+  --claude-rust: #CC785C;
   --link: #0073FF;
   --line: #E5E5E5;
   --line-soft: #EFEFEF;
   --line-dark: #2A2A2A;
   --font-sans: 'Pretendard', 'Noto Sans KR', 'kakao', 'Malgun Gothic', '맑은 고딕', -apple-system, sans-serif;
+  --font-hand: 'Caveat', 'Pretendard', cursive;
+  --font-serif: 'Instrument Serif', 'Newsreader', Georgia, serif;
 }
 
 html { scroll-behavior: smooth; }
@@ -173,7 +179,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   display: flex; align-items: center; justify-content: center;
   color: var(--text-2);
 }
-.tablet-toolbar .tool.active { color: #FF8C42; }
+.tablet-toolbar .tool.active { color: #D97757; }
 .tablet-toolbar .tool svg { width: 14px; height: 14px; }
 .tablet-canvas {
   padding: 20px 28px;
@@ -249,7 +255,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   color: var(--text);
   border: 1px solid rgba(0,0,0,0.08);
 }
-.section-visual .tag-eyebrow .dot { background: #FF8C42; }
+.section-visual .tag-eyebrow .dot { background: #D97757; }
 .section-visual .hero-notices {
   background: white;
   border: 1px solid rgba(0,0,0,0.08);
@@ -520,7 +526,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 
 .ev-text .ev-tag {
   display: inline-block;
-  padding: 6px 16px; background: #FF8C42; color: white;
+  padding: 6px 16px; background: #D97757; color: white;
   border-radius: 999px; font-size: 14px; font-weight: 700;
   margin-bottom: 24px; letter-spacing: -0.01em;
 }
@@ -549,7 +555,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .ev-visual::before {
   content: ''; position: absolute;
   top: -20px; right: -40px; width: 180px; height: 180px;
-  background: rgba(255, 140, 66, 0.12); border-radius: 50%;
+  background: rgba(217, 119, 87, 0.12); border-radius: 50%;
   z-index: 0;
 }
 
@@ -665,7 +671,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .ev-editor .content ul { list-style: none; padding: 0; font-size: 13px; margin-top: 8px; }
 .ev-editor .content ul li { padding: 3px 0 3px 18px; position: relative; color: var(--text-2); }
 .ev-editor .content ul li::before { content: ''; position: absolute; left: 0; top: 10px; width: 12px; height: 12px; border: 1.5px solid var(--text-light); border-radius: 3px; }
-.ev-editor .content ul li.done::before { background: #FF8C42; border-color: #FF8C42; }
+.ev-editor .content ul li.done::before { background: #D97757; border-color: #D97757; }
 .ev-editor .content ul li.done::after { content: ''; position: absolute; left: 3px; top: 13px; width: 6px; height: 3px; border: 2px solid white; border-top: 0; border-right: 0; transform: rotate(-45deg); }
 
 /* === MOCKUP: AI CHAT === */
@@ -687,10 +693,10 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .ev-ai .bub.ai { background: #F5F1EB; color: var(--text); border-radius: 14px 14px 14px 2px; }
 .ev-ai .actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; padding-top: 12px; border-top: 1px solid rgba(0,0,0,0.05); }
 .ev-ai .actions span { font-size: 11px; padding: 4px 10px; background: white; border: 1px solid rgba(0,0,0,0.08); border-radius: 999px; color: var(--text-2); font-weight: 600; cursor: pointer; }
-.ev-ai .actions span.active { background: #FF8C42; color: white; border-color: #FF8C42; }
+.ev-ai .actions span.active { background: #D97757; color: white; border-color: #D97757; }
 .ev-ai-floater {
   position: absolute; top: -20px; right: -20px;
-  background: #FFEFE0; padding: 10px 14px; border-radius: 14px;
+  background: #F5E6DD; padding: 10px 14px; border-radius: 14px;
   display: flex; gap: 8px; align-items: center;
   box-shadow: 0 8px 24px rgba(0,0,0,0.08);
   font-size: 12px; font-weight: 700;
@@ -708,7 +714,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 .ev-paint .toolbar { background: #141414; padding: 14px 10px; display: flex; flex-direction: column; gap: 8px; }
 .ev-paint .toolbar .tool { width: 28px; height: 28px; border-radius: 6px; background: rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.6); }
-.ev-paint .toolbar .tool.active { background: #FF8C42; color: white; }
+.ev-paint .toolbar .tool.active { background: #D97757; color: white; }
 .ev-paint .toolbar .tool svg { width: 14px; height: 14px; }
 .ev-paint .canvas { position: relative; }
 .ev-paint .canvas svg { width: 100%; height: 100%; }
@@ -740,7 +746,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .ev-sync .lap .note-ln { height: 3px; background: rgba(0,0,0,0.08); border-radius: 2px; margin-bottom: 5px; }
 .ev-sync .lap .note-ln.w1 { width: 90%; }
 .ev-sync .lap .note-ln.w2 { width: 75%; }
-.ev-sync .lap .note-ln.w3 { width: 50%; background: #FF8C42; }
+.ev-sync .lap .note-ln.w3 { width: 50%; background: #D97757; }
 .ev-sync .phone {
   position: absolute; right: 10%; bottom: -20px;
   background: #141414; border-radius: 16px; padding: 6px;
@@ -788,7 +794,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .ev-biz-card .sns.tk { background: #000; }
 .ev-scan-box {
   position: absolute; top: -20px; right: -30px;
-  background: #FFEFE0; padding: 14px 16px;
+  background: #F5E6DD; padding: 14px 16px;
   border-radius: 14px;
   box-shadow: 0 12px 32px rgba(0,0,0,0.08);
   transform: rotate(-8deg); z-index: 3;
@@ -822,14 +828,14 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .ev-meet-card .rec-dot { width: 8px; height: 8px; border-radius: 50%; background: #EF4444; animation: blink 1s infinite; }
 .ev-meet-card .rec-time { font-family: monospace; font-weight: 700; }
 .ev-meet-card .waveform { flex: 1; display: flex; align-items: center; gap: 2px; height: 20px; }
-.ev-meet-card .waveform span { flex: 1; background: #FF8C42; border-radius: 1px; animation: wave 1.2s ease-in-out infinite; }
+.ev-meet-card .waveform span { flex: 1; background: #D97757; border-radius: 1px; animation: wave 1.2s ease-in-out infinite; }
 .ev-meet-card .waveform span:nth-child(2n) { animation-delay: 0.2s; }
 .ev-meet-card .waveform span:nth-child(3n) { animation-delay: 0.4s; }
 @keyframes wave { 0%, 100% { height: 30%; } 50% { height: 100%; } }
 .ev-meet-card .transcript { padding: 10px 12px; background: #FAF6EF; border-radius: 10px; font-size: 12px; line-height: 1.6; margin-bottom: 10px; color: var(--text-2); }
 .ev-meet-card .transcript strong { display: block; font-size: 10px; color: var(--text-mute); margin-bottom: 2px; }
 .ev-meet-card .summary-btn {
-  background: #FF8C42; color: white; padding: 10px 14px; border-radius: 10px;
+  background: #D97757; color: white; padding: 10px 14px; border-radius: 10px;
   font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 8px;
   margin-top: 12px; justify-content: center;
 }
@@ -1257,7 +1263,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
           <span class="dot"></span>
           <span>2026 정식 서비스 운영 중</span>
         </div>
-        <strong class="tit-visual">적고, 그리고,<br />계산하고, 정리합니다</strong>
+        <strong class="tit-visual">적고, <em style="font-family:var(--font-serif); font-style:italic; font-weight:400; color:var(--claude-orange);">그리고</em>,<br />계산하고, <em style="font-family:var(--font-serif); font-style:italic; font-weight:400; color:var(--claude-orange);">정리합니다</em></strong>
         <p style="font-size:16px; color:var(--text-2); line-height:1.7; max-width:440px;">글씨든 차트든 스케치든, 하나의 파일 안에서. 14가지 역할별 도구와 16개 AI가 당신을 기다립니다.</p>
         <div class="hero-bottom">
           <a href="/app" class="wrap-more">
@@ -1278,10 +1284,10 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
           <!-- 배경 종이 1: 파이 차트 -->
           <div class="paper-bg p1">
             <svg viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg">
-              <text x="30" y="50" font-family="Pretendard, sans-serif" font-size="32" font-weight="800" fill="#FF8C42" style="font-style:italic;">100%</text>
+              <text x="30" y="50" font-family="Pretendard, sans-serif" font-size="32" font-weight="800" fill="#D97757" style="font-style:italic;">100%</text>
               <text x="105" y="120" font-family="Pretendard, sans-serif" font-size="24" font-weight="700" fill="#10B981">46%</text>
               <polygon points="30,130 60,60 90,130" fill="#FFC542"/>
-              <polygon points="90,140 120,90 150,140" fill="#FF8C42"/>
+              <polygon points="90,140 120,90 150,140" fill="#D97757"/>
               <polygon points="150,135 175,100 200,135" fill="#91B85A"/>
               <polygon points="200,140 225,120 250,140" fill="#3B8E67"/>
               <text x="200" y="30" font-family="Pretendard, sans-serif" font-size="22" font-weight="700" fill="#3E6B8F">82%</text>
@@ -1301,7 +1307,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
               <circle cx="250" cy="120" r="80" fill="#E8E8E8"/>
               <path d="M 250 120 L 250 40 A 80 80 0 0 1 330 120 Z" fill="#FFC542"/>
               <path d="M 250 120 L 330 120 A 80 80 0 0 1 280 195 Z" fill="#7FB9C7"/>
-              <path d="M 250 120 L 280 195 A 80 80 0 0 1 195 130 Z" fill="#FF8C42"/>
+              <path d="M 250 120 L 280 195 A 80 80 0 0 1 195 130 Z" fill="#D97757"/>
               <text x="340" y="40" font-family="Pretendard, sans-serif" font-size="22" font-weight="700" fill="#3E6B8F">40%</text>
               <path d="M 310 50 Q 330 30, 350 45" stroke="#3E6B8F" stroke-width="2" fill="none" stroke-dasharray="3,3"/>
             </svg>
@@ -1371,7 +1377,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
                     <text x="48" y="200" font-family="'Pretendard', sans-serif" font-size="13" font-weight="700" fill="#555">30%</text>
                     <polygon points="50,220 85,290 15,290" fill="#3B5566"/>
 
-                    <polygon points="120,210 165,290 75,290" fill="#FF8C42"/>
+                    <polygon points="120,210 165,290 75,290" fill="#D97757"/>
 
                     <text x="190" y="205" font-family="'Pretendard', sans-serif" font-size="13" font-weight="700" fill="#555">45%</text>
                     <polygon points="195,215 230,290 160,290" fill="#A8C8A1"/>
@@ -1513,7 +1519,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 <!-- ========== EVERNOTE-STYLE ROWS ========== -->
 <section class="section-ev" id="features">
   <div class="ev-intro">
-    <span class="ev-tag" style="background:#FF8C42; color:white; padding:6px 16px; border-radius:999px; font-size:14px; font-weight:700;">모든 기능</span>
+    <span class="ev-tag" style="background:#D97757; color:white; padding:6px 16px; border-radius:999px; font-size:14px; font-weight:700;">모든 기능</span>
     <h2 style="margin-top:20px;">850KB짜리 파일 하나에<br />이 모든 게 들어있습니다</h2>
     <p>정리 · 검색 · AI · 동기화 · 그림판 · 명함 OCR · 회의 녹음 · 14가지 전용 도구까지. 설치·가입·결제 없이.</p>
   </div>
@@ -1538,10 +1544,10 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
         <div class="body">
           <aside class="side">
             <h6>워크스페이스</h6>
-            <div class="side-tab"><span class="sq" style="background:#FF8C42"></span>업무</div>
+            <div class="side-tab"><span class="sq" style="background:#D97757"></span>업무</div>
             <div class="side-tab"><span class="sq" style="background:#2D7FF9"></span>개인</div>
             <h6>탭</h6>
-            <div class="side-tab active"><span class="sq" style="background:#FF8C42"></span>주간 회의록</div>
+            <div class="side-tab active"><span class="sq" style="background:#D97757"></span>주간 회의록</div>
             <div class="side-tab"><span class="sq" style="background:#FFD23F"></span>아이디어</div>
             <div class="side-tab"><span class="sq" style="background:#10B981"></span>독서 메모</div>
             <div class="side-tab"><span class="sq" style="background:#8B5CF6"></span>여행 계획</div>
@@ -1686,11 +1692,11 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
           <svg viewBox="0 0 400 340" preserveAspectRatio="xMidYMid meet">
             <defs>
               <linearGradient id="sky" x1="0" x2="0" y1="0" y2="1">
-                <stop offset="0" stop-color="#FFEFE0"/>
+                <stop offset="0" stop-color="#F5E6DD"/>
                 <stop offset="1" stop-color="#FFF3C0"/>
               </linearGradient>
               <linearGradient id="sun" x1="0" x2="0" y1="0" y2="1">
-                <stop offset="0" stop-color="#FF8C42"/>
+                <stop offset="0" stop-color="#D97757"/>
                 <stop offset="1" stop-color="#FFD23F"/>
               </linearGradient>
             </defs>
@@ -1698,14 +1704,14 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
             <circle cx="320" cy="100" r="45" fill="url(#sun)"/>
             <path d="M0,280 Q100,200 200,240 T400,220 L400,340 L0,340 Z" fill="#2E5BFF" opacity="0.7"/>
             <path d="M0,300 Q120,260 240,280 T400,270 L400,340 L0,340 Z" fill="#141414" opacity="0.85"/>
-            <path d="M50,240 Q80,180 110,230 Q140,200 170,250" stroke="#FF8C42" stroke-width="4" fill="none" stroke-linecap="round"/>
+            <path d="M50,240 Q80,180 110,230 Q140,200 170,250" stroke="#D97757" stroke-width="4" fill="none" stroke-linecap="round"/>
           </svg>
         </div>
         <div class="layers">
           <h6>레이어</h6>
           <div class="layer-item active">
             <svg class="vis" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-            <span class="thumb" style="background:linear-gradient(135deg,#FF8C42,#FFD23F)"></span>
+            <span class="thumb" style="background:linear-gradient(135deg,#D97757,#FFD23F)"></span>
             <span>태양</span>
           </div>
           <div class="layer-item">
@@ -1720,7 +1726,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
           </div>
           <div class="layer-item">
             <svg class="vis" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/></svg>
-            <span class="thumb" style="background:linear-gradient(135deg,#FFEFE0,#FFF3C0)"></span>
+            <span class="thumb" style="background:linear-gradient(135deg,#F5E6DD,#FFF3C0)"></span>
             <span>하늘</span>
           </div>
         </div>
@@ -1765,7 +1771,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
             <div style="height:2px; background:rgba(0,0,0,0.1); margin-bottom:3px;"></div>
             <div style="height:2px; background:rgba(0,0,0,0.1); margin-bottom:3px; width:75%;"></div>
             <div style="height:2px; background:rgba(0,0,0,0.1); margin-bottom:3px;"></div>
-            <div style="height:2px; background:#FF8C42; margin-bottom:3px; width:50%;"></div>
+            <div style="height:2px; background:#D97757; margin-bottom:3px; width:50%;"></div>
             <div style="height:2px; background:rgba(0,0,0,0.1); margin-bottom:3px; width:80%;"></div>
             <div style="height:2px; background:rgba(0,0,0,0.1); margin-bottom:3px;"></div>
           </div>
@@ -1886,7 +1892,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
           <div style="font-size:13px; font-weight:700;">프리랜서</div>
           <div style="font-size:11px; color:var(--text-mute);">견적 · 청구 · CRM</div>
         </div>
-        <div style="background:#FF8C42; color:white; padding:14px; border-radius:12px; display:flex; flex-direction:column; justify-content:center; text-align:center;">
+        <div style="background:#D97757; color:white; padding:14px; border-radius:12px; display:flex; flex-direction:column; justify-content:center; text-align:center;">
           <div style="font-family:Georgia, serif; font-size:32px; font-weight:800; letter-spacing:-0.04em;">+10</div>
           <div style="font-size:11px; font-weight:700; margin-top:4px;">더 보기</div>
         </div>
