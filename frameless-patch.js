@@ -273,10 +273,14 @@
     // handler also listens to via addEventListener), we REPLACE
     // window.close itself. app.html calls window.close() inside its
     // confirm dialog — now that call goes to Tauri's close APIs.
-    const nativeClose = window.close.bind(window);
+    //
+    // IMPORTANT: We do NOT fall back to the native window.close(). In
+    // WebView2 / Android WebView, the native call blanks the HTML
+    // content (yellow .pad disappears) WITHOUT closing the OS window.
+    // That leaves the user staring at an empty white OS window — the
+    // exact "외부 창이 남는다" symptom we've been chasing.
     window.close = function () {
       forceCloseWindow('window.close shim');
-      try { nativeClose(); } catch {}
     };
 
     // Ctrl+Q escape hatch in case every UI button is borked.
