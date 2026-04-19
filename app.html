@@ -6,9 +6,9 @@
 <meta name="description" content="JustANotepad — 시작은 그냥 메모장이었습니다." />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <!-- Favicon: purple rounded square with "j." wordmark -->
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23FF5E3A'/%3E%3Ctext x='16' y='24' font-family='Georgia,serif' font-size='22' font-weight='900' font-style='italic' fill='white' text-anchor='middle'%3Ej.%3C/text%3E%3C/svg%3E" />
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%23FF5E3A'/%3E%3Ctext x='90' y='130' font-family='Georgia,serif' font-size='120' font-weight='900' font-style='italic' fill='white' text-anchor='middle'%3Ej.%3C/text%3E%3C/svg%3E" />
-<meta name="theme-color" content="#FF5E3A" />
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23FAE100'/%3E%3Ctext x='16' y='24' font-family='Georgia,serif' font-size='22' font-weight='900' font-style='italic' fill='white' text-anchor='middle'%3Ej.%3C/text%3E%3C/svg%3E" />
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%23FAE100'/%3E%3Ctext x='90' y='130' font-family='Georgia,serif' font-size='120' font-weight='900' font-style='italic' fill='white' text-anchor='middle'%3Ej.%3C/text%3E%3C/svg%3E" />
+<meta name="theme-color" content="#FAE100" />
 <!-- PWA -->
 <link rel="manifest" href="/manifest.json" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -32,7 +32,7 @@
   [data-theme="lavender"] {
     --paper:#FAFAF5; --paper-edge:#E8E2D2; --ink:#0F0F1A; --ink-soft:#4A4A5C;
     --line:rgba(160,130,210,.28); --margin-line:rgba(200,120,170,.35);
-    --accent:#FF5E3A; --accent-2:#FF8A6B;
+    --accent:#FAE100; --accent-2:#FF8A6B;
     --bar-grad:linear-gradient(180deg,#FFB89E,#FFD23F);
     --tab-inactive:#e0cff5; --tab-hover:#ead8fb;
     --bg:radial-gradient(1200px 700px at 10% -10%,#e4d3fb 0%,transparent 60%),
@@ -576,7 +576,7 @@
   }
   .meeting-note .mn-time:hover { text-decoration:underline; font-weight:700; }
   .meeting-note .mn-speaker {
-    background:#FF5E3A; color:white;
+    background:#FAE100; color:white;
     padding:1px 9px; border-radius:10px;
     font-size:10px; font-weight:700;
     min-width:24px; text-align:center; height:18px;
@@ -1689,7 +1689,7 @@
         <button id="sketchPen" class="active"><svg class="ico"><use href="#i-brush"/></svg>펜</button>
         <button id="sketchHighlight"><svg class="ico"><use href="#i-highlight"/></svg>형광펜</button>
         <button id="sketchEraser"><svg class="ico"><use href="#i-eraser"/></svg>지우개</button>
-        <input type="color" id="sketchColor" value="#FF5E3A" title="색상 선택" />
+        <input type="color" id="sketchColor" value="#FAE100" title="색상 선택" />
         <input type="range" id="sketchSize" min="1" max="30" value="3" title="굵기" />
         <span class="pressure-indicator" id="pressureIndicator" title="스타일러스 필압">필압 —</span>
         <button id="sketchUndo" title="되돌리기"><svg class="ico"><use href="#i-undo"/></svg></button>
@@ -1774,7 +1774,7 @@
 <!-- 도움말 -->
 <div class="modal-backdrop" id="helpModal">
   <div class="modal" style="width:480px;">
-    <div style="display:flex; align-items:center; gap:10px; padding:10px; margin:-12px -12px 10px; background:linear-gradient(135deg, #FF5E3A, #FFD23F); color:white; border-radius:10px 10px 0 0;">
+    <div style="display:flex; align-items:center; gap:10px; padding:10px; margin:-12px -12px 10px; background:linear-gradient(135deg, #FAE100, #FFD23F); color:white; border-radius:10px 10px 0 0;">
       <svg style="width:38px; height:38px; color:white; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.25));"><use href="#i-jan-logo"/></svg>
       <div>
         <div style="font-size:18px; font-weight:700;">JustANotepad</div>
@@ -2482,7 +2482,7 @@
 }
 .ptb:hover, .ptb-mini:hover { background:#f3ebff; color:var(--accent); border-color:var(--accent); }
 .ptb-primary { background:var(--accent); color:white; border-color:var(--accent); font-weight:600; padding:7px 14px; }
-.ptb-primary:hover { background:#E8421F; color:white; border-color:#E8421F; }
+.ptb-primary:hover { background:#E5CD00; color:white; border-color:#E5CD00; }
 .ptb-mini { padding:4px 9px; font-size:11px; }
 
 .pt-group { display:flex; gap:2px; align-items:center; flex-shrink:0; }
@@ -2872,7 +2872,7 @@
 #tipCard .tip-body { line-height:1.5; margin-bottom:6px; }
 #tipCard .tip-actions { display:flex; gap:6px; font-size:10px; color:var(--ink-soft); }
 #tipCard .tip-try { background:var(--accent); color:white; border:none; padding:3px 10px; border-radius:10px; cursor:pointer; font-size:10px; font-weight:600; }
-#tipCard .tip-try:hover { background:#E8421F; }
+#tipCard .tip-try:hover { background:#E5CD00; }
 
 .help-cat { margin-bottom:18px; }
 .help-cat-title { font-size:13px; font-weight:700; color:var(--accent); margin-bottom:8px; display:flex; align-items:center; gap:6px; padding-bottom:5px; border-bottom:2px solid color-mix(in srgb, var(--accent) 20%, transparent); }
@@ -5028,7 +5028,7 @@ $('sizeSel').addEventListener('change', e => {
   scheduleSave();
 });
 
-const textColors = ['#3a2e55','#d14e8c','#2f8a5b','#2d6cb0','#d17a1f','#FF5E3A','#000','#777','#c43','#09c'];
+const textColors = ['#3a2e55','#d14e8c','#2f8a5b','#2d6cb0','#d17a1f','#FAE100','#000','#777','#c43','#09c'];
 const hiliteColors = ['#fff59d','#ffc1c1','#b3e5fc','#c8e6c9','#ffe0b2','#e1bee7','transparent'];
 function buildSwatch(container, colors, cmd) {
   container.innerHTML = '';
@@ -7977,7 +7977,7 @@ function mnRenderReview() {
 function updateMNSpeakerColors(root) {
   root.querySelectorAll('.mn-speaker').forEach(el => {
     const sp = el.dataset.sp;
-    const colors = { A:'#FF5E3A', B:'#1e88e5', C:'#43a047', D:'#e53935', E:'#fb8c00', F:'#8e24aa' };
+    const colors = { A:'#FAE100', B:'#1e88e5', C:'#43a047', D:'#e53935', E:'#fb8c00', F:'#8e24aa' };
     el.style.background = colors[sp] || '#757575';
   });
 }
@@ -8205,7 +8205,7 @@ function bindMeetingNoteEvents() {
   });
   pageEl.querySelectorAll('.meeting-note .mn-speaker').forEach(el => {
     const sp = el.dataset.sp;
-    const colors = { A:'#FF5E3A', B:'#1e88e5', C:'#43a047', D:'#e53935', E:'#fb8c00', F:'#8e24aa' };
+    const colors = { A:'#FAE100', B:'#1e88e5', C:'#43a047', D:'#e53935', E:'#fb8c00', F:'#8e24aa' };
     if (sp && colors[sp]) el.style.background = colors[sp];
   });
 }
@@ -8607,17 +8607,17 @@ function buildExportHTML(tab, forPrint = false) {
   const styles = `
     @page { size: A4; margin: 2cm; }
     body { font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif; line-height: 1.7; color: #222; font-size: 11pt; max-width: 800px; margin: 0 auto; padding: 20px; }
-    h1 { font-size: 22pt; color: #4b2e7f; border-bottom: 2px solid #FF5E3A; padding-bottom: 6pt; margin-top: 0; }
+    h1 { font-size: 22pt; color: #4b2e7f; border-bottom: 2px solid #FAE100; padding-bottom: 6pt; margin-top: 0; }
     h2 { font-size: 16pt; color: #5e35b1; margin-top: 16pt; }
     h3 { font-size: 13pt; color: #333; margin-top: 12pt; }
     p, li, td, th { font-size: 11pt; }
     table { border-collapse: collapse; width: 100%; margin: 10pt 0; page-break-inside: avoid; }
     td, th { border: 1px solid #888; padding: 6pt 10pt; }
     th { background: #ede7f6; }
-    blockquote { border-left: 3px solid #FF5E3A; padding: 8pt 14pt; background: #FFF8F4; margin: 10pt 0; color: #555; }
+    blockquote { border-left: 3px solid #FAE100; padding: 8pt 14pt; background: #FFF8F4; margin: 10pt 0; color: #555; }
     pre { background: #2a2740; color: #e8e3f4; padding: 10pt 14pt; border-radius: 4pt; font-family: 'Courier New', monospace; white-space: pre-wrap; overflow-x: auto; }
     img { max-width: 100%; page-break-inside: avoid; border-radius: 4pt; }
-    a { color: #FF5E3A; }
+    a { color: #FAE100; }
     .date-tag { background: #ede7f6; color: #5e35b1; padding: 2pt 8pt; border-radius: 4pt; font-weight: 600; }
     .wiki-link { background: #ede7f6; color: #5e35b1; padding: 1pt 6pt; border-radius: 4pt; font-weight: 600; text-decoration: none; }
     .todo { margin: 3pt 0; }
@@ -8628,7 +8628,7 @@ function buildExportHTML(tab, forPrint = false) {
     .link-card { border: 1px solid #ddd; border-radius: 8pt; padding: 8pt 12pt; margin: 8pt 0; display: block; }
     .link-card-delete, .link-card-play { display: none !important; }
     .meta-info { text-align: right; color: #888; font-size: 10pt; margin-bottom: 14pt; border-bottom: 1px solid #eee; padding-bottom: 8pt; }
-    .drop-cap::first-letter { float: left; font-size: 3.2em; line-height: .9; padding: 2pt 8pt 0 0; color: #FF5E3A; font-weight: 700; }
+    .drop-cap::first-letter { float: left; font-size: 3.2em; line-height: .9; padding: 2pt 8pt 0 0; color: #FAE100; font-weight: 700; }
     .multi-col-2 { column-count: 2; column-gap: 25pt; }
     .multi-col-3 { column-count: 3; column-gap: 20pt; }
   `;
@@ -8671,10 +8671,10 @@ function exportDOCX() {
   syncPageToState();
   // Word 호환 HTML (.doc는 Word가 완벽히 읽음, .docx도 가능)
   const styles = `body{font-family:'Malgun Gothic','맑은 고딕',sans-serif;font-size:11pt;line-height:1.7;}
-    h1{font-size:20pt;color:#4b2e7f;border-bottom:2px solid #FF5E3A;padding-bottom:6pt;}
+    h1{font-size:20pt;color:#4b2e7f;border-bottom:2px solid #FAE100;padding-bottom:6pt;}
     h2{font-size:16pt;color:#5e35b1;} h3{font-size:13pt;}
     table{border-collapse:collapse;} td,th{border:1px solid #888;padding:5pt 10pt;} th{background:#ede7f6;}
-    blockquote{border-left:3px solid #FF5E3A;padding:5pt 12pt;color:#555;}
+    blockquote{border-left:3px solid #FAE100;padding:5pt 12pt;color:#555;}
     pre{background:#f4f4f4;padding:8pt;font-family:'Courier New',monospace;}
     .date-tag,.wiki-link{background:#ede7f6;color:#5e35b1;padding:1pt 6pt;}`;
   const wordHtml = `<!DOCTYPE html>
@@ -9302,7 +9302,7 @@ init();
     banner.id = 'pwaUpdateBanner';
     banner.style.cssText = `
       position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
-      background:linear-gradient(135deg, #FF5E3A, #E8421F); color:white;
+      background:linear-gradient(135deg, #FAE100, #E5CD00); color:white;
       padding:12px 18px; border-radius:10px;
       box-shadow:0 6px 24px rgba(0,0,0,0.25);
       z-index:10000; display:flex; align-items:center; gap:12px;
@@ -11708,7 +11708,7 @@ const ROLES = {
       { name:'요리 레시피', html:`<h2>레시피: </h2><p><b>재료:</b></p><ul><li></li></ul><p><b>조리법:</b></p><ol><li></li></ol>` }
     ]
   },
-  'senior': { name:'노년층', icon:'i-heart', color:'#FF5E3A',
+  'senior': { name:'노년층', icon:'i-heart', color:'#FAE100',
     desc:'약 복용, 혈압·혈당, 병원 일정', tools:['med','vital','dday'],
     templates:[
       { name:'병원 일정', html:`<h2 style="font-size:22px;">병원 예약</h2><p style="font-size:16px;"><b>날짜:</b> </p><p style="font-size:16px;"><b>병원:</b> </p><p style="font-size:16px;"><b>의사:</b> </p><p style="font-size:16px;"><b>증상·궁금한 점:</b> </p>` }
@@ -14606,7 +14606,7 @@ renderTimetrack = function() {
     const bh = (d.hours / maxH) * h;
     const y = pad + h - bh;
     ctx.fillStyle = 'var(--accent)';
-    ctx.fillStyle = '#FF5E3A';
+    ctx.fillStyle = '#FAE100';
     ctx.fillRect(x - barW/2, y, barW, bh);
     ctx.fillStyle = '#555'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
     ctx.fillText(d.label, x, pad + h + 14);
