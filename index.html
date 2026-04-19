@@ -97,16 +97,17 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .hero-bg {
   position: absolute; inset: 0; z-index: 0;
   overflow: hidden;
+  background: #0A0A0A;
 }
-.hero-bg img {
+.hero-bg video {
   position: absolute; inset: 0;
   width: 100%; height: 100%; object-fit: cover;
   display: block;
-  animation: kenBurns 24s ease-in-out infinite alternate;
 }
-@keyframes kenBurns {
-  0% { transform: scale(1) translate(0, 0); }
-  100% { transform: scale(1.08) translate(-2%, -1%); }
+.hero-bg img.poster {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%; object-fit: cover;
+  display: block;
 }
 .bg-dimmed {
   position: absolute; inset: 0; z-index: 2;
@@ -466,9 +467,12 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 
 <!-- ========== SECTION 1: VISUAL (카카오 풀블리드 비디오 히어로 완전 모방) ========== -->
 <section class="section-visual">
-  <!-- 풀블리드 히어로 배경 (Ken Burns 애니메이션) -->
+  <!-- 풀블리드 히어로 배경 (비디오 + 포스터 폴백) -->
   <div class="hero-bg">
-    <img src="https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=2000&q=85&auto=format&fit=crop" alt="창작자들이 함께 작업하는 모습" />
+    <img class="poster" src="/hero-poster.jpg" alt="JustANotepad — 메모를 내 일상 속으로" />
+    <video autoplay muted loop playsinline preload="auto" poster="/hero-poster.jpg">
+      <source src="/hero-video.mp4" type="video/mp4" />
+    </video>
   </div>
   <div class="bg-dimmed"></div>
 
