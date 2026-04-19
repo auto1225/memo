@@ -87,54 +87,93 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .nav-cta:hover { background: var(--kakao-yellow-dark); }
 .nav-cta svg { width: 14px; height: 14px; }
 
-/* ========== SECTION 1: VISUAL (= 카카오 section_visual) ========== */
-/* 헤로 + 우측 라이브 카드 + 하단 가로 피처 카드 3개 */
+/* ========== SECTION 1: VISUAL (카카오 section_visual 완전 모방 — 풀블리드 비디오) ========== */
 .section-visual {
-  background: var(--bg);
-  padding: 60px 0 100px;
-  border-bottom: 1px solid var(--line);
+  position: relative; overflow: hidden;
+  background: #0A0A0A;
+  min-height: 720px;
 }
-.visual-top {
-  display: grid; grid-template-columns: 1.3fr 1fr; gap: 40px; align-items: stretch;
-  margin-bottom: 40px;
+/* 풀블리드 BG (비디오 + 이미지 폴백) */
+.hero-bg {
+  position: absolute; inset: 0; z-index: 0;
+}
+.hero-bg video, .hero-bg img {
+  width: 100%; height: 100%; object-fit: cover;
+  display: block;
+}
+.hero-bg img { position: absolute; inset: 0; }
+.hero-bg video { position: relative; z-index: 1; }
+.bg-dimmed {
+  position: absolute; inset: 0; z-index: 2;
+  background: rgba(0,0,0,0.5);
+}
+
+/* Content 오버레이 */
+.hero-content {
+  position: relative; z-index: 3;
+  max-width: 1200px; margin: 0 auto;
+  padding: 100px 24px 80px;
+  min-height: 720px;
+  display: grid; grid-template-columns: 1.3fr 1fr; gap: 48px;
+  align-items: stretch;
+}
+.hero-left {
+  display: flex; flex-direction: column; justify-content: space-between;
+  color: white;
 }
 .tit-visual {
-  font-size: clamp(40px, 5.5vw, 64px); font-weight: 900;
-  line-height: 1.1; letter-spacing: -0.03em; color: var(--text);
+  font-size: clamp(40px, 5.5vw, 72px); font-weight: 900;
+  line-height: 1.1; letter-spacing: -0.03em; color: white;
+  margin-top: 20px;
 }
-.visual-left {
-  background: var(--bg-soft);
-  border-radius: 24px;
-  padding: 56px 48px;
-  position: relative;
-  display: flex; flex-direction: column; justify-content: space-between;
-  min-height: 380px;
-}
-.visual-left .tag-eyebrow {
+.tag-eyebrow {
   display: inline-flex; align-items: center; gap: 8px;
-  background: var(--text); color: white;
+  background: rgba(255,255,255,0.12); color: white;
   padding: 6px 14px; border-radius: 999px;
   font-size: 12px; font-weight: 700; letter-spacing: 0.05em;
-  margin-bottom: 24px; align-self: flex-start;
+  align-self: flex-start; border: 1px solid rgba(255,255,255,0.15);
 }
-.visual-left .tag-eyebrow .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--kakao-yellow); }
+.tag-eyebrow .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--kakao-yellow); }
+.hero-bottom { display: flex; flex-direction: column; gap: 20px; margin-top: 32px; }
 .wrap-more {
   display: inline-flex; align-items: center; gap: 8px;
-  background: var(--text); color: white;
-  padding: 14px 24px; border-radius: 999px;
+  background: var(--kakao-yellow); color: var(--text);
+  padding: 14px 28px; border-radius: 999px;
   font-size: 14px; font-weight: 700;
-  margin-top: 32px; align-self: flex-start;
+  align-self: flex-start;
   transition: background .15s;
 }
-.wrap-more:hover { background: #000; }
+.wrap-more:hover { background: white; }
 .wrap-more svg { width: 14px; height: 14px; }
 
-/* 우측 라이브 카드 (= 카카오 주가 현황) */
+/* 공지 캐러셀 (카카오 스타일) */
+.hero-notices {
+  display: flex; align-items: center; gap: 14px;
+  background: rgba(255,255,255,0.06); backdrop-filter: none;
+  border: 1px solid rgba(255,255,255,0.15);
+  padding: 14px 20px; border-radius: 12px;
+  align-self: flex-start; max-width: 520px;
+}
+.hero-notices .label {
+  font-size: 11px; font-weight: 700; padding: 3px 10px;
+  background: var(--kakao-yellow); color: var(--text);
+  border-radius: 999px; flex-shrink: 0;
+}
+.hero-notices .notice-text {
+  font-size: 14px; color: white; font-weight: 500; flex: 1;
+}
+.hero-notices .notice-date { font-size: 12px; color: rgba(255,255,255,0.5); flex-shrink: 0; }
+
+/* 우측 라이브 카드 (이제 비디오 위에 얹힘) */
+.hero-right { display: flex; align-items: flex-start; }
+
+/* 우측 라이브 카드 (= 카카오 주가 현황) — 비디오 위에 얹히는 다크 카드 */
 .box-stock {
-  background: var(--text); color: white;
-  border-radius: 24px; padding: 36px;
+  background: #0A0A0A; color: white;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 20px; padding: 32px;
   display: flex; flex-direction: column; justify-content: space-between;
-  min-height: 380px;
+  width: 100%; min-height: 440px;
   position: relative; overflow: hidden;
 }
 .box-stock::before {
@@ -168,6 +207,11 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .stock-data .val .up { color: var(--kakao-yellow); margin-left: 8px; font-size: 16px; }
 
 /* 하단 가로 피처 카드 4개 (= 카카오 분기실적, 주주서한, 공고) */
+.section-featured {
+  background: var(--bg);
+  padding: 60px 0;
+  border-bottom: 1px solid var(--line);
+}
 .visual-bottom {
   display: grid; grid-template-columns: 1.3fr 1fr 1fr 1fr; gap: 16px;
 }
@@ -370,16 +414,18 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 
 /* ========== RESPONSIVE ========== */
 @media (max-width: 960px) {
-  .visual-top { grid-template-columns: 1fr; }
+  .hero-content { grid-template-columns: 1fr; padding: 60px 24px; min-height: auto; gap: 32px; }
+  .section-visual { min-height: auto; }
   .visual-bottom { grid-template-columns: 1fr 1fr; }
   .news-grid { grid-template-columns: 1fr; gap: 32px; }
   .press-grid { grid-template-columns: 1fr; }
   .relation-inner { grid-template-columns: 1fr; gap: 40px; }
   .footer-top { grid-template-columns: 1fr 1fr; gap: 32px; }
   .nav-links { display: none; }
-  .visual-left { padding: 36px 28px; min-height: 280px; }
-  .box-stock { padding: 28px; min-height: 280px; }
+  .box-stock { padding: 28px; min-height: 320px; }
   .stock-data .val { font-size: 24px; }
+  .tit-visual { font-size: 44px; }
+  .hero-notices { max-width: none; }
 }
 @media (max-width: 560px) {
   .visual-bottom { grid-template-columns: 1fr; }
@@ -413,23 +459,40 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   </div>
 </nav>
 
-<!-- ========== SECTION 1: VISUAL (카카오 section_visual 모방) ========== -->
+<!-- ========== SECTION 1: VISUAL (카카오 풀블리드 비디오 히어로 완전 모방) ========== -->
 <section class="section-visual">
-  <div class="wrap">
-    <div class="visual-top">
-      <!-- 좌: 헤로 (카카오 'AI 서비스를 내 일상 속으로' 자리) -->
-      <div class="visual-left">
-        <div>
-          <div class="tag-eyebrow"><span class="dot"></span>2026 정식 서비스 운영 중</div>
-          <strong class="tit-visual">메모를<br>내 일상 속으로</strong>
-        </div>
+  <!-- 풀블리드 비디오 배경 + 폴백 이미지 -->
+  <div class="hero-bg">
+    <img src="https://images.unsplash.com/photo-1483058712412-4245e9b90334?w=1920&q=85&auto=format&fit=crop" alt="모던 워크스페이스" />
+    <video autoplay muted loop playsinline preload="metadata" poster="https://images.unsplash.com/photo-1483058712412-4245e9b90334?w=1920&q=85&auto=format&fit=crop">
+      <source src="https://assets.mixkit.co/videos/preview/mixkit-young-woman-writing-in-a-notebook-43025-large.mp4" type="video/mp4" />
+    </video>
+  </div>
+  <div class="bg-dimmed"></div>
+
+  <!-- Content 오버레이 -->
+  <div class="hero-content">
+    <!-- 좌측: 타이틀 + CTA + 공지 -->
+    <div class="hero-left">
+      <div>
+        <div class="tag-eyebrow"><span class="dot"></span>2026 정식 서비스 운영 중</div>
+        <strong class="tit-visual">메모를<br />내 일상 속으로</strong>
+      </div>
+      <div class="hero-bottom">
         <a href="/app" class="wrap-more">
           더 알아보기
           <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
         </a>
+        <a href="#faq" class="hero-notices">
+          <span class="label">공지</span>
+          <span class="notice-text">평생 무료 정책 · 광고 없이 운영합니다</span>
+          <span class="notice-date">2026.04.19</span>
+        </a>
       </div>
+    </div>
 
-      <!-- 우: 라이브 카드 (카카오 주가 현황 자리) -->
+    <!-- 우측: 라이브 현황 카드 (다크) -->
+    <div class="hero-right">
       <div class="box-stock">
         <div>
           <div class="live">LIVE</div>
@@ -455,8 +518,12 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
         </div>
       </div>
     </div>
+  </div>
+</section>
 
-    <!-- 하단 가로 4장 (분기실적·주주서한·공고 자리) -->
+<!-- ========== SECTION 1-B: FEATURED (비디오 아래 가로 피처 4장) ========== -->
+<section class="section-featured">
+  <div class="wrap">
     <div class="visual-bottom">
       <div class="box-featured">
         <div>
