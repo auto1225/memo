@@ -23,10 +23,15 @@
         "resizable": true,
         "fullscreen": false,
         "center": true,
-        "decorations": true,
-        "transparent": false,
-        "backgroundColor": "#FFFFFF",
-        "theme": "Light"
+        "decorations": false,
+        "transparent": true,
+        "shadow": true,
+        "backgroundColor": "#00000000",
+        "theme": "Light",
+        "maximizable": true,
+        "minimizable": true,
+        "closable": true,
+        "skipTaskbar": false
       }
     ],
     "security": {

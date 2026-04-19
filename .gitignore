@@ -22,3 +22,6 @@ android/
 *.deb
 dist-windows/
 android-build/
+
+# Vercel local linking (do not commit project IDs)
+.vercel/
