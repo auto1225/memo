@@ -49,9 +49,17 @@
   // Windows 11 auto-rounds undecorated windows; we skip CSS radius to avoid
   // the "transparent+decorations:false" combo that Windows 11 handles badly.
   const css = `
-    /* No custom body background in Tauri — the native opaque window background
-       (set in tauri.conf.json) does the work. This avoids Windows 11 rendering
-       its own title-bar fallback when the webview is transparent. */
+    /* Kill the default 8px body margin (and any padding) INSIDE the Tauri
+       shell. Without this, the solid white window backgroundColor bleeds
+       around the app's yellow header and looks like an external frame.
+       On the web / PWA we leave the browser defaults alone. */
+    html.jnp-tauri, html.jnp-tauri body {
+      margin: 0 !important;
+      padding: 0 !important;
+      overflow: hidden;
+      min-height: 100vh;
+      background: transparent;
+    }
 
     /* Make the topbar act as the title bar */
     #topbar, .topbar {
