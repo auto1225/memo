@@ -84,6 +84,53 @@
     }
     .jnp-auth-fab.show { display: inline-flex; }
     .jnp-auth-fab:hover { filter: brightness(1.04); }
+
+    /* Signed-in nav: user chip + CMS link + menu */
+    .jnp-user-chip {
+      display: none; align-items: center; gap: 10px;
+      padding: 6px 10px 6px 6px; border: 1px solid #e5e7eb;
+      border-radius: 999px; background: #fff;
+      font: 600 13px -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
+      cursor: pointer; color: #1f1f1f;
+    }
+    .jnp-user-chip.show { display: inline-flex; }
+    .jnp-user-chip .avatar {
+      width: 26px; height: 26px; border-radius: 50%;
+      background: linear-gradient(135deg,#FAE100,#f5c800);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-weight: 900; color: #1f1f1f; font-size: 13px;
+    }
+    .jnp-user-chip .caret {
+      width: 12px; height: 12px; opacity: .5;
+    }
+    .jnp-user-menu {
+      position: absolute; top: calc(100% + 8px); right: 0;
+      background: #fff; border: 1px solid #e5e7eb; border-radius: 10px;
+      min-width: 220px; padding: 8px;
+      box-shadow: 0 10px 24px rgba(0,0,0,.12);
+      display: none; z-index: 2147483300;
+    }
+    .jnp-user-menu.open { display: block; }
+    .jnp-user-menu .head {
+      padding: 10px 12px 8px; color: #666; font-size: 12px;
+      border-bottom: 1px solid #f0f0f0; margin-bottom: 6px;
+    }
+    .jnp-user-menu a, .jnp-user-menu button {
+      display: flex; align-items: center; gap: 8px; width: 100%;
+      padding: 8px 12px; border-radius: 7px; border: 0; background: transparent;
+      text-align: left; color: #1f1f1f; text-decoration: none;
+      font: 500 13px inherit; cursor: pointer;
+    }
+    .jnp-user-menu a:hover, .jnp-user-menu button:hover { background: #f5f5f5; }
+    .jnp-user-menu .cms {
+      background: linear-gradient(135deg,#7e57c2,#5e35b1);
+      color: #fff; font-weight: 700; margin: 4px 0;
+    }
+    .jnp-user-menu .cms:hover { filter: brightness(1.05); background: linear-gradient(135deg,#7e57c2,#5e35b1); }
+    .jnp-user-menu .logout { color: #d9534f; }
+
+    /* Position the chip correctly inside the nav */
+    .nav-side { position: relative; }
   `;
   const style = document.createElement('style');
   style.setAttribute('data-jnp-landing-auth', '');
@@ -125,6 +172,50 @@
   appFab.href = '/app';
   appFab.innerHTML = '앱 열기 →';
   document.body.appendChild(appFab);
+
+  // ---- Nav user chip + menu ---------------------------------------
+  const SUPER_ADMINS = ['auto0104@gmail.com'];
+  const chip = document.createElement('button');
+  chip.className = 'jnp-user-chip';
+  chip.type = 'button';
+  chip.innerHTML = `
+    <span class="avatar" id="jnpUserAvatar">·</span>
+    <span id="jnpUserName">계정</span>
+    <svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+         stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+  `;
+  const menu = document.createElement('div');
+  menu.className = 'jnp-user-menu';
+  menu.innerHTML = `
+    <div class="head" id="jnpUserHead">signed in</div>
+    <a href="/app" class="open-app">📝 앱 열기</a>
+    <a href="/admin" class="cms" id="jnpCmsLink" style="display:none;">🛡️ CMS 관리자</a>
+    <button type="button" class="logout" id="jnpLogoutBtn">🚪 로그아웃</button>
+  `;
+  chip.appendChild(menu);
+
+  // Inject into the landing nav when it becomes available
+  function injectChip() {
+    const side = document.querySelector('.nav-side');
+    if (!side || document.querySelector('.jnp-user-chip')) return;
+    side.appendChild(chip);
+  }
+  injectChip();
+  // Re-try once in case .nav-side mounted later
+  setTimeout(injectChip, 500);
+
+  chip.addEventListener('click', (e) => {
+    if (e.target.closest('.jnp-user-menu')) return;
+    menu.classList.toggle('open');
+  });
+  document.addEventListener('click', (e) => {
+    if (!chip.contains(e.target)) menu.classList.remove('open');
+  });
+  menu.querySelector('#jnpLogoutBtn').addEventListener('click', async () => {
+    try { await sb.auth.signOut(); } catch {}
+    menu.classList.remove('open');
+    syncSessionUI();
+  });
 
   // ---- Helpers ------------------------------------------------------
   function openModal(mode) {
@@ -183,15 +274,54 @@
     });
   }
 
-  // ---- Session badge → 앱 열기 CTA --------------------------------
+  // ---- Session badge → swap nav login links for user chip ---------
+  function toggleAuthLinks(signedIn) {
+    // Hide/show the 로그인 + 무료 가입 nav anchors while signed in
+    document.querySelectorAll(
+      'a[href="/app?signin=1"], a[href="/app?signup=1"], ' +
+      'a[href^="/app?signin"], a[href^="/app?signup"]'
+    ).forEach((a) => {
+      // Only touch header/footer anchors that act as account entry points
+      if (a.classList.contains('nav-signin') || a.classList.contains('nav-cta') ||
+          a.closest('footer') || a.closest('.nav')) {
+        a.style.display = signedIn ? 'none' : '';
+      }
+    });
+  }
+
   async function syncSessionUI() {
     try {
       const { data: { session } } = await sb.auth.getSession();
-      if (session && session.user) {
+      const user = session && session.user;
+      if (user) {
+        const email = user.email || '';
+        const name = (user.user_metadata && (user.user_metadata.full_name || user.user_metadata.name))
+          || email.split('@')[0] || '계정';
+        const initial = (name[0] || '·').toUpperCase();
+
+        // Nav chip
+        injectChip();
+        document.getElementById('jnpUserAvatar').textContent = initial;
+        document.getElementById('jnpUserName').textContent = name;
+        document.getElementById('jnpUserHead').textContent = email;
+        chip.classList.add('show');
+
+        // Floating "앱 열기" FAB
         appFab.classList.add('show');
-        appFab.textContent = (session.user.email ? (session.user.email.split('@')[0] + ' · ') : '') + '앱 열기 →';
+        appFab.textContent = '앱 열기 →';
+
+        // Super-admin CMS link visibility
+        const cmsLink = document.getElementById('jnpCmsLink');
+        if (cmsLink) {
+          cmsLink.style.display = SUPER_ADMINS.includes(email.toLowerCase()) ? '' : 'none';
+        }
+
+        toggleAuthLinks(true);
       } else {
+        chip.classList.remove('show');
+        menu.classList.remove('open');
         appFab.classList.remove('show');
+        toggleAuthLinks(false);
       }
     } catch {}
   }
