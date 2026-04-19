@@ -231,17 +231,24 @@
       return;
     }
     try {
-      if (v === 'dashboard')     await renderDashboard();
-      else if (v === 'users')    await renderUsers();
-      else if (v === 'announce') await renderNotices();
-      else if (v === 'faq')      await renderFAQ();
-      else if (v === 'content')  await renderCmsContent(null);
+      if (v === 'dashboard')       await renderDashboard();
+      else if (v === 'users')      await renderUsers();
+      else if (v === 'announce')   await renderNotices();
+      else if (v === 'faq')        await renderFAQ();
+      else if (v === 'content')    await renderCmsContent(null);
       else if (LANDING_SECTIONS[v]) await renderLandingSection(v);
-      else if (v === 'terms')    await renderCmsDoc('terms', '약관 관리');
-      else if (v === 'popup')    await renderPopups();
-      else if (v === 'analytics') await renderAnalytics();
-      else if (v === 'downloads') await renderDownloads();
-      else                       renderContentPage(v);
+      else if (v === 'terms')      await renderCmsDoc('terms', '약관 관리');
+      else if (v === 'popup')      await renderPopups();
+      else if (v === 'analytics')  await renderAnalytics();
+      else if (v === 'downloads')  await renderDownloads();
+      else if (v === 'board')      await renderBoard();
+      else if (v === 'payments')   await renderPayments();
+      else if (v === 'serials')    await renderSerials();
+      else if (v === 'features')   await renderEntitlements();
+      else if (v === 'settings')   await renderSettings();
+      else if (v === 'header')     await renderHeaderFooter();
+      else if (v === 'auth')       await renderAuthSettings();
+      else                         renderContentPage(v);
     } catch (e) {
       view.innerHTML = '<div style="color:var(--danger);padding:20px;">오류: ' + (e.message || e) + '</div>';
     }
@@ -330,7 +337,10 @@
                   </select>
                 </td>
                 <td>${fmtDate(u.created_at)}</td>
-                <td><button class="btn btn-save" data-id="${u.id}">저장</button></td>
+                <td style="white-space:nowrap;">
+                  <button class="btn btn-save" data-id="${u.id}">저장</button>
+                  <button class="btn danger btn-del-user" data-id="${u.id}" data-email="${escape(u.email)}">삭제</button>
+                </td>
               </tr>
             `).join('')}
           </tbody>
@@ -343,6 +353,12 @@
         const { error } = await sb.from('profiles').update({ role, plan }).eq('id', id);
         btn.textContent = error ? '실패' : '저장됨';
         setTimeout(() => { btn.textContent = '저장'; }, 1500);
+      }));
+      document.querySelectorAll('.btn-del-user').forEach(btn => btn.addEventListener('click', async () => {
+        if (!confirm(`${btn.dataset.email} 프로필을 삭제하시겠어요? (auth.users는 그대로 남습니다)`)) return;
+        const { error } = await sb.from('profiles').delete().eq('id', btn.dataset.id);
+        if (error) { alert(error.message); return; }
+        await load($('userSearch').value.trim());
       }));
     };
     let t;
@@ -666,6 +682,263 @@
       await load();
     });
     load();
+  }
+
+  // ---- MODULE: 게시판 관리 (cms_board) -----------------------------
+  async function renderBoard() {
+    return renderCmsListCrud('cms_board',
+      ['title','category','author_email','body','is_pinned','is_visible'],
+      '게시글',
+      ['제목','분류','작성자 이메일','본문','상단 고정 (true/false)','공개 (true/false)']
+    );
+  }
+
+  // ---- MODULE: 판매/결제 (cms_payments) ----------------------------
+  async function renderPayments() {
+    view.innerHTML = `
+      <div class="panel">
+        <div class="panel-title">판매 / 결제
+          <div style="display:flex;gap:8px;">
+            <select id="payFilter" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
+              <option value="">전체 상태</option>
+              <option value="pending">pending</option>
+              <option value="paid">paid</option>
+              <option value="refunded">refunded</option>
+              <option value="failed">failed</option>
+            </select>
+            <button class="btn primary" id="payNew">+ 결제 기록 추가</button>
+          </div>
+        </div>
+        <div id="payList">로딩…</div>
+      </div>
+      <div class="panel" id="payEd" style="display:none;">
+        <div class="panel-title"><span id="payEdTitle">결제 기록</span>
+          <button class="btn" id="payCancel">취소</button></div>
+        <div class="field"><label>사용자 이메일</label><input id="pf-email"></div>
+        <div class="field"><label>금액</label><input id="pf-amount" type="number" step="0.01"></div>
+        <div class="field"><label>통화</label><input id="pf-currency" value="KRW"></div>
+        <div class="field"><label>상태</label>
+          <select id="pf-status"><option>pending</option><option>paid</option><option>refunded</option><option>failed</option></select>
+        </div>
+        <div class="field"><label>결제 수단</label><input id="pf-method" placeholder="card / bank / paypal..."></div>
+        <div class="field"><label>제공자</label><input id="pf-provider" placeholder="stripe / toss / kakaopay..."></div>
+        <div class="field"><label>거래 ID</label><input id="pf-txn"></div>
+        <div class="field"><label>메모</label><input id="pf-memo"></div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn primary" id="paySave">저장</button>
+          <button class="btn danger" id="payDel" style="display:none;">삭제</button>
+        </div>
+      </div>`;
+    let current = null;
+    const load = async () => {
+      const status = $('payFilter').value;
+      let q = sb.from('cms_payments').select('*').order('created_at', { ascending: false }).limit(200);
+      if (status) q = q.eq('status', status);
+      const { data, error } = await q;
+      if (error) { $('payList').innerHTML = '<div style="color:var(--danger);">'+error.message+'</div>'; return; }
+      $('payList').innerHTML = (data||[]).length ? `
+        <table class="t"><thead><tr><th>생성</th><th>이메일</th><th>금액</th><th>상태</th><th>제공자</th><th></th></tr></thead>
+        <tbody>${data.map(p => `<tr>
+          <td>${fmtDate(p.created_at)}</td>
+          <td>${escape(p.user_email||'-')}</td>
+          <td>${(p.amount||0).toLocaleString()} ${escape(p.currency||'')}</td>
+          <td><span class="badge ${p.status==='paid'?'paid':p.status==='refunded'?'admin':'trial'}">${p.status}</span></td>
+          <td>${escape(p.provider||'-')}</td>
+          <td><button class="btn pe-edit" data-id="${p.id}">편집</button></td>
+        </tr>`).join('')}</tbody></table>` : '<div style="color:var(--ink-soft);padding:20px;text-align:center;">결제 기록 없음</div>';
+      document.querySelectorAll('.pe-edit').forEach(b => b.addEventListener('click', async () => {
+        const { data } = await sb.from('cms_payments').select('*').eq('id', b.dataset.id).single();
+        openEd(data);
+      }));
+    };
+    const openEd = (p) => {
+      current = p || null;
+      $('payEd').style.display = 'block';
+      ['email','amount','currency','status','method','provider'].forEach((k,i) => {
+        const id = 'pf-' + ['email','amount','currency','status','method','provider'][i];
+        $(id).value = p?.['user_'+k] ?? p?.[k] ?? (k==='currency'?'KRW':(k==='status'?'pending':''));
+      });
+      $('pf-email').value   = p?.user_email || '';
+      $('pf-amount').value  = p?.amount || '';
+      $('pf-currency').value= p?.currency || 'KRW';
+      $('pf-status').value  = p?.status || 'pending';
+      $('pf-method').value  = p?.method || '';
+      $('pf-provider').value= p?.provider || '';
+      $('pf-txn').value     = p?.provider_txn_id || '';
+      $('pf-memo').value    = p?.memo || '';
+      $('payDel').style.display = p ? 'inline-flex' : 'none';
+    };
+    $('payNew').addEventListener('click', () => openEd(null));
+    $('payCancel').addEventListener('click', () => $('payEd').style.display='none');
+    $('payFilter').addEventListener('change', load);
+    $('paySave').addEventListener('click', async () => {
+      const payload = {
+        user_email: $('pf-email').value,
+        amount: Number($('pf-amount').value) || 0,
+        currency: $('pf-currency').value,
+        status: $('pf-status').value,
+        method: $('pf-method').value,
+        provider: $('pf-provider').value,
+        provider_txn_id: $('pf-txn').value,
+        memo: $('pf-memo').value,
+      };
+      const q = current ? sb.from('cms_payments').update(payload).eq('id', current.id)
+                        : sb.from('cms_payments').insert(payload);
+      const { error } = await q;
+      if (error) { alert(error.message); return; }
+      $('payEd').style.display='none';
+      await load();
+    });
+    $('payDel').addEventListener('click', async () => {
+      if (!confirm('이 결제 기록을 삭제하시겠어요?')) return;
+      const { error } = await sb.from('cms_payments').delete().eq('id', current.id);
+      if (error) { alert(error.message); return; }
+      $('payEd').style.display='none';
+      await load();
+    });
+    load();
+  }
+
+  // ---- MODULE: 시리얼 관리 (cms_serials) --------------------------
+  async function renderSerials() {
+    view.innerHTML = `
+      <div class="panel">
+        <div class="panel-title">시리얼 관리
+          <button class="btn primary" id="srNew">+ 새 시리얼</button></div>
+        <div id="srList">로딩…</div>
+      </div>
+      <div class="panel" id="srEd" style="display:none;">
+        <div class="panel-title"><span id="srEdTitle">시리얼</span>
+          <button class="btn" id="srCancel">취소</button></div>
+        <div class="field"><label>코드</label>
+          <div style="display:flex;gap:6px;"><input id="sf-code" style="flex:1;"><button class="btn" id="srGen" type="button">랜덤 생성</button></div>
+        </div>
+        <div class="field"><label>플랜</label>
+          <select id="sf-plan"><option>free</option><option>trial</option><option selected>paid</option></select>
+        </div>
+        <div class="field"><label>최대 사용 횟수</label><input id="sf-max" type="number" value="1"></div>
+        <div class="field"><label>만료일 (선택)</label><input id="sf-exp" type="date"></div>
+        <div class="field"><label>폐기 여부</label>
+          <select id="sf-rev"><option value="false">활성</option><option value="true">폐기</option></select>
+        </div>
+        <div class="field"><label>메모</label><input id="sf-memo"></div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn primary" id="srSave">저장</button>
+          <button class="btn danger" id="srDel" style="display:none;">삭제</button>
+        </div>
+      </div>`;
+    let current = null;
+    const load = async () => {
+      const { data, error } = await sb.from('cms_serials').select('*').order('created_at', { ascending: false }).limit(200);
+      if (error) { $('srList').innerHTML = '<div style="color:var(--danger);">'+error.message+'</div>'; return; }
+      $('srList').innerHTML = (data||[]).length ? `
+        <table class="t"><thead><tr><th>코드</th><th>플랜</th><th>사용</th><th>만료</th><th>상태</th><th></th></tr></thead>
+        <tbody>${data.map(s => `<tr>
+          <td><code style="font-size:12px;">${escape(s.code)}</code></td>
+          <td><span class="badge ${s.plan==='paid'?'paid':'trial'}">${escape(s.plan)}</span></td>
+          <td>${s.used_count}/${s.max_uses}</td>
+          <td>${s.expires_at ? fmtDate(s.expires_at) : '-'}</td>
+          <td>${s.revoked ? '<span class="badge" style="background:#fde0e0;color:#b91c1c;">폐기</span>' : '<span class="badge paid">활성</span>'}</td>
+          <td><button class="btn sr-edit" data-id="${s.id}">편집</button></td>
+        </tr>`).join('')}</tbody></table>` : '<div style="color:var(--ink-soft);padding:20px;text-align:center;">시리얼 없음</div>';
+      document.querySelectorAll('.sr-edit').forEach(b => b.addEventListener('click', async () => {
+        const { data } = await sb.from('cms_serials').select('*').eq('id', b.dataset.id).single();
+        openEd(data);
+      }));
+    };
+    const openEd = (s) => {
+      current = s || null;
+      $('srEd').style.display = 'block';
+      $('sf-code').value = s?.code || '';
+      $('sf-plan').value = s?.plan || 'paid';
+      $('sf-max').value  = s?.max_uses || 1;
+      $('sf-exp').value  = s?.expires_at ? new Date(s.expires_at).toISOString().slice(0,10) : '';
+      $('sf-rev').value  = String(!!s?.revoked);
+      $('sf-memo').value = s?.memo || '';
+      $('srDel').style.display = s ? 'inline-flex' : 'none';
+    };
+    $('srNew').addEventListener('click', () => openEd(null));
+    $('srCancel').addEventListener('click', () => $('srEd').style.display='none');
+    $('srGen').addEventListener('click', () => {
+      const r = (n) => Array.from({length:n}, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random()*32)]).join('');
+      $('sf-code').value = `${r(4)}-${r(4)}-${r(4)}-${r(4)}`;
+    });
+    $('srSave').addEventListener('click', async () => {
+      const payload = {
+        code: $('sf-code').value.trim(),
+        plan: $('sf-plan').value,
+        max_uses: Number($('sf-max').value) || 1,
+        expires_at: $('sf-exp').value || null,
+        revoked: $('sf-rev').value === 'true',
+        memo: $('sf-memo').value,
+      };
+      if (!payload.code) { alert('코드 필수'); return; }
+      const q = current ? sb.from('cms_serials').update(payload).eq('id', current.id)
+                        : sb.from('cms_serials').insert(payload);
+      const { error } = await q;
+      if (error) { alert(error.message); return; }
+      $('srEd').style.display='none';
+      await load();
+    });
+    $('srDel').addEventListener('click', async () => {
+      if (!confirm('이 시리얼을 영구 삭제하시겠어요?')) return;
+      const { error } = await sb.from('cms_serials').delete().eq('id', current.id);
+      if (error) { alert(error.message); return; }
+      $('srEd').style.display='none';
+      await load();
+    });
+    load();
+  }
+
+  // ---- MODULE: 앱 기능 제한 (cms_entitlements) --------------------
+  async function renderEntitlements() {
+    return renderCmsListCrud('cms_entitlements',
+      ['feature_key','label','min_plan','enabled','note'],
+      '기능 제한',
+      ['기능 키 (고유)','라벨','최소 플랜 (free/trial/paid)','활성 (true/false)','메모']
+    );
+  }
+
+  // ---- MODULE: 설정 (cms_settings) --------------------------------
+  async function renderSettings() {
+    return renderCmsListCrud('cms_settings',
+      ['key','value','note'],
+      '사이트 설정',
+      ['키','값','메모']
+    );
+  }
+
+  // ---- MODULE: 헤더 & 푸터 (cms_content 중 header.* / footer.*) ---
+  async function renderHeaderFooter() {
+    view.innerHTML = `
+      <div class="panel">
+        <div class="panel-title">헤더 & 푸터</div>
+        <p style="color:var(--ink-soft);font-size:12px;">네비게이션은 랜딩 → 네비게이션 메뉴에서 관리. 여기는 footer.* 키 전용.</p>
+      </div>
+      <div id="hfView"></div>`;
+    const wrap = $('hfView');
+    // Reuse renderCmsContent with prefix 'footer.'
+    const tmp = view.querySelector('.panel');
+    view.innerHTML = ''; view.appendChild(tmp); view.appendChild(wrap);
+    await renderCmsContent({ prefix: 'footer.', label: '푸터', desc: '푸터 텍스트/링크/카피라이트 등' });
+  }
+
+  // ---- MODULE: 회원가입/로그인 설정 -------------------------------
+  async function renderAuthSettings() {
+    view.innerHTML = `
+      <div class="panel">
+        <div class="panel-title">회원가입/로그인 설정</div>
+        <p style="color:var(--ink-soft);font-size:12px;">아래 키들을 저장하면 <code>cms_settings</code>에 들어갑니다. 프론트에서 읽어 배너/공지로 활용.</p>
+      </div>
+      <div id="asView"></div>`;
+    const tmp = view.querySelector('.panel');
+    view.innerHTML = ''; view.appendChild(tmp); view.appendChild($('asView'));
+    // Reuse settings-style list but filtered to auth.*
+    return renderCmsListCrud('cms_settings',
+      ['key','value','note'],
+      '인증 설정',
+      ['키 (예: auth.signup_enabled)','값','메모']
+    );
   }
 
   // ---- utils ---------------------------------------------------------
