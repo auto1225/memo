@@ -81,6 +81,8 @@ body {
 }
 h1, h2, h3, h4, h5, .tit-visual { line-height: 1.3; letter-spacing: -0.025em; }
 p, li { line-height: 1.65; }
+/* 줄바꿈 불가 유틸 (구·어절 덩어리용) */
+.nb { display: inline-block; white-space: nowrap; }
 img { max-width: 100%; display: block; }
 a { color: inherit; text-decoration: none; }
 button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
@@ -1370,7 +1372,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
           <span>2026 정식 서비스 운영 중</span>
         </div>
         <strong class="tit-visual">적고, <em style="font-family:var(--font-serif); font-style:italic; font-weight:400; color:var(--claude-orange);">그리고</em>,<br />계산하고, <em style="font-family:var(--font-serif); font-style:italic; font-weight:400; color:var(--claude-orange);">정리합니다</em></strong>
-        <p style="font-size:16px; color:var(--text-2); line-height:1.7; max-width:440px;">글씨든 차트든 스케치든, 하나의 파일 안에서. 14가지 역할별 도구와 16개 AI가 당신을 기다립니다.</p>
+        <p style="font-size:16px; color:var(--text-2); line-height:1.7; max-width:440px;"><span class="nb">글씨든 차트든 스케치든,</span> 하나의 파일 안에서. <span class="nb">14가지 역할별 도구</span>와 <span class="nb">16개 AI</span>가 당신을 기다립니다.</p>
         <div class="hero-bottom">
           <div style="display:flex; gap:10px; flex-wrap:wrap;">
             <a href="/app?signup=1" class="wrap-more">
@@ -1384,7 +1386,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
           </div>
           <a href="#faq" class="hero-notices">
             <span class="label">공지</span>
-            <span class="notice-text">평생 무료 · 가입 후 모든 기능 사용 가능</span>
+            <span class="notice-text"><span class="nb">평생 무료</span> · <span class="nb">가입 후 모든 기능 사용 가능</span></span>
             <span class="notice-date">2026.04.19</span>
           </a>
         </div>
@@ -1726,8 +1728,8 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 <section class="section-ev" id="features">
   <div class="ev-intro">
     <span class="ev-tag" style="background:#D97757; color:white; padding:6px 16px; border-radius:999px; font-size:14px; font-weight:700;">모든 기능</span>
-    <h2 style="margin-top:20px;">850KB짜리 파일 하나에<br />이 모든 게 들어있습니다</h2>
-    <p>정리 · 검색 · AI · 동기화 · 그림판 · 명함 OCR · 회의 녹음 · 14가지 전용 도구까지. 설치·가입·결제 없이.</p>
+    <h2 style="margin-top:20px;"><span class="nb">850KB짜리 파일 하나에</span> <span class="nb">이 모든 게 들어있습니다</span></h2>
+    <p><span class="nb">정리 · 검색 · AI · 동기화</span> <span class="nb">· 그림판 · 명함 OCR · 회의 녹음</span> <span class="nb">· 14가지 전용 도구까지.</span> <span class="nb">결제도 구독도 없이, 평생 무료.</span></p>
   </div>
 
   <!-- ROW 1: 정리 (에디터 + 워크스페이스) -->
@@ -1735,7 +1737,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
     <div class="ev-text">
       <span class="ev-tag">정리</span>
       <h3>업무는 업무끼리,<br />개인은 개인끼리</h3>
-      <p>워크스페이스로 나누고 탭은 원하는 만큼. 태그·컬러·즐겨찾기로 수백 개 메모도 바로 눈에 들어옵니다. 전부 850KB 단일 HTML 파일 안에서.</p>
+      <p>워크스페이스로 나누고, 탭은 원하는 만큼. <span class="nb">태그 · 컬러 · 즐겨찾기</span>로 수백 개 메모도 바로 눈에 들어옵니다. <span class="nb">전부 850KB 단일 HTML 파일</span> 안에서.</p>
       <a href="/app?signup=1" class="ev-btn">
         무료로 가입하기
         <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
@@ -1779,7 +1781,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
     <div class="ev-text">
       <span class="ev-tag">검색</span>
       <h3>어제 그 메모,<br />어디 적어뒀더라…</h3>
-      <p>한 글자만 쳐도 전체 워크스페이스·탭·명함까지 통째로 뒤집니다. 하이라이트까지 표시되고, 비행기 안에서도 똑같이 작동합니다.</p>
+      <p>한 글자만 쳐도 <span class="nb">전체 워크스페이스 · 탭 · 명함</span>까지 통째로 뒤집니다. 하이라이트까지 표시되고, <span class="nb">비행기 안에서도 똑같이</span> 작동합니다.</p>
       <a href="/app?signup=1" class="ev-btn">
         무료로 가입하기
         <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
@@ -1844,7 +1846,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
     <div class="ev-text">
       <span class="ev-tag">AI</span>
       <h3>내 API 키로,<br />내 브라우저 안에서만</h3>
-      <p>GPT·Claude·Gemini 16종을 구독료 없이. 본인 API 키는 본인 브라우저에만 저장되고 저희 서버를 거치지 않습니다. 요약·번역·이어쓰기·플래시카드까지 우클릭 한 번에.</p>
+      <p><span class="nb">GPT · Claude · Gemini 16종</span>을 구독료 없이. 본인 API 키는 <span class="nb">본인 브라우저에만</span> 저장되고 <span class="nb">저희 서버를 거치지 않습니다.</span> <span class="nb">요약 · 번역 · 이어쓰기 · 플래시카드</span>까지 우클릭 한 번에.</p>
       <a href="/app?signup=1" class="ev-btn">
         무료로 가입하기
         <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
@@ -1878,7 +1880,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
     <div class="ev-text">
       <span class="ev-tag">그림판</span>
       <h3>메모장에서 그림까지,<br />그것도 레이어로</h3>
-      <p>다른 노트앱의 단순 스케치 말고, 진짜 레이어·블렌드 모드·필터·AI 이미지 생성이 탑재되어 있습니다. 업로드한 이미지의 크기와 포맷 일괄 변환도 같이.</p>
+      <p>다른 노트앱의 단순 스케치 말고, 진짜 <span class="nb">레이어 · 블렌드 모드 · 필터</span> · <span class="nb">AI 이미지 생성</span>이 탑재되어 있습니다. <span class="nb">업로드한 이미지의 크기와 포맷</span> 일괄 변환도 같이.</p>
       <a href="/app?signup=1" class="ev-btn">
         무료로 가입하기
         <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
@@ -1945,7 +1947,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
     <div class="ev-text">
       <span class="ev-tag">동기화</span>
       <h3>휴대폰으로 적고,<br />PC로 이어쓰기</h3>
-      <p>로그인 없이 쓰면 브라우저에만, 로그인하면 기기 간 자동으로. 비밀번호 필요 없이 Google 또는 이메일 링크 한 번이면 끝. 비행기 안에서 쓴 메모도 착륙하면 자동 업로드.</p>
+      <p>로그인 없이 쓰면 <span class="nb">브라우저에만</span>, 로그인하면 <span class="nb">기기 간 자동으로.</span> 비밀번호 필요 없이 <span class="nb">Google 또는 이메일 링크</span> 한 번이면 끝. <span class="nb">비행기 안에서 쓴 메모</span>도 착륙하면 자동 업로드.</p>
       <a href="/app?signup=1" class="ev-btn">
         무료로 가입하기
         <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
@@ -1991,7 +1993,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
     <div class="ev-text">
       <span class="ev-tag">명함</span>
       <h3>모임에서 받은 명함,<br />사진 한 장이면 끝</h3>
-      <p>이름·회사·직책·전화·이메일을 AI가 알아서 추출. 인스타·링크드인·깃허브 같은 16개 SNS까지 자동 검색. vCard로 아이폰·안드로이드 연락처에 바로 저장.</p>
+      <p><span class="nb">이름 · 회사 · 직책 · 전화 · 이메일</span>을 AI가 알아서 추출. <span class="nb">인스타 · 링크드인 · X</span> 같은 <span class="nb">16개 SNS</span>까지 자동 검색. vCard로 <span class="nb">아이폰 · 안드로이드 연락처</span>에 바로 저장.</p>
       <a href="/app?signup=1" class="ev-btn">
         무료로 가입하기
         <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
@@ -2038,7 +2040,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
     <div class="ev-text">
       <span class="ev-tag">회의</span>
       <h3>회의엔 집중하고,<br />받아쓰기는 맡기세요</h3>
-      <p>녹음 버튼 한 번이면 화자 구분 받아쓰기가 동시에. 끝난 직후 AI가 요약 · 결정 사항 · 할 일까지 뽑아서 메모 한 페이지에 정리합니다.</p>
+      <p>녹음 버튼 한 번이면 <span class="nb">화자 구분 받아쓰기</span>가 동시에. 끝난 직후 AI가 <span class="nb">요약 · 결정 사항 · 할 일</span>까지 뽑아서 <span class="nb">메모 한 페이지에 정리</span>합니다.</p>
       <a href="/app?signup=1" class="ev-btn">
         무료로 가입하기
         <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
@@ -2070,7 +2072,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
     <div class="ev-text">
       <span class="ev-tag">역할별</span>
       <h3>대학생이든 주부든,<br />맞춤 위젯이 뜹니다</h3>
-      <p>앱 안에서 "내 역할"을 선택하면 필요한 도구만 골라서 보여줍니다. 대학생이면 강의표·GPA, 주부면 가계부·식단, 프리랜서면 견적서. 14가지 역할, 각각의 설계.</p>
+      <p>앱 안에서 <span class="nb">"내 역할"</span>을 선택하면 필요한 도구만 골라서 보여줍니다. 대학생이면 <span class="nb">강의표 · GPA</span>, 주부면 <span class="nb">가계부 · 식단</span>, 프리랜서면 <span class="nb">견적서</span>. <span class="nb">14가지 역할</span>, 각각의 설계.</p>
       <a href="/app?signup=1" class="ev-btn">
         무료로 가입하기
         <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
@@ -2116,7 +2118,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
     <div style="max-width: 640px; margin: 0 auto; text-align: center;">
       <span class="ev-tag">지금 시작</span>
       <h3 style="font-size: clamp(32px, 4vw, 48px); margin-top: 20px; text-align: center;">"그냥 메모장이<br />되려 했지만…"</h3>
-      <p style="margin: 20px auto 32px; max-width: 520px; text-align: center;">어쩌다 보니 이 많은 기능이 850KB짜리 한 파일 안에 담겼습니다. 이메일 하나면 30초 안에 가입 · 모든 기능 평생 무료.</p>
+      <p style="margin: 20px auto 32px; max-width: 520px; text-align: center;">어쩌다 보니 <span class="nb">이 많은 기능</span>이 <span class="nb">850KB짜리 한 파일</span> 안에 담겼습니다. <span class="nb">이메일 하나면 30초</span>, <span class="nb">모든 기능 평생 무료.</span></p>
       <a href="/app?signup=1" class="ev-btn" style="font-size: 16px; padding: 16px 32px;">
         무료로 가입하기
         <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
@@ -2133,7 +2135,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   <div class="wrap relation-inner">
     <div>
       <h2>무료로 시작하세요</h2>
-      <p>이메일 하나면 30초 안에 가입 완료. 결제 정보 없이 모든 기능을 평생 무료로.</p>
+      <p><span class="nb">이메일 하나면 30초 안에</span> 가입 완료. <span class="nb">결제 정보 없이</span> <span class="nb">모든 기능을 평생 무료로.</span></p>
       <div class="btn-row">
         <a href="/app?signup=1" class="btn-yellow">
           <span>무료 가입</span>
