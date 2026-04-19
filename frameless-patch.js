@@ -242,35 +242,35 @@
     // close click doesn't actually terminate the process.
     async function forceCloseWindow(trigger) {
       console.log('[JNP-CLOSE] triggered by', trigger);
-      const win = getWin();
-      console.log('[JNP-CLOSE] getWin returned:', !!win);
-      // 1) Normal Tauri close
-      try {
-        if (win && typeof win.close === 'function') {
-          console.log('[JNP-CLOSE] calling win.close()');
-          await win.close();
-          console.log('[JNP-CLOSE] win.close() resolved');
+      const T = window.__TAURI__ || {};
+      console.log('[JNP-CLOSE] __TAURI__ keys:', Object.keys(T));
+      console.log('[JNP-CLOSE] window ns keys:', T.window ? Object.keys(T.window) : '-');
+      console.log('[JNP-CLOSE] webviewWindow ns keys:', T.webviewWindow ? Object.keys(T.webviewWindow) : '-');
+
+      const attempts = [
+        ['window.getCurrentWindow().close',       async () => T.window && T.window.getCurrentWindow && T.window.getCurrentWindow().close()],
+        ['webviewWindow.getCurrentWebviewWindow().close', async () => T.webviewWindow && T.webviewWindow.getCurrentWebviewWindow && T.webviewWindow.getCurrentWebviewWindow().close()],
+        ['window.getCurrent().close',             async () => T.window && T.window.getCurrent && T.window.getCurrent().close()],
+        ['invoke plugin:webview|close',           async () => T.core && T.core.invoke && T.core.invoke('plugin:webview|close', { label: 'main' })],
+        ['invoke plugin:window|close',            async () => T.core && T.core.invoke && T.core.invoke('plugin:window|close', { label: 'main' })],
+        ['process.exit(0)',                       async () => T.process && T.process.exit && T.process.exit(0)],
+        ['app.exit(0)',                           async () => T.app && T.app.exit && T.app.exit(0)],
+      ];
+      for (const [name, fn] of attempts) {
+        try {
+          console.log('[JNP-CLOSE] trying', name);
+          const ret = await fn();
+          console.log('[JNP-CLOSE]   → ok, returned', ret);
+        } catch (e) {
+          console.warn('[JNP-CLOSE]   ✗', name, '—', e && e.message);
         }
-      } catch (e) {
-        console.warn('[JNP-CLOSE] win.close failed:', e && e.message);
       }
-      // 2) Tauri v2 invoke fallback (main window)
-      try {
-        const invoke = window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke;
-        if (invoke) {
-          console.log('[JNP-CLOSE] invoke plugin:webview|close');
-          await invoke('plugin:webview|close', { label: 'main' });
-        }
-      } catch (e) { console.warn('[JNP-CLOSE] webview|close failed:', e && e.message); }
-      // 3) Process plugin exit
-      try {
-        const proc = window.__TAURI__ && window.__TAURI__.process;
-        if (proc && typeof proc.exit === 'function') {
-          console.log('[JNP-CLOSE] process.exit(0)');
-          await proc.exit(0);
-        }
-      } catch (e) { console.warn('[JNP-CLOSE] process.exit failed:', e && e.message); }
+      console.log('[JNP-CLOSE] all attempts dispatched');
     }
+
+    // Expose to DevTools for manual triggering:
+    // user can just type  jnpCloseNow()  in the console
+    window.jnpCloseNow = () => forceCloseWindow('manual console trigger');
     async function forceMinimizeWindow() {
       const win = getWin();
       if (win && typeof win.minimize === 'function') {
