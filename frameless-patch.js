@@ -278,6 +278,25 @@
     });
   }
 
+  // ---- Postit-window helpers -----------------------------------------
+  // Postits open at ?mode=postit and have no OS chrome. Give them an
+  // escape hatch: Esc or Ctrl+W closes the current window.
+  function installPostitShortcuts() {
+    const isPostit = /(\?|&)mode=postit\b/.test(location.search);
+    if (!isPostit || !isTauri) return;
+    window.addEventListener('keydown', (e) => {
+      const wantsClose =
+        e.key === 'Escape' ||
+        (e.key === 'w' && (e.ctrlKey || e.metaKey));
+      if (!wantsClose) return;
+      e.preventDefault();
+      const win = getWin();
+      if (win && typeof win.close === 'function') {
+        win.close().catch(() => {});
+      }
+    });
+  }
+
   // ---- Boot -----------------------------------------------------------
   function init() {
     // Only apply transparent + rounded-corner CSS inside Tauri. The web
@@ -292,6 +311,7 @@
     markDragRegion();
     bindControls();
     installResizeHandles();
+    installPostitShortcuts();
 
     // Re-bind on DOM mutations for dynamically-inserted buttons (rare but safe)
     const mo = new MutationObserver(() => { bindControls(); markDragRegion(); });

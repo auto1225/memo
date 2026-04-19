@@ -97,11 +97,13 @@ fn main() {
             Ok(())
         })
         .on_window_event(|window, event| {
-            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                // 메인 창 닫기 시 트레이로 숨김
+            // X 누르면 앱 전체 종료 (트레이 잔존 방지).
+            // 이전에는 hide+prevent_close로 트레이에 숨기게 했는데,
+            // Windows 11 DWM이 숨겨진 창의 shadow 잔상을 유지하면서
+            // '유령 흰 창'으로 보이는 혼란이 있었음.
+            if let tauri::WindowEvent::CloseRequested { .. } = event {
                 if window.label() == "main" {
-                    let _ = window.hide();
-                    api.prevent_close();
+                    window.app_handle().exit(0);
                 }
             }
         })
@@ -116,12 +118,12 @@ fn spawn_postit(app: &tauri::AppHandle) {
         &label,
         WebviewUrl::External("https://justanotepad.com/app?mode=postit".parse().unwrap()),
     )
-    .title("포스트잇")
+    .title("JustANotepad 포스트잇")
     .inner_size(320.0, 400.0)
     .resizable(true)
     .always_on_top(true)
     .decorations(false)
-    .skip_taskbar(true)
+    .skip_taskbar(false)  // 작업표시줄에서도 닫을 수 있게
     .build();
     if let Err(e) = window {
         eprintln!("포스트잇 생성 실패: {}", e);
