@@ -17,6 +17,18 @@ fn main() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .setup(|app| {
+            // Force frameless from the native side too — redundant with the
+            // static `decorations: false` config, but bullet-proof against
+            // any caching / Windows-specific fallback.
+            if let Some(win) = app.get_webview_window("main") {
+                let _ = win.set_decorations(false);
+                let _ = win.set_shadow(true);
+                // Auto-open devtools so we can diagnose issues on user machines.
+                #[cfg(any(debug_assertions, feature = "devtools"))]
+                {
+                    win.open_devtools();
+                }
+            }
             // 시스템 트레이 메뉴
             let open_main = MenuItem::with_id(app, "open_main", "JustANotepad 열기", true, None::<&str>)?;
             let new_postit =

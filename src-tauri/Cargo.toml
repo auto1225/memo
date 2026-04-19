@@ -1,6 +1,6 @@
 [package]
 name = "justanotepad"
-version = "1.0.5"
+version = "1.0.6"
 description = "JustANotepad Desktop"
 authors = ["JustANotepad <auto0104@gmail.com>"]
 edition = "2021"
@@ -14,7 +14,7 @@ path = "src/main.rs"
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = ["tray-icon"] }
+tauri = { version = "2", features = ["tray-icon", "devtools"] }
 tauri-plugin-shell = "2"
 tauri-plugin-log = "2"
 tauri-plugin-window-state = "2"
