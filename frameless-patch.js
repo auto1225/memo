@@ -269,19 +269,40 @@
     }
     window.jnpCloseNow = () => forceCloseWindow('manual');
 
-    // Rather than intercepting the click event (which app.html's own
-    // handler also listens to via addEventListener), we REPLACE
-    // window.close itself. app.html calls window.close() inside its
-    // confirm dialog — now that call goes to Tauri's close APIs.
-    //
-    // IMPORTANT: We do NOT fall back to the native window.close(). In
-    // WebView2 / Android WebView, the native call blanks the HTML
-    // content (yellow .pad disappears) WITHOUT closing the OS window.
-    // That leaves the user staring at an empty white OS window — the
-    // exact "외부 창이 남는다" symptom we've been chasing.
-    window.close = function () {
-      forceCloseWindow('window.close shim');
-    };
+    // Replace the app's closeBtn handler entirely. cloneNode strips all
+    // existing listeners; we then add a single listener that calls
+    // forceCloseWindow directly. No window.close() involvement at all.
+    function rebindCloseBtn() {
+      const btn = document.getElementById('closeBtn');
+      if (!btn || btn.dataset.jnpRebound === '1') return;
+      const fresh = btn.cloneNode(true);
+      fresh.dataset.jnpRebound = '1';
+      btn.parentNode.replaceChild(fresh, btn);
+      fresh.addEventListener('click', async () => {
+        if (!window.confirm('메모장을 닫을까요? (내용은 자동 저장됩니다)')) return;
+        // Flag so the timeout below knows whether the window actually
+        // closed. The window is gone before the flag is reset only if
+        // some close path worked.
+        window.__jnpCloseAttempted__ = Date.now();
+        await forceCloseWindow('rebound closeBtn');
+        // If we're still running 800ms later, nothing actually closed.
+        setTimeout(() => {
+          if (!document.hidden) {
+            window.alert(
+              '창 닫기에 실패했습니다. 작업 관리자에서 JustANotepad를 종료해주세요.\n' +
+              '개발자 도구(F12)의 Console 로그를 공유해주시면 원인을 찾겠습니다.'
+            );
+          }
+        }, 800);
+      });
+    }
+    rebindCloseBtn();
+    // Some UI paths render the topbar late; retry once.
+    setTimeout(rebindCloseBtn, 1500);
+
+    // Also nuke window.close — if anything in app.html still calls it,
+    // route to the same path.
+    window.close = () => forceCloseWindow('window.close shim');
 
     // Ctrl+Q escape hatch in case every UI button is borked.
     window.addEventListener('keydown', (e) => {
