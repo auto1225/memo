@@ -1,6 +1,6 @@
 [package]
 name = "justanotepad"
-version = "1.0.14"
+version = "1.0.15"
 description = "JustANotepad Desktop"
 authors = ["JustANotepad <auto0104@gmail.com>"]
 edition = "2021"

@@ -3,6 +3,12 @@
   "identifier": "default",
   "description": "JustANotepad 기본 권한",
   "windows": ["main", "postit-*"],
+  "remote": {
+    "urls": [
+      "https://justanotepad.com/**",
+      "https://www.justanotepad.com/**"
+    ]
+  },
   "permissions": [
     "core:default",
     "core:window:default",
