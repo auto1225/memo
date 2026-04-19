@@ -136,9 +136,22 @@
   });
 
   // ---- View registry -------------------------------------------------
+  // Landing-page sections: each key prefix corresponds to a real section
+  // of index.html. renderLandingSection() uses this map to filter.
+  const LANDING_SECTIONS = {
+    'ls-nav':      { prefix: 'nav.',      label: '네비게이션',   desc: '상단 네비게이션 바 메뉴, 로고, 버튼 문구' },
+    'ls-hero':     { prefix: 'hero.',     label: '히어로 섹션',  desc: '첫 화면의 헤드라인과 CTA 버튼' },
+    'ls-featured': { prefix: 'featured.', label: '피처드 카드',  desc: '14가지 도구, 평생 무료 등 4개 카드' },
+    'ls-features': { prefix: 'features.', label: '기능 소개',    desc: '850KB 헤드라인부터 워크스페이스 샘플까지' },
+    'ls-download': { prefix: 'download.', label: '다운로드 섹션', desc: '다운로드 헤드라인 + 4개 다운로드 카드 + PWA 가이드' },
+    'ls-cta':      { prefix: 'cta.',      label: '무료 시작 CTA', desc: '가입 유도 섹션 (버튼/부제/공지)' },
+    'ls-faq':      { prefix: 'faq.',      label: 'FAQ',          desc: '자주 묻는 질문 제목과 항목' },
+    'ls-footer':   { prefix: 'footer.',   label: '푸터',         desc: '하단 링크·저작권·회사 정보' },
+  };
+
   const titles = {
     dashboard: ['대시보드', '대시보드'],
-    content:   ['콘텐츠 관리 (랜딩 페이지 DB)', '랜딩 / 콘텐츠'],
+    content:   ['콘텐츠 관리 (전체)', '랜딩 / 콘텐츠'],
     analytics: ['방문자 통계', '대시보드 / 방문자 통계'],
     downloads: ['다운로드 분석', '대시보드 / 다운로드'],
     payments: ['판매 / 결제', '비즈니스 / 판매'],
@@ -169,9 +182,20 @@
   };
 
   function setTitle(v) {
+    if (LANDING_SECTIONS[v]) {
+      pageTitle.textContent = LANDING_SECTIONS[v].label;
+      crumb.textContent = '랜딩 / ' + LANDING_SECTIONS[v].label;
+      return;
+    }
     const t = titles[v] || ['', '관리자'];
     pageTitle.textContent = t[0];
     crumb.textContent = t[1];
+  }
+
+  async function renderLandingSection(v) {
+    const info = LANDING_SECTIONS[v];
+    // Reuse renderCmsContent but filtered to this prefix + show description
+    await renderCmsContent(info);
   }
 
   async function render(v) {
@@ -182,7 +206,8 @@
       else if (v === 'users')    await renderUsers();
       else if (v === 'announce') await renderNotices();
       else if (v === 'faq')      await renderFAQ();
-      else if (v === 'content')  await renderCmsContent();
+      else if (v === 'content')  await renderCmsContent(null);
+      else if (LANDING_SECTIONS[v]) await renderLandingSection(v);
       else if (v === 'terms')    await renderCmsDoc('terms', '약관 관리');
       else if (v === 'popup')    await renderPopups();
       else if (v === 'analytics') await renderAnalytics();
@@ -408,18 +433,20 @@
   // ---- MODULE: CMS content (landing-page DB) ------------------------
   // Lists every row in cms_content (key/value/kind/note) so the admin can
   // edit any landing-page text/image/url live. New keys can be added too.
-  async function renderCmsContent() {
+  async function renderCmsContent(section) {
+    const scopedPrefix = section && section.prefix ? section.prefix : '';
     view.innerHTML = `
       <div class="panel">
-        <div class="panel-title">콘텐츠 항목
+        <div class="panel-title">${section ? section.label : '콘텐츠 항목'}
           <div style="display:flex;gap:8px;align-items:center;">
             <input type="search" id="ccSearch" placeholder="키/내용 검색" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
             <button class="btn primary" id="ccNew">+ 새 항목</button>
           </div>
         </div>
         <div id="ccHelp" style="color:var(--ink-soft);font-size:12px;margin-bottom:10px;">
-          랜딩 페이지(index.html)의 요소에 <code>data-cms="키"</code> 속성을 달면
-          이 테이블의 값으로 자동 치환됩니다. kind는 text / html / image / url 중 선택.
+          ${section
+            ? `이 섹션의 키 접두사는 <code>${scopedPrefix}</code>. ${escape(section.desc)}`
+            : `랜딩 페이지(index.html)의 요소에 <code>data-cms="키"</code> 속성을 달면 이 테이블의 값으로 자동 치환됩니다. kind는 text / html / image / url 중 선택.`}
         </div>
         <div id="ccList">로딩…</div>
       </div>
@@ -447,6 +474,7 @@
     let current = null;
     const load = async (q) => {
       let query = sb.from('cms_content').select('*').order('key', { ascending: true }).limit(500);
+      if (scopedPrefix) query = query.like('key', scopedPrefix + '%');
       const { data, error } = await query;
       if (error) { $('ccList').innerHTML = '<div style="color:var(--danger);">'+error.message+'</div>'; return; }
       const filtered = !q ? (data||[]) :
@@ -484,7 +512,10 @@
       $('ccNote').value = row?.note || '';
       $('ccDelete').style.display = row ? 'inline-flex' : 'none';
     };
-    $('ccNew').addEventListener('click', () => openEditor(null));
+    $('ccNew').addEventListener('click', () => {
+      openEditor(null);
+      if (scopedPrefix) $('ccKey').value = scopedPrefix;
+    });
     $('ccCancel').addEventListener('click', () => $('ccEditor').style.display='none');
     $('ccSave').addEventListener('click', async () => {
       const payload = {

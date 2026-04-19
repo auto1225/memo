@@ -1436,16 +1436,16 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   <div class="nav-inner">
     <a href="/" class="brand-mark">
       <span class="brand-logo">j.</span>
-      <span>JustANotepad</span>
+      <span data-cms="nav.brand">JustANotepad</span>
     </a>
     <div class="nav-links">
-      <a href="#features">기능</a>
-      <a href="#compare">비교</a>
-      <a href="#faq">자주 묻는 질문</a>
+      <a href="#features" data-cms="nav.link1">기능</a>
+      <a href="#compare"  data-cms="nav.link2">비교</a>
+      <a href="#faq"      data-cms="nav.link3">자주 묻는 질문</a>
     </div>
     <div class="nav-side">
-      <a href="/app?signin=1" class="nav-signin">로그인</a>
-      <a href="/app?signup=1" class="nav-cta">무료 가입 <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
+      <a href="/app?signin=1" class="nav-signin" data-cms="nav.signin">로그인</a>
+      <a href="/app?signup=1" class="nav-cta"><span data-cms="nav.signup">무료 가입</span> <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
     </div>
   </div>
 </nav>
@@ -1765,48 +1765,48 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
     <div class="visual-bottom">
       <div class="box-featured">
         <div>
-          <div class="label">2026년 4월 · 메이저 업데이트</div>
-          <div class="title">14가지 역할별 도구 + 클라우드 동기화</div>
+          <div class="label" data-cms="featured.card1.label">2026년 4월 · 메이저 업데이트</div>
+          <div class="title" data-cms="featured.card1.title">14가지 역할별 도구 + 클라우드 동기화</div>
         </div>
         <div class="actions">
           <a href="/app?signup=1" class="btn-act">
             <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-            <span>무료 가입</span>
+            <span data-cms="featured.card1.btn1">무료 가입</span>
           </a>
-          <a href="/app?download=1" class="btn-act outline">다운로드</a>
+          <a href="/app?download=1" class="btn-act outline" data-cms="featured.card1.btn2">다운로드</a>
         </div>
       </div>
 
       <a href="#faq" class="box-item">
         <div>
-          <div class="label">개발자 서한</div>
-          <div class="title">“그냥 메모장이 되려 했지만…”</div>
+          <div class="label" data-cms="featured.card2.label">개발자 서한</div>
+          <div class="title" data-cms="featured.card2.title">“그냥 메모장이 되려 했지만…”</div>
         </div>
         <div class="bottom">
-          <span class="date">2026.04.19</span>
-          <span class="arrow">읽어보기 <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
+          <span class="date" data-cms="featured.card2.date">2026.04.19</span>
+          <span class="arrow"><span data-cms="featured.card2.cta">읽어보기</span> <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
         </div>
       </a>
 
       <a href="#faq" class="box-item notice">
         <div>
-          <div class="label">공지사항</div>
-          <div class="title">평생 무료 · 광고 없이 운영합니다</div>
+          <div class="label" data-cms="featured.card3.label">공지사항</div>
+          <div class="title" data-cms="featured.card3.title">평생 무료 · 광고 없이 운영합니다</div>
         </div>
         <div class="bottom">
-          <span class="date">2026.04.19</span>
-          <span class="arrow">자세히 <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
+          <span class="date" data-cms="featured.card3.date">2026.04.19</span>
+          <span class="arrow"><span data-cms="featured.card3.cta">자세히</span> <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
         </div>
       </a>
 
       <a href="/app?signup=1" class="box-item">
         <div>
-          <div class="label">지금 가입</div>
-          <div class="title">가입하고 모든 기능 사용하기</div>
+          <div class="label" data-cms="featured.card4.label">지금 가입</div>
+          <div class="title" data-cms="featured.card4.title">가입하고 모든 기능 사용하기</div>
         </div>
         <div class="bottom">
-          <span class="date">30초 소요</span>
-          <span class="arrow">시작하기 <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
+          <span class="date" data-cms="featured.card4.date">30초 소요</span>
+          <span class="arrow"><span data-cms="featured.card4.cta">시작하기</span> <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
         </div>
       </a>
     </div>
@@ -1817,8 +1817,8 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 <section class="section-ev" id="features">
   <div class="ev-intro">
     <span class="ev-tag" style="background:#D97757; color:white; padding:6px 16px; border-radius:999px; font-size:14px; font-weight:700;">모든 기능</span>
-    <h2 style="margin-top:20px;"><span class="nb">850KB짜리 파일 하나에</span> <span class="nb">이 모든 게 들어있습니다</span></h2>
-    <p><span class="nb">정리 · 검색 · AI · 동기화</span> <span class="nb">· 그림판 · 명함 OCR · 회의 녹음</span> <span class="nb">· 14가지 전용 도구까지.</span> <span class="nb">결제도 구독도 없이, 평생 무료.</span></p>
+    <h2 data-cms="features.title" data-cms-kind="html" style="margin-top:20px;"><span class="nb">850KB짜리 파일 하나에</span> <span class="nb">이 모든 게 들어있습니다</span></h2>
+    <p data-cms="features.subtitle" data-cms-kind="html"><span class="nb">정리 · 검색 · AI · 동기화</span> <span class="nb">· 그림판 · 명함 OCR · 회의 녹음</span> <span class="nb">· 14가지 전용 도구까지.</span> <span class="nb">결제도 구독도 없이, 평생 무료.</span></p>
   </div>
 
   <!-- ROW 1: 정리 (에디터 + 워크스페이스) -->
@@ -2224,9 +2224,9 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 <section class="section-download" id="download">
   <div class="wrap">
     <div class="download-head">
-      <div class="section-eyebrow">DOWNLOAD</div>
-      <h2>원하는 곳에서 바로</h2>
-      <p>웹으로 바로 쓰거나, 앱으로 설치해서 네이티브처럼. 모든 플랫폼에서 동일한 메모.</p>
+      <div class="section-eyebrow" data-cms="download.eyebrow">DOWNLOAD</div>
+      <h2 data-cms="download.title">원하는 곳에서 바로</h2>
+      <p data-cms="download.subtitle">웹으로 바로 쓰거나, 앱으로 설치해서 네이티브처럼. 모든 플랫폼에서 동일한 메모.</p>
     </div>
     <div class="download-grid">
       <a href="/app?signup=1" class="dl-card web">
@@ -2312,8 +2312,8 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 <section class="section-relation">
   <div class="wrap relation-inner">
     <div>
-      <h2>무료로 시작하세요</h2>
-      <p><span class="nb">이메일 하나면 30초 안에</span> 가입 완료. <span class="nb">결제 정보 없이</span> <span class="nb">모든 기능을 평생 무료로.</span></p>
+      <h2 data-cms="cta.title">무료로 시작하세요</h2>
+      <p data-cms="cta.subtitle" data-cms-kind="html"><span class="nb">이메일 하나면 30초 안에</span> 가입 완료. <span class="nb">결제 정보 없이</span> <span class="nb">모든 기능을 평생 무료로.</span></p>
       <div class="btn-row">
         <a href="/app?signup=1" class="btn-yellow">
           <span>무료 가입</span>
@@ -2348,7 +2348,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 <section class="section-faq" id="faq">
   <div class="faq-head">
     <div class="eyebrow">FAQ</div>
-    <h2>자주 묻는 질문</h2>
+    <h2 data-cms="faq.title">자주 묻는 질문</h2>
   </div>
   <div class="faq-list">
     <div class="faq-item">
