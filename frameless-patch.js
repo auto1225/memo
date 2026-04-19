@@ -247,25 +247,32 @@
     if (!isTauri) return;
 
     // Try every known path to close the current window. Whichever one the
-    // runtime exposes will win. No UI interaction required.
+    // runtime exposes will win. Returns a report array for on-screen display.
     async function forceCloseWindow(trigger) {
       const T = window.__TAURI__ || {};
       const C = window.Capacitor;
       const attempts = [
-        // Tauri v2 — multiple shapes
-        async () => T.window && T.window.getCurrentWindow && T.window.getCurrentWindow().close(),
-        async () => T.webviewWindow && T.webviewWindow.getCurrentWebviewWindow && T.webviewWindow.getCurrentWebviewWindow().close(),
-        async () => T.window && T.window.getCurrent && T.window.getCurrent().close(),
-        async () => T.core && T.core.invoke && T.core.invoke('plugin:webview|close', { label: 'main' }),
-        async () => T.core && T.core.invoke && T.core.invoke('plugin:window|close', { label: 'main' }),
-        async () => T.process && T.process.exit && T.process.exit(0),
-        // Capacitor (Android/iOS) — App plugin exitApp
-        async () => C && C.Plugins && C.Plugins.App && C.Plugins.App.exitApp && C.Plugins.App.exitApp(),
-        async () => C && C.Plugins && C.Plugins.App && C.Plugins.App.minimizeApp && C.Plugins.App.minimizeApp(),
+        ['T.window.getCurrentWindow().close',       async () => T.window && T.window.getCurrentWindow && T.window.getCurrentWindow().close()],
+        ['T.webviewWindow.getCurrentWebviewWindow().close', async () => T.webviewWindow && T.webviewWindow.getCurrentWebviewWindow && T.webviewWindow.getCurrentWebviewWindow().close()],
+        ['T.window.getCurrent().close',             async () => T.window && T.window.getCurrent && T.window.getCurrent().close()],
+        ['T.core.invoke plugin:webview|close',      async () => T.core && T.core.invoke && T.core.invoke('plugin:webview|close', { label: 'main' })],
+        ['T.core.invoke plugin:window|close',       async () => T.core && T.core.invoke && T.core.invoke('plugin:window|close', { label: 'main' })],
+        ['T.core.invoke force_quit (custom cmd)',   async () => T.core && T.core.invoke && T.core.invoke('force_quit')],
+        ['T.invoke force_quit (direct)',            async () => T.invoke && T.invoke('force_quit')],
+        ['T.process.exit(0)',                       async () => T.process && T.process.exit && T.process.exit(0)],
+        ['Capacitor App.exitApp',                   async () => C && C.Plugins && C.Plugins.App && C.Plugins.App.exitApp && C.Plugins.App.exitApp()],
+        ['Capacitor App.minimizeApp',               async () => C && C.Plugins && C.Plugins.App && C.Plugins.App.minimizeApp && C.Plugins.App.minimizeApp()],
       ];
-      for (const fn of attempts) {
-        try { await fn(); } catch {}
+      const report = [];
+      for (const [name, fn] of attempts) {
+        try {
+          const ret = await fn();
+          report.push({ name, ok: true, ret: ret === undefined ? '—' : String(ret).slice(0, 40) });
+        } catch (e) {
+          report.push({ name, ok: false, err: (e && e.message ? e.message : String(e)).slice(0, 60) });
+        }
       }
+      return report;
     }
     window.jnpCloseNow = () => forceCloseWindow('manual');
 
@@ -280,19 +287,24 @@
       btn.parentNode.replaceChild(fresh, btn);
       fresh.addEventListener('click', async () => {
         if (!window.confirm('메모장을 닫을까요? (내용은 자동 저장됩니다)')) return;
-        // Flag so the timeout below knows whether the window actually
-        // closed. The window is gone before the flag is reset only if
-        // some close path worked.
-        window.__jnpCloseAttempted__ = Date.now();
-        await forceCloseWindow('rebound closeBtn');
-        // If we're still running 800ms later, nothing actually closed.
+        const T = window.__TAURI__ || {};
+        const tauriKeys = Object.keys(T).sort().join(', ') || '(none)';
+        const windowKeys = T.window ? Object.keys(T.window).sort().join(', ') : '(no T.window)';
+        const report = await forceCloseWindow('rebound closeBtn');
+        // If we're still running 800ms later, show the diagnostic in an
+        // alert (user can screenshot it — no F12 needed).
         setTimeout(() => {
-          if (!document.hidden) {
-            window.alert(
-              '창 닫기에 실패했습니다. 작업 관리자에서 JustANotepad를 종료해주세요.\n' +
-              '개발자 도구(F12)의 Console 로그를 공유해주시면 원인을 찾겠습니다.'
-            );
-          }
+          if (document.hidden) return;
+          const lines = report.map(r =>
+            (r.ok ? '✓ ' : '✗ ') + r.name + (r.err ? '  → ' + r.err : (r.ret ? '  → ok' : ''))
+          ).join('\n');
+          window.alert(
+            '창 닫기 실패. 진단:\n\n' +
+            '__TAURI__ keys: ' + tauriKeys + '\n' +
+            '__TAURI__.window keys: ' + windowKeys + '\n\n' +
+            '시도한 경로:\n' + lines + '\n\n' +
+            '이 내용 스크린샷해서 공유해주세요. 작업 관리자로 임시 종료 바랍니다.'
+          );
         }, 800);
       });
     }

@@ -9,6 +9,15 @@ use tauri::{
     Manager, WebviewUrl, WebviewWindowBuilder,
 };
 
+// Frontend → Rust command. JS calls:
+//     window.__TAURI__.core.invoke('force_quit')
+// which lands here and immediately terminates the process. Bypasses
+// every Tauri event loop / tray / close-request machinery.
+#[tauri::command]
+fn force_quit() {
+    std::process::exit(0);
+}
+
 fn main() {
     tauri::Builder::default()
         // Prevent a second instance from spawning ghost windows when the
@@ -123,6 +132,7 @@ fn main() {
                 }
             }
         })
+        .invoke_handler(tauri::generate_handler![force_quit])
         .run(tauri::generate_context!())
         .expect("error while running JustANotepad");
 }
