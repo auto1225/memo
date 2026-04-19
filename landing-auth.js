@@ -85,52 +85,49 @@
     .jnp-auth-fab.show { display: inline-flex; }
     .jnp-auth-fab:hover { filter: brightness(1.04); }
 
-    /* Signed-in nav: user chip + CMS link + menu */
+    /* Signed-in nav: user chip + direct header buttons (CMS / 로그아웃) */
     .jnp-user-chip {
-      display: none; align-items: center; gap: 10px;
-      padding: 6px 10px 6px 6px; border: 1px solid #e5e7eb;
+      display: none; align-items: center; gap: 8px;
+      padding: 4px 12px 4px 4px; border: 1px solid #e5e7eb;
       border-radius: 999px; background: #fff;
       font: 600 13px -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
-      cursor: pointer; color: #1f1f1f;
+      color: #1f1f1f;
     }
     .jnp-user-chip.show { display: inline-flex; }
     .jnp-user-chip .avatar {
-      width: 26px; height: 26px; border-radius: 50%;
+      width: 24px; height: 24px; border-radius: 50%;
       background: linear-gradient(135deg,#FAE100,#f5c800);
       display: inline-flex; align-items: center; justify-content: center;
-      font-weight: 900; color: #1f1f1f; font-size: 13px;
+      font-weight: 900; color: #1f1f1f; font-size: 12px;
     }
-    .jnp-user-chip .caret {
-      width: 12px; height: 12px; opacity: .5;
-    }
-    .jnp-user-menu {
-      position: absolute; top: calc(100% + 8px); right: 0;
-      background: #fff; border: 1px solid #e5e7eb; border-radius: 10px;
-      min-width: 220px; padding: 8px;
-      box-shadow: 0 10px 24px rgba(0,0,0,.12);
-      display: none; z-index: 2147483300;
-    }
-    .jnp-user-menu.open { display: block; }
-    .jnp-user-menu .head {
-      padding: 10px 12px 8px; color: #666; font-size: 12px;
-      border-bottom: 1px solid #f0f0f0; margin-bottom: 6px;
-    }
-    .jnp-user-menu a, .jnp-user-menu button {
-      display: flex; align-items: center; gap: 8px; width: 100%;
-      padding: 8px 12px; border-radius: 7px; border: 0; background: transparent;
-      text-align: left; color: #1f1f1f; text-decoration: none;
-      font: 500 13px inherit; cursor: pointer;
-    }
-    .jnp-user-menu a:hover, .jnp-user-menu button:hover { background: #f5f5f5; }
-    .jnp-user-menu .cms {
-      background: linear-gradient(135deg,#7e57c2,#5e35b1);
-      color: #fff; font-weight: 700; margin: 4px 0;
-    }
-    .jnp-user-menu .cms:hover { filter: brightness(1.05); background: linear-gradient(135deg,#7e57c2,#5e35b1); }
-    .jnp-user-menu .logout { color: #d9534f; }
 
-    /* Position the chip correctly inside the nav */
+    /* Direct header buttons (shown alongside the chip) */
+    .jnp-nav-cms, .jnp-nav-logout {
+      display: none; align-items: center; gap: 6px;
+      padding: 7px 12px; border-radius: 7px; border: 1px solid transparent;
+      font: 600 13px inherit; cursor: pointer; text-decoration: none;
+    }
+    .jnp-nav-cms.show, .jnp-nav-logout.show { display: inline-flex; }
+    .jnp-nav-cms {
+      background: linear-gradient(135deg,#7e57c2,#5e35b1);
+      color: #fff;
+      box-shadow: 0 2px 6px rgba(94,53,177,.3);
+    }
+    .jnp-nav-cms:hover { filter: brightness(1.08); }
+    .jnp-nav-cms svg { width: 14px; height: 14px; }
+    .jnp-nav-logout {
+      background: #fff; border-color: #e5e7eb; color: #666;
+    }
+    .jnp-nav-logout:hover { background: #f5f5f5; color: #1f1f1f; }
+
+    /* Position the nav items correctly */
     .nav-side { position: relative; }
+
+    /* Mobile: stack more tightly */
+    @media (max-width: 680px) {
+      .jnp-nav-cms, .jnp-nav-logout { padding: 6px 10px; font-size: 12px; }
+      .jnp-user-chip { padding: 2px 8px 2px 2px; font-size: 12px; }
+    }
   `;
   const style = document.createElement('style');
   style.setAttribute('data-jnp-landing-auth', '');
@@ -173,47 +170,55 @@
   appFab.innerHTML = '앱 열기 →';
   document.body.appendChild(appFab);
 
-  // ---- Nav user chip + menu ---------------------------------------
+  // ---- Nav user chip + direct buttons (CMS / 로그아웃) ----------
   const SUPER_ADMINS = ['auto0104@gmail.com'];
-  const chip = document.createElement('button');
+
+  // Non-clickable user display chip (just avatar + name, no dropdown)
+  const chip = document.createElement('span');
   chip.className = 'jnp-user-chip';
-  chip.type = 'button';
+  chip.title = '로그인됨';
   chip.innerHTML = `
     <span class="avatar" id="jnpUserAvatar">·</span>
     <span id="jnpUserName">계정</span>
-    <svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-         stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
   `;
-  const menu = document.createElement('div');
-  menu.className = 'jnp-user-menu';
-  menu.innerHTML = `
-    <div class="head" id="jnpUserHead">signed in</div>
-    <a href="/app" class="open-app">📝 앱 열기</a>
-    <a href="/admin" class="cms" id="jnpCmsLink" style="display:none;">🛡️ CMS 관리자</a>
-    <button type="button" class="logout" id="jnpLogoutBtn">🚪 로그아웃</button>
+
+  // Direct CMS link — shown for super admin only
+  const cmsBtn = document.createElement('a');
+  cmsBtn.href = '/admin';
+  cmsBtn.className = 'jnp-nav-cms';
+  cmsBtn.id = 'jnpCmsLink';
+  cmsBtn.innerHTML = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+         stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="7" height="7"/>
+      <rect x="14" y="3" width="7" height="7"/>
+      <rect x="3" y="14" width="7" height="7"/>
+      <rect x="14" y="14" width="7" height="7"/>
+    </svg>
+    CMS
   `;
-  chip.appendChild(menu);
+
+  // Direct logout button
+  const logoutBtn = document.createElement('button');
+  logoutBtn.type = 'button';
+  logoutBtn.className = 'jnp-nav-logout';
+  logoutBtn.id = 'jnpLogoutBtn';
+  logoutBtn.textContent = '로그아웃';
 
   // Inject into the landing nav when it becomes available
   function injectChip() {
     const side = document.querySelector('.nav-side');
-    if (!side || document.querySelector('.jnp-user-chip')) return;
-    side.appendChild(chip);
+    if (!side) return;
+    if (!document.querySelector('.jnp-user-chip')) side.appendChild(chip);
+    if (!document.getElementById('jnpCmsLink')) side.appendChild(cmsBtn);
+    if (!document.getElementById('jnpLogoutBtn')) side.appendChild(logoutBtn);
   }
   injectChip();
-  // Re-try once in case .nav-side mounted later
   setTimeout(injectChip, 500);
 
-  chip.addEventListener('click', (e) => {
-    if (e.target.closest('.jnp-user-menu')) return;
-    menu.classList.toggle('open');
-  });
-  document.addEventListener('click', (e) => {
-    if (!chip.contains(e.target)) menu.classList.remove('open');
-  });
-  menu.querySelector('#jnpLogoutBtn').addEventListener('click', async () => {
+  logoutBtn.addEventListener('click', async () => {
+    if (!confirm('로그아웃하시겠어요?')) return;
     try { await sb.auth.signOut(); } catch {}
-    menu.classList.remove('open');
     syncSessionUI();
   });
 
@@ -299,27 +304,29 @@
           || email.split('@')[0] || '계정';
         const initial = (name[0] || '·').toUpperCase();
 
-        // Nav chip
+        // Nav chip + direct buttons
         injectChip();
         document.getElementById('jnpUserAvatar').textContent = initial;
         document.getElementById('jnpUserName').textContent = name;
-        document.getElementById('jnpUserHead').textContent = email;
         chip.classList.add('show');
+        logoutBtn.classList.add('show');
 
         // Floating "앱 열기" FAB
         appFab.classList.add('show');
         appFab.textContent = '앱 열기 →';
 
         // Super-admin CMS link visibility
-        const cmsLink = document.getElementById('jnpCmsLink');
-        if (cmsLink) {
-          cmsLink.style.display = SUPER_ADMINS.includes(email.toLowerCase()) ? '' : 'none';
+        if (SUPER_ADMINS.includes(email.toLowerCase())) {
+          cmsBtn.classList.add('show');
+        } else {
+          cmsBtn.classList.remove('show');
         }
 
         toggleAuthLinks(true);
       } else {
         chip.classList.remove('show');
-        menu.classList.remove('open');
+        cmsBtn.classList.remove('show');
+        logoutBtn.classList.remove('show');
         appFab.classList.remove('show');
         toggleAuthLinks(false);
       }
