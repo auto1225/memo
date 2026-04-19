@@ -1971,13 +1971,34 @@
 
     <div id="aiKeyPanel" style="display:none;">
       <div class="ai-tabs" id="aiProviderTabs">
-        <div class="ai-tab active" data-prov="openai">ChatGPT</div>
+        <div class="ai-tab active" data-prov="default" style="background:linear-gradient(90deg, #FAE100, #FFD23F); color:#191919; font-weight:700;">기본 AI (무료)</div>
+        <div class="ai-tab" data-prov="openai">ChatGPT</div>
         <div class="ai-tab" data-prov="gemini">Gemini</div>
         <div class="ai-tab" data-prov="claude">Claude</div>
       </div>
       <div id="aiProvPanel">
+        <!-- 기본 AI (무료) -->
+        <div class="prov-panel" data-prov="default">
+          <div style="background:#FFFBE5; border:1px solid #FAE100; border-radius:8px; padding:12px 14px; font-size:12.5px; color:#5a4a00; line-height:1.6;">
+            <div style="font-weight:700; color:#191919; margin-bottom:6px;">
+              <svg class="ico" style="color:#E5CD00; vertical-align:-3px; margin-right:4px;"><use href="#i-sparkles"/></svg>
+              무료 AI가 바로 탑재되어 있습니다
+            </div>
+            <p style="margin:0 0 8px;">Google Gemini 3/2.5 Flash를 회사에서 제공합니다. <b>API 키 입력 없이 바로 사용 가능</b>.</p>
+            <ul style="margin:0 0 8px; padding-left:18px;">
+              <li>요약 · 번역 · 이어쓰기 · 플래시카드 모두 지원</li>
+              <li>하루 <b>50회</b> 무료 사용</li>
+              <li>이미지 업로드 (Vision) 지원</li>
+            </ul>
+            <p style="margin:0; font-size:11.5px; color:#7a6a20;">더 많이 쓰고 싶거나 GPT-4o·Claude Opus 같은 고성능이 필요하면 →
+              <a href="#" id="openApiKeyGuideLink" style="color:#D97757; font-weight:700;">본인 API 키 발급 안내 보기</a>
+            </p>
+          </div>
+          <div id="defaultAiStatus" style="margin-top:10px; font-size:11.5px; color:#555;"></div>
+        </div>
+
         <!-- OpenAI -->
-        <div class="prov-panel" data-prov="openai">
+        <div class="prov-panel" data-prov="openai" style="display:none;">
           <p style="font-size:12px; color:#555; margin:6px 0;">
             OpenAI 계정의 API 키를 연결합니다. 키는 이 브라우저에만 저장됩니다.<br>
             <a href="#" id="openaiKeyLink" style="color:var(--accent);">platform.openai.com/api-keys 에서 발급받기 →</a>
@@ -6974,22 +6995,48 @@ $('webInsertExcerpt').addEventListener('click', () => {
     멀티 AI 어시스턴트 (ChatGPT / Gemini / Claude)
    ============================================================ */
 const AI_PROVIDERS = {
-  openai: { name: 'ChatGPT', keyStore: 'sticky-openai-key', modelStore: 'sticky-openai-model', defModel: 'gpt-4o-mini' },
-  gemini: { name: 'Gemini',  keyStore: 'sticky-gemini-key', modelStore: 'sticky-gemini-model', defModel: 'gemini-2.0-flash' },
-  claude: { name: 'Claude',  keyStore: 'sticky-claude-key', modelStore: 'sticky-claude-model', defModel: 'claude-3-5-haiku-20241022' }
+  default: { name: '기본 AI (무료)', keyStore: null, modelStore: null, defModel: 'gemini-3-flash', free: true, requiresLogin: true },
+  openai:  { name: 'ChatGPT', keyStore: 'sticky-openai-key', modelStore: 'sticky-openai-model', defModel: 'gpt-4o-mini' },
+  gemini:  { name: 'Gemini',  keyStore: 'sticky-gemini-key', modelStore: 'sticky-gemini-model', defModel: 'gemini-2.0-flash' },
+  claude:  { name: 'Claude',  keyStore: 'sticky-claude-key', modelStore: 'sticky-claude-model', defModel: 'claude-3-5-haiku-20241022' }
 };
 const AI_ACTIVE_STORE = 'sticky-ai-active';
 
-function getAiKey(prov) { return localStorage.getItem(AI_PROVIDERS[prov].keyStore); }
-function setAiKey(prov, k) { localStorage.setItem(AI_PROVIDERS[prov].keyStore, k); }
-function clearAiKey(prov) { localStorage.removeItem(AI_PROVIDERS[prov].keyStore); }
-function getAiModel(prov) { return localStorage.getItem(AI_PROVIDERS[prov].modelStore) || AI_PROVIDERS[prov].defModel; }
-function setAiModel(prov, m) { localStorage.setItem(AI_PROVIDERS[prov].modelStore, m); }
+function getAiKey(prov) {
+  const p = AI_PROVIDERS[prov]; if (!p || !p.keyStore) return null;
+  return localStorage.getItem(p.keyStore);
+}
+function setAiKey(prov, k) {
+  const p = AI_PROVIDERS[prov]; if (!p || !p.keyStore) return;
+  localStorage.setItem(p.keyStore, k);
+}
+function clearAiKey(prov) {
+  const p = AI_PROVIDERS[prov]; if (!p || !p.keyStore) return;
+  localStorage.removeItem(p.keyStore);
+}
+function getAiModel(prov) {
+  const p = AI_PROVIDERS[prov]; if (!p) return null;
+  if (!p.modelStore) return p.defModel;
+  return localStorage.getItem(p.modelStore) || p.defModel;
+}
+function setAiModel(prov, m) {
+  const p = AI_PROVIDERS[prov]; if (!p || !p.modelStore) return;
+  localStorage.setItem(p.modelStore, m);
+}
+function isLoggedIn() {
+  const s = window.JANSync?.getSession?.();
+  return !!(s && s.user);
+}
 function getActiveProvider() {
   const p = localStorage.getItem(AI_ACTIVE_STORE);
-  if (p && getAiKey(p)) return p;
-  // 키가 있는 첫 프로바이더 자동 선택
-  for (const k of Object.keys(AI_PROVIDERS)) if (getAiKey(k)) return k;
+  if (p === 'default' && isLoggedIn()) return 'default';
+  if (p && AI_PROVIDERS[p] && getAiKey(p)) return p;
+  // 로그인했으면 기본 AI가 최우선
+  if (isLoggedIn()) return 'default';
+  // 아니면 키 있는 첫 프로바이더
+  for (const k of Object.keys(AI_PROVIDERS)) {
+    if (AI_PROVIDERS[k].keyStore && getAiKey(k)) return k;
+  }
   return null;
 }
 function setActiveProvider(p) { localStorage.setItem(AI_ACTIVE_STORE, p); }
@@ -7047,10 +7094,47 @@ async function callClaude(sys, user) {
   return d.content?.[0]?.text || '';
 }
 
+/* 기본 AI (Supabase Edge Function 경유 Gemini) */
+async function callDefault(sys, user) {
+  if (!isLoggedIn()) {
+    toast('기본 AI를 사용하려면 무료 회원가입이 필요합니다');
+    // 로그인 모달 열기 (있으면)
+    const authBtn = document.getElementById('authBtn');
+    if (authBtn) authBtn.click();
+    return null;
+  }
+  const sb = window.JANSync?.getSupabase?.();
+  if (!sb) { toast('클라우드 연결 실패'); return null; }
+  try {
+    const { data, error } = await sb.functions.invoke('gemini-proxy', {
+      body: { sys, user }
+    });
+    if (error) throw new Error(error.message || String(error));
+    if (data.error) {
+      if (data.code === 'rate_limit') {
+        toast(data.error, 6000);
+        // API 키 안내 모달 자동 열기
+        setTimeout(() => openApiKeyGuide(), 2000);
+        return null;
+      }
+      throw new Error(data.error);
+    }
+    // 남은 한도 표시
+    if (typeof data.remaining === 'number' && data.remaining <= 5) {
+      toast(`오늘 무료 AI ${data.remaining}회 남음`, 3000);
+    }
+    return data.text;
+  } catch (e) {
+    toast('기본 AI 오류: ' + e.message);
+    return null;
+  }
+}
+
 async function callAI(sys, user) {
   const prov = getActiveProvider();
   if (!prov) { openAiKeyPanel(); toast('먼저 AI 계정을 연결하세요'); return null; }
   try {
+    if (prov === 'default') return await callDefault(sys, user);
     if (prov === 'openai') return await callOpenAI(sys, user);
     if (prov === 'gemini') return await callGemini(sys, user);
     if (prov === 'claude') return await callClaude(sys, user);
@@ -7185,7 +7269,9 @@ function openAiKeyPanel() {
   $('aiKeyPanel').style.display = 'block';
   $('aiMain').style.display = 'none';
   $('aiKeyBanner').style.display = 'none';
-  switchProvPanel(getActiveProvider() || 'openai');
+  // 로그인 상태면 기본 AI 먼저 보여줌, 아니면 현재 활성 or OpenAI
+  const active = getActiveProvider();
+  switchProvPanel(active || (isLoggedIn() ? 'default' : 'openai'));
 }
 function switchProvPanel(prov) {
   currentKeyTab = prov;
@@ -7195,11 +7281,23 @@ function switchProvPanel(prov) {
   document.querySelectorAll('.prov-panel').forEach(p => {
     p.style.display = p.dataset.prov === prov ? 'block' : 'none';
   });
-  // 현재 저장값 로드
+  // 기본 AI는 키 입력 없음 — 상태만 표시
+  if (prov === 'default') {
+    const status = $('defaultAiStatus');
+    if (status) {
+      if (isLoggedIn()) {
+        status.innerHTML = '<span style="color:#10B981;">● 로그인됨</span> — 이 프로바이더로 저장 버튼을 눌러 활성화하세요';
+      } else {
+        status.innerHTML = '<span style="color:#D9534F;">● 로그인 필요</span> — 상단의 로그인 아이콘으로 먼저 가입/로그인하세요';
+      }
+    }
+    return;
+  }
+  // 외부 프로바이더 — 키/모델 로드
   const keyInput = $(prov === 'openai' ? 'openaiKey' : prov === 'gemini' ? 'geminiKey' : 'claudeKey');
   const modelSel = $(prov === 'openai' ? 'openaiModel' : prov === 'gemini' ? 'geminiModel' : 'claudeModel');
-  keyInput.value = getAiKey(prov) || '';
-  modelSel.value = getAiModel(prov);
+  if (keyInput) keyInput.value = getAiKey(prov) || '';
+  if (modelSel) modelSel.value = getAiModel(prov);
 }
 function showAiMain() {
   $('aiKeyPanel').style.display = 'none';
@@ -7288,6 +7386,19 @@ $('aiKeyBtn').addEventListener('click', openAiKeyPanel);
 $('aiSettingsBtn').addEventListener('click', openAiKeyPanel);
 $('aiKeySave').addEventListener('click', () => {
   const prov = currentKeyTab;
+  // 기본 AI는 키가 없으므로 활성화만
+  if (prov === 'default') {
+    if (!isLoggedIn()) {
+      toast('기본 AI는 로그인 후 사용 가능합니다');
+      const authBtn = document.getElementById('authBtn');
+      if (authBtn) authBtn.click();
+      return;
+    }
+    setActiveProvider('default');
+    toast('기본 AI (무료) 활성화됨!');
+    showAiMain();
+    return;
+  }
   const keyInput = $(prov === 'openai' ? 'openaiKey' : prov === 'gemini' ? 'geminiKey' : 'claudeKey');
   const modelSel = $(prov === 'openai' ? 'openaiModel' : prov === 'gemini' ? 'geminiModel' : 'claudeModel');
   const k = keyInput.value.trim();
@@ -7300,12 +7411,127 @@ $('aiKeySave').addEventListener('click', () => {
 });
 $('aiKeyClear').addEventListener('click', () => {
   const prov = currentKeyTab;
+  if (prov === 'default') { toast('기본 AI는 키가 없어 삭제할 수 없습니다'); return; }
   if (!confirm(`${AI_PROVIDERS[prov].name} API 키를 삭제할까요?`)) return;
   clearAiKey(prov);
   const keyInput = $(prov === 'openai' ? 'openaiKey' : prov === 'gemini' ? 'geminiKey' : 'claudeKey');
   keyInput.value = '';
   toast(`${AI_PROVIDERS[prov].name} 키 삭제됨`);
   showAiMain();
+});
+
+/* ============================================================
+   API 키 발급 안내 모달 (3 프로바이더)
+   ============================================================ */
+function openApiKeyGuide() {
+  const html = `
+    <div style="padding:4px 0 12px;">
+      <div style="background:#FFFBE5; border-left:3px solid #FAE100; padding:10px 14px; border-radius:0 8px 8px 0; margin-bottom:16px; font-size:12.5px; color:#5a4a00;">
+        <b style="color:#191919;">왜 API 키가 필요한가요?</b><br>
+        기본 AI(무료)로 하루 50회까지 충분히 쓸 수 있어요. 더 많이 쓰거나 GPT-4o·Claude Opus 같은 고성능 모델이 필요하면 본인 API 키를 넣으세요. 키는 <b>본인 브라우저에만</b> 저장되고 저희 서버를 거치지 않습니다.
+      </div>
+
+      <div id="guideTabs" style="display:flex; gap:4px; border-bottom:1px solid #eee; margin-bottom:14px;">
+        <div class="gd-tab active" data-tab="google" style="padding:8px 14px; cursor:pointer; font-size:13px; font-weight:700; border-bottom:2px solid #D97757; color:#D97757;">Google Gemini (추천)</div>
+        <div class="gd-tab" data-tab="openai" style="padding:8px 14px; cursor:pointer; font-size:13px; color:#666; border-bottom:2px solid transparent;">OpenAI ChatGPT</div>
+        <div class="gd-tab" data-tab="claude" style="padding:8px 14px; cursor:pointer; font-size:13px; color:#666; border-bottom:2px solid transparent;">Anthropic Claude</div>
+      </div>
+
+      <!-- Google Gemini -->
+      <div class="gd-panel" data-tab="google" style="font-size:13px; line-height:1.75; color:#333;">
+        <div style="background:#E8F5E9; border-radius:8px; padding:10px 14px; margin-bottom:12px; font-size:12.5px; color:#1e4620;">
+          <b>무료로 가장 많이 쓸 수 있는 옵션</b> · 하루 1,500회 무료
+        </div>
+        <ol style="padding-left:20px; margin:0;">
+          <li style="margin-bottom:10px;"><b>Google AI Studio 접속</b><br>
+            <a href="https://aistudio.google.com/apikey" target="_blank" style="color:#D97757; font-weight:600;">aistudio.google.com/apikey</a> 클릭</li>
+          <li style="margin-bottom:10px;"><b>Google 계정으로 로그인</b></li>
+          <li style="margin-bottom:10px;"><b>"Create API key" 버튼 클릭</b></li>
+          <li style="margin-bottom:10px;"><b>기존 프로젝트 선택 또는 새로 만들기</b></li>
+          <li style="margin-bottom:10px;"><b>생성된 키 복사</b> (AIza… 로 시작)</li>
+          <li style="margin-bottom:10px;"><b>이 창에서 "Gemini" 탭 → 키 붙여넣기 → 저장</b></li>
+        </ol>
+        <div style="background:#F7F7F7; border-radius:6px; padding:10px 14px; font-size:11.5px; color:#666; margin-top:12px;">
+          ⓘ 카드 등록 없이 무료로 바로 발급. 과금은 유료 티어로 업그레이드했을 때만.
+        </div>
+      </div>
+
+      <!-- OpenAI -->
+      <div class="gd-panel" data-tab="openai" style="display:none; font-size:13px; line-height:1.75; color:#333;">
+        <div style="background:#FFF3E0; border-radius:8px; padding:10px 14px; margin-bottom:12px; font-size:12.5px; color:#8B4513;">
+          <b>GPT-4o 등 최신 모델 사용 가능</b> · 사용한 만큼 과금 (최소 $5 충전 필요)
+        </div>
+        <ol style="padding-left:20px; margin:0;">
+          <li style="margin-bottom:10px;"><b>OpenAI Platform 접속</b><br>
+            <a href="https://platform.openai.com/api-keys" target="_blank" style="color:#D97757; font-weight:600;">platform.openai.com/api-keys</a> 클릭</li>
+          <li style="margin-bottom:10px;"><b>계정 생성 또는 로그인</b></li>
+          <li style="margin-bottom:10px;"><b>결제 정보 등록</b> (Billing → Payment methods)<br>
+            <span style="color:#888; font-size:11.5px;">최소 $5 충전 후 API 사용 가능</span></li>
+          <li style="margin-bottom:10px;"><b>"Create new secret key" 클릭</b></li>
+          <li style="margin-bottom:10px;"><b>생성된 키 복사</b> (sk-… 로 시작)<br>
+            <span style="color:#D9534F; font-size:11.5px;">⚠ 이 화면을 닫으면 다시 볼 수 없으니 꼭 복사!</span></li>
+          <li style="margin-bottom:10px;"><b>이 창에서 "ChatGPT" 탭 → 키 붙여넣기 → 저장</b></li>
+        </ol>
+        <div style="background:#F7F7F7; border-radius:6px; padding:10px 14px; font-size:11.5px; color:#666; margin-top:12px;">
+          <b>예상 비용:</b> gpt-4o-mini 기준 메모 1건 요약에 0.1원 내외. 하루 100건 써도 10원 정도.
+        </div>
+      </div>
+
+      <!-- Claude -->
+      <div class="gd-panel" data-tab="claude" style="display:none; font-size:13px; line-height:1.75; color:#333;">
+        <div style="background:#F3E5F5; border-radius:8px; padding:10px 14px; margin-bottom:12px; font-size:12.5px; color:#4A148C;">
+          <b>Claude Opus·Sonnet 사용 가능</b> · 장문·창작·코드에 강점
+        </div>
+        <ol style="padding-left:20px; margin:0;">
+          <li style="margin-bottom:10px;"><b>Anthropic Console 접속</b><br>
+            <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:#D97757; font-weight:600;">console.anthropic.com/settings/keys</a> 클릭</li>
+          <li style="margin-bottom:10px;"><b>계정 생성 또는 로그인</b> (Google 계정 가능)</li>
+          <li style="margin-bottom:10px;"><b>결제 정보 등록</b><br>
+            <span style="color:#888; font-size:11.5px;">최소 $5 충전 필요 (사용한 만큼 차감)</span></li>
+          <li style="margin-bottom:10px;"><b>"Create Key" 버튼 클릭</b></li>
+          <li style="margin-bottom:10px;"><b>Key name 입력 후 생성</b></li>
+          <li style="margin-bottom:10px;"><b>생성된 키 복사</b> (sk-ant-… 로 시작)</li>
+          <li style="margin-bottom:10px;"><b>이 창에서 "Claude" 탭 → 키 붙여넣기 → 저장</b></li>
+        </ol>
+        <div style="background:#F7F7F7; border-radius:6px; padding:10px 14px; font-size:11.5px; color:#666; margin-top:12px;">
+          <b>예상 비용:</b> claude-3-5-haiku 기준 요약 1건에 0.3원. Opus는 10배 비쌈 (대신 품질 최고).
+        </div>
+      </div>
+
+      <div style="margin-top:16px; padding:12px 14px; background:#F7F7F7; border-radius:8px; font-size:12px; color:#555;">
+        <b style="color:#191919;">보안 안내</b><br>
+        API 키는 절대 다른 사람에게 공유하지 마세요. JustANotepad는 키를 본인 브라우저(localStorage)에만 저장하며, 키가 저희 서버로 전송되지 않습니다. 외부에 유출되었다고 생각되면 발급처에서 즉시 키를 폐기하세요.
+      </div>
+    </div>
+  `;
+  showModalHtml('API 키 발급 안내', html);
+
+  // 탭 전환
+  setTimeout(() => {
+    document.querySelectorAll('.gd-tab').forEach(t => {
+      t.addEventListener('click', () => {
+        document.querySelectorAll('.gd-tab').forEach(x => {
+          x.classList.remove('active');
+          x.style.color = '#666';
+          x.style.borderBottomColor = 'transparent';
+        });
+        t.classList.add('active');
+        t.style.color = '#D97757';
+        t.style.borderBottomColor = '#D97757';
+        document.querySelectorAll('.gd-panel').forEach(p => {
+          p.style.display = p.dataset.tab === t.dataset.tab ? 'block' : 'none';
+        });
+      });
+    });
+  }, 50);
+}
+
+// 링크 바인딩 (AI 패널 내 "API 키 발급 안내 보기")
+document.addEventListener('click', (e) => {
+  if (e.target && e.target.id === 'openApiKeyGuideLink') {
+    e.preventDefault();
+    openApiKeyGuide();
+  }
 });
 document.querySelectorAll('#aiMain .ai-actions button').forEach(btn => {
   btn.addEventListener('click', () => runAiAction(btn.dataset.ai));
