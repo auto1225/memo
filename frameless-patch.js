@@ -227,6 +227,40 @@
     });
   }
 
+  // ---- Capture-phase override of in-app close/min buttons ------------
+  //
+  // app.html's own handlers call window.close() (doesn't work in Tauri
+  // WebView2) and toggle a CSS class (doesn't minimize the OS window).
+  // We intercept the click BEFORE the app's handler runs and route it
+  // to the real Tauri window API instead. Works for every future
+  // version of the app without touching its own code.
+  //
+  function installCaptureOverrides() {
+    if (!isTauri) return;
+    document.addEventListener('click', (e) => {
+      const close = e.target.closest && e.target.closest('#closeBtn');
+      if (close) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        const win = getWin();
+        if (win && typeof win.close === 'function') {
+          win.close().catch(() => {});
+        }
+        return;
+      }
+      const min = e.target.closest && e.target.closest('#minBtn');
+      if (min) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        const win = getWin();
+        if (win && typeof win.minimize === 'function') {
+          win.minimize().catch(() => {});
+        }
+        return;
+      }
+    }, true); // capture phase — runs before any app-level listener
+  }
+
   // ---- Drag region ----------------------------------------------------
   function markDragRegion() {
     const bar = document.getElementById('topbar') || document.querySelector('.topbar');
@@ -310,6 +344,7 @@
 
     markDragRegion();
     bindControls();
+    installCaptureOverrides();
     installResizeHandles();
     installPostitShortcuts();
 
