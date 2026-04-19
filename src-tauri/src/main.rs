@@ -86,7 +86,6 @@ fn spawn_postit(app: &tauri::AppHandle) {
     .resizable(true)
     .always_on_top(true)
     .decorations(false)
-    .transparent(false)
     .skip_taskbar(true)
     .build();
     if let Err(e) = window {

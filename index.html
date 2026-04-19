@@ -1288,6 +1288,35 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   .dl-card.web { grid-column: span 2; }
 }
 
+.pwa-guide {
+  max-width: 780px; margin: 48px auto 0; padding: 28px 24px;
+  background: #F9F9F9; border: 1px solid var(--line); border-radius: 14px;
+  display: none; scroll-margin-top: 80px;
+}
+.pwa-guide:target { display: block; }
+.pwa-guide-inner h3 { font-size: 16px; font-weight: 800; margin-bottom: 18px; text-align: center; color: var(--text); }
+.pwa-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.pwa-col {
+  background: white; border: 1px solid var(--line); border-radius: 10px; padding: 18px 16px;
+}
+.pwa-badge {
+  display: inline-block; background: var(--text); color: white;
+  font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 999px;
+  margin-bottom: 10px; letter-spacing: 0.03em;
+}
+.pwa-col ol {
+  margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.75; color: var(--text);
+}
+.pwa-col ol li { margin-bottom: 2px; }
+.pwa-col ol li b { font-weight: 700; color: var(--text); }
+.pwa-note {
+  margin-top: 16px; font-size: 12px; color: var(--text-mute); text-align: center; line-height: 1.7;
+}
+@media (max-width: 560px) {
+  .pwa-tabs { grid-template-columns: 1fr; gap: 12px; }
+  .pwa-guide { padding: 20px 16px; }
+}
+
 .section-relation {
   background: var(--text); color: white;
   padding: 100px 0; position: relative; overflow: hidden;
@@ -2217,7 +2246,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
         <p>.msi / .exe · 10+</p>
         <span class="dl-btn">다운로드</span>
       </a>
-      <a href="#" class="dl-card soon">
+      <a href="#" class="dl-card soon" id="dl-mac">
         <span class="badge">준비 중</span>
         <div class="dl-ico">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
@@ -2226,28 +2255,56 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
         <p>.dmg · Intel + Apple</p>
         <span class="dl-btn">곧 출시</span>
       </a>
-      <a href="#" class="dl-card soon">
-        <span class="badge">준비 중</span>
+      <a href="#install-pwa" class="dl-card" id="dl-ios">
+        <span class="badge" style="background:#E8F4FD; color:#0969DA;">웹앱 설치</span>
         <div class="dl-ico">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><circle cx="12" cy="18" r="0.8" fill="currentColor"/></svg>
         </div>
         <h4>iPhone · iPad</h4>
-        <p>iOS 앱</p>
-        <span class="dl-btn">곧 출시</span>
+        <p>Safari 홈 화면 추가</p>
+        <span class="dl-btn">설치 방법</span>
       </a>
-      <a href="#" class="dl-card soon">
-        <span class="badge">준비 중</span>
+      <a href="#install-pwa" class="dl-card" id="dl-android">
+        <span class="badge" style="background:#E8F4FD; color:#0969DA;">웹앱 설치</span>
         <div class="dl-ico">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3L18 3M6 21L18 21M6 3C5 3 4 4 4 5V19C4 20 5 21 6 21M18 3C19 3 20 4 20 5V19C20 20 19 21 18 21"/></svg>
         </div>
         <h4>Android</h4>
-        <p>안드로이드 앱</p>
-        <span class="dl-btn">곧 출시</span>
+        <p>Chrome 앱 설치</p>
+        <span class="dl-btn">앱 설치</span>
       </a>
     </div>
     <div style="text-align:center; margin-top:32px; font-size:13px; color:var(--text-mute);">
-      Windows 10+ 지원 · 10MB · 바이러스 검사 완료<br>
-      macOS · iOS · Android 앱 버전은 순차적으로 출시 예정입니다
+      Windows 10+ 네이티브 앱 · 모바일은 브라우저에서 바로 앱 설치 (PWA)<br>
+      macOS 데스크톱 버전은 순차적으로 출시 예정입니다
+    </div>
+    <div id="install-pwa" class="pwa-guide">
+      <div class="pwa-guide-inner">
+        <h3>모바일에서 앱처럼 사용하기</h3>
+        <div class="pwa-tabs">
+          <div class="pwa-col">
+            <div class="pwa-badge">Android</div>
+            <ol>
+              <li>Chrome 브라우저에서 이 페이지 열기</li>
+              <li>우측 상단 메뉴(⋮) 누르기</li>
+              <li><b>앱 설치</b> 또는 <b>홈 화면에 추가</b> 선택</li>
+              <li>설치하면 홈 화면에 아이콘 추가 · 전체 화면 구동</li>
+            </ol>
+          </div>
+          <div class="pwa-col">
+            <div class="pwa-badge">iPhone · iPad</div>
+            <ol>
+              <li>Safari로 이 페이지 열기 (Chrome 불가)</li>
+              <li>하단 공유 버튼(📤) 누르기</li>
+              <li><b>홈 화면에 추가</b> 선택</li>
+              <li>홈 화면에서 앱 아이콘 탭하면 전체 화면 구동</li>
+            </ol>
+          </div>
+        </div>
+        <div class="pwa-note">
+          ※ PWA는 실제 앱과 동일하게 <span class="nb">아이콘·전체화면·오프라인 저장</span>을 지원하며, <span class="nb">앱스토어 심사 없이</span> 즉시 설치됩니다.
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -2393,6 +2450,38 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 <script>
 document.querySelectorAll('.faq-item').forEach(item => {
   item.querySelector('.faq-q').addEventListener('click', () => item.classList.toggle('open'));
+});
+</script>
+
+<script>
+// PWA 설치 프롬프트 (Android Chrome)
+let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  const androidCard = document.getElementById('dl-android');
+  const iosCard = document.getElementById('dl-ios');
+
+  androidCard?.addEventListener('click', async (e) => {
+    if (deferredInstallPrompt) {
+      e.preventDefault();
+      deferredInstallPrompt.prompt();
+      const { outcome } = await deferredInstallPrompt.userChoice;
+      if (outcome === 'accepted') {
+        deferredInstallPrompt = null;
+      }
+    }
+    // 설치 프롬프트가 없으면 #install-pwa 가이드로 스크롤 (기본 href)
+  });
+
+  // iOS 감지 — Safari에서만 holistic, Chrome on iOS는 PWA 설치 불가
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  if (isIOS) {
+    iosCard?.querySelector('.dl-btn')?.replaceChildren(document.createTextNode('설치 방법'));
+  }
 });
 </script>
 
