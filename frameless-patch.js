@@ -28,6 +28,14 @@
   // Flip to true for debugging via DevTools Console.
   const JNP_DEBUG = /[?&]jnp_debug=1\b/.test(location.search);
   const isTauri = !!(window.__TAURI__ || window.__TAURI_INTERNALS__);
+  // Any native wrapper (Tauri desktop, Capacitor mobile, generic webview).
+  // When true, the yellow .pad card should fill the entire viewport and the
+  // close-button plumbing needs to hit native APIs instead of window.close().
+  const isCapacitor = !!(window.Capacitor || window.capacitorBridge);
+  const isStandalonePWA = (typeof window.matchMedia === 'function' &&
+    window.matchMedia('(display-mode: standalone)').matches);
+  const isNativeWrapper = isTauri || isCapacitor ||
+    (typeof navigator !== 'undefined' && / wv\)/.test(navigator.userAgent));
   // Verbose diagnostic so we can see what's going on from the user side
   try {
     JNP_DEBUG && console.log('[JNP-FRAMELESS] boot',
@@ -242,13 +250,18 @@
     // runtime exposes will win. No UI interaction required.
     async function forceCloseWindow(trigger) {
       const T = window.__TAURI__ || {};
+      const C = window.Capacitor;
       const attempts = [
+        // Tauri v2 — multiple shapes
         async () => T.window && T.window.getCurrentWindow && T.window.getCurrentWindow().close(),
         async () => T.webviewWindow && T.webviewWindow.getCurrentWebviewWindow && T.webviewWindow.getCurrentWebviewWindow().close(),
         async () => T.window && T.window.getCurrent && T.window.getCurrent().close(),
         async () => T.core && T.core.invoke && T.core.invoke('plugin:webview|close', { label: 'main' }),
         async () => T.core && T.core.invoke && T.core.invoke('plugin:window|close', { label: 'main' }),
         async () => T.process && T.process.exit && T.process.exit(0),
+        // Capacitor (Android/iOS) — App plugin exitApp
+        async () => C && C.Plugins && C.Plugins.App && C.Plugins.App.exitApp && C.Plugins.App.exitApp(),
+        async () => C && C.Plugins && C.Plugins.App && C.Plugins.App.minimizeApp && C.Plugins.App.minimizeApp(),
       ];
       for (const fn of attempts) {
         try { await fn(); } catch {}
@@ -360,12 +373,16 @@
 
   // ---- Boot -----------------------------------------------------------
   function init() {
-    // Only apply transparent + rounded-corner CSS inside Tauri. The web
-    // version (justanotepad.com/app) keeps its normal page background.
-    if (isTauri) {
+    // Apply full-viewport layout on ANY native wrapper — Tauri desktop,
+    // Capacitor Android/iOS, or standalone PWA. All share the same .pad
+    // problem: it's hard-coded to 480px with a 24px inset, which shows
+    // as white frame on every native wrapper that gives the page a
+    // larger viewport.
+    if (isNativeWrapper || isStandalonePWA) {
       document.documentElement.classList.add('jnp-tauri');
-      // Force the window to be frameless at runtime. This works even on
-      // legacy binaries shipped with decorations:true.
+      document.documentElement.classList.add('jnp-native');
+    }
+    if (isTauri) {
       enforceFrameless();
     }
 
