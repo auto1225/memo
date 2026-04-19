@@ -6,7 +6,7 @@
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    Manager, WebviewUrl, WebviewWindowBuilder,
+    Listener, Manager, WebviewUrl, WebviewWindowBuilder,
 };
 
 // Frontend → Rust command. JS calls:
@@ -42,11 +42,15 @@ fn main() {
             if let Some(win) = app.get_webview_window("main") {
                 let _ = win.set_decorations(false);
                 let _ = win.set_shadow(true);
-                // Devtools stay available via F12 (the `devtools` Cargo feature
-                // is still on), but we no longer open them automatically —
-                // otherwise a separate DevTools window lingers after the user
-                // clicks the X to close the main window.
             }
+
+            // Listen for a Tauri event-bus exit request. Events go through
+            // a different gate than commands, so this works even if the
+            // force_quit command is blocked by ACL. Frontend calls:
+            //     window.__TAURI__.event.emit('jnp://force-quit')
+            app.listen_any("jnp://force-quit", |_event| {
+                std::process::exit(0);
+            });
             // 시스템 트레이 메뉴
             let open_main = MenuItem::with_id(app, "open_main", "JustANotepad 열기", true, None::<&str>)?;
             let new_postit =

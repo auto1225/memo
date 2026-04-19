@@ -259,6 +259,7 @@
         ['T.core.invoke plugin:window|close',       async () => T.core && T.core.invoke && T.core.invoke('plugin:window|close', { label: 'main' })],
         ['T.core.invoke force_quit (custom cmd)',   async () => T.core && T.core.invoke && T.core.invoke('force_quit')],
         ['T.invoke force_quit (direct)',            async () => T.invoke && T.invoke('force_quit')],
+        ['T.event.emit jnp://force-quit',           async () => T.event && T.event.emit && T.event.emit('jnp://force-quit')],
         ['T.process.exit(0)',                       async () => T.process && T.process.exit && T.process.exit(0)],
         ['Capacitor App.exitApp',                   async () => C && C.Plugins && C.Plugins.App && C.Plugins.App.exitApp && C.Plugins.App.exitApp()],
         ['Capacitor App.minimizeApp',               async () => C && C.Plugins && C.Plugins.App && C.Plugins.App.minimizeApp && C.Plugins.App.minimizeApp()],
