@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>JustANotepad</title>
+<style>
+body { margin:0; background:#FAE100; font-family:system-ui; display:flex; align-items:center; justify-content:center; height:100vh; }
+.loader { text-align:center; color:#191919; }
+.logo { font-family:Georgia,serif; font-style:italic; font-weight:900; font-size:96px; margin-bottom:20px; }
+.txt { font-size:14px; }
+</style>
+</head>
+<body>
+<div class="loader">
+  <div class="logo">j.</div>
+  <div class="txt">로딩 중...</div>
+</div>
+<script>
+// 외부 URL로 리다이렉트 (실제 창은 tauri.conf.json의 url로 로드됨)
+window.location.href = 'https://justanotepad.com/app';
+</script>
+</body>
+</html>
