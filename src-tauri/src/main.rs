@@ -97,13 +97,28 @@ fn main() {
             Ok(())
         })
         .on_window_event(|window, event| {
-            // X 누르면 프로세스를 강제로 즉시 종료.
-            // Tauri v2의 app_handle.exit(0)은 tray 아이콘이 붙어있으면
-            // "graceful" exit 경로로 가면서 실제 프로세스가 안 죽고
-            // background에 남는 이슈가 있었음 (v1.0.9에서 관찰).
-            // std::process::exit는 OS 레벨 즉시 종료라 확실함.
+            // X 누르면 프로세스 강제 즉시 종료.
+            //
+            // v1.0.10의 std::process::exit(0) 단독으로도 안 죽는 케이스가
+            // 관찰됨: Tauri의 이벤트 루프가 종료 신호를 삼키거나, WebView2가
+            // 추가 HWND를 들고 있어서 메인 창만 사라지고 흰 잔상 창이
+            // 남는 상태.
+            //
+            // v1.0.11 접근:
+            //   1) 현재 앱이 소유한 모든 webview window를 명시적으로 destroy
+            //   2) std::process::exit(0) 즉시 호출
+            //   3) 200ms 뒤에도 프로세스가 살아있으면 abort()로 강제 종료
             if let tauri::WindowEvent::CloseRequested { .. } = event {
                 if window.label() == "main" {
+                    let handle = window.app_handle().clone();
+                    for (_, w) in handle.webview_windows() {
+                        let _ = w.destroy();
+                    }
+                    // Safety net: if exit(0) gets stuck, abort after 200ms.
+                    std::thread::spawn(|| {
+                        std::thread::sleep(std::time::Duration::from_millis(200));
+                        std::process::abort();
+                    });
                     std::process::exit(0);
                 }
             }
