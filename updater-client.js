@@ -17,7 +17,11 @@
   window.__jnpUpdater__ = true;
 
   // Desktop app only
-  if (!(window.__TAURI__ || window.__TAURI_INTERNALS__)) return;
+  const isTauri = !!(window.__TAURI__ || window.__TAURI_INTERNALS__);
+  console.log('[JNP-UPDATER] boot',
+    { isTauri, hasTauri: !!window.__TAURI__,
+      tauriKeys: window.__TAURI__ ? Object.keys(window.__TAURI__) : [] });
+  if (!isTauri) return;
 
   const CSS = `
     .jnp-upd-toast {
@@ -72,26 +76,46 @@
 
   laterBtn.addEventListener('click', () => toast.classList.remove('show'));
 
-  function getUpdaterApi() {
-    // Tauri v2 global (withGlobalTauri: true)
+  async function callCheck() {
+    // Try every known shape of the updater plugin API in Tauri v2.
     const T = window.__TAURI__;
-    if (T && T.updater && typeof T.updater.check === 'function') return T.updater;
-    return null;
+    console.log('[JNP-UPDATER] T keys:', T ? Object.keys(T) : null,
+      'PLUGIN_UPDATER:', !!window.__TAURI_PLUGIN_UPDATER__);
+
+    // 1) window.__TAURI__.updater.check
+    if (T && T.updater && typeof T.updater.check === 'function') {
+      console.log('[JNP-UPDATER] using T.updater.check');
+      return await T.updater.check();
+    }
+    // 2) window.__TAURI_PLUGIN_UPDATER__.check
+    if (window.__TAURI_PLUGIN_UPDATER__ && typeof window.__TAURI_PLUGIN_UPDATER__.check === 'function') {
+      console.log('[JNP-UPDATER] using __TAURI_PLUGIN_UPDATER__.check');
+      return await window.__TAURI_PLUGIN_UPDATER__.check();
+    }
+    // 3) Direct invoke RPC
+    if (T && T.core && typeof T.core.invoke === 'function') {
+      console.log('[JNP-UPDATER] using core.invoke("plugin:updater|check")');
+      return await T.core.invoke('plugin:updater|check');
+    }
+    throw new Error('No updater API found on window.__TAURI__');
   }
 
   async function checkAndOffer() {
-    const api = getUpdaterApi();
-    if (!api) return; // Old binary without updater plugin
-
+    console.log('[JNP-UPDATER] checkAndOffer start');
     let update;
     try {
-      update = await api.check();
+      update = await callCheck();
+      console.log('[JNP-UPDATER] check result:', update);
     } catch (e) {
-      // Network error, no release yet, signature mismatch, etc.
-      console.warn('[updater] check failed:', e && e.message);
+      console.warn('[JNP-UPDATER] check failed:', e && e.message);
       return;
     }
-    if (!update || !update.available) return;
+    if (!update) { console.log('[JNP-UPDATER] no update object'); return; }
+    // Normalize various API shapes
+    const available = update.available !== undefined
+      ? update.available
+      : (update.shouldUpdate !== undefined ? update.shouldUpdate : !!update.version);
+    if (!available) { console.log('[JNP-UPDATER] no update available'); return; }
 
     hintEl.textContent =
       `v${update.version}` +

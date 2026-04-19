@@ -26,6 +26,15 @@
   window.__justanotepadFramelessPatch__ = true;
 
   const isTauri = !!(window.__TAURI__ || window.__TAURI_INTERNALS__);
+  // Verbose diagnostic so we can see what's going on from the user side
+  try {
+    console.log('[JNP-FRAMELESS] boot',
+      { isTauri,
+        hasTauri: !!window.__TAURI__,
+        hasInternals: !!window.__TAURI_INTERNALS__,
+        tauriKeys: window.__TAURI__ ? Object.keys(window.__TAURI__) : [],
+        ua: navigator.userAgent.slice(0,60) });
+  } catch (e) {}
 
   // ---- CSS overrides (injected once) ---------------------------------
   //
@@ -126,12 +135,28 @@
   //
   async function enforceFrameless() {
     const win = getWin();
-    if (!win) return;
+    console.log('[JNP-FRAMELESS] enforceFrameless() — win=', !!win,
+      win ? 'methods=' + Object.keys(Object.getPrototypeOf(win) || {}).slice(0, 15) : '');
+    if (!win) {
+      // Fallback: try direct invoke of window commands
+      try {
+        const invoke = window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke;
+        if (invoke) {
+          console.log('[JNP-FRAMELESS] trying invoke fallback');
+          await invoke('plugin:window|set_decorations', { label: 'main', value: false });
+        }
+      } catch (e) { console.warn('[JNP-FRAMELESS] invoke fallback failed:', e && e.message); }
+      return;
+    }
     try {
       if (typeof win.setDecorations === 'function') {
+        console.log('[JNP-FRAMELESS] calling setDecorations(false)');
         await win.setDecorations(false);
+        console.log('[JNP-FRAMELESS] setDecorations OK');
+      } else {
+        console.warn('[JNP-FRAMELESS] win.setDecorations not a function');
       }
-    } catch (e) { /* platform may refuse; ignore */ }
+    } catch (e) { console.warn('[JNP-FRAMELESS] setDecorations failed:', e && e.message); }
     try {
       if (typeof win.setShadow === 'function') {
         await win.setShadow(true);
