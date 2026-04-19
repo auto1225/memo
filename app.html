@@ -9250,6 +9250,51 @@ init();
 
   window.addEventListener('jan-auth-change', update);
   setTimeout(update, 1000);
+
+  // 랜딩페이지에서 ?signup=1, ?signin=1, ?download=1 쿼리로 진입 시 자동 처리
+  function handleLandingIntent() {
+    const params = new URLSearchParams(location.search);
+    const intent = params.get('signup') ? 'signup'
+                 : params.get('signin') ? 'signin'
+                 : params.get('download') ? 'download' : null;
+    if (!intent) return;
+    // URL 정리
+    history.replaceState(null, '', location.pathname);
+    // 세션 있으면 다운로드, 없으면 로그인
+    const s = window.JANSync && window.JANSync.getSession && window.JANSync.getSession();
+    if (intent === 'download') {
+      if (s && s.user) {
+        triggerDownload();
+      } else {
+        showLoginModal();
+        window.__pendingDownload = true;
+      }
+    } else {
+      // signup or signin 모두 동일 로그인 모달 (매직링크 + OAuth)
+      if (!s || !s.user) showLoginModal();
+    }
+  }
+
+  function triggerDownload() {
+    // HTML 파일 자체를 다운로드
+    const a = document.createElement('a');
+    a.href = '/app.html';
+    a.download = 'JustANotepad.html';
+    a.click();
+    if (window.toast) window.toast('JustANotepad.html 다운로드 시작됨', 4000);
+  }
+
+  // 로그인 성공 후 다운로드 대기 중이면 자동 실행
+  window.addEventListener('jan-auth-change', () => {
+    const s = window.JANSync && window.JANSync.getSession && window.JANSync.getSession();
+    if (s && s.user && window.__pendingDownload) {
+      window.__pendingDownload = false;
+      setTimeout(triggerDownload, 500);
+    }
+  });
+
+  // SDK 로딩 완료 후 쿼리 처리
+  setTimeout(handleLandingIntent, 1500);
 })();
 
 /* ============================================================
