@@ -96,16 +96,21 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 /* 풀블리드 BG (비디오 + 이미지 폴백) */
 .hero-bg {
   position: absolute; inset: 0; z-index: 0;
+  overflow: hidden;
 }
-.hero-bg video, .hero-bg img {
+.hero-bg img {
+  position: absolute; inset: 0;
   width: 100%; height: 100%; object-fit: cover;
   display: block;
+  animation: kenBurns 24s ease-in-out infinite alternate;
 }
-.hero-bg img { position: absolute; inset: 0; }
-.hero-bg video { position: relative; z-index: 1; }
+@keyframes kenBurns {
+  0% { transform: scale(1) translate(0, 0); }
+  100% { transform: scale(1.08) translate(-2%, -1%); }
+}
 .bg-dimmed {
   position: absolute; inset: 0; z-index: 2;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0,0,0,0.55);
 }
 
 /* Content 오버레이 */
@@ -461,12 +466,9 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 
 <!-- ========== SECTION 1: VISUAL (카카오 풀블리드 비디오 히어로 완전 모방) ========== -->
 <section class="section-visual">
-  <!-- 풀블리드 비디오 배경 + 폴백 이미지 -->
+  <!-- 풀블리드 히어로 배경 (Ken Burns 애니메이션) -->
   <div class="hero-bg">
-    <img src="https://images.unsplash.com/photo-1483058712412-4245e9b90334?w=1920&q=85&auto=format&fit=crop" alt="모던 워크스페이스" />
-    <video autoplay muted loop playsinline preload="metadata" poster="https://images.unsplash.com/photo-1483058712412-4245e9b90334?w=1920&q=85&auto=format&fit=crop">
-      <source src="https://assets.mixkit.co/videos/preview/mixkit-young-woman-writing-in-a-notebook-43025-large.mp4" type="video/mp4" />
-    </video>
+    <img src="https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=2000&q=85&auto=format&fit=crop" alt="창작자들이 함께 작업하는 모습" />
   </div>
   <div class="bg-dimmed"></div>
 
