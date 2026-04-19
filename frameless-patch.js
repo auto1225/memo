@@ -60,6 +60,21 @@
       min-height: 100vh;
       background: transparent;
     }
+    /* The app's main container .pad is hard-coded to 480px wide + 24px
+       inset. In the desktop shell we override it to fill the whole window
+       so no dead white space appears around the content. */
+    html.jnp-tauri .pad,
+    html.jnp-tauri #pad {
+      position: static !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      max-width: 100vw !important;
+      height: 100vh !important;
+      min-height: 100vh !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+    }
 
     /* Make the topbar act as the title bar */
     #topbar, .topbar {
