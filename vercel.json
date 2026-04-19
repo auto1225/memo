@@ -1,5 +1,5 @@
 {
-  "cleanUrls": true,
+  "cleanUrls": false,
   "trailingSlash": false,
   "headers": [
     {
@@ -34,5 +34,8 @@
   "redirects": [
     { "source": "/sticky-memo", "destination": "/app", "permanent": true },
     { "source": "/sticky-memo.html", "destination": "/app", "permanent": true }
+  ],
+  "rewrites": [
+    { "source": "/app", "destination": "/app.html" }
   ]
 }
