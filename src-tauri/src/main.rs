@@ -11,6 +11,16 @@ use tauri::{
 
 fn main() {
     tauri::Builder::default()
+        // Prevent a second instance from spawning ghost windows when the
+        // updater relaunches or a shortcut is double-clicked. Second launch
+        // just focuses the existing main window.
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.unminimize();
+                let _ = window.set_focus();
+            }
+        }))
         .plugin(tauri_plugin_log::Builder::default().build())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
@@ -32,9 +42,11 @@ fn main() {
             let open_main = MenuItem::with_id(app, "open_main", "JustANotepad 열기", true, None::<&str>)?;
             let new_postit =
                 MenuItem::with_id(app, "new_postit", "새 포스트잇", true, None::<&str>)?;
+            let close_extras =
+                MenuItem::with_id(app, "close_extras", "보조 창 모두 닫기", true, None::<&str>)?;
             let sep1 = MenuItem::with_id(app, "sep1", "---", false, None::<&str>)?;
             let quit = MenuItem::with_id(app, "quit", "종료", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&open_main, &new_postit, &sep1, &quit])?;
+            let menu = Menu::with_items(app, &[&open_main, &new_postit, &close_extras, &sep1, &quit])?;
 
             let _tray = TrayIconBuilder::with_id("main-tray")
                 .tooltip("JustANotepad")
@@ -51,6 +63,16 @@ fn main() {
                     }
                     "new_postit" => {
                         spawn_postit(app.app_handle());
+                    }
+                    "close_extras" => {
+                        // Close every window that isn't the main one — wipes
+                        // out orphaned postits, leftover devtools, any ghost.
+                        let handle = app.app_handle().clone();
+                        for (label, window) in handle.webview_windows() {
+                            if label != "main" {
+                                let _ = window.close();
+                            }
+                        }
                     }
                     "quit" => {
                         app.exit(0);

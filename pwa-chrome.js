@@ -153,11 +153,14 @@
     setTimeout(() => el.remove(), 200);
   }
 
+  // Install bubble disabled — users were installing the PWA and then
+  // confusing it with the Tauri desktop app. Keep beforeinstallprompt
+  // captured so the command palette "앱으로 설치" action still works on
+  // explicit request, but don't auto-surface the bubble.
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
-    // Give the user a moment before nudging them.
-    setTimeout(showInstallBubble, 3000);
+    // Intentionally do NOT call showInstallBubble() here.
   });
 
   window.addEventListener('appinstalled', () => {
