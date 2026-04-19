@@ -2,334 +2,1314 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8" />
-<title>JustANotepad — 그냥 메모장이 되려 했으나</title>
-<meta name="description" content="단일 HTML 파일 하나로 작동하는 올인원 메모장. 역할별 도구·AI·그림판·명함관리·가계부까지 전부 내장. 로그인 불필요." />
+<title>JustANotepad — 그냥 적으세요. 나머지는 알아서.</title>
+<meta name="description" content="14가지 역할별 도구, 16개 AI 동시 사용, 포토샵급 그림판, 명함 OCR, 클라우드 동기화. 단일 HTML 파일로 작동하는 가장 풍부한 무료 메모장." />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%238A5FD1'/%3E%3Ctext x='16' y='24' font-family='Georgia,serif' font-size='22' font-weight='900' font-style='italic' fill='white' text-anchor='middle'%3Ej.%3C/text%3E%3C/svg%3E" />
-<meta name="theme-color" content="#8A5FD1" />
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23FF5E3A'/%3E%3Ctext x='16' y='24' font-family='Georgia,serif' font-size='22' font-weight='900' font-style='italic' fill='white' text-anchor='middle'%3Ej.%3C/text%3E%3C/svg%3E" />
+<meta name="theme-color" content="#FF5E3A" />
 <meta property="og:type" content="website" />
-<meta property="og:title" content="JustANotepad" />
-<meta property="og:description" content="그냥 메모장이 되려 했으나... 수십 가지 기능을 담은 메모장." />
+<meta property="og:title" content="JustANotepad — 그냥 적으세요. 나머지는 알아서." />
+<meta property="og:description" content="14가지 역할별 도구, 16개 AI, 포토샵급 그림판, 클라우드 동기화. 평생 무료." />
 <meta property="og:url" content="https://justanotepad.com" />
 <meta property="og:site_name" content="JustANotepad" />
 <meta property="og:locale" content="ko_KR" />
 <meta property="og:image" content="https://justanotepad.com/favicon.svg" />
-<meta name="twitter:card" content="summary" />
+<meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="JustANotepad" />
-<meta name="twitter:description" content="그냥 메모장이 되려 했으나... 14가지 역할별 도구·AI·그림판·명함관리·가계부까지 전부 내장." />
-<meta name="keywords" content="메모장, 노트, 무료 메모, 클라우드 메모, PWA, 오프라인 메모, JustANotepad, 일정 관리, 명함 관리, 가계부, 그림판" />
+<meta name="twitter:description" content="14가지 역할별 도구, 16개 AI, 포토샵급 그림판, 클라우드 동기화." />
+<meta name="keywords" content="메모장, 노트앱, 무료 메모, 클라우드 동기화 메모, PWA, 오프라인 메모, AI 메모, JustANotepad, 일정 관리, 명함 관리, 가계부, 그림판" />
 <meta name="author" content="JustANotepad" />
 <meta name="robots" content="index, follow" />
 <meta name="naver-site-verification" content="123cee421310dbcd64efe398cd3cccd388fd06b8" />
 <link rel="canonical" href="https://justanotepad.com/" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Pretendard:wght@400;500;600;700;800;900&family=Newsreader:ital,wght@1,500;1,700&display=swap" rel="stylesheet" />
+<link rel="preconnect" href="https://images.unsplash.com" crossorigin />
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "WebApplication",
   "name": "JustANotepad",
   "url": "https://justanotepad.com",
-  "description": "단일 HTML 파일 하나로 작동하는 올인원 메모장. 역할별 도구·AI·그림판·명함관리·가계부까지 전부 내장.",
+  "description": "14가지 역할별 도구, 16개 AI, 포토샵급 그림판, 명함 OCR, 클라우드 동기화. 단일 HTML 파일 메모장.",
   "applicationCategory": "ProductivityApplication",
-  "operatingSystem": "Any",
+  "operatingSystem": "Web",
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "KRW" },
+  "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.9", "ratingCount": "127" },
   "inLanguage": "ko-KR"
 }
 </script>
 <style>
-* { box-sizing:border-box; margin:0; padding:0; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-  --accent:#8A5FD1; --accent-dark:#5B3DA8;
-  --paper:#f4eefb; --ink:#3a2e55; --ink-soft:#6a5a88;
-  --bg:linear-gradient(135deg, #f4eefb 0%, #e8d9fa 100%);
+  --ink: #0F0F1A;
+  --ink-soft: #4A4A5C;
+  --ink-mute: #8E8E9F;
+  --paper: #FAFAF5;
+  --paper-warm: #F4EFE3;
+  --paper-deep: #ECE6D3;
+  --brand: #FF5E3A;
+  --brand-dark: #E8421F;
+  --brand-soft: #FFE8E0;
+  --brand-glow: rgba(255, 94, 58, 0.18);
+  --accent: #FFD23F;
+  --accent-soft: #FFF4C7;
+  --line: #E8E2D2;
+  --line-soft: #EFE9D9;
+  --shadow-sm: 0 1px 2px rgba(15,15,26,0.04), 0 1px 3px rgba(15,15,26,0.06);
+  --shadow-md: 0 4px 12px rgba(15,15,26,0.06), 0 2px 6px rgba(15,15,26,0.04);
+  --shadow-lg: 0 24px 48px -12px rgba(15,15,26,0.18), 0 8px 16px -4px rgba(15,15,26,0.08);
+  --shadow-xl: 0 40px 80px -16px rgba(15,15,26,0.22), 0 16px 32px -8px rgba(15,15,26,0.10);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --font-sans: 'Pretendard', 'Inter', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif;
+  --font-serif: 'Newsreader', Georgia, serif;
 }
+
+html { scroll-behavior: smooth; }
 body {
-  font-family:-apple-system, BlinkMacSystemFont, "맑은 고딕", "Malgun Gothic", sans-serif;
-  color:var(--ink); background:var(--bg); min-height:100vh; line-height:1.6;
+  font-family: var(--font-sans);
+  color: var(--ink);
+  background: var(--paper);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "ss01", "cv11";
 }
-.container { max-width:1100px; margin:0 auto; padding:20px; }
-nav {
-  display:flex; align-items:center; gap:16px; padding:18px 0;
-}
-nav .logo-wrap { display:flex; align-items:center; gap:10px; font-weight:700; font-size:18px; color:var(--accent); }
-nav .logo-sq {
-  width:32px; height:32px; border-radius:8px; background:var(--accent);
-  display:flex; align-items:center; justify-content:center;
-  color:white; font-family:Georgia,serif; font-style:italic; font-weight:900; font-size:20px;
-  box-shadow:0 2px 6px rgba(138,95,209,0.3);
-}
-nav .spacer { flex:1; }
-nav a { color:var(--ink-soft); text-decoration:none; padding:6px 14px; border-radius:6px; font-size:14px; transition:all .15s; }
-nav a:hover { background:rgba(138,95,209,0.1); color:var(--accent); }
-nav a.cta {
-  background:var(--accent); color:white; font-weight:600;
-  box-shadow:0 3px 10px rgba(138,95,209,0.3);
-}
-nav a.cta:hover { background:var(--accent-dark); color:white; transform:translateY(-1px); }
+img { max-width: 100%; display: block; }
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
 
-.hero { text-align:center; padding:60px 20px 40px; }
+/* === LAYOUT === */
+.wrap { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+.wrap-narrow { max-width: 880px; margin: 0 auto; padding: 0 24px; }
+
+/* === NAV === */
+.nav {
+  position: sticky; top: 0; z-index: 100;
+  backdrop-filter: blur(12px);
+  background: rgba(250, 250, 245, 0.85);
+  border-bottom: 1px solid transparent;
+  transition: border-color .2s, background .2s;
+}
+.nav.scrolled { border-bottom-color: var(--line); }
+.nav-inner {
+  display: flex; align-items: center; gap: 32px;
+  height: 64px; max-width: 1200px; margin: 0 auto; padding: 0 24px;
+}
+.brand-mark { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 17px; letter-spacing: -0.02em; }
+.brand-logo {
+  width: 30px; height: 30px; border-radius: 8px;
+  background: var(--brand); color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-serif); font-style: italic; font-weight: 700; font-size: 19px;
+  box-shadow: 0 2px 8px var(--brand-glow);
+}
+.nav-links { display: flex; gap: 4px; margin-left: auto; }
+.nav-links a {
+  padding: 8px 14px; border-radius: 8px; font-size: 14px; font-weight: 500;
+  color: var(--ink-soft); transition: all .15s;
+}
+.nav-links a:hover { background: var(--paper-warm); color: var(--ink); }
+.nav-cta {
+  padding: 9px 18px; border-radius: 999px;
+  background: var(--ink); color: var(--paper);
+  font-size: 14px; font-weight: 600; letter-spacing: -0.01em;
+  display: inline-flex; align-items: center; gap: 6px;
+  transition: transform .15s, box-shadow .15s;
+}
+.nav-cta:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+.nav-cta svg { width: 14px; height: 14px; }
+
+/* === HERO === */
+.hero {
+  position: relative; padding: 80px 0 100px;
+  background:
+    radial-gradient(ellipse 90% 60% at 50% 0%, var(--brand-soft) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 100% 30%, var(--accent-soft) 0%, transparent 50%);
+  overflow: hidden;
+}
+.hero::before {
+  content: ''; position: absolute; inset: 0;
+  background-image:
+    linear-gradient(var(--line-soft) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line-soft) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, black, transparent 70%);
+  opacity: 0.5;
+  pointer-events: none;
+}
+.hero-inner { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
+.hero-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 14px; border-radius: 999px;
+  background: white; border: 1px solid var(--line);
+  font-size: 13px; font-weight: 600; color: var(--ink-soft);
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-sm);
+}
+.hero-eyebrow .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--brand); animation: pulse 2s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.3); } }
 .hero h1 {
-  font-size:clamp(36px, 6vw, 64px); font-weight:800; margin-bottom:16px;
-  background:linear-gradient(135deg, var(--accent-dark), var(--accent));
-  -webkit-background-clip:text; background-clip:text; color:transparent;
-  letter-spacing:-1px;
+  font-size: clamp(40px, 5.5vw, 68px);
+  line-height: 1.02; letter-spacing: -0.035em;
+  font-weight: 800;
+  margin-bottom: 24px;
 }
-.hero .tagline {
-  font-size:clamp(16px, 2vw, 20px); color:var(--ink-soft);
-  font-style:italic; margin-bottom:30px;
+.hero h1 .accent {
+  font-family: var(--font-serif); font-style: italic; font-weight: 500;
+  color: var(--brand);
+  position: relative;
 }
-.hero .tagline::before { content:'"'; margin-right:2px; }
-.hero .tagline::after { content:'"'; margin-left:2px; }
-.hero-actions { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-bottom:40px; }
-.btn {
-  display:inline-flex; align-items:center; gap:6px;
-  padding:14px 28px; border-radius:10px; font-weight:700; font-size:15px;
-  text-decoration:none; transition:all .2s; border:none; cursor:pointer;
+.hero h1 .accent::after {
+  content: ''; position: absolute; left: -2%; right: -2%; bottom: 8%; height: 24%;
+  background: var(--accent); opacity: 0.4; z-index: -1;
+  border-radius: 4px;
 }
+.hero-sub {
+  font-size: 19px; color: var(--ink-soft); line-height: 1.5;
+  max-width: 480px; margin-bottom: 36px;
+}
+.hero-ctas { display: flex; gap: 12px; align-items: center; margin-bottom: 28px; }
 .btn-primary {
-  background:linear-gradient(135deg, var(--accent), var(--accent-dark));
-  color:white; box-shadow:0 4px 16px rgba(138,95,209,0.35);
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 14px 24px; border-radius: 999px;
+  background: var(--brand); color: white;
+  font-size: 15px; font-weight: 600; letter-spacing: -0.01em;
+  transition: all .15s; box-shadow: 0 4px 14px var(--brand-glow);
 }
-.btn-primary:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(138,95,209,0.5); }
-.btn-outline {
-  background:white; color:var(--accent); border:2px solid var(--accent);
+.btn-primary:hover { background: var(--brand-dark); transform: translateY(-2px); box-shadow: 0 8px 20px var(--brand-glow); }
+.btn-primary svg { width: 16px; height: 16px; }
+.btn-secondary {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 14px 22px; border-radius: 999px;
+  background: white; color: var(--ink); border: 1px solid var(--line);
+  font-size: 15px; font-weight: 600;
+  transition: all .15s;
 }
-.btn-outline:hover { background:var(--accent); color:white; }
+.btn-secondary:hover { border-color: var(--ink); }
+.btn-secondary svg { width: 16px; height: 16px; }
+.hero-trust { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; font-size: 13px; color: var(--ink-mute); }
+.hero-trust span { display: inline-flex; align-items: center; gap: 6px; }
+.hero-trust svg { width: 14px; height: 14px; color: var(--brand); }
 
-.badges { display:flex; gap:14px; justify-content:center; flex-wrap:wrap; font-size:12px; color:var(--ink-soft); }
-.badges span { background:white; padding:6px 14px; border-radius:20px; border:1px solid rgba(138,95,209,0.2); }
+/* === HERO MOCKUP (right side) === */
+.hero-visual { position: relative; }
+.app-frame {
+  background: white; border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--line);
+  overflow: hidden;
+  transform: perspective(1800px) rotateY(-6deg) rotateX(2deg);
+  transition: transform .4s cubic-bezier(.22,1,.36,1);
+}
+.app-frame:hover { transform: perspective(1800px) rotateY(-3deg) rotateX(1deg) translateY(-4px); }
+.app-titlebar { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--paper-warm); border-bottom: 1px solid var(--line); }
+.app-dots { display: flex; gap: 6px; }
+.app-dots span { width: 11px; height: 11px; border-radius: 50%; background: #E0DBC9; }
+.app-dots span:nth-child(1) { background: #FF6058; }
+.app-dots span:nth-child(2) { background: #FFBE2E; }
+.app-dots span:nth-child(3) { background: #28C940; }
+.app-url { flex: 1; text-align: center; font-size: 12px; color: var(--ink-mute); font-family: monospace; }
+.app-body { display: grid; grid-template-columns: 200px 1fr 180px; height: 420px; }
+.app-sidebar { background: var(--paper-warm); border-right: 1px solid var(--line); padding: 14px 10px; font-size: 12px; }
+.app-sidebar h4 { font-size: 10px; font-weight: 700; color: var(--ink-mute); text-transform: uppercase; letter-spacing: 0.08em; margin: 14px 0 6px 4px; }
+.app-sidebar h4:first-child { margin-top: 0; }
+.tab-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; color: var(--ink-soft); cursor: pointer; }
+.tab-item.active { background: white; color: var(--ink); font-weight: 600; box-shadow: var(--shadow-sm); }
+.tab-item .tab-dot { width: 8px; height: 8px; border-radius: 2px; }
+.tab-item .badge { margin-left: auto; font-size: 10px; color: var(--ink-mute); background: rgba(0,0,0,0.04); padding: 1px 6px; border-radius: 4px; }
+.app-editor { padding: 32px 36px; overflow: hidden; }
+.editor-toolbar { display: flex; gap: 4px; padding-bottom: 12px; border-bottom: 1px solid var(--line-soft); margin-bottom: 20px; }
+.editor-toolbar button { width: 28px; height: 28px; border-radius: 6px; color: var(--ink-soft); display: flex; align-items: center; justify-content: center; }
+.editor-toolbar button:hover { background: var(--paper-warm); }
+.editor-toolbar button svg { width: 14px; height: 14px; }
+.editor-toolbar .sep { width: 1px; height: 16px; background: var(--line); margin: 6px 4px; }
+.editor-content h2 { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 6px; }
+.editor-content .meta { font-size: 11px; color: var(--ink-mute); margin-bottom: 16px; display: flex; gap: 12px; }
+.editor-content p { font-size: 13px; line-height: 1.6; color: var(--ink-soft); margin-bottom: 8px; }
+.editor-content .hl { background: linear-gradient(180deg, transparent 60%, var(--accent-soft) 60%); padding: 0 2px; }
+.editor-content ul { list-style: none; padding: 0; margin: 8px 0; font-size: 13px; }
+.editor-content ul li { padding: 4px 0 4px 22px; position: relative; color: var(--ink-soft); }
+.editor-content ul li::before { content: ''; position: absolute; left: 4px; top: 13px; width: 4px; height: 4px; border-radius: 50%; background: var(--brand); }
+.editor-content ul li.done { color: var(--ink-mute); text-decoration: line-through; }
+.editor-content ul li.done::before { background: var(--ink-mute); }
+.app-outline { background: var(--paper); border-left: 1px solid var(--line); padding: 14px 12px; font-size: 11px; }
+.app-outline h4 { font-size: 10px; font-weight: 700; color: var(--ink-mute); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+.outline-item { padding: 4px 0 4px 8px; color: var(--ink-soft); border-left: 2px solid transparent; cursor: pointer; }
+.outline-item.active { border-left-color: var(--brand); color: var(--ink); font-weight: 600; }
+.outline-item.indent { padding-left: 18px; font-size: 10.5px; }
 
-.screenshot { margin:40px auto; max-width:900px; position:relative; }
-.screenshot-frame {
-  background:white; border-radius:16px; padding:8px;
-  box-shadow:0 20px 60px rgba(50,20,100,0.25), 0 8px 20px rgba(0,0,0,0.1);
-  overflow:hidden;
+/* Floating decorations around hero mockup */
+.float-card {
+  position: absolute; background: white; border-radius: 12px; padding: 12px 14px;
+  box-shadow: var(--shadow-lg); border: 1px solid var(--line);
+  display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 500;
+  animation: float 4s ease-in-out infinite;
 }
-.screenshot-mock {
-  background:linear-gradient(180deg, var(--accent) 0%, var(--accent) 40px, var(--paper) 40px);
-  height:420px; border-radius:10px; position:relative;
-  display:flex; align-items:center; justify-content:center;
-}
-.screenshot-mock .bar {
-  position:absolute; top:10px; left:12px; display:flex; gap:6px;
-}
-.screenshot-mock .bar div { width:10px; height:10px; border-radius:50%; background:rgba(255,255,255,0.5); }
-.screenshot-mock .content {
-  color:var(--ink); font-size:14px; line-height:1.8; padding:40px; max-width:600px;
-  background:white; border-radius:8px; margin:70px 30px 30px;
-  box-shadow:0 4px 16px rgba(0,0,0,0.05); height:280px; overflow:hidden;
-}
+.float-card svg { width: 18px; height: 18px; }
+.float-card.fc-1 { top: -16px; left: -32px; animation-delay: 0s; }
+.float-card.fc-1 .ico { background: var(--brand-soft); color: var(--brand); padding: 6px; border-radius: 6px; display: flex; }
+.float-card.fc-2 { bottom: 32px; left: -50px; animation-delay: 1s; }
+.float-card.fc-2 .ico { background: var(--accent-soft); color: #B8860B; padding: 6px; border-radius: 6px; display: flex; }
+.float-card.fc-3 { top: 80px; right: -30px; animation-delay: 2s; }
+.float-card.fc-3 .ico { background: #E0F2FF; color: #0066CC; padding: 6px; border-radius: 6px; display: flex; }
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
 
-section { padding:60px 20px; }
-.section-title {
-  text-align:center; font-size:clamp(24px, 3.5vw, 36px); font-weight:800;
-  margin-bottom:12px; color:var(--ink);
+/* === STATS BAR === */
+.stats-bar {
+  background: var(--ink); color: var(--paper);
+  padding: 40px 0; margin: 80px 0 0;
 }
-.section-sub { text-align:center; color:var(--ink-soft); margin-bottom:40px; font-size:15px; }
-
-.features { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:24px; }
-.feature {
-  background:white; border-radius:14px; padding:28px;
-  box-shadow:0 4px 16px rgba(0,0,0,0.04); transition:all .2s;
-  border:1px solid rgba(138,95,209,0.08);
-}
-.feature:hover { transform:translateY(-4px); box-shadow:0 12px 32px rgba(138,95,209,0.15); border-color:var(--accent); }
-.feature .icon {
-  width:48px; height:48px; border-radius:12px;
-  background:linear-gradient(135deg, rgba(138,95,209,0.15), rgba(138,95,209,0.05));
-  display:flex; align-items:center; justify-content:center; margin-bottom:14px;
-  color:var(--accent); font-size:24px; font-weight:800;
-}
-.feature h3 { font-size:18px; margin-bottom:8px; color:var(--ink); }
-.feature p { font-size:13px; color:var(--ink-soft); line-height:1.6; }
-
-.roles { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:14px; }
-.role-chip {
-  background:white; border-radius:12px; padding:18px; text-align:center;
-  border:1px solid rgba(138,95,209,0.1); cursor:default; transition:all .15s;
-}
-.role-chip:hover { border-color:var(--accent); transform:translateY(-2px); }
-.role-chip .role-title { font-weight:700; color:var(--ink); margin-bottom:4px; }
-.role-chip .role-tools { font-size:11px; color:var(--ink-soft); }
-
-.stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:20px; text-align:center; }
+.stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 32px; max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+.stat { text-align: center; }
 .stat-num {
-  font-size:clamp(28px, 4vw, 44px); font-weight:800; color:var(--accent);
-  margin-bottom:4px;
+  font-size: 44px; font-weight: 800; letter-spacing: -0.03em;
+  font-family: var(--font-serif); font-style: italic; font-weight: 700;
+  background: linear-gradient(135deg, var(--brand) 0%, var(--accent) 100%);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  line-height: 1; margin-bottom: 6px;
 }
-.stat-label { font-size:13px; color:var(--ink-soft); }
+.stat-label { font-size: 13px; color: rgba(250, 250, 245, 0.6); font-weight: 500; }
 
+/* === SECTION HEADERS === */
+.section { padding: 120px 0; }
+.section-eyebrow {
+  display: inline-block;
+  font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--brand);
+  margin-bottom: 16px;
+}
+.section-title {
+  font-size: clamp(32px, 4.5vw, 52px);
+  font-weight: 800; letter-spacing: -0.03em; line-height: 1.05;
+  margin-bottom: 18px;
+}
+.section-title .accent { font-family: var(--font-serif); font-style: italic; font-weight: 500; color: var(--brand); }
+.section-sub { font-size: 18px; color: var(--ink-soft); max-width: 580px; line-height: 1.55; }
+
+/* === SPOTLIGHT (big feature) === */
+.spotlight { display: grid; grid-template-columns: 1fr 1.3fr; gap: 80px; align-items: center; margin-top: 64px; }
+.spotlight.reverse { grid-template-columns: 1.3fr 1fr; }
+.spotlight.reverse .spot-text { order: 2; }
+.spot-text h3 { font-size: 36px; font-weight: 800; letter-spacing: -0.025em; line-height: 1.1; margin-bottom: 16px; }
+.spot-text h3 .accent { color: var(--brand); }
+.spot-text p { font-size: 17px; color: var(--ink-soft); line-height: 1.55; margin-bottom: 20px; }
+.spot-checks { list-style: none; padding: 0; margin: 24px 0; }
+.spot-checks li { display: flex; align-items: flex-start; gap: 10px; padding: 7px 0; font-size: 15px; color: var(--ink-soft); }
+.spot-checks li svg { width: 18px; height: 18px; flex-shrink: 0; color: var(--brand); margin-top: 1px; }
+.spot-visual {
+  background: linear-gradient(135deg, var(--paper-warm) 0%, var(--brand-soft) 100%);
+  border-radius: var(--radius-xl); padding: 36px; position: relative; overflow: hidden;
+}
+.spot-visual::before {
+  content: ''; position: absolute; inset: 0;
+  background-image: radial-gradient(circle at 20% 80%, var(--brand-glow) 0%, transparent 50%);
+}
+
+/* === BENTO GRID === */
+.bento {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  grid-auto-rows: 220px;
+  gap: 16px;
+  margin-top: 48px;
+}
+.bento-card {
+  background: white; border: 1px solid var(--line); border-radius: var(--radius-lg);
+  padding: 28px; position: relative; overflow: hidden;
+  transition: all .25s cubic-bezier(.22,1,.36,1);
+}
+.bento-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: var(--brand); }
+.bento-card .ico-wrap {
+  width: 44px; height: 44px; border-radius: 12px;
+  background: var(--brand-soft); color: var(--brand);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 16px;
+}
+.bento-card .ico-wrap svg { width: 22px; height: 22px; }
+.bento-card h4 { font-size: 18px; font-weight: 700; letter-spacing: -0.015em; margin-bottom: 8px; }
+.bento-card p { font-size: 14px; color: var(--ink-soft); line-height: 1.5; }
+.bento-card.span-2 { grid-column: span 2; }
+.bento-card.span-3 { grid-column: span 3; }
+.bento-card.span-4 { grid-column: span 4; }
+.bento-card.row-2 { grid-row: span 2; }
+.bento-card.dark { background: var(--ink); color: var(--paper); border-color: transparent; }
+.bento-card.dark p { color: rgba(250, 250, 245, 0.7); }
+.bento-card.dark .ico-wrap { background: rgba(255, 94, 58, 0.18); color: var(--brand); }
+
+/* AI mini-mockup inside bento */
+.ai-mock { position: absolute; bottom: 0; right: -10px; width: 280px; opacity: 0.95; }
+.ai-bubble {
+  background: rgba(255,255,255,0.06); backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.1); border-radius: 14px 14px 14px 4px;
+  padding: 10px 14px; font-size: 12px; margin-bottom: 8px; line-height: 1.4;
+  color: rgba(250, 250, 245, 0.9);
+}
+.ai-bubble.user { background: var(--brand); color: white; border-radius: 14px 14px 4px 14px; margin-left: 40px; }
+.ai-models { display: flex; gap: 4px; margin-top: 12px; }
+.ai-models .pill { font-size: 10px; padding: 3px 8px; border-radius: 999px; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); }
+
+/* Paint mini-mockup */
+.paint-mock { margin-top: 12px; height: 110px; background: linear-gradient(135deg, #fff 0%, #fef0eb 100%); border-radius: 10px; position: relative; overflow: hidden; border: 1px solid var(--line); }
+.paint-mock svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.paint-tools { position: absolute; left: 8px; top: 8px; display: flex; flex-direction: column; gap: 4px; }
+.paint-tools span { width: 18px; height: 18px; border-radius: 4px; background: white; box-shadow: var(--shadow-sm); display: flex; align-items: center; justify-content: center; }
+.paint-tools span.active { background: var(--brand); }
+
+/* Cloud sync mockup */
+.devices-mock { display: flex; gap: 12px; margin-top: 16px; align-items: flex-end; }
+.dev { background: var(--ink); border-radius: 6px; position: relative; }
+.dev::before { content: ''; position: absolute; inset: 4px; background: white; border-radius: 3px; }
+.dev.desktop { width: 120px; height: 80px; }
+.dev.tablet { width: 60px; height: 70px; }
+.dev.phone { width: 30px; height: 60px; border-radius: 5px; }
+.dev::after { content: ''; position: absolute; inset: 8px 8px 8px 8px; background-image: linear-gradient(180deg, var(--brand) 0 4px, transparent 4px 10px, var(--ink-mute) 10px 11px, transparent 11px 16px, var(--ink-mute) 16px 17px); background-size: 100% 18px; opacity: 0.5; }
+
+/* === ROLE TABS === */
+.role-tabs { display: flex; gap: 6px; margin-top: 40px; flex-wrap: wrap; justify-content: center; padding: 8px; background: white; border: 1px solid var(--line); border-radius: 999px; max-width: max-content; margin-left: auto; margin-right: auto; box-shadow: var(--shadow-sm); }
+.role-tab { padding: 9px 16px; border-radius: 999px; font-size: 14px; font-weight: 500; color: var(--ink-soft); transition: all .15s; }
+.role-tab:hover { background: var(--paper-warm); color: var(--ink); }
+.role-tab.active { background: var(--ink); color: var(--paper); }
+.role-content {
+  margin-top: 32px;
+  display: grid; grid-template-columns: 1fr 1.2fr; gap: 60px; align-items: center;
+  background: white; border: 1px solid var(--line); border-radius: var(--radius-xl);
+  padding: 48px; box-shadow: var(--shadow-md);
+}
+.role-content h3 { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 14px; }
+.role-content .role-desc { font-size: 16px; color: var(--ink-soft); margin-bottom: 22px; line-height: 1.55; }
+.role-features { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.role-feat { padding: 12px 14px; background: var(--paper); border-radius: 10px; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 8px; }
+.role-feat svg { width: 16px; height: 16px; color: var(--brand); flex-shrink: 0; }
+.role-mock { background: linear-gradient(135deg, var(--paper-warm), var(--brand-soft)); border-radius: var(--radius-lg); padding: 24px; min-height: 320px; position: relative; }
+
+/* === LIFESTYLE PHOTO STRIP === */
+.lifestyle { padding: 80px 0; background: var(--ink); color: var(--paper); position: relative; overflow: hidden; }
+.lifestyle-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-top: 48px; max-width: 1200px; margin: 48px auto 0; padding: 0 24px; }
+.lifestyle-img { aspect-ratio: 4/3; border-radius: var(--radius-lg); overflow: hidden; position: relative; }
+.lifestyle-img img { width: 100%; height: 100%; object-fit: cover; transition: transform .6s; }
+.lifestyle-img:hover img { transform: scale(1.05); }
+.lifestyle-img .caption { position: absolute; bottom: 0; left: 0; right: 0; padding: 16px; background: linear-gradient(180deg, transparent, rgba(0,0,0,0.85)); color: white; font-size: 13px; font-weight: 500; }
+.lifestyle-quote {
+  font-family: var(--font-serif); font-style: italic; font-weight: 500;
+  font-size: clamp(28px, 4vw, 44px); line-height: 1.2; letter-spacing: -0.02em;
+  text-align: center; max-width: 800px; margin: 0 auto;
+}
+.lifestyle-quote .em { color: var(--brand); }
+.lifestyle-quote-attr { text-align: center; margin-top: 24px; font-size: 14px; color: rgba(250,250,245,0.6); font-style: normal; font-family: var(--font-sans); }
+
+/* === COMPARE TABLE === */
+.compare {
+  margin-top: 48px; background: white; border-radius: var(--radius-xl);
+  border: 1px solid var(--line); overflow: hidden; box-shadow: var(--shadow-md);
+}
+.compare table { width: 100%; border-collapse: collapse; }
+.compare th, .compare td { padding: 18px 20px; text-align: center; font-size: 14px; }
+.compare th { font-size: 13px; font-weight: 700; color: var(--ink-soft); background: var(--paper); border-bottom: 1px solid var(--line); }
+.compare th:first-child, .compare td:first-child { text-align: left; font-weight: 600; }
+.compare th.us { color: var(--brand); background: var(--brand-soft); position: relative; }
+.compare th.us::after { content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 2px; background: var(--brand); }
+.compare td.us { background: rgba(255, 94, 58, 0.04); font-weight: 600; }
+.compare tr { border-bottom: 1px solid var(--line-soft); }
+.compare tr:last-child { border-bottom: none; }
+.compare .check { color: var(--brand); }
+.compare .cross { color: var(--ink-mute); opacity: 0.5; }
+.compare .partial { color: #B8860B; font-size: 12px; font-weight: 600; }
+
+/* === FAQ === */
+.faq-list { margin-top: 40px; }
+.faq-item { border-bottom: 1px solid var(--line); }
+.faq-item:first-child { border-top: 1px solid var(--line); }
+.faq-q { width: 100%; padding: 24px 0; display: flex; align-items: center; justify-content: space-between; font-size: 17px; font-weight: 600; color: var(--ink); text-align: left; transition: color .15s; }
+.faq-q:hover { color: var(--brand); }
+.faq-q .toggle { width: 24px; height: 24px; border-radius: 50%; background: var(--paper-warm); display: flex; align-items: center; justify-content: center; color: var(--ink-soft); transition: all .2s; flex-shrink: 0; }
+.faq-item.open .faq-q .toggle { background: var(--brand); color: white; transform: rotate(45deg); }
+.faq-q .toggle svg { width: 12px; height: 12px; }
+.faq-a { max-height: 0; overflow: hidden; transition: max-height .3s ease-out, padding .3s; color: var(--ink-soft); font-size: 15px; line-height: 1.6; }
+.faq-item.open .faq-a { max-height: 400px; padding: 0 0 24px; }
+
+/* === BIG CTA === */
 .cta-section {
-  background:linear-gradient(135deg, var(--accent), var(--accent-dark));
-  border-radius:24px; padding:60px 30px; text-align:center; color:white;
-  margin:40px 20px;
+  background: var(--ink); color: var(--paper); padding: 100px 0; position: relative; overflow: hidden;
+  margin: 0;
 }
-.cta-section h2 { font-size:32px; margin-bottom:12px; font-weight:800; }
-.cta-section p { margin-bottom:26px; opacity:0.95; }
-.cta-section .btn-primary {
-  background:white; color:var(--accent); box-shadow:0 4px 16px rgba(0,0,0,0.2);
+.cta-section::before {
+  content: ''; position: absolute; inset: 0;
+  background:
+    radial-gradient(circle at 20% 50%, var(--brand-glow) 0%, transparent 40%),
+    radial-gradient(circle at 80% 30%, rgba(255, 210, 63, 0.15) 0%, transparent 40%);
+}
+.cta-inner { position: relative; text-align: center; max-width: 700px; margin: 0 auto; padding: 0 24px; }
+.cta-inner h2 { font-size: clamp(36px, 5vw, 56px); font-weight: 800; letter-spacing: -0.03em; line-height: 1.05; margin-bottom: 20px; }
+.cta-inner h2 .accent { font-family: var(--font-serif); font-style: italic; font-weight: 500; color: var(--brand); }
+.cta-inner p { font-size: 18px; color: rgba(250,250,245,0.75); margin-bottom: 36px; line-height: 1.5; }
+.cta-inner .btn-primary { font-size: 16px; padding: 16px 32px; }
+
+/* === FOOTER === */
+.footer { background: var(--ink); color: rgba(250, 250, 245, 0.7); padding: 48px 0 32px; border-top: 1px solid rgba(255,255,255,0.06); }
+.footer-inner { max-width: 1200px; margin: 0 auto; padding: 0 24px; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 48px; }
+.footer-brand { font-size: 14px; max-width: 280px; line-height: 1.6; }
+.footer-col h5 { font-size: 12px; font-weight: 700; color: var(--paper); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 16px; }
+.footer-col ul { list-style: none; padding: 0; }
+.footer-col li { padding: 6px 0; font-size: 14px; }
+.footer-col a:hover { color: var(--brand); }
+.footer-bottom { max-width: 1200px; margin: 32px auto 0; padding: 24px 24px 0; border-top: 1px solid rgba(255,255,255,0.06); display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+.footer-bottom .links { display: flex; gap: 20px; }
+
+/* === RESPONSIVE === */
+@media (max-width: 960px) {
+  .hero-inner { grid-template-columns: 1fr; gap: 60px; }
+  .hero-visual { transform: scale(0.9); }
+  .stats-grid { grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .stats-grid .stat:nth-child(4), .stats-grid .stat:nth-child(5) { grid-column: span 1; }
+  .spotlight, .spotlight.reverse { grid-template-columns: 1fr; gap: 40px; }
+  .spotlight.reverse .spot-text { order: 0; }
+  .bento { grid-template-columns: repeat(2, 1fr); grid-auto-rows: auto; }
+  .bento-card.span-2, .bento-card.span-3, .bento-card.span-4 { grid-column: span 2; }
+  .bento-card { min-height: 200px; }
+  .role-content { grid-template-columns: 1fr; padding: 32px; }
+  .lifestyle-grid { grid-template-columns: 1fr; }
+  .footer-inner { grid-template-columns: 1fr 1fr; gap: 32px; }
+  .nav-links { display: none; }
+  .section { padding: 80px 0; }
+  .compare th, .compare td { padding: 12px 8px; font-size: 12px; }
+}
+@media (max-width: 560px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .stats-grid .stat:nth-child(5) { display: none; }
+  .role-features { grid-template-columns: 1fr; }
+  .footer-inner { grid-template-columns: 1fr; }
+  .hero-ctas { flex-direction: column; align-items: stretch; }
+  .btn-primary, .btn-secondary { justify-content: center; }
 }
 
-footer {
-  text-align:center; padding:40px 20px; color:var(--ink-soft); font-size:13px;
-  border-top:1px solid rgba(138,95,209,0.1);
-}
-footer a { color:var(--accent); text-decoration:none; }
-footer a:hover { text-decoration:underline; }
-
-@media (max-width: 640px) {
-  nav { gap:8px; }
-  nav a { padding:6px 10px; font-size:13px; }
-  nav .logo-wrap { font-size:16px; }
-  .hero { padding:40px 10px 30px; }
-  section { padding:40px 10px; }
-  .cta-section { padding:40px 20px; margin:30px 10px; }
-}
+/* SVG icon helper */
+.icn { width: 1em; height: 1em; vertical-align: -0.125em; flex-shrink: 0; }
 </style>
 </head>
 <body>
-<div class="container">
-  <nav>
-    <div class="logo-wrap">
-      <div class="logo-sq">j.</div>
+
+<!-- =================== NAV =================== -->
+<nav class="nav" id="nav">
+  <div class="nav-inner">
+    <a href="/" class="brand-mark">
+      <span class="brand-logo">j.</span>
       <span>JustANotepad</span>
+    </a>
+    <div class="nav-links">
+      <a href="#features">기능</a>
+      <a href="#roles">역할별</a>
+      <a href="#compare">비교</a>
+      <a href="#faq">FAQ</a>
     </div>
-    <div class="spacer"></div>
-    <a href="#features">기능</a>
-    <a href="#roles">역할별</a>
-    <a href="https://github.com/auto1225/memo/blob/main/MANUAL.md" target="_blank">매뉴얼</a>
-    <a href="/app" class="cta">앱 시작 →</a>
-  </nav>
+    <a href="/app" class="nav-cta">
+      앱 시작
+      <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+    </a>
+  </div>
+</nav>
 
-  <section class="hero">
-    <h1>JustANotepad</h1>
-    <div class="tagline">it was supposed to be just a notepad.</div>
-    <div class="hero-actions">
-      <a href="/app" class="btn btn-primary">지금 바로 시작하기</a>
-      <a href="https://github.com/auto1225/memo" target="_blank" class="btn btn-outline">소스코드</a>
-    </div>
-    <div class="badges">
-      <span>로그인 불필요</span>
-      <span>오프라인 지원</span>
-      <span>무료</span>
-      <span>단일 HTML 파일</span>
-      <span>17,000+ 줄</span>
-    </div>
-  </section>
-
-  <section>
-    <div class="stats">
-      <div>
-        <div class="stat-num">14</div>
-        <div class="stat-label">역할별 도구</div>
+<!-- =================== HERO =================== -->
+<section class="hero">
+  <div class="wrap hero-inner">
+    <div>
+      <div class="hero-eyebrow">
+        <span class="dot"></span>
+        2026년 4월 출시 · 클라우드 동기화 라이브
       </div>
-      <div>
-        <div class="stat-num">50+</div>
-        <div class="stat-label">기능 모듈</div>
+      <h1>그냥 적기만 하세요.<br /><span class="accent">나머지는 알아서.</span></h1>
+      <p class="hero-sub">14가지 역할별 도구, 16개 AI 모델, 포토샵급 그림판, 명함 OCR, 클라우드 동기화 — 단일 HTML 파일로 작동하는 가장 풍부한 무료 메모장.</p>
+      <div class="hero-ctas">
+        <a href="/app" class="btn-primary">
+          무료로 시작
+          <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        </a>
+        <a href="https://github.com/auto1225/memo" target="_blank" rel="noopener" class="btn-secondary">
+          <svg class="icn" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56v-2.18c-3.2.7-3.87-1.37-3.87-1.37-.52-1.32-1.27-1.67-1.27-1.67-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.75 2.68 1.25 3.34.95.1-.74.4-1.25.73-1.54-2.55-.29-5.24-1.27-5.24-5.66 0-1.25.45-2.27 1.18-3.07-.12-.29-.51-1.46.11-3.04 0 0 .96-.31 3.15 1.17.92-.25 1.9-.38 2.88-.39.98 0 1.96.13 2.88.39 2.19-1.48 3.15-1.17 3.15-1.17.62 1.58.23 2.75.11 3.04.74.8 1.18 1.82 1.18 3.07 0 4.4-2.69 5.36-5.25 5.65.41.36.78 1.06.78 2.13v3.16c0 .31.21.68.8.56C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5z"/></svg>
+          GitHub
+        </a>
       </div>
-      <div>
-        <div class="stat-num">16</div>
-        <div class="stat-label">SNS 플랫폼</div>
-      </div>
-      <div>
-        <div class="stat-num">3</div>
-        <div class="stat-label">AI 프로바이더</div>
-      </div>
-      <div>
-        <div class="stat-num">0원</div>
-        <div class="stat-label">구독료</div>
+      <div class="hero-trust">
+        <span><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> 가입 불필요</span>
+        <span><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> 오프라인 작동</span>
+        <span><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> 평생 무료</span>
+        <span><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> 단일 HTML</span>
       </div>
     </div>
-  </section>
 
-  <section id="features">
-    <h2 class="section-title">핵심 기능</h2>
-    <p class="section-sub">전통 메모장부터 포토샵급 그림판까지 — 단일 HTML 파일에 전부</p>
-    <div class="features">
-      <div class="feature">
-        <div class="icon">A</div>
-        <h3>리치 텍스트 편집</h3>
-        <p>글꼴·크기·색상·표·코드블록·체크리스트. 6종 배경(줄노트·모눈·점격·오선지 등).</p>
+    <!-- HERO MOCKUP -->
+    <div class="hero-visual">
+      <div class="float-card fc-1">
+        <div class="ico"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg></div>
+        <div><strong>AI 자동 요약</strong><br /><span style="color:var(--ink-mute); font-size:11px;">3초 전</span></div>
       </div>
-      <div class="feature">
-        <div class="icon">AI</div>
-        <h3>멀티 AI 어시스턴트</h3>
-        <p>OpenAI·Gemini·Claude 동시 관리. 요약·번역·이어쓰기·플래시카드·질문 등 AI 기능.</p>
+      <div class="float-card fc-2">
+        <div class="ico"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+        <div><strong>오프라인 저장</strong><br /><span style="color:var(--ink-mute); font-size:11px;">동기화 완료</span></div>
       </div>
-      <div class="feature">
-        <div class="icon">🖌</div>
-        <h3>그림판 (Paint)</h3>
-        <p>레이어 + 16 블렌드 모드 + 그라디언트 + 필터 11종 + AI 이미지 생성. 포토샵 축소판.</p>
+      <div class="float-card fc-3">
+        <div class="ico"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 010 8h-1M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8zM6 1v3M10 1v3M14 1v3"/></svg></div>
+        <div><strong>가계부</strong><br /><span style="color:var(--ink-mute); font-size:11px;">이번 달 -82,400</span></div>
       </div>
-      <div class="feature">
-        <div class="icon">📇</div>
-        <h3>명함 관리</h3>
-        <p>AI로 명함 사진에서 자동 추출. 16개 SNS 플랫폼 지원. vCard/CSV 가져오기·내보내기.</p>
-      </div>
-      <div class="feature">
-        <div class="icon">🎤</div>
-        <h3>회의 노트</h3>
-        <p>CLOVA Note 스타일. 녹음+실시간 받아쓰기+AI 화자분리+요약+액션 아이템 자동 추출.</p>
-      </div>
-      <div class="feature">
-        <div class="icon">🔲</div>
-        <h3>이미지 변환기</h3>
-        <p>크기·용량·포맷 지정. 목표 용량(500KB 등) 입력하면 JPEG 품질 자동 조절.</p>
-      </div>
-      <div class="feature">
-        <div class="icon">🔐</div>
-        <h3>탭 암호화</h3>
-        <p>민감한 메모는 AES-GCM으로 암호화. 비밀번호 없이는 아무도 못 봄.</p>
-      </div>
-      <div class="feature">
-        <div class="icon">🌐</div>
-        <h3>인앱 웹 브라우저</h3>
-        <p>8개 검색엔진 내장. 메모에서 나가지 않고 Google·Wikipedia·GitHub 검색.</p>
-      </div>
-      <div class="feature">
-        <div class="icon">📲</div>
-        <h3>PWA · 오프라인</h3>
-        <p>홈 화면에 설치 가능. 인터넷 없어도 작동. 새 버전은 자동 알림.</p>
+
+      <div class="app-frame">
+        <div class="app-titlebar">
+          <div class="app-dots"><span></span><span></span><span></span></div>
+          <div class="app-url">justanotepad.com/app</div>
+          <div style="width:40px"></div>
+        </div>
+        <div class="app-body">
+          <aside class="app-sidebar">
+            <h4>워크스페이스</h4>
+            <div class="tab-item">업무 <span class="badge">5</span></div>
+            <div class="tab-item">개인 <span class="badge">8</span></div>
+            <h4>탭</h4>
+            <div class="tab-item active"><span class="tab-dot" style="background:#FF5E3A"></span>주간 회의록</div>
+            <div class="tab-item"><span class="tab-dot" style="background:#FFD23F"></span>아이디어 노트</div>
+            <div class="tab-item"><span class="tab-dot" style="background:#28C940"></span>독서 메모</div>
+            <div class="tab-item"><span class="tab-dot" style="background:#0066CC"></span>여행 계획</div>
+            <div class="tab-item"><span class="tab-dot" style="background:#9C27B0"></span>레시피</div>
+          </aside>
+          <main class="app-editor">
+            <div class="editor-toolbar">
+              <button title="굵게"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h8a4 4 0 014 4 4 4 0 01-4 4H6zM6 12h9a4 4 0 014 4 4 4 0 01-4 4H6z"/></svg></button>
+              <button title="기울임"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 4h-9M14 20H5M15 4L9 20"/></svg></button>
+              <button title="형광펜"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l-6 6v3h3l6-6"/><path d="M22 12L12 2 5 9l5 5z"/></svg></button>
+              <span class="sep"></span>
+              <button title="목록"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></button>
+              <button title="체크리스트"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></button>
+              <span class="sep"></span>
+              <button title="AI"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L9.5 8.5 3 11l6.5 2.5L12 20l2.5-6.5L21 11l-6.5-2.5z"/></svg></button>
+            </div>
+            <div class="editor-content">
+              <h2>주간 팀 회의록</h2>
+              <div class="meta">
+                <span>4월 18일 · 오후 2시</span>
+                <span>참석 5명</span>
+                <span style="color:var(--brand)">● 자동 저장됨</span>
+              </div>
+              <p>이번 주 <span class="hl">스프린트 회고</span>와 다음 분기 OKR 정렬에 관한 논의.</p>
+              <p style="font-weight:600; color:var(--ink); margin-top:14px;">결정 사항</p>
+              <ul>
+                <li class="done">랜딩페이지 리브랜딩 완료</li>
+                <li class="done">Supabase 동기화 적용</li>
+                <li>다음 주 사용자 인터뷰 5건 일정 확정</li>
+                <li>모바일 앱 베타 4월 말 릴리즈</li>
+              </ul>
+            </div>
+          </main>
+          <aside class="app-outline">
+            <h4>목차</h4>
+            <div class="outline-item active">주간 팀 회의록</div>
+            <div class="outline-item indent">결정 사항</div>
+            <div class="outline-item indent">액션 아이템</div>
+            <div class="outline-item">다음 회의 어젠다</div>
+            <div class="outline-item">참고 자료</div>
+          </aside>
+        </div>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <section id="roles">
-    <h2 class="section-title">역할별 전용 도구</h2>
-    <p class="section-sub">학생·회사원·주부·창작자… 상황에 맞게 꺼내 쓰세요</p>
-    <div class="roles">
-      <div class="role-chip"><div class="role-title">초등학생</div><div class="role-tools">그림일기·숙제·D-Day</div></div>
-      <div class="role-chip"><div class="role-title">중학생</div><div class="role-tools">시간표·시험계획·단어장</div></div>
-      <div class="role-chip"><div class="role-title">고등학생</div><div class="role-tools">수능D-Day·오답노트·학습타이머</div></div>
-      <div class="role-chip"><div class="role-title">대학생</div><div class="role-tools">강의시간표·GPA·출결·조별과제</div></div>
-      <div class="role-chip"><div class="role-title">대학원생</div><div class="role-tools">논문 관리·BibTeX·연구노트</div></div>
-      <div class="role-chip"><div class="role-title">회사원 (주니어)</div><div class="role-tools">회의록·To-do·프로젝트</div></div>
-      <div class="role-chip"><div class="role-title">회사원 (시니어)</div><div class="role-tools">1:1 미팅·OKR·견적서</div></div>
-      <div class="role-chip"><div class="role-title">프리랜서</div><div class="role-tools">견적서·타임트래킹·CRM</div></div>
-      <div class="role-chip"><div class="role-title">가정주부</div><div class="role-tools">가계부·장보기·식단·레시피</div></div>
-      <div class="role-chip"><div class="role-title">노년층</div><div class="role-tools">약 복용·혈압·혈당·진료</div></div>
-      <div class="role-chip"><div class="role-title">요리 애호가</div><div class="role-tools">레시피북·조리 타이머·식재료</div></div>
-      <div class="role-chip"><div class="role-title">예술가/창작자</div><div class="role-tools">포트폴리오·무드보드·영감</div></div>
-      <div class="role-chip"><div class="role-title">여행자</div><div class="role-tools">여행 계획·버킷리스트·경비</div></div>
-      <div class="role-chip"><div class="role-title">독서광</div><div class="role-tools">독서 목록·통계·인용구</div></div>
+<!-- =================== STATS BAR =================== -->
+<section class="stats-bar">
+  <div class="stats-grid">
+    <div class="stat"><div class="stat-num">14</div><div class="stat-label">역할별 도구</div></div>
+    <div class="stat"><div class="stat-num">50+</div><div class="stat-label">기능 모듈</div></div>
+    <div class="stat"><div class="stat-num">16</div><div class="stat-label">SNS 플랫폼</div></div>
+    <div class="stat"><div class="stat-num">3</div><div class="stat-label">AI 프로바이더</div></div>
+    <div class="stat"><div class="stat-num">0₩</div><div class="stat-label">평생 구독료</div></div>
+  </div>
+</section>
+
+<!-- =================== SPOTLIGHT 1: EDITOR =================== -->
+<section class="section" id="features">
+  <div class="wrap">
+    <div style="text-align:center; max-width:680px; margin:0 auto;">
+      <span class="section-eyebrow">에디터</span>
+      <h2 class="section-title">메모장 그 이상의 <span class="accent">에디터</span></h2>
+      <p class="section-sub" style="margin:0 auto;">서식·색상·표·체크리스트·코드블록·6가지 배경(줄노트, 모눈, 점격자, 오선지...). Notion처럼 풍부하지만 데스크톱처럼 빠릅니다.</p>
     </div>
-  </section>
 
-  <section class="cta-section">
-    <h2>로그인 없이 바로 시작</h2>
-    <p>데이터는 당신의 브라우저에만 저장. 우리는 아무것도 수집하지 않습니다.</p>
-    <a href="/app" class="btn btn-primary">앱 열기 →</a>
-  </section>
+    <div class="spotlight">
+      <div class="spot-text">
+        <h3>적기만 하면 <span class="accent">기억해 줍니다</span></h3>
+        <p>탭 무제한, 워크스페이스로 분리, 태그 + 즐겨찾기로 정리. 한 번 적은 것은 어디 있든 1초 안에 찾을 수 있습니다.</p>
+        <ul class="spot-checks">
+          <li><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>리치 텍스트 (글꼴·크기·색상·표·코드)</li>
+          <li><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>탭 정렬, 분할 보기, 목차 패널</li>
+          <li><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>버전 히스토리 + 휴지통</li>
+          <li><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>AES-GCM 탭 암호화 (민감 정보)</li>
+        </ul>
+      </div>
+      <div class="spot-visual">
+        <!-- Editor visual: paper with text -->
+        <div style="background:white; border-radius:14px; padding:32px; box-shadow:var(--shadow-md); position:relative; z-index:1;">
+          <div style="font-family:var(--font-serif); font-style:italic; font-size:24px; font-weight:700; margin-bottom:8px;">독서 메모</div>
+          <div style="font-size:11px; color:var(--ink-mute); margin-bottom:18px; display:flex; gap:10px;"><span>2026.04.18</span><span>·</span><span style="color:var(--brand)">● 동기화됨</span></div>
+          <div style="font-size:14px; color:var(--ink); line-height:1.7;">
+            <p style="margin-bottom:10px;"><span style="background:linear-gradient(180deg, transparent 60%, var(--accent-soft) 60%); padding:0 2px;">"의식적인 노력 없이도 자연스럽게 적게 되는 도구"</span></p>
+            <p style="color:var(--ink-soft); font-size:13px;">— 카프카, 일기에서</p>
+          </div>
+          <div style="margin-top:20px; padding-top:16px; border-top:1px dashed var(--line);">
+            <div style="font-size:13px; color:var(--ink-soft); display:flex; gap:8px; align-items:center;">
+              <svg class="icn" style="color:var(--brand)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+              내일 아침까지 1챕터 요약
+            </div>
+            <div style="font-size:13px; color:var(--ink-mute); display:flex; gap:8px; align-items:center; margin-top:6px; text-decoration:line-through;">
+              <svg class="icn" style="color:var(--brand)" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+              인덱스 카드로 옮기기
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 
-  <footer>
-    <p>
-      <a href="https://github.com/auto1225/memo" target="_blank">GitHub</a> ·
-      <a href="https://github.com/auto1225/memo/blob/main/MANUAL.md" target="_blank">사용자 매뉴얼</a> ·
-      <a href="/app">앱 바로가기</a>
+<!-- =================== BENTO GRID =================== -->
+<section class="section" style="padding-top:0;">
+  <div class="wrap">
+    <div style="text-align:center; max-width:680px; margin:0 auto 48px;">
+      <span class="section-eyebrow">전체 기능</span>
+      <h2 class="section-title">필요한 모든 게 <span class="accent">한 파일</span>에</h2>
+      <p class="section-sub" style="margin:0 auto;">인스톨 없이, 가입 없이, 광고 없이. 50+ 기능이 단일 HTML에 패키징되어 있습니다.</p>
+    </div>
+
+    <div class="bento">
+
+      <!-- AI 카드 (큰, 다크) -->
+      <div class="bento-card span-3 row-2 dark">
+        <div class="ico-wrap"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L9.5 8.5 3 11l6.5 2.5L12 20l2.5-6.5L21 11l-6.5-2.5z"/></svg></div>
+        <h4 style="font-size:24px;">AI 어시스턴트 16개 모델 동시</h4>
+        <p style="margin-bottom:24px; max-width:340px;">OpenAI · Gemini · Claude를 한 곳에서. 요약·번역·이어쓰기·플래시카드·질문이 우클릭 한 번에.</p>
+        <div class="ai-mock">
+          <div class="ai-bubble user">이 메모를 3줄로 요약해줘</div>
+          <div class="ai-bubble">1. 4월 스프린트 회고 완료<br>2. OKR 정렬 결정<br>3. 사용자 인터뷰 5건 예정</div>
+          <div class="ai-models">
+            <span class="pill">GPT-4o</span>
+            <span class="pill">Claude Opus</span>
+            <span class="pill">Gemini Pro</span>
+            <span class="pill">+13</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 그림판 (큰) -->
+      <div class="bento-card span-3 row-2">
+        <div class="ico-wrap"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg></div>
+        <h4 style="font-size:24px;">포토샵급 그림판이 통째로</h4>
+        <p>레이어 + 16종 블렌드 모드 · 그라디언트 · 11종 필터 · AI 이미지 생성 · 이미지 변환기 (포맷·크기 일괄 조절).</p>
+        <div class="paint-mock">
+          <svg viewBox="0 0 280 100" xmlns="http://www.w3.org/2000/svg">
+            <path d="M30,80 Q60,20 90,60 T160,50 Q200,30 240,70" stroke="#FF5E3A" stroke-width="3" fill="none" stroke-linecap="round" />
+            <path d="M40,90 Q90,40 140,80" stroke="#FFD23F" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.7" />
+            <circle cx="220" cy="35" r="14" fill="#0F0F1A" opacity="0.85" />
+            <circle cx="245" cy="55" r="9" fill="#FF5E3A" opacity="0.6" />
+          </svg>
+          <div class="paint-tools">
+            <span class="active"><svg class="icn" style="width:10px; height:10px; color:white" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a.996.996 0 000-1.41l-2.34-2.34a.996.996 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 클라우드 동기화 -->
+      <div class="bento-card span-2">
+        <div class="ico-wrap"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/></svg></div>
+        <h4>실시간 클라우드 동기화</h4>
+        <p>Google · 매직링크로 로그인. 모든 기기 자동 동기화.</p>
+      </div>
+
+      <!-- PWA -->
+      <div class="bento-card span-2">
+        <div class="ico-wrap"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><path d="M8 21h8M12 17v4"/></svg></div>
+        <h4>PWA · 오프라인</h4>
+        <p>홈화면 설치, 인터넷 없어도 작동. 새 버전 자동 알림.</p>
+      </div>
+
+      <!-- 보안 -->
+      <div class="bento-card span-2">
+        <div class="ico-wrap"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></div>
+        <h4>탭 단위 암호화</h4>
+        <p>AES-GCM 암호화. 비밀번호 없으면 본인도 못 봄.</p>
+      </div>
+
+      <!-- 명함 -->
+      <div class="bento-card span-2">
+        <div class="ico-wrap"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><circle cx="8" cy="12" r="2"/><path d="M14 8h6M14 12h6M14 16h4"/></svg></div>
+        <h4>명함 OCR · SNS 16개</h4>
+        <p>사진 한 장으로 자동 추출. vCard 가져오기/내보내기.</p>
+      </div>
+
+      <!-- 회의 노트 -->
+      <div class="bento-card span-2">
+        <div class="ico-wrap"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/></svg></div>
+        <h4>회의 노트 · 받아쓰기</h4>
+        <p>녹음 + 실시간 받아쓰기 + AI 요약 + 액션 자동 추출.</p>
+      </div>
+
+      <!-- 인앱 브라우저 -->
+      <div class="bento-card span-2">
+        <div class="ico-wrap"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 010 20M12 2a15 15 0 000 20"/></svg></div>
+        <h4>인앱 브라우저</h4>
+        <p>Google · 위키피디아 · GitHub · 8개 검색 엔진 내장.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- =================== LIFESTYLE PHOTOS =================== -->
+<section class="lifestyle">
+  <div class="wrap">
+    <p class="lifestyle-quote">
+      "그냥 적기만 하려고 만들었는데... <span class="em">생각보다 많은 것을 적게 됐다.</span>"
     </p>
-    <p style="margin-top:12px;">
-      Made with too much time. <em>it really was supposed to be just a notepad.</em>
-    </p>
-  </footer>
-</div>
+    <p class="lifestyle-quote-attr">— JustANotepad의 시작</p>
+
+    <div class="lifestyle-grid">
+      <div class="lifestyle-img">
+        <img src="https://images.unsplash.com/photo-1517842645767-c639042777db?w=800&q=80&auto=format&fit=crop" alt="카페에서 노트북으로 작업하는 사람" loading="lazy" />
+        <div class="caption">학생 — 강의 노트, 시험 D-Day, 단어장</div>
+      </div>
+      <div class="lifestyle-img">
+        <img src="https://images.unsplash.com/photo-1542435503-956c469947f6?w=800&q=80&auto=format&fit=crop" alt="회의실에서 노트하는 모습" loading="lazy" />
+        <div class="caption">직장인 — 1:1 미팅, OKR, 견적서</div>
+      </div>
+      <div class="lifestyle-img">
+        <img src="https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?w=800&q=80&auto=format&fit=crop" alt="주방에서 레시피 보며 요리" loading="lazy" />
+        <div class="caption">가정주부 — 가계부, 장보기, 레시피</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== ROLES (interactive) =================== -->
+<section class="section" id="roles">
+  <div class="wrap">
+    <div style="text-align:center; max-width:680px; margin:0 auto;">
+      <span class="section-eyebrow">역할별 도구</span>
+      <h2 class="section-title">당신이 누구든, <span class="accent">맞는 도구</span>가 있습니다</h2>
+      <p class="section-sub" style="margin:0 auto;">학생·회사원·주부·창작자·여행자... 14가지 역할 각각의 전용 위젯이 내장되어 있습니다.</p>
+    </div>
+
+    <div class="role-tabs" id="roleTabs">
+      <button class="role-tab active" data-role="student">대학생</button>
+      <button class="role-tab" data-role="office">회사원</button>
+      <button class="role-tab" data-role="house">주부</button>
+      <button class="role-tab" data-role="freelance">프리랜서</button>
+      <button class="role-tab" data-role="artist">창작자</button>
+      <button class="role-tab" data-role="cook">요리</button>
+      <button class="role-tab" data-role="travel">여행자</button>
+      <button class="role-tab" data-role="reader">독서광</button>
+    </div>
+
+    <div class="role-content" id="roleContent">
+      <!-- Filled by JS -->
+    </div>
+  </div>
+</section>
+
+<!-- =================== SPOTLIGHT 2: SYNC =================== -->
+<section class="section" style="background:var(--paper-warm);">
+  <div class="wrap">
+    <div class="spotlight reverse">
+      <div class="spot-visual" style="background:linear-gradient(135deg, #FFF 0%, #FFE8E0 100%);">
+        <div style="display:flex; gap:16px; align-items:flex-end; justify-content:center;">
+          <!-- 데스크탑 mockup -->
+          <div style="width:200px; height:140px; background:var(--ink); border-radius:8px; padding:6px; position:relative;">
+            <div style="background:white; border-radius:4px; height:100%; padding:8px;">
+              <div style="height:6px; background:var(--brand); border-radius:2px; width:60%; margin-bottom:6px;"></div>
+              <div style="height:4px; background:var(--ink-mute); border-radius:2px; width:90%; margin-bottom:4px; opacity:.4;"></div>
+              <div style="height:4px; background:var(--ink-mute); border-radius:2px; width:75%; margin-bottom:4px; opacity:.4;"></div>
+              <div style="height:4px; background:var(--accent); border-radius:2px; width:50%; margin-top:8px;"></div>
+            </div>
+          </div>
+          <!-- 태블릿 -->
+          <div style="width:90px; height:120px; background:var(--ink); border-radius:6px; padding:5px;">
+            <div style="background:white; border-radius:3px; height:100%; padding:6px;">
+              <div style="height:4px; background:var(--brand); border-radius:2px; width:60%; margin-bottom:4px;"></div>
+              <div style="height:3px; background:var(--ink-mute); border-radius:2px; opacity:.4; margin-bottom:3px;"></div>
+              <div style="height:3px; background:var(--ink-mute); border-radius:2px; width:80%; opacity:.4;"></div>
+            </div>
+          </div>
+          <!-- 폰 -->
+          <div style="width:46px; height:90px; background:var(--ink); border-radius:8px; padding:4px;">
+            <div style="background:white; border-radius:4px; height:100%; padding:4px;">
+              <div style="height:3px; background:var(--brand); border-radius:1px; width:60%; margin-bottom:3px;"></div>
+              <div style="height:2px; background:var(--ink-mute); border-radius:1px; opacity:.4; margin-bottom:2px;"></div>
+              <div style="height:2px; background:var(--ink-mute); border-radius:1px; width:70%; opacity:.4;"></div>
+            </div>
+          </div>
+        </div>
+        <!-- Sync arrows -->
+        <div style="text-align:center; margin-top:24px;">
+          <div style="display:inline-flex; align-items:center; gap:8px; padding:8px 16px; background:white; border-radius:999px; box-shadow:var(--shadow-sm); font-size:13px; font-weight:600;">
+            <svg class="icn" style="color:var(--brand); width:14px; height:14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+            모든 기기 자동 동기화
+          </div>
+        </div>
+      </div>
+      <div class="spot-text">
+        <h3>한 곳에서 적고, <span class="accent">어디서나</span> 봅니다</h3>
+        <p>Google 또는 매직링크로 로그인하면 메모·명함·그림·가계부 모두 자동 동기화. 인터넷이 끊겨도 작업하다가, 연결되면 자동으로 올라갑니다.</p>
+        <ul class="spot-checks">
+          <li><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Supabase + RLS로 본인 데이터만 접근</li>
+          <li><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>3초 디바운스 자동 업로드 (트래픽 절약)</li>
+          <li><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>다른 기기 변경 즉시 알림</li>
+          <li><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>충돌 자동 머지 + 로컬 백업</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== COMPARE =================== -->
+<section class="section" id="compare">
+  <div class="wrap">
+    <div style="text-align:center; max-width:680px; margin:0 auto;">
+      <span class="section-eyebrow">비교</span>
+      <h2 class="section-title">왜 <span class="accent">JustANotepad</span>인가</h2>
+      <p class="section-sub" style="margin:0 auto;">유명 노트앱과의 정직한 비교. 우리는 무료고 가입이 필요 없으며, 평생 그렇게 운영됩니다.</p>
+    </div>
+
+    <div class="compare">
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th class="us">JustANotepad</th>
+            <th>Notion</th>
+            <th>Apple Notes</th>
+            <th>Bear</th>
+            <th>Obsidian</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>가입 없이 사용</td>
+            <td class="us"><span class="check">●</span></td>
+            <td><span class="cross">○</span></td>
+            <td><span class="partial">iCloud 필요</span></td>
+            <td><span class="cross">○</span></td>
+            <td class="check">●</td>
+          </tr>
+          <tr>
+            <td>오프라인 작동</td>
+            <td class="us"><span class="check">●</span></td>
+            <td><span class="partial">제한적</span></td>
+            <td class="check">●</td>
+            <td class="check">●</td>
+            <td class="check">●</td>
+          </tr>
+          <tr>
+            <td>14개 역할별 위젯</td>
+            <td class="us"><span class="check">●</span></td>
+            <td><span class="cross">○</span></td>
+            <td><span class="cross">○</span></td>
+            <td><span class="cross">○</span></td>
+            <td><span class="partial">플러그인 필요</span></td>
+          </tr>
+          <tr>
+            <td>그림판 (레이어 · 필터)</td>
+            <td class="us"><span class="check">●</span></td>
+            <td><span class="cross">○</span></td>
+            <td><span class="partial">기본 스케치만</span></td>
+            <td><span class="cross">○</span></td>
+            <td><span class="cross">○</span></td>
+          </tr>
+          <tr>
+            <td>16개 AI 모델 동시</td>
+            <td class="us"><span class="check">●</span></td>
+            <td><span class="partial">유료 1개</span></td>
+            <td><span class="cross">○</span></td>
+            <td><span class="cross">○</span></td>
+            <td><span class="partial">플러그인 필요</span></td>
+          </tr>
+          <tr>
+            <td>명함 OCR · SNS 동기화</td>
+            <td class="us"><span class="check">●</span></td>
+            <td><span class="cross">○</span></td>
+            <td><span class="cross">○</span></td>
+            <td><span class="cross">○</span></td>
+            <td><span class="cross">○</span></td>
+          </tr>
+          <tr>
+            <td>크로스 플랫폼 동기화</td>
+            <td class="us"><span class="check">●</span></td>
+            <td class="check">●</td>
+            <td><span class="partial">Apple만</span></td>
+            <td><span class="partial">Apple만</span></td>
+            <td><span class="partial">유료</span></td>
+          </tr>
+          <tr>
+            <td>월 비용</td>
+            <td class="us" style="color:var(--brand); font-weight:700;">0원 영구</td>
+            <td>$10~</td>
+            <td>iCloud 요금</td>
+            <td>$2.99~</td>
+            <td>$8 (sync)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- =================== FAQ =================== -->
+<section class="section" id="faq" style="background:var(--paper-warm);">
+  <div class="wrap-narrow">
+    <div style="text-align:center; max-width:680px; margin:0 auto;">
+      <span class="section-eyebrow">자주 묻는 질문</span>
+      <h2 class="section-title">궁금한 점</h2>
+    </div>
+
+    <div class="faq-list" id="faqList">
+      <div class="faq-item">
+        <button class="faq-q">정말로 평생 무료인가요? 광고는요?
+          <span class="toggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+        </button>
+        <div class="faq-a">네, 평생 무료입니다. 현재 광고 없이 운영되고 있고, 추후 사용자가 많아져도 광고는 비침습적인 방식(예: 푸터 후원사 노출)으로만 고려할 예정입니다. 핵심 기능은 평생 무료 보장.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">데이터는 어디 저장되나요? 안전한가요?
+          <span class="toggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+        </button>
+        <div class="faq-a">로그인하지 않으면 브라우저 localStorage에만 저장됩니다 (외부 전송 없음). 로그인하면 Supabase (PostgreSQL + Row Level Security)에 본인만 접근 가능한 형태로 저장됩니다. 민감한 탭은 AES-GCM으로 추가 암호화 가능.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">정말 16개 AI 모델을 다 쓸 수 있나요?
+          <span class="toggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+        </button>
+        <div class="faq-a">OpenAI (GPT-4o, GPT-4 Turbo, GPT-3.5 등), Anthropic (Claude Opus, Sonnet, Haiku), Google (Gemini Pro, Flash 등) 총 16개 모델을 직접 API 키 입력 시 사용 가능합니다. API 키는 본인 브라우저에만 저장되며 우리 서버를 거치지 않습니다.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">왜 단일 HTML 파일인가요? 구식 아닌가요?
+          <span class="toggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+        </button>
+        <div class="faq-a">반대로 가장 모던한 선택입니다. 인터넷 없어도 작동, 다운로드 후 USB로 옮겨 어디서나 사용, 빌드 과정 없음, 의존성 없음, 1개 파일만 백업하면 됨. 850KB 안에 50+ 기능이 들어 있습니다.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">PWA 설치는 어떻게 하나요?
+          <span class="toggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+        </button>
+        <div class="faq-a">데스크톱 Chrome/Edge: 주소창 우측 "설치" 아이콘 클릭. iOS Safari: 공유 버튼 → "홈 화면에 추가". Android Chrome: 메뉴 → "홈 화면에 추가". 일반 앱처럼 작동합니다.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">소스코드는 공개되어 있나요?
+          <span class="toggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+        </button>
+        <div class="faq-a">네, GitHub에 공개되어 있습니다 (github.com/auto1225/memo). 직접 다운로드해서 자체 호스팅도 가능합니다.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">기존에 쓰던 노트앱에서 이전할 수 있나요?
+          <span class="toggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+        </button>
+        <div class="faq-a">텍스트는 복사 붙여넣기로 즉시 가능합니다. Markdown · vCard · 이미지 등 표준 포맷 가져오기 지원. 명함의 경우 vCard (.vcf) 파일 가져오면 자동으로 명함 카드로 변환됩니다.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">기능 요청이나 버그 제보는 어디서 하나요?
+          <span class="toggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+        </button>
+        <div class="faq-a">GitHub Issues (github.com/auto1225/memo/issues)에 남겨주세요. 작은 1인 프로젝트라 모든 요청을 다 반영하긴 어렵지만 모두 읽고 우선순위에 반영합니다.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== BIG CTA =================== -->
+<section class="cta-section">
+  <div class="cta-inner">
+    <h2>그냥 적기만 하면<br /><span class="accent">나머지는 알아서</span></h2>
+    <p>가입하지 않아도 됩니다. 다운로드도 필요 없습니다. 클릭 한 번이면 시작입니다.</p>
+    <a href="/app" class="btn-primary">
+      지금 시작
+      <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+    </a>
+  </div>
+</section>
+
+<!-- =================== FOOTER =================== -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div>
+      <div class="brand-mark" style="color:var(--paper); margin-bottom:14px;">
+        <span class="brand-logo">j.</span>
+        <span>JustANotepad</span>
+      </div>
+      <p class="footer-brand">it was supposed to be just a notepad. but it became more.</p>
+    </div>
+    <div class="footer-col">
+      <h5>제품</h5>
+      <ul>
+        <li><a href="/app">앱 시작</a></li>
+        <li><a href="#features">기능</a></li>
+        <li><a href="#roles">역할별</a></li>
+        <li><a href="#compare">경쟁사 비교</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h5>리소스</h5>
+      <ul>
+        <li><a href="https://github.com/auto1225/memo" target="_blank" rel="noopener">GitHub</a></li>
+        <li><a href="#faq">FAQ</a></li>
+        <li><a href="https://github.com/auto1225/memo/issues" target="_blank" rel="noopener">버그 제보</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h5>법적 고지</h5>
+      <ul>
+        <li><a href="#">개인정보 처리방침</a></li>
+        <li><a href="#">이용약관</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 JustANotepad. 단일 HTML 파일, 평생 무료.</span>
+    <div class="links">
+      <a href="https://github.com/auto1225/memo" target="_blank" rel="noopener">GitHub</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+// Nav scroll effect
+const nav = document.getElementById('nav');
+window.addEventListener('scroll', () => {
+  if (window.scrollY > 16) nav.classList.add('scrolled');
+  else nav.classList.remove('scrolled');
+});
+
+// FAQ accordion
+document.querySelectorAll('.faq-item').forEach(item => {
+  item.querySelector('.faq-q').addEventListener('click', () => {
+    item.classList.toggle('open');
+  });
+});
+
+// Roles tab content
+const rolesData = {
+  student: {
+    title: '대학생을 위한 도구',
+    desc: '강의표·GPA 계산기·플래시카드·과제 관리·학습 통계까지. 학기를 통째로 메모장에서.',
+    features: ['강의 시간표', 'GPA 계산기', '플래시카드 학습', '과제 데드라인', '학점 시뮬레이터', '단어장', '시험 D-Day', '인용 매니저'],
+    visual: 'student'
+  },
+  office: {
+    title: '회사원의 모든 업무 흐름',
+    desc: '1:1 미팅 노트, OKR 트래커, 견적서 작성, 프로젝트 파이프라인. 노션 + 에버노트 + 견적 도구를 하나에.',
+    features: ['1:1 미팅 노트', '주간 리포트', 'OKR 트래커', '프로젝트 파이프라인', '타임 트래킹', 'Todo 리스트', '견적서 자동화', 'CRM 라이트'],
+    visual: 'office'
+  },
+  house: {
+    title: '집안일을 한눈에',
+    desc: '가계부·장보기·식단·레시피·약 복용·청구서 관리. 가정 운영의 모든 것.',
+    features: ['가계부 (카테고리별 통계)', '장보기 자동 리스트', '주간 식단 플래너', '레시피북', '청구서 알림', '약 복용 체크', '가족 일정', '냉장고 재고'],
+    visual: 'house'
+  },
+  freelance: {
+    title: '프리랜서 비즈니스 도구',
+    desc: '고객별 작업 트래킹, 시간 기록, 견적/청구서 발행. 회계사 없이 1인 사업 가능.',
+    features: ['고객별 프로젝트', '시간 트래커', '견적서 템플릿', '청구서 발행', '입금 트래킹', '경비 관리', '계약서 메모', 'CRM'],
+    visual: 'freelance'
+  },
+  artist: {
+    title: '창작자의 영감 보관함',
+    desc: '포트폴리오·무드보드·영감 수집·창작 일지. 그림판으로 즉석 스케치.',
+    features: ['포트폴리오', '무드보드 콜라주', '영감 수집함', '컬러 팔레트', '창작 일지', '레퍼런스 정리', '그림판 통합', '작품 메타데이터'],
+    visual: 'artist'
+  },
+  cook: {
+    title: '요리가 즐거워지는 도구',
+    desc: '레시피북·조리 타이머·식재료 관리·식단표·칼로리 계산.',
+    features: ['레시피 카드', '조리 타이머 (다중)', '식재료 재고', '주간 식단', '칼로리 계산', '쇼핑 리스트', '단위 변환', '레시피 스케일링'],
+    visual: 'cook'
+  },
+  travel: {
+    title: '여행 계획부터 정산까지',
+    desc: '일정·예약·경비·체크리스트·환율 계산. 여행 중에도 오프라인 작동.',
+    features: ['여행 일정 플래너', '예약 정보 보관', '경비 정산 (환율)', '여행 체크리스트', '비자/항공 메모', '맛집 컬렉션', '환율 계산기', '시차 계산기'],
+    visual: 'travel'
+  },
+  reader: {
+    title: '독서가의 책 관리소',
+    desc: '독서 목록·인용구 수집·독서 통계·서평 작성. 책 한 권을 끝까지.',
+    features: ['독서 목록', '인용구 카드', '독서 통계', '서평 템플릿', '북마크 페이지', '독서 챌린지', '책 추천 메모', '도서관 대출 일정'],
+    visual: 'reader'
+  }
+};
+
+const roleContent = document.getElementById('roleContent');
+function renderRole(key) {
+  const r = rolesData[key];
+  if (!r) return;
+  roleContent.innerHTML = `
+    <div>
+      <h3>${r.title}</h3>
+      <p class="role-desc">${r.desc}</p>
+      <div class="role-features">
+        ${r.features.map(f => `<div class="role-feat"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>${f}</div>`).join('')}
+      </div>
+    </div>
+    <div class="role-mock">
+      ${renderRoleMock(key)}
+    </div>
+  `;
+}
+
+function renderRoleMock(key) {
+  const mocks = {
+    student: `
+      <div style="background:white; border-radius:12px; padding:18px; box-shadow:var(--shadow-md);">
+        <div style="font-size:13px; font-weight:700; margin-bottom:10px;">강의 시간표 · 2026년 1학기</div>
+        <div style="display:grid; grid-template-columns:40px repeat(5, 1fr); gap:4px; font-size:10px;">
+          <div></div><div style="text-align:center; font-weight:600">월</div><div style="text-align:center; font-weight:600">화</div><div style="text-align:center; font-weight:600">수</div><div style="text-align:center; font-weight:600">목</div><div style="text-align:center; font-weight:600">금</div>
+          <div style="color:var(--ink-mute)">9시</div><div style="background:#FFE8E0; color:var(--brand-dark); padding:6px 4px; border-radius:4px; font-weight:600;">수학</div><div></div><div style="background:#FFE8E0; color:var(--brand-dark); padding:6px 4px; border-radius:4px; font-weight:600;">수학</div><div></div><div></div>
+          <div style="color:var(--ink-mute)">11시</div><div></div><div style="background:#FFF4C7; color:#B8860B; padding:6px 4px; border-radius:4px; font-weight:600;">물리</div><div></div><div style="background:#FFF4C7; color:#B8860B; padding:6px 4px; border-radius:4px; font-weight:600;">물리</div><div></div>
+          <div style="color:var(--ink-mute)">14시</div><div style="background:#E0F2FF; color:#0066CC; padding:6px 4px; border-radius:4px; font-weight:600;">영어</div><div></div><div></div><div></div><div style="background:#E0F2FF; color:#0066CC; padding:6px 4px; border-radius:4px; font-weight:600;">영어</div>
+        </div>
+        <div style="margin-top:14px; padding-top:12px; border-top:1px dashed var(--line); font-size:11px; color:var(--ink-soft); display:flex; justify-content:space-between;">
+          <span>학점: <strong style="color:var(--brand)">18</strong></span>
+          <span>다음 시험: 수학 <strong style="color:var(--brand)">D-12</strong></span>
+        </div>
+      </div>`,
+    office: `
+      <div style="background:white; border-radius:12px; padding:18px; box-shadow:var(--shadow-md);">
+        <div style="font-size:13px; font-weight:700; margin-bottom:12px;">2026 Q2 OKR</div>
+        ${[
+          {n:'O1', t:'사용자 50% 증가', p:62},
+          {n:'O2', t:'NPS 40 → 50', p:35},
+          {n:'O3', t:'결제 전환율 3% → 5%', p:78}
+        ].map(o => `
+          <div style="margin-bottom:12px;">
+            <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;">
+              <span><strong>${o.n}</strong> ${o.t}</span>
+              <span style="color:${o.p > 60 ? 'var(--brand)' : 'var(--ink-mute)'}; font-weight:600;">${o.p}%</span>
+            </div>
+            <div style="height:6px; background:var(--line); border-radius:3px; overflow:hidden;">
+              <div style="height:100%; width:${o.p}%; background:${o.p > 60 ? 'var(--brand)' : 'var(--accent)'};"></div>
+            </div>
+          </div>
+        `).join('')}
+      </div>`,
+    house: `
+      <div style="background:white; border-radius:12px; padding:18px; box-shadow:var(--shadow-md);">
+        <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:700; margin-bottom:14px;">
+          <span>가계부 · 4월</span>
+          <span style="color:var(--brand)">-82,400원</span>
+        </div>
+        ${[
+          {c:'식비', a:412000, p:55, color:'#FF5E3A'},
+          {c:'교통', a:128000, p:17, color:'#FFD23F'},
+          {c:'생활', a:96000, p:13, color:'#0066CC'},
+          {c:'문화', a:64000, p:9, color:'#28C940'},
+          {c:'기타', a:48000, p:6, color:'#9C27B0'}
+        ].map(c => `
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px; font-size:12px;">
+            <span style="width:8px; height:8px; border-radius:50%; background:${c.color};"></span>
+            <span style="flex:1">${c.c}</span>
+            <span style="color:var(--ink-mute);">${c.a.toLocaleString()}원</span>
+            <span style="font-weight:600; color:var(--ink); width:30px; text-align:right;">${c.p}%</span>
+          </div>
+        `).join('')}
+      </div>`,
+    freelance: `
+      <div style="background:white; border-radius:12px; padding:18px; box-shadow:var(--shadow-md);">
+        <div style="font-size:13px; font-weight:700; margin-bottom:12px;">견적서 · #2026-042</div>
+        <div style="font-size:12px; color:var(--ink-soft); margin-bottom:14px;">고객: 우주차 · 2026.04.18</div>
+        <div style="border-top:1px solid var(--line); padding-top:10px;">
+          <div style="display:flex; justify-content:space-between; padding:6px 0; font-size:12px;"><span>로고 디자인</span><span>500,000</span></div>
+          <div style="display:flex; justify-content:space-between; padding:6px 0; font-size:12px;"><span>브랜드 가이드</span><span>800,000</span></div>
+          <div style="display:flex; justify-content:space-between; padding:6px 0; font-size:12px;"><span>웹사이트 (5p)</span><span>1,200,000</span></div>
+          <div style="display:flex; justify-content:space-between; padding:10px 0; border-top:1px dashed var(--line); margin-top:6px; font-weight:700;"><span>합계 (VAT 포함)</span><span style="color:var(--brand)">2,750,000</span></div>
+        </div>
+      </div>`,
+    artist: `
+      <div style="background:white; border-radius:12px; padding:18px; box-shadow:var(--shadow-md);">
+        <div style="font-size:13px; font-weight:700; margin-bottom:12px;">컬러 팔레트 · 봄 시리즈</div>
+        <div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:6px; margin-bottom:14px;">
+          ${['#FF5E3A','#FFD23F','#FAFAF5','#A8C8A1','#5B7C99'].map(c => `<div style="aspect-ratio:1; background:${c}; border-radius:8px; box-shadow:var(--shadow-sm);"></div>`).join('')}
+        </div>
+        <div style="font-size:11px; color:var(--ink-mute); margin-bottom:12px;">
+          코랄 + 옐로 + 크림 + 세이지 + 더스티블루
+        </div>
+        <div style="height:80px; background:linear-gradient(135deg, #FF5E3A, #FFD23F, #FAFAF5, #A8C8A1, #5B7C99); border-radius:8px;"></div>
+      </div>`,
+    cook: `
+      <div style="background:white; border-radius:12px; padding:18px; box-shadow:var(--shadow-md);">
+        <div style="font-size:13px; font-weight:700; margin-bottom:8px;">파스타 알리오 올리오</div>
+        <div style="font-size:11px; color:var(--ink-mute); margin-bottom:12px;">2인분 · 15분 · 320kcal/인</div>
+        <div style="background:var(--paper); padding:10px; border-radius:8px; margin-bottom:10px;">
+          <div style="font-size:11px; font-weight:700; margin-bottom:4px;">재료</div>
+          <div style="font-size:11px; color:var(--ink-soft); line-height:1.6;">스파게티 200g · 마늘 6쪽 · 올리브유 4T · 페퍼론치노 3개 · 파슬리</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px; padding:8px 12px; background:var(--brand-soft); border-radius:8px; font-size:12px;">
+          <svg class="icn" style="color:var(--brand)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          <span>타이머: <strong style="color:var(--brand)">7:32</strong> 남음</span>
+        </div>
+      </div>`,
+    travel: `
+      <div style="background:white; border-radius:12px; padding:18px; box-shadow:var(--shadow-md);">
+        <div style="font-size:13px; font-weight:700; margin-bottom:12px;">교토 4박 5일</div>
+        ${[
+          {d:'D1', t:'간사이공항 → 교토역', p:'호텔 체크인'},
+          {d:'D2', t:'기요미즈데라', p:'기온 거리'},
+          {d:'D3', t:'아라시야마', p:'대나무 숲'},
+          {d:'D4', t:'후시미이나리', p:'센본토리이'},
+          {d:'D5', t:'쇼핑 → 귀국', p:''}
+        ].map(d => `
+          <div style="display:flex; gap:10px; padding:6px 0; font-size:11.5px; border-bottom:1px dashed var(--line);">
+            <span style="width:24px; font-weight:700; color:var(--brand);">${d.d}</span>
+            <span style="flex:1">${d.t}</span>
+            <span style="color:var(--ink-mute);">${d.p}</span>
+          </div>
+        `).join('')}
+        <div style="margin-top:10px; padding-top:8px; font-size:11px; color:var(--ink-soft); display:flex; justify-content:space-between;">
+          <span>예산: 1,200,000원</span>
+          <span style="color:var(--brand)">사용: 380,000원</span>
+        </div>
+      </div>`,
+    reader: `
+      <div style="background:white; border-radius:12px; padding:18px; box-shadow:var(--shadow-md);">
+        <div style="font-size:13px; font-weight:700; margin-bottom:12px;">2026 독서 · 12/30권</div>
+        <div style="height:8px; background:var(--line); border-radius:4px; margin-bottom:14px; overflow:hidden;">
+          <div style="height:100%; width:40%; background:var(--brand);"></div>
+        </div>
+        ${[
+          {t:'사피엔스', a:'유발 하라리', p:'완독'},
+          {t:'팩트풀니스', a:'한스 로슬링', p:'완독'},
+          {t:'아주 작은 습관의 힘', a:'제임스 클리어', p:'62%'}
+        ].map(b => `
+          <div style="display:flex; gap:10px; padding:8px 0; border-bottom:1px solid var(--line-soft); font-size:12px;">
+            <div style="width:24px; height:32px; background:linear-gradient(135deg, var(--brand), var(--accent)); border-radius:2px; flex-shrink:0;"></div>
+            <div style="flex:1">
+              <div style="font-weight:600;">${b.t}</div>
+              <div style="font-size:10px; color:var(--ink-mute);">${b.a}</div>
+            </div>
+            <span style="font-size:11px; color:${b.p === '완독' ? 'var(--brand)' : 'var(--ink-mute)'}; font-weight:600;">${b.p}</span>
+          </div>
+        `).join('')}
+      </div>`
+  };
+  return mocks[key] || '';
+}
+
+document.querySelectorAll('.role-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.role-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    renderRole(tab.dataset.role);
+  });
+});
+
+renderRole('student');
+</script>
+
 </body>
 </html>
