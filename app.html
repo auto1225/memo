@@ -2,11 +2,28 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8" />
-<!-- Tauri desktop detection (must run before body renders to avoid FOUC) -->
+<!-- Native wrapper detection (must run before body renders to avoid FOUC).
+     Detects Tauri desktop, Capacitor Android/iOS, and standalone PWAs so
+     the .pad container fills the full viewport on first paint. -->
 <script>
-  if (window.__TAURI__ || window.__TAURI_INTERNALS__) {
-    document.documentElement.classList.add('jnp-tauri');
-  }
+  (function() {
+    var root = document.documentElement;
+    var isTauri = !!(window.__TAURI__ || window.__TAURI_INTERNALS__);
+    var isCapacitor = !!(window.Capacitor && (window.Capacitor.isNativePlatform
+      ? window.Capacitor.isNativePlatform() : true));
+    var isPWA = false;
+    try {
+      isPWA = window.matchMedia('(display-mode: standalone)').matches ||
+              window.matchMedia('(display-mode: window-controls-overlay)').matches ||
+              window.matchMedia('(display-mode: minimal-ui)').matches ||
+              window.matchMedia('(display-mode: fullscreen)').matches;
+    } catch (e) {}
+    if (isTauri || isCapacitor || isPWA) {
+      root.classList.add('jnp-tauri');
+      root.classList.add('jnp-native');
+    }
+    if (isCapacitor) root.classList.add('jnp-mobile');
+  })();
 </script>
 <!-- Critical Tauri-only layout overrides; prevents the "card resizes to
      fill window" flash on startup. Full rules live in frameless-patch.js. -->
