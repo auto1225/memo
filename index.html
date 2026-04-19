@@ -114,81 +114,205 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .hero-composition {
   position: relative;
   width: 100%;
-  height: 560px;
+  height: 540px;
   z-index: 1;
+  overflow: visible;
 }
 
-/* 배경 종이들 */
+/* 배경 종이 (캘린더 습관 트래커) */
 .paper-bg {
   position: absolute;
   background: white;
-  border-radius: 3px;
-  transition: transform .3s;
+  border-radius: 6px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
 }
 .paper-bg.p1 {
-  top: -10px; left: 10%;
-  width: 60%; height: 260px;
-  transform: rotate(-2deg);
+  top: 2%; right: 0%;
+  width: 40%; height: 200px;
+  transform: rotate(4deg);
   z-index: 1;
 }
 .paper-bg.p2 {
-  top: 10px; right: -5%;
-  width: 55%; height: 230px;
-  transform: rotate(3deg);
+  bottom: 5%; left: -2%;
+  width: 32%; height: 150px;
+  transform: rotate(-3deg);
   z-index: 1;
 }
 .paper-bg svg { width: 100%; height: 100%; }
 
-/* 태블릿 목업 */
+/* 랩톱 목업 (메인) */
+.laptop-mock {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: 92%; max-width: 720px;
+  z-index: 2;
+}
+.laptop-screen {
+  background: #1A1A1A;
+  border-radius: 14px 14px 4px 4px;
+  padding: 14px;
+  box-shadow: 0 40px 80px rgba(0,0,0,0.18);
+}
+.laptop-display {
+  background: white;
+  border-radius: 6px;
+  overflow: hidden;
+  aspect-ratio: 16/10;
+}
+.laptop-base {
+  height: 18px;
+  background: linear-gradient(180deg, #2A2A2A 0%, #1A1A1A 100%);
+  margin: 0 -18px;
+  border-radius: 0 0 18px 18px;
+  position: relative;
+}
+.laptop-base::before {
+  content: '';
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 80px; height: 4px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 0 0 6px 6px;
+}
+
+/* 랩톱 내부 UI */
+.app-ui { display: grid; grid-template-columns: 180px 1fr 160px; height: 100%; font-size: 12px; }
+.app-ui .side { background: #FAF6EF; border-right: 1px solid rgba(0,0,0,0.05); padding: 14px 10px; }
+.app-ui .side h6 { font-size: 9px; color: var(--text-mute); text-transform: uppercase; font-weight: 700; letter-spacing: 0.1em; margin: 12px 0 6px 4px; }
+.app-ui .side h6:first-child { margin-top: 0; }
+.app-ui .side .tab { padding: 5px 8px; border-radius: 4px; color: var(--text-2); display: flex; align-items: center; gap: 6px; font-size: 11px; }
+.app-ui .side .tab.active { background: white; font-weight: 700; color: var(--text); }
+.app-ui .side .tab .sq { width: 7px; height: 7px; border-radius: 2px; flex-shrink: 0; }
+.app-ui .main { padding: 18px 22px; }
+.app-ui .main .top { display: flex; align-items: center; justify-content: space-between; padding-bottom: 10px; border-bottom: 1px solid rgba(0,0,0,0.06); margin-bottom: 14px; }
+.app-ui .main .top .t-title { font-size: 16px; font-weight: 800; letter-spacing: -0.02em; }
+.app-ui .main .top .t-meta { font-size: 10px; color: var(--text-mute); display: flex; gap: 8px; }
+.app-ui .main .top .t-meta .live::before { content: '● '; color: var(--claude-orange); }
+.app-ui .main .quarter-block {
+  background: #FFF8EC; border-left: 3px solid var(--claude-orange);
+  padding: 10px 14px; border-radius: 0 8px 8px 0;
+  margin-bottom: 10px;
+}
+.app-ui .main .quarter-block .label { font-size: 10px; color: var(--claude-orange-dark); font-weight: 700; letter-spacing: 0.05em; margin-bottom: 3px; }
+.app-ui .main .quarter-block .ok { font-size: 12px; font-weight: 700; color: var(--text); }
+.app-ui .main .quarter-block .progress-bar { height: 4px; background: rgba(0,0,0,0.08); border-radius: 2px; margin-top: 6px; overflow: hidden; }
+.app-ui .main .quarter-block .progress-bar .fill { height: 100%; background: var(--claude-orange); }
+.app-ui .main .list-item { display: flex; align-items: flex-start; gap: 8px; padding: 4px 0; font-size: 11px; color: var(--text-2); }
+.app-ui .main .list-item .check-box { width: 12px; height: 12px; border: 1.5px solid var(--text-light); border-radius: 3px; flex-shrink: 0; margin-top: 1px; position: relative; }
+.app-ui .main .list-item.done .check-box { background: var(--claude-orange); border-color: var(--claude-orange); }
+.app-ui .main .list-item.done .check-box::after { content: ''; position: absolute; left: 3px; top: 1px; width: 3px; height: 7px; border: 2px solid white; border-top: 0; border-left: 0; transform: rotate(45deg); }
+.app-ui .main .list-item.done { color: var(--text-mute); text-decoration: line-through; }
+.app-ui .outline { background: var(--bg-soft); border-left: 1px solid rgba(0,0,0,0.05); padding: 14px 12px; font-size: 10px; }
+.app-ui .outline h6 { font-size: 9px; color: var(--text-mute); text-transform: uppercase; font-weight: 700; letter-spacing: 0.1em; margin-bottom: 8px; }
+.app-ui .outline .o-item { padding: 3px 0 3px 8px; border-left: 2px solid transparent; color: var(--text-2); font-size: 10px; }
+.app-ui .outline .o-item.active { border-left-color: var(--claude-orange); font-weight: 700; color: var(--text); }
+.app-ui .outline .o-item.indent { padding-left: 18px; font-size: 9.5px; color: var(--text-mute); }
+
+/* 태블릿 목업 — 좌측에서 랩톱과 겹침 */
 .tablet-mock {
   position: absolute;
-  left: 5%; top: 30%;
-  width: 68%; max-width: 600px;
+  left: -3%; top: 12%;
+  width: 34%; max-width: 320px;
   background: #1A1A1A;
-  border-radius: 20px;
-  padding: 10px;
-  box-shadow: 0 40px 80px rgba(0,0,0,0.18), 0 16px 32px rgba(0,0,0,0.08);
+  border-radius: 16px;
+  padding: 6px;
+  box-shadow: 0 30px 60px rgba(0,0,0,0.2);
   z-index: 3;
-  transform: rotate(-1deg);
+  transform: rotate(-5deg);
 }
 .tablet-screen {
-  background: white;
-  border-radius: 12px;
+  background: #FEFCF7;
+  border-radius: 10px;
   overflow: hidden;
-  aspect-ratio: 4/3;
+  aspect-ratio: 3/4;
   position: relative;
+  padding: 14px 16px;
+  /* 줄노트 배경 (메모장 느낌) */
+  background-image: repeating-linear-gradient(
+    transparent 0,
+    transparent 27px,
+    #E8DFC9 27px,
+    #E8DFC9 28px
+  );
 }
-.tablet-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 14px;
-  border-bottom: 1px solid rgba(0,0,0,0.05);
-  font-size: 12px; color: var(--text-2);
+/* 태블릿 좌측 마진 빨간선 */
+.tablet-screen::before {
+  content: ''; position: absolute; left: 30px; top: 0; bottom: 0;
+  width: 1px; background: rgba(217,119,87,0.3);
 }
-.tablet-header .back { display: flex; align-items: center; gap: 6px; font-weight: 600; }
-.tablet-header .back svg { width: 14px; height: 14px; }
-.tablet-header .tools { display: flex; gap: 12px; color: var(--text-mute); }
-.tablet-header .tools svg { width: 14px; height: 14px; }
-.tablet-toolbar {
-  display: flex; align-items: center; gap: 14px;
-  padding: 8px 14px;
-  background: #FAF6EF;
-  border-bottom: 1px solid rgba(0,0,0,0.05);
+/* 스프링 바인딩 (상단) */
+.tablet-screen::after {
+  content: ''; position: absolute; top: 4px; left: 40px; right: 40px;
+  height: 2px;
+  background:
+    radial-gradient(circle at 5% center, #1A1A1A 0, #1A1A1A 2px, transparent 2.5px),
+    radial-gradient(circle at 15% center, #1A1A1A 0, #1A1A1A 2px, transparent 2.5px),
+    radial-gradient(circle at 25% center, #1A1A1A 0, #1A1A1A 2px, transparent 2.5px),
+    radial-gradient(circle at 35% center, #1A1A1A 0, #1A1A1A 2px, transparent 2.5px),
+    radial-gradient(circle at 45% center, #1A1A1A 0, #1A1A1A 2px, transparent 2.5px),
+    radial-gradient(circle at 55% center, #1A1A1A 0, #1A1A1A 2px, transparent 2.5px),
+    radial-gradient(circle at 65% center, #1A1A1A 0, #1A1A1A 2px, transparent 2.5px),
+    radial-gradient(circle at 75% center, #1A1A1A 0, #1A1A1A 2px, transparent 2.5px),
+    radial-gradient(circle at 85% center, #1A1A1A 0, #1A1A1A 2px, transparent 2.5px),
+    radial-gradient(circle at 95% center, #1A1A1A 0, #1A1A1A 2px, transparent 2.5px);
 }
-.tablet-toolbar .tool {
-  width: 24px; height: 24px;
-  display: flex; align-items: center; justify-content: center;
-  color: var(--text-2);
+
+/* 폰 목업 — 우측 하단 포스트잇 느낌 */
+.phone-mock {
+  position: absolute;
+  right: -2%; bottom: -40px;
+  width: 22%; max-width: 200px;
+  background: #1A1A1A;
+  border-radius: 22px;
+  padding: 5px;
+  box-shadow: 0 30px 60px rgba(0,0,0,0.22);
+  z-index: 4;
+  transform: rotate(6deg);
 }
-.tablet-toolbar .tool.active { color: #D97757; }
-.tablet-toolbar .tool svg { width: 14px; height: 14px; }
-.tablet-canvas {
-  padding: 20px 28px;
-  background-image:
-    linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px);
-  background-size: 20px 20px;
-  min-height: 320px;
+.phone-mock .phone-screen {
+  background: #FFE9A0;
+  border-radius: 18px;
+  aspect-ratio: 9/19;
+  padding: 14px 12px;
   position: relative;
+  overflow: hidden;
+}
+.phone-mock .phone-screen::before {
+  content: '';
+  position: absolute; top: 0; left: 20%; right: 20%; height: 4px;
+  background: rgba(0,0,0,0.1); border-radius: 0 0 4px 4px;
+}
+
+/* 연필 SVG */
+.pencil-float {
+  position: absolute;
+  bottom: 10%; left: 20%;
+  width: 200px;
+  z-index: 2;
+  transform: rotate(-30deg);
+}
+
+/* 포스트잇 (왼쪽 아래) */
+.sticky-note {
+  position: absolute;
+  bottom: 8%; left: 8%;
+  width: 120px; height: 110px;
+  background: #FFE9A0;
+  padding: 12px 10px;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+  transform: rotate(-6deg);
+  z-index: 2;
+  font-family: var(--font-hand);
+  font-size: 14px;
+  color: #5A4A20;
+  line-height: 1.4;
+}
+.sticky-note::before {
+  content: '';
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 30px; height: 5px;
+  background: rgba(0,0,0,0.08);
+  border-radius: 0 0 4px 4px;
 }
 
 /* 폰 목업 */
@@ -1278,184 +1402,278 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
         </div>
       </div>
 
-      <!-- 우측: 제품 컴포지션 -->
+      <!-- 우측: 제품 컴포지션 (랩톱 + 태블릿 + 폰 + 메모장 느낌) -->
       <div class="hero-right" style="display:block !important;">
         <div class="hero-composition">
-          <!-- 배경 종이 1: 파이 차트 -->
+
+          <!-- 배경 종이 1: 4월 습관 트래커 -->
           <div class="paper-bg p1">
-            <svg viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg">
-              <text x="30" y="50" font-family="Pretendard, sans-serif" font-size="32" font-weight="800" fill="#D97757" style="font-style:italic;">100%</text>
-              <text x="105" y="120" font-family="Pretendard, sans-serif" font-size="24" font-weight="700" fill="#10B981">46%</text>
-              <polygon points="30,130 60,60 90,130" fill="#FFC542"/>
-              <polygon points="90,140 120,90 150,140" fill="#D97757"/>
-              <polygon points="150,135 175,100 200,135" fill="#91B85A"/>
-              <polygon points="200,140 225,120 250,140" fill="#3B8E67"/>
-              <text x="200" y="30" font-family="Pretendard, sans-serif" font-size="22" font-weight="700" fill="#3E6B8F">82%</text>
-              <rect x="215" y="40" width="30" height="100" fill="#91B85A"/>
-              <rect x="250" y="80" width="30" height="60" fill="#FFC542"/>
-              <rect x="285" y="50" width="30" height="90" fill="#D9534F"/>
-              <text x="290" y="25" font-family="Pretendard, sans-serif" font-size="22" font-weight="700" fill="#D9534F">56%</text>
+            <svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg">
+              <text x="20" y="30" font-family="'Caveat', cursive" font-size="22" font-weight="700" fill="#333">4월 습관</text>
+              <path d="M 20 36 Q 80 33, 140 38" stroke="#D97757" stroke-width="2" fill="none"/>
+              <!-- 습관 이름 + 30일 도트 -->
+              <g font-family="Pretendard" font-size="10" fill="#555">
+                <text x="20" y="60">운동</text>
+                <text x="20" y="85">독서</text>
+                <text x="20" y="110">일기</text>
+                <text x="20" y="135">명상</text>
+              </g>
+              <!-- 도트 30개 × 4줄 -->
+              <g>
+                <!-- 운동 -->
+                <circle cx="65" cy="56" r="3" fill="#D97757"/><circle cx="77" cy="56" r="3" fill="#D97757"/><circle cx="89" cy="56" r="3" fill="#E5E5E5"/><circle cx="101" cy="56" r="3" fill="#D97757"/><circle cx="113" cy="56" r="3" fill="#D97757"/><circle cx="125" cy="56" r="3" fill="#D97757"/><circle cx="137" cy="56" r="3" fill="#E5E5E5"/><circle cx="149" cy="56" r="3" fill="#D97757"/><circle cx="161" cy="56" r="3" fill="#D97757"/><circle cx="173" cy="56" r="3" fill="#D97757"/><circle cx="185" cy="56" r="3" fill="#D97757"/><circle cx="197" cy="56" r="3" fill="#E5E5E5"/><circle cx="209" cy="56" r="3" fill="#D97757"/><circle cx="221" cy="56" r="3" fill="#D97757"/><circle cx="233" cy="56" r="3" fill="#D97757"/><circle cx="245" cy="56" r="3" fill="#D97757"/><circle cx="257" cy="56" r="3" fill="#D97757"/><circle cx="269" cy="56" r="3" fill="#E5E5E5"/><circle cx="281" cy="56" r="3" fill="#D97757"/>
+                <!-- 독서 -->
+                <circle cx="65" cy="81" r="3" fill="#10B981"/><circle cx="77" cy="81" r="3" fill="#10B981"/><circle cx="89" cy="81" r="3" fill="#10B981"/><circle cx="101" cy="81" r="3" fill="#10B981"/><circle cx="113" cy="81" r="3" fill="#E5E5E5"/><circle cx="125" cy="81" r="3" fill="#10B981"/><circle cx="137" cy="81" r="3" fill="#10B981"/><circle cx="149" cy="81" r="3" fill="#10B981"/><circle cx="161" cy="81" r="3" fill="#10B981"/><circle cx="173" cy="81" r="3" fill="#10B981"/><circle cx="185" cy="81" r="3" fill="#E5E5E5"/><circle cx="197" cy="81" r="3" fill="#10B981"/><circle cx="209" cy="81" r="3" fill="#10B981"/><circle cx="221" cy="81" r="3" fill="#10B981"/><circle cx="233" cy="81" r="3" fill="#10B981"/><circle cx="245" cy="81" r="3" fill="#10B981"/><circle cx="257" cy="81" r="3" fill="#10B981"/><circle cx="269" cy="81" r="3" fill="#10B981"/><circle cx="281" cy="81" r="3" fill="#10B981"/>
+                <!-- 일기 -->
+                <circle cx="65" cy="106" r="3" fill="#4A9EEB"/><circle cx="77" cy="106" r="3" fill="#4A9EEB"/><circle cx="89" cy="106" r="3" fill="#E5E5E5"/><circle cx="101" cy="106" r="3" fill="#4A9EEB"/><circle cx="113" cy="106" r="3" fill="#4A9EEB"/><circle cx="125" cy="106" r="3" fill="#E5E5E5"/><circle cx="137" cy="106" r="3" fill="#4A9EEB"/><circle cx="149" cy="106" r="3" fill="#4A9EEB"/><circle cx="161" cy="106" r="3" fill="#4A9EEB"/><circle cx="173" cy="106" r="3" fill="#E5E5E5"/><circle cx="185" cy="106" r="3" fill="#4A9EEB"/><circle cx="197" cy="106" r="3" fill="#4A9EEB"/><circle cx="209" cy="106" r="3" fill="#4A9EEB"/><circle cx="221" cy="106" r="3" fill="#4A9EEB"/><circle cx="233" cy="106" r="3" fill="#E5E5E5"/><circle cx="245" cy="106" r="3" fill="#4A9EEB"/><circle cx="257" cy="106" r="3" fill="#4A9EEB"/><circle cx="269" cy="106" r="3" fill="#4A9EEB"/><circle cx="281" cy="106" r="3" fill="#4A9EEB"/>
+                <!-- 명상 -->
+                <circle cx="65" cy="131" r="3" fill="#A855F7"/><circle cx="77" cy="131" r="3" fill="#E5E5E5"/><circle cx="89" cy="131" r="3" fill="#A855F7"/><circle cx="101" cy="131" r="3" fill="#A855F7"/><circle cx="113" cy="131" r="3" fill="#A855F7"/><circle cx="125" cy="131" r="3" fill="#E5E5E5"/><circle cx="137" cy="131" r="3" fill="#A855F7"/><circle cx="149" cy="131" r="3" fill="#A855F7"/><circle cx="161" cy="131" r="3" fill="#E5E5E5"/><circle cx="173" cy="131" r="3" fill="#A855F7"/><circle cx="185" cy="131" r="3" fill="#A855F7"/><circle cx="197" cy="131" r="3" fill="#A855F7"/><circle cx="209" cy="131" r="3" fill="#E5E5E5"/><circle cx="221" cy="131" r="3" fill="#A855F7"/><circle cx="233" cy="131" r="3" fill="#A855F7"/><circle cx="245" cy="131" r="3" fill="#A855F7"/><circle cx="257" cy="131" r="3" fill="#A855F7"/><circle cx="269" cy="131" r="3" fill="#A855F7"/><circle cx="281" cy="131" r="3" fill="#A855F7"/>
+              </g>
+              <!-- 손글씨 응원 -->
+              <text x="20" y="175" font-family="'Caveat', cursive" font-size="16" fill="#D97757" style="font-style:italic;">계속 해보자!</text>
+              <path d="M 100 172 Q 110 160, 115 165 Q 120 170, 115 175" stroke="#D97757" stroke-width="2" fill="none"/>
             </svg>
           </div>
 
-          <!-- 배경 종이 2: 바 차트 + 29% 빨간 원 -->
+          <!-- 배경 종이 2: 달력 스케치 -->
           <div class="paper-bg p2">
-            <svg viewBox="0 0 400 230" xmlns="http://www.w3.org/2000/svg">
-              <text x="40" y="80" font-family="Pretendard, sans-serif" font-size="32" font-weight="800" fill="#D9534F" style="font-style:italic;">29%</text>
-              <path d="M 30 95 Q 65 50, 100 95 Q 80 120, 50 110 Z" stroke="#D9534F" stroke-width="3" fill="none"/>
-              <path d="M 95 70 L 100 75 L 90 80 L 100 85" stroke="#D9534F" stroke-width="3" fill="none" stroke-linecap="round"/>
-              <circle cx="250" cy="120" r="80" fill="#E8E8E8"/>
-              <path d="M 250 120 L 250 40 A 80 80 0 0 1 330 120 Z" fill="#FFC542"/>
-              <path d="M 250 120 L 330 120 A 80 80 0 0 1 280 195 Z" fill="#7FB9C7"/>
-              <path d="M 250 120 L 280 195 A 80 80 0 0 1 195 130 Z" fill="#D97757"/>
-              <text x="340" y="40" font-family="Pretendard, sans-serif" font-size="22" font-weight="700" fill="#3E6B8F">40%</text>
-              <path d="M 310 50 Q 330 30, 350 45" stroke="#3E6B8F" stroke-width="2" fill="none" stroke-dasharray="3,3"/>
+            <svg viewBox="0 0 300 150" xmlns="http://www.w3.org/2000/svg">
+              <text x="20" y="30" font-family="'Caveat', cursive" font-size="20" font-weight="700" fill="#D97757">April</text>
+              <text x="90" y="30" font-family="'Caveat', cursive" font-size="20" font-weight="400" fill="#555">2026</text>
+              <!-- mini calendar grid -->
+              <g font-family="Pretendard" font-size="8" fill="#888">
+                <text x="25" y="55">월</text><text x="50" y="55">화</text><text x="75" y="55">수</text><text x="100" y="55">목</text><text x="125" y="55">금</text><text x="150" y="55">토</text><text x="175" y="55">일</text>
+              </g>
+              <g font-family="Pretendard" font-size="10" fill="#333" text-anchor="middle">
+                <!-- Week 1 -->
+                <text x="30" y="75">1</text><text x="55" y="75">2</text><text x="80" y="75">3</text><text x="105" y="75">4</text><text x="130" y="75">5</text><text x="155" y="75">6</text><text x="180" y="75">7</text>
+                <!-- Week 2 -->
+                <text x="30" y="90">8</text><text x="55" y="90">9</text><text x="80" y="90">10</text><text x="105" y="90">11</text><text x="130" y="90">12</text><text x="155" y="90">13</text><text x="180" y="90">14</text>
+                <!-- Week 3 -->
+                <text x="30" y="105">15</text><text x="55" y="105">16</text><text x="80" y="105">17</text><text x="105" y="105">18</text>
+                <!-- 오늘 19 강조 -->
+                <circle cx="130" cy="101" r="9" stroke="#D97757" stroke-width="2" fill="none"/>
+                <text x="130" y="105" fill="#D97757" font-weight="700">19</text>
+                <text x="155" y="105">20</text><text x="180" y="105">21</text>
+                <!-- Week 4 -->
+                <text x="30" y="120">22</text><text x="55" y="120">23</text><text x="80" y="120">24</text><text x="105" y="120">25</text><text x="130" y="120">26</text><text x="155" y="120">27</text><text x="180" y="120">28</text>
+              </g>
+              <!-- 메모 -->
+              <text x="220" y="100" font-family="'Caveat', cursive" font-size="14" fill="#555" style="font-style:italic;">중요!</text>
+              <path d="M 210 95 L 148 102" stroke="#D97757" stroke-width="1.5" fill="none" stroke-dasharray="3,2"/>
             </svg>
           </div>
 
-          <!-- 태블릿 목업 -->
+          <!-- 랩톱 목업 (메인, 중앙) — JustANotepad 실제 UI -->
+          <div class="laptop-mock">
+            <div class="laptop-screen">
+              <div class="laptop-display">
+                <div class="app-ui">
+                  <aside class="side">
+                    <h6>워크스페이스</h6>
+                    <div class="tab"><span class="sq" style="background:#D97757"></span>업무</div>
+                    <div class="tab"><span class="sq" style="background:#4A9EEB"></span>개인</div>
+                    <div class="tab"><span class="sq" style="background:#10B981"></span>독서</div>
+                    <h6>탭</h6>
+                    <div class="tab active"><span class="sq" style="background:#D97757"></span>Q2 로드맵</div>
+                    <div class="tab"><span class="sq" style="background:#FFC542"></span>스프린트 회고</div>
+                    <div class="tab"><span class="sq" style="background:#4A9EEB"></span>사용자 인터뷰</div>
+                    <div class="tab"><span class="sq" style="background:#A855F7"></span>아이디어 메모</div>
+                    <h6>태그</h6>
+                    <div class="tab" style="font-size:10px;">#중요 · 14</div>
+                    <div class="tab" style="font-size:10px;">#프로젝트 · 8</div>
+                  </aside>
+                  <div class="main">
+                    <div class="top">
+                      <div>
+                        <div class="t-title">2026 Q2 프로젝트 로드맵</div>
+                        <div class="t-meta">
+                          <span>2026.04.19</span>
+                          <span class="live">자동 저장됨</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="quarter-block">
+                      <div class="label">O1 · 사용자 성장</div>
+                      <div class="ok">MAU 10만 돌파</div>
+                      <div class="progress-bar"><div class="fill" style="width:62%"></div></div>
+                    </div>
+                    <div class="quarter-block" style="border-left-color:#4A9EEB; background:#F0F7FE;">
+                      <div class="label" style="color:#2D7FF9;">O2 · 제품 완성도</div>
+                      <div class="ok">NPS 40 → 55 개선</div>
+                      <div class="progress-bar"><div class="fill" style="width:35%; background:#4A9EEB;"></div></div>
+                    </div>
+                    <div style="margin-top:14px; font-size:11px; font-weight:700; color:var(--text);">주요 액션 아이템</div>
+                    <div class="list-item done"><span class="check-box"></span>랜딩페이지 전면 리뉴얼</div>
+                    <div class="list-item done"><span class="check-box"></span>Supabase 클라우드 동기화</div>
+                    <div class="list-item"><span class="check-box"></span>iOS/Android 네이티브 앱 베타</div>
+                    <div class="list-item"><span class="check-box"></span>사용자 인터뷰 10건 진행</div>
+                  </div>
+                  <div class="outline">
+                    <h6>목차</h6>
+                    <div class="o-item active">Q2 로드맵</div>
+                    <div class="o-item indent">O1. 사용자 성장</div>
+                    <div class="o-item indent">O2. 제품 완성도</div>
+                    <div class="o-item indent">O3. 수익화</div>
+                    <div class="o-item">액션 아이템</div>
+                    <div class="o-item">리스크</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="laptop-base"></div>
+          </div>
+
+          <!-- 태블릿 (좌측, 메모장 느낌 줄노트 + 독서 노트) -->
           <div class="tablet-mock">
             <div class="tablet-screen">
-              <div class="tablet-header">
-                <div class="back">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-                  <span>판매 분석</span>
-                </div>
-                <div class="tools">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/></svg>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="8" width="18" height="12" rx="1"/></svg>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 8a6 6 0 016 6M9 16a6 6 0 016-6"/></svg>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
-                </div>
-              </div>
-              <div class="tablet-toolbar">
-                <div class="tool active"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="8"/></svg></div>
-                <div class="tool"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/></svg></div>
-                <div class="tool"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="9"/></svg></div>
-                <div class="tool"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/></svg></div>
-                <div class="tool"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg></div>
-                <div class="tool"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0115-6.7l2.5 2.5M21 12a9 9 0 01-15 6.7l-2.5-2.5"/></svg></div>
-              </div>
-              <div class="tablet-canvas">
-                <svg viewBox="0 0 560 320" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:auto;">
-                  <!-- 손글씨 제목 -->
-                  <text x="20" y="40" font-family="'Caveat', 'Pretendard', cursive" font-size="28" font-weight="700" fill="#1A1A1A">여름 판매 분석</text>
-                  <path d="M 20 48 Q 140 42, 260 50" stroke="#D9534F" stroke-width="4" fill="none" stroke-linecap="round"/>
+              <svg viewBox="0 0 280 380" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:100%;">
+                <!-- 타이틀 -->
+                <text x="50" y="35" font-family="'Caveat', cursive" font-size="24" font-weight="700" fill="#1A1A1A">4월 독서 노트</text>
+                <path d="M 50 42 Q 130 40, 210 43" stroke="#D97757" stroke-width="2.5" fill="none"/>
 
-                  <!-- 데이터 라벨 -->
-                  <g font-family="'Pretendard', sans-serif" font-size="14">
-                    <text x="30" y="90">
-                      <tspan fill="#D9534F" font-weight="700">81%</tspan>
-                      <tspan fill="#555" dx="8">아이스아메리카노</tspan>
-                    </text>
-                    <path d="M 20 95 L 180 95" stroke="#D9534F" stroke-width="1.5" fill="none"/>
+                <!-- 책 1 -->
+                <rect x="50" y="65" width="40" height="55" fill="#D97757" stroke="#1A1A1A" stroke-width="1.5"/>
+                <rect x="54" y="70" width="32" height="2" fill="white"/>
+                <rect x="54" y="78" width="20" height="2" fill="white"/>
+                <text x="100" y="80" font-family="Pretendard" font-size="11" font-weight="700" fill="#1A1A1A">사피엔스</text>
+                <text x="100" y="92" font-family="Pretendard" font-size="9" fill="#777">유발 하라리</text>
+                <!-- 별점 -->
+                <g fill="#FFC542">
+                  <polygon points="100,102 102,107 108,108 104,112 105,118 100,115 95,118 96,112 92,108 98,107"/>
+                  <polygon points="114,102 116,107 122,108 118,112 119,118 114,115 109,118 110,112 106,108 112,107"/>
+                  <polygon points="128,102 130,107 136,108 132,112 133,118 128,115 123,118 124,112 120,108 126,107"/>
+                  <polygon points="142,102 144,107 150,108 146,112 147,118 142,115 137,118 138,112 134,108 140,107"/>
+                  <polygon points="156,102 158,107 164,108 160,112 161,118 156,115 151,118 152,112 148,108 154,107"/>
+                </g>
+                <text x="175" y="110" font-family="'Caveat', cursive" font-size="14" fill="#10B981" style="font-style:italic;">완독!</text>
 
-                    <text x="30" y="125">
-                      <tspan fill="#D9534F" font-weight="700">67%</tspan>
-                      <tspan fill="#555" dx="8">아이스카페라떼</tspan>
-                    </text>
-                    <path d="M 20 130 L 180 130" stroke="#D9534F" stroke-width="1.5" fill="none"/>
-                  </g>
+                <!-- 책 2 -->
+                <rect x="50" y="140" width="40" height="55" fill="#4A9EEB" stroke="#1A1A1A" stroke-width="1.5"/>
+                <rect x="54" y="145" width="32" height="2" fill="white"/>
+                <rect x="54" y="153" width="25" height="2" fill="white"/>
+                <text x="100" y="155" font-family="Pretendard" font-size="11" font-weight="700" fill="#1A1A1A">팩트풀니스</text>
+                <text x="100" y="167" font-family="Pretendard" font-size="9" fill="#777">한스 로슬링</text>
+                <g fill="#FFC542">
+                  <polygon points="100,177 102,182 108,183 104,187 105,193 100,190 95,193 96,187 92,183 98,182"/>
+                  <polygon points="114,177 116,182 122,183 118,187 119,193 114,190 109,193 110,187 106,183 112,182"/>
+                  <polygon points="128,177 130,182 136,183 132,187 133,193 128,190 123,193 124,187 120,183 126,182"/>
+                  <polygon points="142,177 144,182 150,183 146,187 147,193 142,190 137,193 138,187 134,183 140,182"/>
+                </g>
+                <polygon points="156,177 158,182 164,183 160,187 161,193 156,190 151,193 152,187 148,183 154,182" fill="#E5E5E5"/>
 
-                  <!-- 빨간 동그라미 강조 -->
-                  <ellipse cx="280" cy="135" rx="35" ry="28" stroke="#D9534F" stroke-width="3" fill="none" transform="rotate(-8, 280, 135)"/>
-                  <text x="265" y="143" font-family="'Pretendard', sans-serif" font-size="18" font-weight="700" fill="#D9534F">95%</text>
-                  <path d="M 295 110 L 305 100 M 298 95 L 307 105" stroke="#D9534F" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+                <!-- 책 3 -->
+                <rect x="50" y="215" width="40" height="55" fill="#10B981" stroke="#1A1A1A" stroke-width="1.5"/>
+                <rect x="54" y="220" width="32" height="2" fill="white"/>
+                <rect x="54" y="228" width="28" height="2" fill="white"/>
+                <text x="100" y="230" font-family="Pretendard" font-size="11" font-weight="700" fill="#1A1A1A">아주 작은 습관의</text>
+                <text x="100" y="242" font-family="Pretendard" font-size="11" font-weight="700" fill="#1A1A1A">힘</text>
+                <text x="100" y="254" font-family="Pretendard" font-size="9" fill="#777">제임스 클리어</text>
+                <!-- 진행률 바 -->
+                <rect x="100" y="262" width="100" height="4" rx="2" fill="#E5E5E5"/>
+                <rect x="100" y="262" width="62" height="4" rx="2" fill="#D97757"/>
+                <text x="205" y="266" font-family="Pretendard" font-size="9" font-weight="700" fill="#D97757">62%</text>
 
-                  <!-- 주석 퍼센트 -->
-                  <text x="360" y="90" font-family="'Pretendard', sans-serif" font-size="20" font-weight="700" fill="#5a7a8f" style="font-style:italic;">33%</text>
+                <!-- 하이라이트 인용 -->
+                <rect x="50" y="285" width="180" height="60" rx="4" fill="#FFF8EC"/>
+                <path d="M 50 285 L 50 345" stroke="#D97757" stroke-width="3"/>
+                <text x="58" y="302" font-family="Pretendard" font-size="10" font-style="italic" fill="#555">"매일 1%씩만 나아져도</text>
+                <text x="58" y="315" font-family="Pretendard" font-size="10" font-style="italic" fill="#555">1년 후에는 37배 성장."</text>
+                <text x="58" y="335" font-family="'Caveat', cursive" font-size="12" fill="#D97757" style="font-style:italic;">— p.42 밑줄 긋기</text>
 
-                  <!-- 범례 -->
-                  <g font-family="'Pretendard', sans-serif" font-size="12" font-weight="600">
-                    <circle cx="430" cy="82" r="5" fill="#FFC542"/><text x="442" y="86" fill="#555">DATA 01</text>
-                    <circle cx="430" cy="105" r="5" fill="#7FB9C7"/><text x="442" y="109" fill="#555">DATA 02</text>
-                    <circle cx="430" cy="128" r="5" fill="#3B5566"/><text x="442" y="132" fill="#555">DATA 03</text>
-                  </g>
-
-                  <!-- 바 차트 (삼각형 스타일) -->
-                  <g>
-                    <text x="48" y="200" font-family="'Pretendard', sans-serif" font-size="13" font-weight="700" fill="#555">30%</text>
-                    <polygon points="50,220 85,290 15,290" fill="#3B5566"/>
-
-                    <polygon points="120,210 165,290 75,290" fill="#D97757"/>
-
-                    <text x="190" y="205" font-family="'Pretendard', sans-serif" font-size="13" font-weight="700" fill="#555">45%</text>
-                    <polygon points="195,215 230,290 160,290" fill="#A8C8A1"/>
-
-                    <polygon points="270,195 320,290 220,290" fill="#7FB9C7"/>
-
-                    <text x="335" y="175" font-family="'Pretendard', sans-serif" font-size="13" font-weight="700" fill="#555">95%</text>
-                    <polygon points="340,180 385,290 295,290" fill="#3B8EC4"/>
-
-                    <polygon points="395,220 420,290 370,290" fill="#B8B8B8"/>
-                    <text x="385" y="210" font-family="'Pretendard', sans-serif" font-size="13" font-weight="700" fill="#555">62%</text>
-                  </g>
-
-                  <!-- 점선 원형 차트 뒷배경 -->
-                  <circle cx="440" cy="200" r="60" stroke="#D0D0D0" stroke-width="1" stroke-dasharray="4,4" fill="none"/>
-                  <path d="M 440 200 L 440 140 A 60 60 0 0 1 492 230 Z" fill="#3B5566" opacity="0.6"/>
-                </svg>
-              </div>
+                <!-- 총 권수 -->
+                <text x="50" y="365" font-family="'Caveat', cursive" font-size="16" fill="#1A1A1A">이번 달 총</text>
+                <text x="135" y="368" font-family="'Caveat', cursive" font-size="22" font-weight="700" fill="#D97757">3권</text>
+                <circle cx="137" cy="362" r="14" stroke="#D97757" stroke-width="2" fill="none" transform="rotate(-5, 137, 362)"/>
+              </svg>
             </div>
           </div>
 
-          <!-- 폰 목업 -->
+          <!-- 폰 (우측 하단, 오늘의 할 일) -->
           <div class="phone-mock">
             <div class="phone-screen">
-              <div class="phone-status">
-                <span>12:45</span>
-                <span style="display:flex; gap:4px;">
-                  <svg style="width:10px; height:10px;" viewBox="0 0 24 24" fill="currentColor"><path d="M2 8l3-3 3 3M5 5v14"/></svg>
-                  <svg style="width:12px; height:10px;" viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="4" width="20" height="16" rx="2"/></svg>
-                </span>
-              </div>
-              <div class="phone-header">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-                <span>스케치</span>
-              </div>
-              <div class="phone-content">
-                <!-- 손글씨 "ALWAYS" -->
-                <svg viewBox="0 0 140 200" xmlns="http://www.w3.org/2000/svg">
-                  <text x="15" y="35" font-family="'Caveat', 'Pretendard', cursive" font-size="24" font-weight="800" fill="white" style="font-style:italic;">매일</text>
-                  <text x="15" y="70" font-family="'Caveat', 'Pretendard', cursive" font-size="38" font-weight="900" fill="white" style="font-style:italic;">COFFEE</text>
-                  <!-- 장식선 -->
-                  <path d="M 15 78 L 125 78" stroke="white" stroke-width="2" stroke-linecap="round"/>
-                  <path d="M 15 82 Q 70 88, 125 82" stroke="white" stroke-width="1.5" fill="none"/>
-                  <text x="15" y="100" font-family="'Caveat', 'Pretendard', cursive" font-size="14" fill="white" style="font-style:italic;">hot</text>
-                  <!-- 커피잔 일러스트 -->
-                  <ellipse cx="75" cy="135" rx="42" ry="12" fill="#fff" opacity="0.15"/>
-                  <path d="M 38 125 Q 38 165, 75 170 Q 112 165, 112 125 L 110 120 Q 75 115, 40 120 Z" fill="#5A9BB5" stroke="#1A1A1A" stroke-width="2"/>
-                  <ellipse cx="75" cy="122" rx="35" ry="7" fill="#E8974F" stroke="#1A1A1A" stroke-width="2"/>
-                  <!-- 손잡이 -->
-                  <path d="M 110 135 Q 130 138, 128 150 Q 125 160, 108 160" stroke="#1A1A1A" stroke-width="2" fill="#5A9BB5"/>
-                  <!-- 김 -->
-                  <path d="M 60 110 Q 58 102, 62 95 Q 66 88, 62 82" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-                  <path d="M 78 108 Q 76 100, 80 93 Q 84 86, 80 80" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-                  <!-- 받침 -->
-                  <ellipse cx="75" cy="178" rx="52" ry="6" fill="#5A9BB5" stroke="#1A1A1A" stroke-width="2"/>
-                  <!-- 원두 -->
-                  <ellipse cx="30" cy="180" rx="6" ry="4" fill="#3A2617" transform="rotate(-20, 30, 180)"/>
-                  <path d="M 27 180 Q 30 176, 33 180" stroke="#1A1A1A" stroke-width="1" fill="none"/>
-                </svg>
-              </div>
+              <svg viewBox="0 0 170 360" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:100%;">
+                <!-- 상태바 -->
+                <text x="15" y="20" font-family="Pretendard" font-size="10" font-weight="700" fill="#1A1A1A">9:41</text>
+                <g fill="#1A1A1A">
+                  <rect x="125" y="14" width="12" height="7" rx="1"/>
+                  <rect x="140" y="13" width="15" height="9" rx="2"/>
+                </g>
+                <!-- 타이틀 -->
+                <text x="15" y="55" font-family="'Caveat', cursive" font-size="20" font-weight="700" fill="#1A1A1A">오늘 해야 할 일</text>
+                <text x="15" y="72" font-family="Pretendard" font-size="9" fill="#666">4월 19일 · 화요일</text>
+
+                <!-- 할 일 리스트 -->
+                <g font-family="Pretendard" font-size="11" fill="#1A1A1A">
+                  <!-- 1. 완료 -->
+                  <rect x="15" y="90" width="14" height="14" rx="3" fill="#1A1A1A"/>
+                  <path d="M 19 97 L 22 100 L 26 94" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/>
+                  <text x="35" y="101" fill="#888" text-decoration="line-through">회의 자료 정리</text>
+
+                  <!-- 2. 완료 -->
+                  <rect x="15" y="115" width="14" height="14" rx="3" fill="#1A1A1A"/>
+                  <path d="M 19 122 L 22 125 L 26 119" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/>
+                  <text x="35" y="126" fill="#888" text-decoration="line-through">이메일 회신</text>
+
+                  <!-- 3. 중요 -->
+                  <rect x="15" y="140" width="14" height="14" rx="3" stroke="#D97757" stroke-width="2" fill="white"/>
+                  <text x="35" y="151" font-weight="700">런칭 리뷰 미팅</text>
+                  <text x="35" y="163" font-size="9" fill="#D97757" font-weight="700">⭐ 14시 · 중요</text>
+
+                  <!-- 4. -->
+                  <rect x="15" y="175" width="14" height="14" rx="3" stroke="#1A1A1A" stroke-width="2" fill="white"/>
+                  <text x="35" y="186">사용자 인터뷰 정리</text>
+
+                  <!-- 5. -->
+                  <rect x="15" y="200" width="14" height="14" rx="3" stroke="#1A1A1A" stroke-width="2" fill="white"/>
+                  <text x="35" y="211">책 2챕터 읽기</text>
+
+                  <!-- 6. -->
+                  <rect x="15" y="225" width="14" height="14" rx="3" stroke="#1A1A1A" stroke-width="2" fill="white"/>
+                  <text x="35" y="236">운동 30분</text>
+                </g>
+
+                <!-- 진행률 원 -->
+                <g transform="translate(85, 290)">
+                  <circle cx="0" cy="0" r="28" fill="none" stroke="#E5E5E5" stroke-width="5"/>
+                  <circle cx="0" cy="0" r="28" fill="none" stroke="#D97757" stroke-width="5"
+                          stroke-dasharray="175.9"
+                          stroke-dashoffset="117.3"
+                          transform="rotate(-90)"
+                          stroke-linecap="round"/>
+                  <text x="0" y="5" text-anchor="middle" font-family="Pretendard" font-size="16" font-weight="800" fill="#1A1A1A">33%</text>
+                </g>
+                <text x="85" y="340" text-anchor="middle" font-family="Pretendard" font-size="10" fill="#666">2 / 6 완료</text>
+              </svg>
             </div>
           </div>
 
-          <!-- S-Pen -->
-          <svg class="pen-float" viewBox="0 0 260 20" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <linearGradient id="penBody" x1="0" x2="1">
-                <stop offset="0" stop-color="#1A2A5C"/>
-                <stop offset="0.7" stop-color="#2D3E7A"/>
-                <stop offset="1" stop-color="#1A2A5C"/>
-              </linearGradient>
-            </defs>
-            <rect x="25" y="4" width="220" height="10" rx="5" fill="url(#penBody)"/>
-            <polygon points="0,9 25,4 25,14" fill="#1A1A1A"/>
-            <rect x="240" y="6" width="18" height="6" rx="3" fill="#C5C5C5"/>
-            <rect x="80" y="6" width="2" height="6" fill="rgba(255,255,255,0.15)"/>
-            <rect x="180" y="6" width="30" height="6" fill="rgba(255,255,255,0.08)" rx="1"/>
+          <!-- 연필 (왼쪽 하단 바닥) -->
+          <svg class="pencil-float" viewBox="0 0 240 24" xmlns="http://www.w3.org/2000/svg">
+            <!-- 연필 몸체 노란색 -->
+            <polygon points="15,12 30,4 210,4 210,20 30,20" fill="#FFC542" stroke="#1A1A1A" stroke-width="1.5"/>
+            <!-- 끝부분 wood -->
+            <polygon points="0,12 15,4 15,20" fill="#D4A574" stroke="#1A1A1A" stroke-width="1.5"/>
+            <!-- 심 -->
+            <polygon points="0,12 6,10 6,14" fill="#1A1A1A"/>
+            <!-- 지우개 -->
+            <rect x="210" y="4" width="18" height="16" fill="#E88F88" stroke="#1A1A1A" stroke-width="1.5"/>
+            <!-- 금속 밴드 -->
+            <rect x="205" y="4" width="5" height="16" fill="#C5C5C5" stroke="#1A1A1A" stroke-width="1.5"/>
+            <!-- 줄무늬 -->
+            <line x1="50" y1="10" x2="60" y2="14" stroke="#1A1A1A" stroke-width="1"/>
+            <line x1="80" y1="10" x2="90" y2="14" stroke="#1A1A1A" stroke-width="1"/>
           </svg>
+
+          <!-- 포스트잇 (왼쪽 하단, 손글씨 메모) -->
+          <div class="sticky-note">
+            <div style="font-weight:700; font-size:11px; color:#1A1A1A; font-family:var(--font-sans); margin-bottom:4px;">잊지 말기!</div>
+            <div>엄마 생신<br>5월 3일 (일)</div>
+            <svg style="position:absolute; right:8px; bottom:8px; width:24px; height:24px;" viewBox="0 0 24 24" fill="none" stroke="#D97757" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+            </svg>
+          </div>
+
         </div>
       </div>
     </div>
