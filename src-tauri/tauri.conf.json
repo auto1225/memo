@@ -2,12 +2,12 @@
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "JustANotepad",
   "version": "1.0.0",
-  "identifier": "com.justanotepad.app",
+  "identifier": "com.justanotepad.desktop",
   "build": {
     "beforeBuildCommand": "",
     "beforeDevCommand": "",
     "devUrl": "https://justanotepad.com/app",
-    "frontendDist": "../"
+    "frontendDist": "./dist"
   },
   "app": {
     "withGlobalTauri": true,
