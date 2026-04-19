@@ -37,17 +37,12 @@
   //   - Radius is applied via CSS and matches across all platforms because the
   //     underlying window has `transparent: true` and no decorations.
   //
-  const WIN_RADIUS = 12;
+  // Windows 11 auto-rounds undecorated windows; we skip CSS radius to avoid
+  // the "transparent+decorations:false" combo that Windows 11 handles badly.
   const css = `
-    /* Unified rounded window corners on all OSes (Tauri context only) */
-    html.jnp-tauri, html.jnp-tauri body {
-      background: transparent !important;
-    }
-    html.jnp-tauri body {
-      border-radius: ${WIN_RADIUS}px;
-      overflow: hidden;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.18);
-    }
+    /* No custom body background in Tauri — the native opaque window background
+       (set in tauri.conf.json) does the work. This avoids Windows 11 rendering
+       its own title-bar fallback when the webview is transparent. */
 
     /* Make the topbar act as the title bar */
     #topbar, .topbar {
