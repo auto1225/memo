@@ -349,6 +349,185 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   display: flex; justify-content: space-between; align-items: center;
 }
 
+/* ========== ALL FEATURES SHOWCASE ========== */
+.section-all {
+  background: var(--bg);
+  padding: 100px 0;
+  border-bottom: 1px solid var(--line);
+}
+.all-intro { text-align: center; max-width: 720px; margin: 0 auto 80px; }
+.all-intro .section-eyebrow {
+  display: inline-block; font-size: 13px; font-weight: 700; color: var(--text-mute);
+  letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 16px;
+  padding-left: 14px; position: relative;
+}
+.all-intro .section-eyebrow::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 4px; height: 14px; background: var(--kakao-yellow); border-radius: 2px; }
+.all-intro h2 {
+  font-size: clamp(32px, 4vw, 48px); font-weight: 800;
+  letter-spacing: -0.025em; line-height: 1.3; margin-bottom: 16px;
+}
+.all-intro p { font-size: 17px; color: var(--text-2); line-height: 1.6; }
+
+/* 카테고리 블록 */
+.cat-block {
+  padding: 80px 0;
+  border-top: 1px solid var(--line);
+}
+.cat-block:first-of-type { border-top: none; padding-top: 0; }
+.cat-head {
+  display: grid; grid-template-columns: 80px 1fr auto;
+  align-items: baseline; gap: 24px;
+  margin-bottom: 40px;
+}
+.cat-num {
+  font-size: 56px; font-weight: 800; color: var(--kakao-yellow-dark);
+  letter-spacing: -0.04em; line-height: 1;
+}
+.cat-title h3 {
+  font-size: 32px; font-weight: 800; letter-spacing: -0.025em;
+  margin-bottom: 8px; color: var(--text);
+}
+.cat-title p { font-size: 16px; color: var(--text-2); }
+.cat-count {
+  font-size: 13px; font-weight: 700; color: var(--text-mute);
+  padding: 6px 12px; background: var(--bg-yellow-soft);
+  border-radius: 999px; color: var(--kakao-brown);
+}
+
+/* 카테고리 내 레이아웃 */
+.cat-layout {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr;
+  gap: 16px;
+}
+.cat-layout.inverted { grid-template-columns: 1fr 1fr 1.5fr; }
+
+/* 큰 이미지 카드 */
+.feat-hero {
+  position: relative; border-radius: 16px; overflow: hidden;
+  min-height: 420px; grid-row: span 2;
+}
+.feat-hero img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%; object-fit: cover;
+}
+.feat-hero .overlay {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex; flex-direction: column; justify-content: flex-end;
+  padding: 32px;
+}
+.feat-hero .tag {
+  display: inline-block;
+  font-size: 11px; font-weight: 700; padding: 4px 10px;
+  background: var(--kakao-yellow); color: var(--text);
+  border-radius: 4px; margin-bottom: 14px; align-self: flex-start;
+  letter-spacing: 0.02em;
+}
+.feat-hero h4 {
+  font-size: 26px; font-weight: 800; color: white;
+  letter-spacing: -0.02em; margin-bottom: 10px; line-height: 1.25;
+}
+.feat-hero p { font-size: 14px; color: rgba(255,255,255,0.85); line-height: 1.5; max-width: 320px; }
+
+/* 작은 기능 카드 */
+.feat-card {
+  background: white; border: 1px solid var(--line);
+  border-radius: 14px; padding: 24px;
+  display: flex; flex-direction: column;
+  transition: border-color .2s, transform .2s;
+  min-height: 200px;
+}
+.feat-card:hover { border-color: var(--text); transform: translateY(-2px); }
+.feat-card .ico {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: var(--bg-yellow-soft); color: var(--kakao-brown);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 14px;
+}
+.feat-card .ico svg { width: 20px; height: 20px; }
+.feat-card h5 { font-size: 17px; font-weight: 700; letter-spacing: -0.015em; margin-bottom: 6px; }
+.feat-card p { font-size: 13px; color: var(--text-2); line-height: 1.55; flex: 1; }
+.feat-card .meta {
+  margin-top: 14px; padding-top: 12px;
+  border-top: 1px solid var(--line-soft);
+  font-size: 12px; font-weight: 600; color: var(--kakao-brown);
+}
+
+/* 카테고리 2차 행 (더 많은 기능) */
+.feat-row {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+  margin-top: 16px;
+}
+.feat-row .feat-card { min-height: 160px; padding: 20px; }
+.feat-row .feat-card h5 { font-size: 15px; }
+.feat-row .feat-card p { font-size: 12.5px; }
+
+/* 14 역할 그리드 */
+.roles-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+  margin-top: 16px;
+}
+.role-card {
+  background: white; border: 1px solid var(--line);
+  border-radius: 12px; padding: 20px;
+  position: relative; overflow: hidden;
+  transition: all .2s; cursor: default;
+}
+.role-card:hover { border-color: var(--kakao-yellow); transform: translateY(-2px); }
+.role-card .role-img {
+  width: 100%; aspect-ratio: 4/3; border-radius: 8px; overflow: hidden;
+  margin-bottom: 14px; background: var(--bg-soft);
+}
+.role-card .role-img img {
+  width: 100%; height: 100%; object-fit: cover;
+}
+.role-card .role-num {
+  font-size: 11px; font-weight: 700; color: var(--text-mute);
+  letter-spacing: 0.05em; margin-bottom: 4px;
+}
+.role-card h5 { font-size: 15px; font-weight: 700; margin-bottom: 4px; letter-spacing: -0.015em; }
+.role-card p { font-size: 12px; color: var(--text-mute); line-height: 1.4; }
+
+/* AI 모델 로고 행 */
+.ai-models-row {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+  margin-top: 16px;
+}
+.ai-model-card {
+  background: white; border: 1px solid var(--line);
+  border-radius: 14px; padding: 24px;
+  text-align: center;
+}
+.ai-model-card .provider {
+  font-size: 12px; font-weight: 700; color: var(--text-mute);
+  letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 10px;
+}
+.ai-model-card .name { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 12px; }
+.ai-model-card .models { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.ai-model-card .models span {
+  font-size: 11px; padding: 3px 10px;
+  background: var(--bg-soft); border-radius: 999px;
+  font-weight: 600; color: var(--text-2);
+}
+
+/* 이미지 갤러리 행 */
+.image-gallery {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+  margin-top: 16px;
+}
+.gallery-item {
+  aspect-ratio: 1; border-radius: 12px; overflow: hidden;
+  position: relative;
+}
+.gallery-item img { width: 100%; height: 100%; object-fit: cover; transition: transform .5s; }
+.gallery-item:hover img { transform: scale(1.05); }
+.gallery-item .caption {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  padding: 12px; background: rgba(0,0,0,0.6);
+  color: white; font-size: 12px; font-weight: 600;
+}
+
 /* ========== SECTION 2: NEWS (= 카카오 section_news) ========== */
 .section-news {
   background: var(--bg);
@@ -531,6 +710,15 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   .stock-data .val { font-size: 24px; }
   .tit-visual { font-size: 44px; }
   .hero-notices { max-width: none; }
+  .cat-layout, .cat-layout.inverted { grid-template-columns: 1fr 1fr; }
+  .feat-hero { grid-row: span 1; grid-column: span 2; min-height: 280px; }
+  .feat-row { grid-template-columns: 1fr 1fr; }
+  .roles-grid { grid-template-columns: 1fr 1fr; }
+  .ai-models-row { grid-template-columns: 1fr; }
+  .image-gallery { grid-template-columns: 1fr 1fr; }
+  .cat-head { grid-template-columns: 1fr; gap: 12px; }
+  .cat-num { font-size: 40px; }
+  .cat-title h3 { font-size: 24px; }
 }
 @media (max-width: 560px) {
   .visual-bottom { grid-template-columns: 1fr; }
@@ -681,6 +869,458 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
           <span class="arrow">바로가기 <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
         </div>
       </a>
+    </div>
+  </div>
+</section>
+
+<!-- ========== ALL FEATURES SHOWCASE ========== -->
+<section class="section-all" id="features">
+  <div class="wrap">
+    <div class="all-intro">
+      <span class="section-eyebrow">ALL FEATURES</span>
+      <h2>메모장 하나에 담긴 <br />50개 이상의 기능</h2>
+      <p>에디터부터 AI · 그림판 · 14가지 역할별 도구 · 클라우드 동기화까지. 남김없이 전부 공개합니다.</p>
+    </div>
+
+    <!-- CATEGORY 01: EDITOR -->
+    <div class="cat-block">
+      <div class="cat-head">
+        <div class="cat-num">01</div>
+        <div class="cat-title">
+          <h3>에디터</h3>
+          <p>메모장 그 이상의 쓰기 경험. 서식 · 표 · 체크리스트 · 6종 배경까지.</p>
+        </div>
+        <span class="cat-count">총 12개 기능</span>
+      </div>
+      <div class="cat-layout">
+        <div class="feat-hero">
+          <img src="https://images.unsplash.com/photo-1455390582262-044cdead277a?w=1400&q=85&auto=format&fit=crop" alt="노트에 글을 쓰는 장면" loading="lazy" />
+          <div class="overlay">
+            <span class="tag">쓰기 경험</span>
+            <h4>적기만 하면<br/>나머지는 자동 저장</h4>
+            <p>자동 저장 · 무제한 Undo · 버전 히스토리 · 휴지통까지 내장.</p>
+          </div>
+        </div>
+        <div class="feat-card">
+          <div class="ico"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h10"/></svg></div>
+          <h5>리치 텍스트</h5>
+          <p>글꼴 · 크기 · 색상 · 굵게 · 기울임 · 밑줄 · 취소선 · 인용 · 코드.</p>
+        </div>
+        <div class="feat-card">
+          <div class="ico"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3z"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg></div>
+          <h5>표 · 코드블록</h5>
+          <p>드래그로 크기 조절되는 표, 신택스 하이라이트 코드블록.</p>
+        </div>
+        <div class="feat-card">
+          <div class="ico"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>
+          <h5>체크리스트</h5>
+          <p>할 일 체크박스, 완료 시 취소선, 진행률 자동 계산.</p>
+        </div>
+        <div class="feat-card">
+          <div class="ico"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l-6 6v3h3l6-6"/><path d="M22 12L12 2 5 9l5 5z"/></svg></div>
+          <h5>형광펜</h5>
+          <p>6색 형광펜 마커로 중요한 부분 강조.</p>
+        </div>
+      </div>
+
+      <!-- 2차 행: 레이아웃 기능 -->
+      <div class="feat-row">
+        <div class="feat-card">
+          <div class="ico"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 9v12"/></svg></div>
+          <h5>6종 종이 배경</h5>
+          <p>기본 · 줄노트 · 모눈 · 점격자 · 오선지 · 트레이싱.</p>
+        </div>
+        <div class="feat-card">
+          <div class="ico"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></div>
+          <h5>목차 패널</h5>
+          <p>H1~H6 자동 추출. 클릭하면 해당 섹션으로 점프.</p>
+        </div>
+        <div class="feat-card">
+          <div class="ico"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/></svg></div>
+          <h5>분할 보기</h5>
+          <p>두 메모를 좌우로 나란히 편집. 자료 비교에 최적.</p>
+        </div>
+        <div class="feat-card">
+          <div class="ico"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></div>
+          <h5>AES-GCM 암호화</h5>
+          <p>민감한 탭에 비밀번호 설정. 본인도 비밀번호 없으면 못 봄.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- CATEGORY 02: AI -->
+    <div class="cat-block">
+      <div class="cat-head">
+        <div class="cat-num">02</div>
+        <div class="cat-title">
+          <h3>AI 어시스턴트</h3>
+          <p>16개 모델을 자유롭게. 요약 · 번역 · 이어쓰기 · 플래시카드 자동 생성.</p>
+        </div>
+        <span class="cat-count">총 16개 모델</span>
+      </div>
+
+      <div class="cat-layout inverted">
+        <div class="feat-card">
+          <div class="ico"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L9.5 8.5 3 11l6.5 2.5L12 20l2.5-6.5L21 11l-6.5-2.5z"/></svg></div>
+          <h5>요약 · 번역</h5>
+          <p>선택한 텍스트를 3줄로 요약. 16개 언어 즉시 번역.</p>
+        </div>
+        <div class="feat-card">
+          <div class="ico"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v16M4 12h16"/></svg></div>
+          <h5>이어쓰기</h5>
+          <p>AI가 맥락을 이해하고 자연스럽게 다음 문단 작성.</p>
+        </div>
+        <div class="feat-card">
+          <div class="ico"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 10h10M7 14h6"/></svg></div>
+          <h5>플래시카드</h5>
+          <p>독서 노트 → 문제/답 자동 생성 → 시험 대비.</p>
+        </div>
+        <div class="feat-card">
+          <div class="ico"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/></svg></div>
+          <h5>Vision 분석</h5>
+          <p>이미지 업로드 → AI가 내용 설명 · 표 데이터 추출.</p>
+        </div>
+        <div class="feat-card">
+          <div class="ico"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+          <h5>커스텀 페르소나</h5>
+          <p>"학술 교수 톤", "카피라이터 톤" 등 원하는 스타일 지정.</p>
+        </div>
+        <div class="feat-hero">
+          <img src="https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=1400&q=85&auto=format&fit=crop" alt="AI 어시스턴트" loading="lazy" />
+          <div class="overlay">
+            <span class="tag">AI POWERED</span>
+            <h4>우클릭 한 번에<br/>AI 액션 6종</h4>
+            <p>요약 · 번역 · 이어쓰기 · 문법검사 · 플래시카드 · 페르소나. 본인 API 키 = 본인 브라우저에만 저장.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI 프로바이더 -->
+      <div class="ai-models-row">
+        <div class="ai-model-card">
+          <div class="provider">OpenAI</div>
+          <div class="name">GPT 시리즈</div>
+          <div class="models">
+            <span>GPT-4o</span><span>GPT-4 Turbo</span><span>GPT-3.5</span><span>o1-preview</span><span>o1-mini</span>
+          </div>
+        </div>
+        <div class="ai-model-card">
+          <div class="provider">Anthropic</div>
+          <div class="name">Claude 시리즈</div>
+          <div class="models">
+            <span>Opus 4</span><span>Sonnet 4</span><span>Haiku 4.5</span>
+          </div>
+        </div>
+        <div class="ai-model-card">
+          <div class="provider">Google</div>
+          <div class="name">Gemini 시리즈</div>
+          <div class="models">
+            <span>Gemini Pro</span><span>Gemini Flash</span><span>Gemini Ultra</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CATEGORY 03: PAINT -->
+    <div class="cat-block">
+      <div class="cat-head">
+        <div class="cat-num">03</div>
+        <div class="cat-title">
+          <h3>그림판 (Paint)</h3>
+          <p>레이어 · 16 블렌드 모드 · 11종 필터 · AI 이미지 생성. 작은 포토샵이 통째로.</p>
+        </div>
+        <span class="cat-count">총 11개 기능</span>
+      </div>
+
+      <div class="cat-layout">
+        <div class="feat-hero">
+          <img src="https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=1400&q=85&auto=format&fit=crop" alt="디지털 아트" loading="lazy" />
+          <div class="overlay">
+            <span class="tag">PRO TOOLS</span>
+            <h4>포토샵의<br/>핵심 기능만 쏙</h4>
+            <p>레이어 시스템부터 AI 이미지 생성까지. 설치 없이 브라우저에서 바로.</p>
+          </div>
+        </div>
+        <div class="feat-card">
+          <div class="ico"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><rect x="7" y="7" width="18" height="18" rx="2" opacity="0.5"/></svg></div>
+          <h5>레이어 시스템</h5>
+          <p>무제한 레이어 추가 · 순서 변경 · 잠금 · 가시성 토글.</p>
+        </div>
+        <div class="feat-card">
+          <div class="ico"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="9" r="7"/><circle cx="15" cy="15" r="7" opacity="0.5"/></svg></div>
+          <h5>16 블렌드 모드</h5>
+          <p>곱하기 · 스크린 · 오버레이 · 컬러 닷지 등 전문가용.</p>
+        </div>
+        <div class="feat-card">
+          <div class="ico"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg></div>
+          <h5>11종 필터</h5>
+          <p>블러 · 샤픈 · 흑백 · 세피아 · 빈티지 · 만화 효과.</p>
+        </div>
+        <div class="feat-card">
+          <div class="ico"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L9.5 8.5 3 11l6.5 2.5L12 20l2.5-6.5L21 11l-6.5-2.5z"/></svg></div>
+          <h5>AI 이미지 생성</h5>
+          <p>프롬프트 입력 → 이미지 자동 생성 → 캔버스에 삽입.</p>
+        </div>
+      </div>
+
+      <div class="feat-row">
+        <div class="feat-card">
+          <div class="ico"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M4 10h16M10 4v16"/></svg></div>
+          <h5>그라디언트</h5>
+          <p>선형/원형 그라디언트. 컬러 스톱 자유 편집.</p>
+        </div>
+        <div class="feat-card">
+          <div class="ico"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="18" r="3"/><circle cx="12" cy="12" r="2"/><circle cx="18" cy="6" r="1.5"/></svg></div>
+          <h5>브러시 20종</h5>
+          <p>연필 · 붓 · 에어브러시 · 패턴 브러시 · 지우개.</p>
+        </div>
+        <div class="feat-card">
+          <div class="ico"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18z"/></svg></div>
+          <h5>이미지 변환기</h5>
+          <p>크기 · 용량 · 포맷 (JPG/PNG/WebP) 일괄 변환.</p>
+        </div>
+        <div class="feat-card">
+          <div class="ico"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg></div>
+          <h5>내보내기</h5>
+          <p>PNG · JPG · WebP · PDF · 캔버스 SVG로 저장.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- CATEGORY 04: 14 ROLES -->
+    <div class="cat-block">
+      <div class="cat-head">
+        <div class="cat-num">04</div>
+        <div class="cat-title">
+          <h3>역할별 전문 도구</h3>
+          <p>학생 · 회사원 · 주부 · 창작자까지. 14가지 역할, 각자의 전용 위젯.</p>
+        </div>
+        <span class="cat-count">총 14가지 역할</span>
+      </div>
+
+      <div class="roles-grid">
+        <div class="role-card">
+          <div class="role-img"><img src="https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=600&q=80&auto=format&fit=crop" alt="초등학생" loading="lazy" /></div>
+          <div class="role-num">01</div>
+          <h5>초등학생</h5>
+          <p>그림일기 · 숙제 · D-Day</p>
+        </div>
+        <div class="role-card">
+          <div class="role-img"><img src="https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?w=600&q=80&auto=format&fit=crop" alt="중학생" loading="lazy" /></div>
+          <div class="role-num">02</div>
+          <h5>중학생</h5>
+          <p>시간표 · 시험계획 · 단어장</p>
+        </div>
+        <div class="role-card">
+          <div class="role-img"><img src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=600&q=80&auto=format&fit=crop" alt="고등학생" loading="lazy" /></div>
+          <div class="role-num">03</div>
+          <h5>고등학생</h5>
+          <p>수능 D-Day · 오답노트 · 학습캠</p>
+        </div>
+        <div class="role-card">
+          <div class="role-img"><img src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=600&q=80&auto=format&fit=crop" alt="대학생" loading="lazy" /></div>
+          <div class="role-num">04</div>
+          <h5>대학생</h5>
+          <p>강의시간표 · GPA · 과제</p>
+        </div>
+        <div class="role-card">
+          <div class="role-img"><img src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=600&q=80&auto=format&fit=crop" alt="대학원생" loading="lazy" /></div>
+          <div class="role-num">05</div>
+          <h5>대학원생</h5>
+          <p>논문 관리 · BibTeX · 연구노트</p>
+        </div>
+        <div class="role-card">
+          <div class="role-img"><img src="https://images.unsplash.com/photo-1552664730-d307ca884978?w=600&q=80&auto=format&fit=crop" alt="회사원 주니어" loading="lazy" /></div>
+          <div class="role-num">06</div>
+          <h5>회사원 (주니어)</h5>
+          <p>회의록 · Todo · 프로젝트</p>
+        </div>
+        <div class="role-card">
+          <div class="role-img"><img src="https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=600&q=80&auto=format&fit=crop" alt="회사원 시니어" loading="lazy" /></div>
+          <div class="role-num">07</div>
+          <h5>회사원 (시니어)</h5>
+          <p>1:1 미팅 · OKR · 견적서</p>
+        </div>
+        <div class="role-card">
+          <div class="role-img"><img src="https://images.unsplash.com/photo-1556761175-b413da4baf72?w=600&q=80&auto=format&fit=crop" alt="프리랜서" loading="lazy" /></div>
+          <div class="role-num">08</div>
+          <h5>프리랜서</h5>
+          <p>견적 · 청구 · 타임트래킹 · CRM</p>
+        </div>
+        <div class="role-card">
+          <div class="role-img"><img src="https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=600&q=80&auto=format&fit=crop" alt="가정주부" loading="lazy" /></div>
+          <div class="role-num">09</div>
+          <h5>가정주부</h5>
+          <p>가계부 · 장보기 · 식단 · 레시피</p>
+        </div>
+        <div class="role-card">
+          <div class="role-img"><img src="https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=600&q=80&auto=format&fit=crop" alt="요리 애호가" loading="lazy" /></div>
+          <div class="role-num">10</div>
+          <h5>요리 애호가</h5>
+          <p>레시피북 · 조리 타이머 · 식재료</p>
+        </div>
+        <div class="role-card">
+          <div class="role-img"><img src="https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=600&q=80&auto=format&fit=crop" alt="창작자" loading="lazy" /></div>
+          <div class="role-num">11</div>
+          <h5>예술가/창작자</h5>
+          <p>포트폴리오 · 무드보드 · 영감</p>
+        </div>
+        <div class="role-card">
+          <div class="role-img"><img src="https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=600&q=80&auto=format&fit=crop" alt="여행자" loading="lazy" /></div>
+          <div class="role-num">12</div>
+          <h5>여행자</h5>
+          <p>여행일정 · 버킷리스트 · 경비</p>
+        </div>
+        <div class="role-card">
+          <div class="role-img"><img src="https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=600&q=80&auto=format&fit=crop" alt="독서광" loading="lazy" /></div>
+          <div class="role-num">13</div>
+          <h5>독서광</h5>
+          <p>독서목록 · 통계 · 인용구</p>
+        </div>
+        <div class="role-card">
+          <div class="role-img"><img src="https://images.unsplash.com/photo-1447452001602-7090c7ab2db3?w=600&q=80&auto=format&fit=crop" alt="노년층" loading="lazy" /></div>
+          <div class="role-num">14</div>
+          <h5>노년층</h5>
+          <p>약 복용 · 혈압 · 병원 일정</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- CATEGORY 05: CONNECT -->
+    <div class="cat-block">
+      <div class="cat-head">
+        <div class="cat-num">05</div>
+        <div class="cat-title">
+          <h3>연결 · 통합</h3>
+          <p>클라우드 동기화 · 명함 OCR · 회의 녹음 · 인앱 브라우저.</p>
+        </div>
+        <span class="cat-count">총 8개 기능</span>
+      </div>
+
+      <div class="cat-layout">
+        <div class="feat-hero">
+          <img src="https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=1400&q=85&auto=format&fit=crop" alt="멀티 디바이스 동기화" loading="lazy" />
+          <div class="overlay">
+            <span class="tag">CROSS-DEVICE</span>
+            <h4>어디서든<br/>같은 메모</h4>
+            <p>데스크톱에서 쓰고, 스마트폰에서 이어쓰세요. Google · 매직링크 로그인만으로.</p>
+          </div>
+        </div>
+        <div class="feat-card">
+          <div class="ico"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/></svg></div>
+          <h5>Supabase 동기화</h5>
+          <p>Row Level Security로 본인만 접근. 3초 디바운스 자동 업로드.</p>
+          <div class="meta">Google · Magic Link · GitHub</div>
+        </div>
+        <div class="feat-card">
+          <div class="ico"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><circle cx="8" cy="12" r="2"/><path d="M14 8h6M14 12h6M14 16h4"/></svg></div>
+          <h5>명함 OCR + 16 SNS</h5>
+          <p>사진 한 장 → AI가 이름·회사·전화번호·SNS 자동 추출.</p>
+          <div class="meta">vCard 가져오기/내보내기</div>
+        </div>
+        <div class="feat-card">
+          <div class="ico"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/></svg></div>
+          <h5>회의 녹음</h5>
+          <p>녹음 + 실시간 받아쓰기 + AI 요약 + 액션 아이템 자동 추출.</p>
+          <div class="meta">CLOVA Note 스타일</div>
+        </div>
+        <div class="feat-card">
+          <div class="ico"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 010 20M12 2a15 15 0 000 20"/></svg></div>
+          <h5>인앱 브라우저</h5>
+          <p>구글 · 위키 · GitHub · 8개 검색엔진 내장. 메모 떠나지 않고.</p>
+          <div class="meta">동시 8개 탭</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CATEGORY 06: PLATFORM -->
+    <div class="cat-block">
+      <div class="cat-head">
+        <div class="cat-num">06</div>
+        <div class="cat-title">
+          <h3>플랫폼 · 보안</h3>
+          <p>PWA 설치 · 오프라인 · 암호화 · 자동 업데이트.</p>
+        </div>
+        <span class="cat-count">총 10개 기능</span>
+      </div>
+
+      <div class="feat-row" style="grid-template-columns: repeat(5, 1fr); margin-top: 0;">
+        <div class="feat-card">
+          <div class="ico"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
+          <h5>PWA 설치</h5>
+          <p>홈화면에 설치, 네이티브 앱처럼 작동.</p>
+        </div>
+        <div class="feat-card">
+          <div class="ico"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg></div>
+          <h5>오프라인 작동</h5>
+          <p>인터넷 없어도 완전 작동. 연결 시 자동 sync.</p>
+        </div>
+        <div class="feat-card">
+          <div class="ico"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg></div>
+          <h5>자동 업데이트</h5>
+          <p>새 버전 배포 시 알림 → 클릭 한 번으로 갱신.</p>
+        </div>
+        <div class="feat-card">
+          <div class="ico"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3z"/><path d="M9 9l6 6M15 9l-6 6"/></svg></div>
+          <h5>단일 HTML 파일</h5>
+          <p>850KB 한 파일. USB로 어디서나 실행.</p>
+        </div>
+        <div class="feat-card">
+          <div class="ico"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l9 4-9 14L3 7l9-4z"/></svg></div>
+          <h5>버전 히스토리</h5>
+          <p>모든 편집 이력 자동 저장. 언제든 이전 버전 복구.</p>
+        </div>
+      </div>
+
+      <div class="feat-row" style="grid-template-columns: repeat(5, 1fr);">
+        <div class="feat-card">
+          <div class="ico"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg></div>
+          <h5>휴지통 30일</h5>
+          <p>삭제한 탭 30일 보관. 실수 복구 가능.</p>
+        </div>
+        <div class="feat-card">
+          <div class="ico"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></div>
+          <h5>AES-GCM</h5>
+          <p>탭 단위 암호화. 비밀번호 분실 시 본인도 못 봄.</p>
+        </div>
+        <div class="feat-card">
+          <div class="ico"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg></div>
+          <h5>태그 · 즐겨찾기</h5>
+          <p>무제한 태그, 컬러 분류, 즐겨찾기 고정.</p>
+        </div>
+        <div class="feat-card">
+          <div class="ico"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg></div>
+          <h5>Markdown 가져오기</h5>
+          <p>노션 · 옵시디언 파일 드래그 → 즉시 변환.</p>
+        </div>
+        <div class="feat-card">
+          <div class="ico"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M2 12h20"/></svg></div>
+          <h5>무제한 탭/워크스페이스</h5>
+          <p>하드 리밋 없음. 수백 개 메모도 빠르게.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 이미지 갤러리 (인물 + 라이프스타일) -->
+    <div class="cat-block" style="border-top: none; padding: 40px 0 0;">
+      <div class="image-gallery">
+        <div class="gallery-item">
+          <img src="https://images.unsplash.com/photo-1517842645767-c639042777db?w=600&q=80&auto=format&fit=crop" alt="카페에서" loading="lazy" />
+          <div class="caption">카페 · 개인 메모</div>
+        </div>
+        <div class="gallery-item">
+          <img src="https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=600&q=80&auto=format&fit=crop" alt="회의실" loading="lazy" />
+          <div class="caption">회의실 · 팀 노트</div>
+        </div>
+        <div class="gallery-item">
+          <img src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&q=80&auto=format&fit=crop" alt="학생 스터디" loading="lazy" />
+          <div class="caption">캠퍼스 · 강의 노트</div>
+        </div>
+        <div class="gallery-item">
+          <img src="https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=600&q=80&auto=format&fit=crop" alt="가족 식탁" loading="lazy" />
+          <div class="caption">주방 · 레시피북</div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
