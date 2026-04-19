@@ -19,6 +19,8 @@
   let syncing = false;
   let lastSyncAt = 0;
   let realtimeChannel = null;
+  let afterLoginRan = false;     // 세션 1회만 동기화 다이얼로그 노출
+  let afterLoginRunning = false; // 동시 호출 방지
 
   async function loadSDK() {
     if (window.supabase) return window.supabase;
@@ -78,28 +80,59 @@
   }
 
   async function afterLogin() {
-    const cloud = await pullFromCloud();
-    const local = getStateJSON();
+    if (afterLoginRan || afterLoginRunning) return;  // 중복 실행 방지
+    afterLoginRunning = true;
+    try {
+      const cloud = await pullFromCloud();
+      const local = getStateJSON();
 
-    if (cloud && cloud.data) {
-      if (!local) {
-        localStorage.setItem('sticky-memo-v4', JSON.stringify(cloud.data));
-        showToast('클라우드 데이터 복원됨');
-        setTimeout(() => { if (confirm('새로고침하여 적용할까요?')) location.reload(); }, 800);
-      } else {
-        const cloudTime = new Date(cloud.updated_at).getTime();
-        if (Date.now() - cloudTime < 60000) {
-          await pushToCloud();  // 로컬이 더 최신
-        } else if (confirm('클라우드에 더 최신 데이터가 있습니다. 불러올까요?')) {
+      if (cloud && cloud.data) {
+        if (!local) {
+          // 로컬 비어 있음 → 자동 복원 (다이얼로그 없이)
           localStorage.setItem('sticky-memo-v4', JSON.stringify(cloud.data));
-          location.reload();
+          showToast('클라우드 데이터 복원됨 — 새로고침합니다', 3000);
+          setTimeout(() => location.reload(), 1500);
+        } else {
+          // 로컬 데이터 == 클라우드 데이터면 스킵
+          const localStr = JSON.stringify(local);
+          const cloudStr = JSON.stringify(cloud.data);
+          if (localStr === cloudStr) {
+            console.log('[Sync] 로컬 == 클라우드, 동기화 불필요');
+          } else {
+            const cloudTime = new Date(cloud.updated_at).getTime();
+            if (Date.now() - cloudTime < 60000) {
+              // 최근 1분 내 클라우드 변경 → 로컬이 더 최신이라 가정하지 말고 클라우드 우선
+              console.log('[Sync] 클라우드가 최근 → 로컬 백업 후 클라우드 적용');
+              backupLocal(local);
+              localStorage.setItem('sticky-memo-v4', cloudStr);
+              showToast('클라우드 데이터 동기화됨 — 새로고침합니다', 3000);
+              setTimeout(() => location.reload(), 1500);
+            } else {
+              // 클라우드가 1분 이상 오래됨 → 로컬을 클라우드로 푸시 (다이얼로그 없이)
+              console.log('[Sync] 로컬이 더 최신 → 자동 업로드');
+              await pushToCloud();
+              showToast('로컬 변경사항 클라우드 업로드됨', 2500);
+            }
+          }
         }
+      } else if (local) {
+        // 클라우드에 데이터 없음 → 로컬 업로드
+        await pushToCloud();
+        showToast('로컬 데이터가 클라우드에 백업됨', 2500);
       }
-    } else if (local) {
-      await pushToCloud();
-      showToast('로컬 데이터가 클라우드에 백업됨');
+      afterLoginRan = true;
+      subscribeRealtime();
+    } finally {
+      afterLoginRunning = false;
     }
-    subscribeRealtime();
+  }
+
+  function backupLocal(local) {
+    try {
+      const ts = new Date().toISOString().replace(/[:.]/g, '-');
+      localStorage.setItem('sticky-memo-v4-backup-' + ts, JSON.stringify(local));
+      console.log('[Sync] 로컬 백업 키: sticky-memo-v4-backup-' + ts);
+    } catch (e) { console.warn('[Sync] 로컬 백업 실패:', e.message); }
   }
 
   function subscribeRealtime() {
@@ -141,9 +174,12 @@
       updateUI();
       if (event === 'SIGNED_IN') {
         await afterLogin();
-      } else if (event === 'SIGNED_OUT' && realtimeChannel) {
-        supabase.removeChannel(realtimeChannel);
-        realtimeChannel = null;
+      } else if (event === 'SIGNED_OUT') {
+        afterLoginRan = false;  // 다음 로그인 시 다시 동기화 가능
+        if (realtimeChannel) {
+          supabase.removeChannel(realtimeChannel);
+          realtimeChannel = null;
+        }
       }
     });
 
