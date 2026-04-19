@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+# 정적 자원
+Allow: /app
+Allow: /sw.js
+Allow: /manifest.json
+
+# Sitemap
+Sitemap: https://justanotepad.com/sitemap.xml
