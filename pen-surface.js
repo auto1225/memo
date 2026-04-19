@@ -125,7 +125,8 @@
     const toast = document.createElement('div');
     toast.className = 'jnp-pen-toast';
     toast.innerHTML = `
-      <span>✒️ 펜이 감지됐어요. 손글씨 모드로 전환하시겠어요?</span>
+      <svg viewBox="0 0 24 24" style="width:16px;height:16px;flex:0 0 16px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg>
+      <span>펜이 감지됐어요. 손글씨 모드로 전환하시겠어요?</span>
       <button type="button" class="open">네, 열기</button>
       <button type="button" class="dismiss">다시 안 보기</button>
     `;

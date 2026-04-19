@@ -101,24 +101,20 @@
       font-weight: 900; color: #1f1f1f; font-size: 12px;
     }
 
-    /* Direct header buttons (shown alongside the chip) */
+    /* Direct header buttons (shown alongside the chip).
+       Match the existing .nav-signin tone so they blend with the nav. */
     .jnp-nav-cms, .jnp-nav-logout {
       display: none; align-items: center; gap: 6px;
-      padding: 7px 12px; border-radius: 7px; border: 1px solid transparent;
-      font: 600 13px inherit; cursor: pointer; text-decoration: none;
+      padding: 8px 14px; border-radius: 0; border: 0; background: transparent;
+      font: inherit; font-weight: 500; color: var(--muted, #6b7280);
+      cursor: pointer; text-decoration: none;
+      transition: color .15s;
     }
     .jnp-nav-cms.show, .jnp-nav-logout.show { display: inline-flex; }
-    .jnp-nav-cms {
-      background: linear-gradient(135deg,#7e57c2,#5e35b1);
-      color: #fff;
-      box-shadow: 0 2px 6px rgba(94,53,177,.3);
+    .jnp-nav-cms:hover, .jnp-nav-logout:hover { color: var(--text, #111); }
+    .jnp-nav-cms svg, .jnp-nav-logout svg {
+      width: 14px; height: 14px; opacity: .8;
     }
-    .jnp-nav-cms:hover { filter: brightness(1.08); }
-    .jnp-nav-cms svg { width: 14px; height: 14px; }
-    .jnp-nav-logout {
-      background: #fff; border-color: #e5e7eb; color: #666;
-    }
-    .jnp-nav-logout:hover { background: #f5f5f5; color: #1f1f1f; }
 
     /* Position the nav items correctly */
     .nav-side { position: relative; }
@@ -198,12 +194,20 @@
     CMS
   `;
 
-  // Direct logout button
+  // Direct logout button (SVG + text, no emoji)
   const logoutBtn = document.createElement('button');
   logoutBtn.type = 'button';
   logoutBtn.className = 'jnp-nav-logout';
   logoutBtn.id = 'jnpLogoutBtn';
-  logoutBtn.textContent = '로그아웃';
+  logoutBtn.innerHTML = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+         stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+      <polyline points="16 17 21 12 16 7"/>
+      <line x1="21" y1="12" x2="9" y2="12"/>
+    </svg>
+    로그아웃
+  `;
 
   // Inject into the landing nav when it becomes available
   function injectChip() {

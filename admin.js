@@ -138,6 +138,7 @@
   // ---- View registry -------------------------------------------------
   const titles = {
     dashboard: ['대시보드', '대시보드'],
+    content:   ['콘텐츠 관리 (랜딩 페이지 DB)', '랜딩 / 콘텐츠'],
     analytics: ['방문자 통계', '대시보드 / 방문자 통계'],
     downloads: ['다운로드 분석', '대시보드 / 다운로드'],
     payments: ['판매 / 결제', '비즈니스 / 판매'],
@@ -181,6 +182,7 @@
       else if (v === 'users')    await renderUsers();
       else if (v === 'announce') await renderNotices();
       else if (v === 'faq')      await renderFAQ();
+      else if (v === 'content')  await renderCmsContent();
       else if (v === 'terms')    await renderCmsDoc('terms', '약관 관리');
       else if (v === 'popup')    await renderPopups();
       else if (v === 'analytics') await renderAnalytics();
@@ -331,7 +333,7 @@
           <tbody>
             ${data.map(n => `
               <tr data-id="${n.id}">
-                <td>${n.pinned?'📌 ':''}${escape(n.title)}</td>
+                <td>${n.pinned?'<svg style="width:13px;height:13px;vertical-align:-2px;margin-right:4px;" viewBox="0 0 24 24" fill="none" stroke="#b45309" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14l-1.68-9.24A2 2 0 0 0 15.36 6H8.64a2 2 0 0 0-1.96 1.76L5 17z"/></svg>':''}${escape(n.title)}</td>
                 <td><span class="badge ${n.published?'paid':'trial'}">${n.published?'게시':'임시'}</span></td>
                 <td>${fmtDate(n.updated_at || n.created_at)}</td>
                 <td><button class="btn btn-edit" data-id="${n.id}">편집</button></td>
@@ -401,6 +403,113 @@
       $('btnSaveDoc').textContent = '저장됨';
       setTimeout(() => $('btnSaveDoc').textContent = '저장', 1500);
     });
+  }
+
+  // ---- MODULE: CMS content (landing-page DB) ------------------------
+  // Lists every row in cms_content (key/value/kind/note) so the admin can
+  // edit any landing-page text/image/url live. New keys can be added too.
+  async function renderCmsContent() {
+    view.innerHTML = `
+      <div class="panel">
+        <div class="panel-title">콘텐츠 항목
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input type="search" id="ccSearch" placeholder="키/내용 검색" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
+            <button class="btn primary" id="ccNew">+ 새 항목</button>
+          </div>
+        </div>
+        <div id="ccHelp" style="color:var(--ink-soft);font-size:12px;margin-bottom:10px;">
+          랜딩 페이지(index.html)의 요소에 <code>data-cms="키"</code> 속성을 달면
+          이 테이블의 값으로 자동 치환됩니다. kind는 text / html / image / url 중 선택.
+        </div>
+        <div id="ccList">로딩…</div>
+      </div>
+      <div class="panel" id="ccEditor" style="display:none;">
+        <div class="panel-title"><span id="ccEditTitle">편집</span>
+          <button class="btn" id="ccCancel">취소</button>
+        </div>
+        <div class="field"><label>키 (data-cms 속성과 동일)</label><input id="ccKey" placeholder="예: hero.title"></div>
+        <div class="field"><label>유형</label>
+          <select id="ccKind">
+            <option value="text">text (플레인 텍스트)</option>
+            <option value="html">html (서식 포함)</option>
+            <option value="image">image (img src URL)</option>
+            <option value="url">url (링크 href)</option>
+          </select>
+        </div>
+        <div class="field"><label>값</label><textarea id="ccValue" rows="6"></textarea></div>
+        <div class="field"><label>메모 (내부용)</label><input id="ccNote"></div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn primary" id="ccSave">저장</button>
+          <button class="btn danger" id="ccDelete" style="display:none;">삭제</button>
+        </div>
+      </div>
+    `;
+    let current = null;
+    const load = async (q) => {
+      let query = sb.from('cms_content').select('*').order('key', { ascending: true }).limit(500);
+      const { data, error } = await query;
+      if (error) { $('ccList').innerHTML = '<div style="color:var(--danger);">'+error.message+'</div>'; return; }
+      const filtered = !q ? (data||[]) :
+        (data||[]).filter(r => (r.key+' '+(r.value||'')+' '+(r.note||'')).toLowerCase().includes(q.toLowerCase()));
+      $('ccList').innerHTML = filtered.length ? `
+        <table class="t">
+          <thead><tr><th>키</th><th>유형</th><th>값 미리보기</th><th>메모</th><th>업데이트</th><th></th></tr></thead>
+          <tbody>
+            ${filtered.map(r => `
+              <tr>
+                <td><code style="font-size:12px;">${escape(r.key)}</code></td>
+                <td><span class="badge ${r.kind==='html'?'admin':r.kind==='image'?'paid':'user'}">${r.kind||'text'}</span></td>
+                <td>${escape((r.value||'').slice(0, 80))}</td>
+                <td style="color:var(--ink-soft);">${escape(r.note||'')}</td>
+                <td>${fmtDate(r.updated_at)}</td>
+                <td><button class="btn btn-ccedit" data-key="${encodeURIComponent(r.key)}">편집</button></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>` : '<div style="color:var(--ink-soft);padding:20px;text-align:center;">항목 없음. "+ 새 항목"으로 추가하세요.</div>';
+      document.querySelectorAll('.btn-ccedit').forEach(btn => btn.addEventListener('click', async () => {
+        const key = decodeURIComponent(btn.dataset.key);
+        const { data } = await sb.from('cms_content').select('*').eq('key', key).single();
+        openEditor(data);
+      }));
+    };
+    const openEditor = (row) => {
+      current = row || null;
+      $('ccEditor').style.display = 'block';
+      $('ccEditTitle').textContent = row ? ('편집: ' + row.key) : '새 콘텐츠 항목';
+      $('ccKey').value = row?.key || '';
+      $('ccKey').readOnly = !!row;
+      $('ccKind').value = row?.kind || 'text';
+      $('ccValue').value = row?.value || '';
+      $('ccNote').value = row?.note || '';
+      $('ccDelete').style.display = row ? 'inline-flex' : 'none';
+    };
+    $('ccNew').addEventListener('click', () => openEditor(null));
+    $('ccCancel').addEventListener('click', () => $('ccEditor').style.display='none');
+    $('ccSave').addEventListener('click', async () => {
+      const payload = {
+        key: $('ccKey').value.trim(),
+        kind: $('ccKind').value,
+        value: $('ccValue').value,
+        note: $('ccNote').value,
+        updated_at: new Date().toISOString(),
+      };
+      if (!payload.key) { alert('키는 필수입니다 (예: hero.title)'); return; }
+      const { error } = await sb.from('cms_content').upsert(payload);
+      if (error) { alert(error.message); return; }
+      $('ccEditor').style.display='none';
+      await load($('ccSearch').value.trim());
+    });
+    $('ccDelete').addEventListener('click', async () => {
+      if (!current || !confirm('정말 삭제하시겠어요? 이 키로 연결된 랜딩 요소는 원래 HTML 텍스트로 복귀합니다.')) return;
+      const { error } = await sb.from('cms_content').delete().eq('key', current.key);
+      if (error) { alert(error.message); return; }
+      $('ccEditor').style.display='none';
+      await load($('ccSearch').value.trim());
+    });
+    let t;
+    $('ccSearch').addEventListener('input', (e) => { clearTimeout(t); t = setTimeout(() => load(e.target.value.trim()), 250); });
+    load('');
   }
 
   // ---- MODULE: Landing page content sections -------------------------

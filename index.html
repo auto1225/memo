@@ -1458,10 +1458,10 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
       <div class="hero-left">
         <div class="tag-eyebrow">
           <span class="dot"></span>
-          <span>2026 정식 서비스 운영 중</span>
+          <span data-cms="hero.eyebrow">2026 정식 서비스 운영 중</span>
         </div>
-        <strong class="tit-visual">적고, <em style="font-family:var(--font-serif); font-style:italic; font-weight:400; color:var(--claude-orange);">그리고</em>,<br />계산하고, <em style="font-family:var(--font-serif); font-style:italic; font-weight:400; color:var(--claude-orange);">정리합니다</em></strong>
-        <p style="font-size:16px; color:var(--text-2); line-height:1.7; max-width:440px;"><span class="nb">글씨든 차트든 스케치든,</span> 하나의 파일 안에서. <span class="nb">14가지 역할별 도구</span>와 <span class="nb">16개 AI</span>가 당신을 기다립니다.</p>
+        <strong class="tit-visual" data-cms="hero.title" data-cms-kind="html">적고, <em style="font-family:var(--font-serif); font-style:italic; font-weight:400; color:var(--claude-orange);">그리고</em>,<br />계산하고, <em style="font-family:var(--font-serif); font-style:italic; font-weight:400; color:var(--claude-orange);">정리합니다</em></strong>
+        <p data-cms="hero.subtitle" data-cms-kind="html" style="font-size:16px; color:var(--text-2); line-height:1.7; max-width:440px;"><span class="nb">글씨든 차트든 스케치든,</span> 하나의 파일 안에서. <span class="nb">14가지 역할별 도구</span>와 <span class="nb">16개 AI</span>가 당신을 기다립니다.</p>
         <div class="hero-bottom">
           <div style="display:flex; gap:10px; flex-wrap:wrap;">
             <a href="/app?signup=1" class="wrap-more">
@@ -2485,9 +2485,12 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
-<!-- Landing-page Supabase auth (modal on 로그인/무료 가입 click, no app redirect) -->
+<!-- Landing-page Supabase auth + CMS content loader
+     Any element with data-cms="key" is hydrated from public.cms_content.
+     Edit copy in /admin → 콘텐츠 관리(DB). -->
 <script src="/config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="/cms-loader.js"></script>
 <script src="/landing-auth.js"></script>
 
 </body>

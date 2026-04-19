@@ -128,5 +128,21 @@ create policy "sections admin all" on public.cms_sections
   for all using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'))
   with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'));
 
--- 7) (선택) 초기 관리자 지정 — YOUR_EMAIL 교체 후 한 번 실행
+-- 7) cms_content — 랜딩 페이지 전체 텍스트/이미지 key-value 저장소.
+--    landing-page 요소에는 data-cms="some.key" 속성을 달고, cms-loader.js가
+--    이 테이블에서 읽어와 innerText 또는 src를 교체함.
+create table if not exists public.cms_content (
+  key text primary key,
+  value text,
+  kind text default 'text' check (kind in ('text','html','image','url')),
+  note text,
+  updated_at timestamptz default now()
+);
+alter table public.cms_content enable row level security;
+create policy "content read all" on public.cms_content for select using (true);
+create policy "content admin all" on public.cms_content
+  for all using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'))
+  with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'));
+
+-- 8) (선택) 초기 관리자 지정 — YOUR_EMAIL 교체 후 한 번 실행
 -- update public.profiles set role = 'admin' where email = 'YOUR_EMAIL@gmail.com';
