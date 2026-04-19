@@ -237,28 +237,73 @@
   //
   function installCaptureOverrides() {
     if (!isTauri) return;
+
+    // Always-on diagnostic logging so we can see what's happening if the
+    // close click doesn't actually terminate the process.
+    async function forceCloseWindow(trigger) {
+      console.log('[JNP-CLOSE] triggered by', trigger);
+      const win = getWin();
+      console.log('[JNP-CLOSE] getWin returned:', !!win);
+      // 1) Normal Tauri close
+      try {
+        if (win && typeof win.close === 'function') {
+          console.log('[JNP-CLOSE] calling win.close()');
+          await win.close();
+          console.log('[JNP-CLOSE] win.close() resolved');
+        }
+      } catch (e) {
+        console.warn('[JNP-CLOSE] win.close failed:', e && e.message);
+      }
+      // 2) Tauri v2 invoke fallback (main window)
+      try {
+        const invoke = window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke;
+        if (invoke) {
+          console.log('[JNP-CLOSE] invoke plugin:webview|close');
+          await invoke('plugin:webview|close', { label: 'main' });
+        }
+      } catch (e) { console.warn('[JNP-CLOSE] webview|close failed:', e && e.message); }
+      // 3) Process plugin exit
+      try {
+        const proc = window.__TAURI__ && window.__TAURI__.process;
+        if (proc && typeof proc.exit === 'function') {
+          console.log('[JNP-CLOSE] process.exit(0)');
+          await proc.exit(0);
+        }
+      } catch (e) { console.warn('[JNP-CLOSE] process.exit failed:', e && e.message); }
+    }
+    async function forceMinimizeWindow() {
+      const win = getWin();
+      if (win && typeof win.minimize === 'function') {
+        try { await win.minimize(); } catch {}
+      }
+    }
+
     document.addEventListener('click', (e) => {
       const close = e.target.closest && e.target.closest('#closeBtn');
       if (close) {
         e.preventDefault();
         e.stopImmediatePropagation();
-        const win = getWin();
-        if (win && typeof win.close === 'function') {
-          win.close().catch(() => {});
-        }
+        forceCloseWindow('closeBtn click');
         return;
       }
       const min = e.target.closest && e.target.closest('#minBtn');
       if (min) {
         e.preventDefault();
         e.stopImmediatePropagation();
-        const win = getWin();
-        if (win && typeof win.minimize === 'function') {
-          win.minimize().catch(() => {});
-        }
+        forceMinimizeWindow();
         return;
       }
     }, true); // capture phase — runs before any app-level listener
+
+    // Ctrl+Q / Cmd+Q escape hatch — works even if the UI buttons are stuck.
+    window.addEventListener('keydown', (e) => {
+      const isMac = navigator.platform.toUpperCase().includes('MAC');
+      const mod = isMac ? e.metaKey : e.ctrlKey;
+      if (mod && (e.key === 'q' || e.key === 'Q')) {
+        e.preventDefault();
+        forceCloseWindow('Ctrl+Q shortcut');
+      }
+    });
   }
 
   // ---- Drag region ----------------------------------------------------
