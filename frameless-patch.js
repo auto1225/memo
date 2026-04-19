@@ -121,6 +121,29 @@
     close: (win) => win && win.close && win.close(),
   };
 
+  // ---- Runtime frameless enforcement ---------------------------------
+  //
+  // Even if the installed Tauri binary was built with `decorations: true`
+  // (older versions), we can flip it off at runtime here. This means the
+  // user does NOT need to reinstall the desktop app for the outer OS frame
+  // to disappear — restarting the app is enough, because the app loads
+  // this file fresh from the web on every launch.
+  //
+  async function enforceFrameless() {
+    const win = getWin();
+    if (!win) return;
+    try {
+      if (typeof win.setDecorations === 'function') {
+        await win.setDecorations(false);
+      }
+    } catch (e) { /* platform may refuse; ignore */ }
+    try {
+      if (typeof win.setShadow === 'function') {
+        await win.setShadow(true);
+      }
+    } catch (e) { /* noop */ }
+  }
+
   // ---- Wire up buttons -----------------------------------------------
   const selectorMap = {
     minimize: [
@@ -216,6 +239,9 @@
     // version (justanotepad.com/app) keeps its normal page background.
     if (isTauri) {
       document.documentElement.classList.add('jnp-tauri');
+      // Force the window to be frameless at runtime. This works even on
+      // legacy binaries shipped with decorations:true.
+      enforceFrameless();
     }
 
     markDragRegion();
