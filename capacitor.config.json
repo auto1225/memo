@@ -1,0 +1,36 @@
+{
+  "appId": "com.justanotepad.app",
+  "appName": "JustANotepad",
+  "webDir": ".",
+  "bundledWebRuntime": false,
+  "server": {
+    "url": "https://justanotepad.com/app",
+    "cleartext": false
+  },
+  "ios": {
+    "contentInset": "automatic",
+    "scheme": "JustANotepad",
+    "backgroundColor": "#FFFFFF"
+  },
+  "android": {
+    "backgroundColor": "#FFFFFF",
+    "allowMixedContent": false,
+    "captureInput": true
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "launchAutoHide": true,
+      "backgroundColor": "#FAE100",
+      "showSpinner": false,
+      "splashFullScreen": true
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#FAE100"
+    },
+    "Keyboard": {
+      "resize": "body"
+    }
+  }
+}

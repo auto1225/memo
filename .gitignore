@@ -1,0 +1,24 @@
+
+# Tauri
+src-tauri/target/
+src-tauri/Cargo.lock
+src-tauri/gen/
+
+# Node
+node_modules/
+dist/
+
+# Capacitor
+ios/
+android/
+
+# 배포 아티팩트
+*.apk
+*.aab
+*.ipa
+*.dmg
+*.msi
+*.AppImage
+*.deb
+dist-windows/
+android-build/

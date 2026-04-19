@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>JustANotepad 개인정보 처리방침</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="/favicon.svg">
+<style>
+body { font-family: 'Pretendard', system-ui, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 24px; color: #191919; line-height: 1.7; }
+h1 { font-size: 32px; border-bottom: 2px solid #FAE100; padding-bottom: 12px; margin-bottom: 8px; }
+h2 { font-size: 20px; margin-top: 32px; padding-left: 10px; border-left: 4px solid #FAE100; }
+p, li { font-size: 15px; color: #333; }
+.updated { color: #888; font-size: 13px; margin-bottom: 40px; }
+a { color: #D97757; }
+</style>
+</head>
+<body>
+<h1>개인정보 처리방침</h1>
+<p class="updated">시행일자: 2026년 4월 19일 · 최종 수정: 2026년 4월 19일</p>
+
+<p>JustANotepad (이하 "본 서비스")는 이용자의 개인정보를 중요시하며, 「개인정보 보호법」을 준수합니다. 본 처리방침은 본 서비스가 수집하는 정보, 사용 방법, 보관 방식을 투명하게 안내합니다.</p>
+
+<h2>1. 수집하는 개인정보 항목</h2>
+<ul>
+  <li><strong>가입 시</strong>: 이메일 주소 (Google 또는 Magic Link 방식)</li>
+  <li><strong>프로필</strong>: Google 로그인 시 이름, 프로필 사진 (Google 제공 시)</li>
+  <li><strong>사용자 생성 데이터</strong>: 메모 내용, 명함 정보, 그림판 작품, 설정</li>
+  <li><strong>사용 로그</strong>: 접속 일시, 브라우저 정보 (서비스 운영용)</li>
+</ul>
+<p>수집하지 않는 항목: 전화번호, 주소, 주민등록번호, 결제 정보</p>
+
+<h2>2. 개인정보 이용 목적</h2>
+<ul>
+  <li>회원 가입 · 로그인 인증</li>
+  <li>메모 클라우드 동기화 (본인 기기 간)</li>
+  <li>서비스 안정성 유지 · 오류 대응</li>
+  <li>공지사항 및 중요 알림 발송 (동의 시)</li>
+</ul>
+
+<h2>3. 개인정보 보관 및 파기</h2>
+<ul>
+  <li><strong>보관 기간</strong>: 회원 탈퇴 시까지. 탈퇴 시 즉시 전량 파기</li>
+  <li><strong>보관 위치</strong>: Supabase (PostgreSQL, 아시아-태평양 리전)</li>
+  <li><strong>보안</strong>: Row Level Security (RLS) 적용, 본인만 접근 가능</li>
+  <li><strong>암호화</strong>: AES-GCM 256-bit (민감 탭 선택적), TLS 1.3 전송 중 암호화</li>
+</ul>
+
+<h2>4. 제3자 제공</h2>
+<p>본 서비스는 이용자의 개인정보를 제3자에게 제공하지 않습니다. 다만, 다음의 경우 예외:</p>
+<ul>
+  <li>이용자가 사전 동의한 경우</li>
+  <li>법령에 의거하여 수사기관이 정당한 절차로 요청한 경우</li>
+</ul>
+
+<h2>5. 처리 위탁</h2>
+<table style="border-collapse:collapse; width:100%; margin-top:10px;">
+  <thead>
+    <tr style="background:#f5f5f5;"><th style="border:1px solid #ddd; padding:8px; text-align:left;">수탁자</th><th style="border:1px solid #ddd; padding:8px; text-align:left;">위탁 업무</th></tr>
+  </thead>
+  <tbody>
+    <tr><td style="border:1px solid #ddd; padding:8px;">Supabase Inc.</td><td style="border:1px solid #ddd; padding:8px;">데이터베이스 · 인증 · 동기화</td></tr>
+    <tr><td style="border:1px solid #ddd; padding:8px;">Vercel Inc.</td><td style="border:1px solid #ddd; padding:8px;">웹 호스팅 · CDN</td></tr>
+    <tr><td style="border:1px solid #ddd; padding:8px;">Google LLC</td><td style="border:1px solid #ddd; padding:8px;">OAuth 로그인 · Gemini AI (선택적)</td></tr>
+  </tbody>
+</table>
+
+<h2>6. 이용자 권리</h2>
+<ul>
+  <li>개인정보 열람 · 수정 · 삭제 요청 가능</li>
+  <li>회원 탈퇴: 앱 내 "계정 삭제" 또는 이메일로 요청</li>
+  <li>동의 철회 가능 (서비스 이용에 제한 있을 수 있음)</li>
+</ul>
+
+<h2>7. 쿠키 · 로컬 저장소</h2>
+<p>본 서비스는 브라우저의 localStorage 및 쿠키를 사용합니다:</p>
+<ul>
+  <li>로그인 세션 유지</li>
+  <li>메모 로컬 캐시 (오프라인 작동)</li>
+  <li>사용자 설정 저장</li>
+</ul>
+<p>쿠키는 브라우저 설정에서 차단 가능하나, 로그인이 제한될 수 있습니다.</p>
+
+<h2>8. 아동의 개인정보</h2>
+<p>본 서비스는 만 14세 미만 아동의 개인정보를 의도적으로 수집하지 않습니다.</p>
+
+<h2>9. 책임자 및 문의처</h2>
+<ul>
+  <li><strong>개인정보 보호책임자</strong>: 최민호</li>
+  <li><strong>이메일</strong>: <a href="mailto:auto0104@gmail.com">auto0104@gmail.com</a></li>
+  <li><strong>처리 기간</strong>: 접수일로부터 영업일 기준 7일 이내 답변</li>
+</ul>
+
+<h2>10. 방침의 변경</h2>
+<p>본 처리방침이 변경되는 경우 7일 전 공지합니다. 중요한 변경은 앱 내 알림으로 안내합니다.</p>
+
+<hr style="margin-top:60px;">
+<p style="text-align:center; color:#888; font-size:13px;">
+  <a href="/">JustANotepad</a> · <a href="/terms.html">이용약관</a> · <a href="/privacy.html">개인정보 처리방침</a>
+</p>
+</body>
+</html>

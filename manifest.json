@@ -1,41 +1,89 @@
 {
   "name": "JustANotepad",
-  "short_name": "Notepad",
-  "description": "it was supposed to be just a notepad.",
+  "short_name": "JustANotepad",
+  "description": "14가지 역할별 도구, 16개 AI, 그림판, 명함 OCR, 클라우드 동기화까지 담은 무료 메모장.",
   "start_url": "/app",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "orientation": "any",
   "background_color": "#FFFFFF",
   "theme_color": "#FAE100",
   "lang": "ko",
-  "categories": [
-    "productivity",
-    "utilities"
-  ],
+  "dir": "ltr",
+  "categories": ["productivity", "utilities", "education"],
+  "id": "justanotepad",
   "icons": [
-    {
-      "src": "/favicon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
-    }
+    { "src": "/icons/icon-16.png", "sizes": "16x16", "type": "image/png" },
+    { "src": "/icons/icon-32.png", "sizes": "32x32", "type": "image/png" },
+    { "src": "/icons/icon-48.png", "sizes": "48x48", "type": "image/png" },
+    { "src": "/icons/icon-64.png", "sizes": "64x64", "type": "image/png" },
+    { "src": "/icons/icon-96.png", "sizes": "96x96", "type": "image/png" },
+    { "src": "/icons/icon-128.png", "sizes": "128x128", "type": "image/png" },
+    { "src": "/icons/icon-144.png", "sizes": "144x144", "type": "image/png" },
+    { "src": "/icons/icon-152.png", "sizes": "152x152", "type": "image/png" },
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icons/icon-256.png", "sizes": "256x256", "type": "image/png" },
+    { "src": "/icons/icon-384.png", "sizes": "384x384", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icons/icon-1024.png", "sizes": "1024x1024", "type": "image/png" },
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
   ],
   "shortcuts": [
+    { "name": "새 메모", "short_name": "새 메모", "url": "/app?new=1", "description": "빈 메모 바로 열기",
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }] },
+    { "name": "명함 관리", "short_name": "명함", "url": "/app?open=cards", "description": "명함 목록 열기",
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }] },
+    { "name": "그림판", "short_name": "그림판", "url": "/app?open=paint", "description": "그림판 열기",
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }] },
+    { "name": "AI 어시스턴트", "short_name": "AI", "url": "/app?open=ai", "description": "AI 열기",
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }] }
+  ],
+  "share_target": {
+    "action": "/app",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [
+        { "name": "files", "accept": ["image/*", "text/*", ".md", ".txt", ".vcf"] }
+      ]
+    }
+  },
+  "file_handlers": [
     {
-      "name": "새 메모",
-      "url": "/?new=1",
-      "description": "빈 메모 바로 열기"
+      "action": "/app?open=file",
+      "accept": {
+        "text/markdown": [".md"],
+        "text/plain": [".txt"],
+        "text/vcard": [".vcf"],
+        "image/*": [".png", ".jpg", ".jpeg", ".webp", ".gif"]
+      }
+    }
+  ],
+  "protocol_handlers": [
+    { "protocol": "web+justanotepad", "url": "/app?note=%s" }
+  ],
+  "prefer_related_applications": false,
+  "related_applications": [],
+  "screenshots": [
+    {
+      "src": "/screenshots/desktop-main.png",
+      "sizes": "1280x800",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "JustANotepad 메인 화면 — 에디터와 AI 어시스턴트"
     },
     {
-      "name": "명함 관리",
-      "url": "/?open=cards",
-      "description": "명함 목록 열기"
-    },
-    {
-      "name": "그림판",
-      "url": "/?open=paint",
-      "description": "그림판 열기"
+      "src": "/screenshots/mobile-main.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "JustANotepad 모바일 화면"
     }
   ]
 }

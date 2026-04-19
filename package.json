@@ -1,0 +1,34 @@
+{
+  "name": "justanotepad",
+  "version": "1.0.0",
+  "description": "JustANotepad — 14가지 역할별 도구, 16개 AI, 그림판, 명함 OCR, 클라우드 동기화까지 담은 무료 메모장.",
+  "private": true,
+  "scripts": {
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
+    "cap:sync": "cap sync",
+    "cap:ios:open": "cap open ios",
+    "cap:android:open": "cap open android",
+    "cap:android:build": "cap build android",
+    "cap:android:release": "cd android && ./gradlew bundleRelease",
+    "pwa:build": "pwa-asset-generator ./icons/icon-1024.png ./ -i ./app.html -m ./manifest.json --background '#FFFFFF' --padding '10%'",
+    "bubblewrap:init": "bubblewrap init --manifest=https://justanotepad.com/manifest.json",
+    "bubblewrap:build": "bubblewrap build",
+    "pwabuilder:windows": "pwabuilder https://justanotepad.com --platform windows --output ./dist-windows"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0",
+    "@capacitor/cli": "^6.0.0",
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/ios": "^6.0.0",
+    "@capacitor/android": "^6.0.0"
+  },
+  "dependencies": {
+    "@capacitor/splash-screen": "^6.0.0",
+    "@capacitor/status-bar": "^6.0.0",
+    "@capacitor/keyboard": "^6.0.0",
+    "@capacitor/app": "^6.0.0",
+    "@capacitor/preferences": "^6.0.0"
+  }
+}

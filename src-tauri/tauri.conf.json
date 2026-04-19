@@ -1,0 +1,83 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "JustANotepad",
+  "version": "1.0.0",
+  "identifier": "com.justanotepad.app",
+  "build": {
+    "beforeBuildCommand": "",
+    "beforeDevCommand": "",
+    "devUrl": "https://justanotepad.com/app",
+    "frontendDist": "../"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "title": "JustANotepad",
+        "label": "main",
+        "url": "https://justanotepad.com/app",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 420,
+        "minHeight": 500,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true,
+        "decorations": true,
+        "transparent": false,
+        "backgroundColor": "#FFFFFF",
+        "theme": "Light"
+      }
+    ],
+    "security": {
+      "csp": null
+    },
+    "trayIcon": {
+      "iconPath": "icons/icon-tray.png",
+      "iconAsTemplate": true,
+      "tooltip": "JustANotepad",
+      "menuOnLeftClick": false
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "resources": [],
+    "copyright": "© 2026 JustANotepad",
+    "category": "Productivity",
+    "shortDescription": "메모장 · 두뇌가 되는 노트 앱",
+    "longDescription": "14가지 역할별 도구, 16개 AI 모델, 그림판, 명함 OCR, 클라우드 동기화까지 담은 무료 메모장.",
+    "homepage": "https://justanotepad.com",
+    "publisher": "JustANotepad",
+    "linux": {
+      "deb": {
+        "depends": ["libwebkit2gtk-4.1-0", "libgtk-3-0"]
+      },
+      "appimage": {
+        "bundleMediaFramework": true
+      }
+    },
+    "macOS": {
+      "frameworks": [],
+      "minimumSystemVersion": "10.15",
+      "exceptionDomain": "",
+      "signingIdentity": null,
+      "providerShortName": null,
+      "entitlements": null
+    },
+    "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "timestampUrl": "http://timestamp.digicert.com",
+      "webviewInstallMode": { "type": "embedBootstrapper" }
+    }
+  },
+  "plugins": {}
+}
