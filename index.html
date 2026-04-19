@@ -349,7 +349,364 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   display: flex; justify-content: space-between; align-items: center;
 }
 
-/* ========== ALL FEATURES SHOWCASE ========== */
+/* ========== EVERNOTE-STYLE FEATURE ROWS ========== */
+.section-ev {
+  background: #F5F1EB;
+  padding: 0; overflow: hidden;
+}
+.ev-intro {
+  text-align: center; padding: 100px 24px 60px;
+  max-width: 720px; margin: 0 auto;
+}
+.ev-intro .ev-tag { margin-bottom: 20px; }
+.ev-intro h2 {
+  font-size: clamp(36px, 5vw, 56px); font-weight: 800;
+  letter-spacing: -0.03em; line-height: 1.25;
+  color: var(--text); margin-bottom: 20px;
+}
+.ev-intro p { font-size: 17px; color: var(--text-2); line-height: 1.65; }
+
+.ev-row {
+  display: grid; grid-template-columns: 1fr 1.2fr;
+  gap: 80px; align-items: center;
+  padding: 90px 24px;
+  max-width: 1200px; margin: 0 auto;
+  position: relative;
+}
+.ev-row.reverse { grid-template-columns: 1.2fr 1fr; }
+.ev-row.reverse .ev-text { order: 2; }
+.ev-row.reverse .ev-visual { order: 1; }
+
+.ev-alt { background: #FFFFFF; }
+.ev-alt2 { background: #EDE6D8; }
+
+.ev-text .ev-tag {
+  display: inline-block;
+  padding: 6px 16px; background: #FF8C42; color: white;
+  border-radius: 999px; font-size: 14px; font-weight: 700;
+  margin-bottom: 24px; letter-spacing: -0.01em;
+}
+.ev-text h3 {
+  font-size: clamp(32px, 4vw, 48px); font-weight: 800;
+  letter-spacing: -0.03em; line-height: 1.25;
+  color: var(--text); margin-bottom: 20px;
+}
+.ev-text p {
+  font-size: 16px; color: var(--text-2); line-height: 1.7;
+  margin-bottom: 32px; max-width: 440px;
+}
+.ev-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 14px 28px; background: #141414; color: white;
+  border-radius: 8px; font-size: 15px; font-weight: 700;
+  transition: background .15s, transform .15s;
+}
+.ev-btn:hover { background: #000; transform: translateY(-1px); }
+.ev-btn svg { width: 14px; height: 14px; }
+
+/* Visual containers */
+.ev-visual { position: relative; min-height: 440px; }
+
+/* 배경 유기적 shape (우측 상단 원) */
+.ev-visual::before {
+  content: ''; position: absolute;
+  top: -20px; right: -40px; width: 180px; height: 180px;
+  background: rgba(255, 140, 66, 0.12); border-radius: 50%;
+  z-index: 0;
+}
+
+/* === MOCKUP: SEARCH === */
+.ev-mock {
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.ev-search-box {
+  background: white; border-radius: 14px; padding: 14px 18px;
+  display: flex; align-items: center; gap: 12px;
+  border: 1px solid rgba(0,0,0,0.06);
+  position: relative;
+}
+.ev-search-box svg { width: 18px; height: 18px; color: var(--text-mute); flex-shrink: 0; }
+.ev-search-box .q { flex: 1; font-size: 16px; font-weight: 600; color: var(--text); }
+.ev-search-box .q::after { content: '|'; animation: blink 1s infinite; color: var(--text-mute); margin-left: 2px; }
+.ev-search-box .x-btn { width: 20px; height: 20px; color: var(--text-mute); cursor: pointer; }
+.ev-toggle {
+  position: absolute; top: -14px; right: 20px;
+  background: #2D7FF9; color: white;
+  padding: 4px 12px; border-radius: 999px;
+  font-size: 12px; font-weight: 700;
+  display: inline-flex; align-items: center; gap: 6px;
+  z-index: 3;
+}
+.ev-toggle::before { content: '●'; font-size: 10px; }
+
+.ev-result {
+  background: white; border-radius: 12px; padding: 14px 16px;
+  display: flex; align-items: center; gap: 14px;
+  border: 1px solid rgba(0,0,0,0.04);
+  transition: transform .2s;
+}
+.ev-result:hover { transform: translateX(4px); }
+.ev-result .ev-type {
+  font-size: 11px; color: var(--text-mute); font-weight: 600;
+  display: flex; align-items: center; gap: 4px; margin-bottom: 3px;
+}
+.ev-result .ev-type svg { width: 12px; height: 12px; }
+.ev-result h4 { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+.ev-result h4 .hl { background: #FFF3C0; padding: 0 3px; border-radius: 2px; }
+.ev-result p { font-size: 12px; color: var(--text-mute); margin: 0; line-height: 1.4; }
+.ev-result p .hl { background: #FFF3C0; padding: 0 3px; border-radius: 2px; }
+.ev-result .content { flex: 1; min-width: 0; }
+.ev-result .thumb {
+  width: 56px; height: 56px; border-radius: 8px;
+  background-size: cover; background-position: center;
+  flex-shrink: 0;
+}
+
+/* 플로팅 스탬프 (에버노트 기차표 모방) */
+.ev-stamp {
+  position: absolute; right: -20px; bottom: 0;
+  background: #F5EFDF;
+  border-radius: 8px; padding: 20px 16px;
+  width: 180px; height: 240px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+  transform: rotate(5deg);
+  z-index: 2;
+}
+.ev-stamp .tear-top {
+  position: absolute; top: 0; left: 10%; right: 10%;
+  height: 12px;
+  background:
+    radial-gradient(circle at 10% 0%, transparent 6px, #F5EFDF 7px),
+    radial-gradient(circle at 30% 0%, transparent 6px, #F5EFDF 7px),
+    radial-gradient(circle at 50% 0%, transparent 6px, #F5EFDF 7px),
+    radial-gradient(circle at 70% 0%, transparent 6px, #F5EFDF 7px),
+    radial-gradient(circle at 90% 0%, transparent 6px, #F5EFDF 7px);
+}
+.ev-stamp .stamp-title { font-family: Georgia, serif; font-size: 14px; font-weight: 700; text-align: center; margin-top: 20px; letter-spacing: 0.05em; }
+.ev-stamp .stamp-sub { font-size: 10px; text-align: center; color: var(--text-mute); margin-bottom: 20px; }
+.ev-stamp .stamp-img {
+  background: #D4C9B1; height: 90px; border-radius: 4px;
+  margin-bottom: 14px;
+  background-image: url('https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=200&q=70&auto=format&fit=crop');
+  background-size: cover; background-position: center;
+}
+.ev-stamp .stamp-info { font-size: 9px; line-height: 1.6; }
+.ev-stamp .stamp-info strong { display: block; margin-bottom: 2px; }
+.ev-stamp .qr {
+  width: 34px; height: 34px; float: right;
+  background:
+    linear-gradient(90deg, black 0 20%, white 20% 40%, black 40% 60%, white 60% 80%, black 80% 100%),
+    linear-gradient(0deg, black 0 30%, white 30% 60%, black 60% 100%);
+  background-blend-mode: multiply;
+  border: 2px solid #141414;
+}
+
+/* === MOCKUP: 에디터 === */
+.ev-editor {
+  background: white; border-radius: 16px;
+  padding: 0; overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.06);
+  position: relative; z-index: 1;
+}
+.ev-editor .titlebar { background: #F3EEE5; padding: 10px 14px; display: flex; gap: 6px; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.05); }
+.ev-editor .titlebar .dot { width: 10px; height: 10px; border-radius: 50%; background: #D0C9B8; }
+.ev-editor .titlebar .url { flex: 1; text-align: center; font-size: 11px; color: var(--text-mute); font-family: monospace; }
+.ev-editor .body { display: grid; grid-template-columns: 150px 1fr; min-height: 340px; }
+.ev-editor .side { background: #FAF6EF; border-right: 1px solid rgba(0,0,0,0.05); padding: 14px 10px; font-size: 11px; }
+.ev-editor .side h6 { font-size: 9px; color: var(--text-mute); text-transform: uppercase; font-weight: 700; margin: 12px 0 6px 4px; letter-spacing: 0.1em; }
+.ev-editor .side h6:first-child { margin-top: 0; }
+.ev-editor .side-tab { padding: 5px 8px; border-radius: 4px; color: var(--text-2); display: flex; align-items: center; gap: 6px; }
+.ev-editor .side-tab.active { background: white; font-weight: 700; color: var(--text); }
+.ev-editor .side-tab .sq { width: 7px; height: 7px; border-radius: 2px; }
+.ev-editor .content { padding: 20px 22px; }
+.ev-editor .content h2 { font-size: 18px; font-weight: 800; margin-bottom: 4px; letter-spacing: -0.02em; }
+.ev-editor .content .meta { font-size: 11px; color: var(--text-mute); margin-bottom: 14px; }
+.ev-editor .content p { font-size: 13px; color: var(--text-2); line-height: 1.65; margin-bottom: 8px; }
+.ev-editor .content .hl { background: #FFF3C0; padding: 0 3px; }
+.ev-editor .content ul { list-style: none; padding: 0; font-size: 13px; margin-top: 8px; }
+.ev-editor .content ul li { padding: 3px 0 3px 18px; position: relative; color: var(--text-2); }
+.ev-editor .content ul li::before { content: ''; position: absolute; left: 0; top: 10px; width: 12px; height: 12px; border: 1.5px solid var(--text-light); border-radius: 3px; }
+.ev-editor .content ul li.done::before { background: #FF8C42; border-color: #FF8C42; }
+.ev-editor .content ul li.done::after { content: ''; position: absolute; left: 3px; top: 13px; width: 6px; height: 3px; border: 2px solid white; border-top: 0; border-right: 0; transform: rotate(-45deg); }
+
+/* === MOCKUP: AI CHAT === */
+.ev-ai {
+  background: white; border-radius: 16px;
+  padding: 20px; border: 1px solid rgba(0,0,0,0.06);
+  position: relative; z-index: 1;
+}
+.ev-ai .head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-bottom: 14px; margin-bottom: 14px;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+.ev-ai .head strong { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.ev-ai .head strong::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #10B981; }
+.ev-ai .head .model { font-size: 11px; padding: 3px 10px; background: #F0EBE0; border-radius: 999px; font-weight: 700; color: var(--text-2); }
+.ev-ai .bub { padding: 10px 14px; border-radius: 14px; font-size: 13px; line-height: 1.55; margin-bottom: 8px; max-width: 85%; }
+.ev-ai .bub.user { background: #141414; color: white; border-radius: 14px 14px 2px 14px; margin-left: auto; font-weight: 500; }
+.ev-ai .bub.ai { background: #F5F1EB; color: var(--text); border-radius: 14px 14px 14px 2px; }
+.ev-ai .actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; padding-top: 12px; border-top: 1px solid rgba(0,0,0,0.05); }
+.ev-ai .actions span { font-size: 11px; padding: 4px 10px; background: white; border: 1px solid rgba(0,0,0,0.08); border-radius: 999px; color: var(--text-2); font-weight: 600; cursor: pointer; }
+.ev-ai .actions span.active { background: #FF8C42; color: white; border-color: #FF8C42; }
+.ev-ai-floater {
+  position: absolute; top: -20px; right: -20px;
+  background: #FFEFE0; padding: 10px 14px; border-radius: 14px;
+  display: flex; gap: 8px; align-items: center;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  font-size: 12px; font-weight: 700;
+  z-index: 3;
+}
+.ev-ai-floater::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #10B981; }
+
+/* === MOCKUP: PAINT === */
+.ev-paint {
+  background: #FAF6EF; border-radius: 16px; overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.06);
+  position: relative; z-index: 1;
+  display: grid; grid-template-columns: 50px 1fr 140px;
+  min-height: 380px;
+}
+.ev-paint .toolbar { background: #141414; padding: 14px 10px; display: flex; flex-direction: column; gap: 8px; }
+.ev-paint .toolbar .tool { width: 28px; height: 28px; border-radius: 6px; background: rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.6); }
+.ev-paint .toolbar .tool.active { background: #FF8C42; color: white; }
+.ev-paint .toolbar .tool svg { width: 14px; height: 14px; }
+.ev-paint .canvas { position: relative; }
+.ev-paint .canvas svg { width: 100%; height: 100%; }
+.ev-paint .layers { background: white; border-left: 1px solid rgba(0,0,0,0.06); padding: 14px; font-size: 11px; }
+.ev-paint .layers h6 { font-size: 10px; text-transform: uppercase; font-weight: 700; color: var(--text-mute); margin-bottom: 10px; letter-spacing: 0.08em; }
+.ev-paint .layer-item { padding: 6px 8px; border-radius: 4px; display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+.ev-paint .layer-item.active { background: #FFF3C0; font-weight: 700; }
+.ev-paint .layer-item .vis { width: 12px; height: 12px; color: var(--text-mute); }
+.ev-paint .layer-item .thumb { width: 18px; height: 18px; border-radius: 3px; flex-shrink: 0; }
+
+/* === MOCKUP: SYNC DEVICES === */
+.ev-sync { position: relative; z-index: 1; padding: 20px 0; }
+.ev-sync .lap {
+  background: #141414; border-radius: 12px 12px 4px 4px; padding: 6px;
+  width: 100%; max-width: 480px; margin: 0 auto;
+}
+.ev-sync .lap .scr {
+  background: white; border-radius: 6px 6px 0 0; padding: 16px 18px;
+  min-height: 200px;
+}
+.ev-sync .lap::after {
+  content: ''; display: block;
+  height: 14px; background: #2A2A2A;
+  border-radius: 0 0 12px 12px; margin: 0 -12px;
+  width: calc(100% + 24px);
+  position: relative; top: 2px;
+}
+.ev-sync .lap .note-head { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+.ev-sync .lap .note-ln { height: 3px; background: rgba(0,0,0,0.08); border-radius: 2px; margin-bottom: 5px; }
+.ev-sync .lap .note-ln.w1 { width: 90%; }
+.ev-sync .lap .note-ln.w2 { width: 75%; }
+.ev-sync .lap .note-ln.w3 { width: 50%; background: #FF8C42; }
+.ev-sync .phone {
+  position: absolute; right: 10%; bottom: -20px;
+  background: #141414; border-radius: 16px; padding: 6px;
+  width: 110px;
+}
+.ev-sync .phone .scr {
+  background: white; border-radius: 10px; padding: 12px 10px;
+  min-height: 180px;
+}
+.ev-sync .sync-indicator {
+  position: absolute; left: 10%; top: 10%;
+  background: #10B981; color: white;
+  padding: 6px 14px; border-radius: 999px;
+  font-size: 12px; font-weight: 700;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.ev-sync .sync-indicator svg { width: 12px; height: 12px; animation: spin 2s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* === MOCKUP: BUSINESS CARD === */
+.ev-card-mock { position: relative; z-index: 1; }
+.ev-biz-card {
+  background: white; border-radius: 12px; padding: 22px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+  position: relative;
+  max-width: 340px; margin: 0 auto;
+}
+.ev-biz-card .avatar {
+  width: 56px; height: 56px; border-radius: 50%;
+  background-image: url('https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80&auto=format&fit=crop');
+  background-size: cover; background-position: center;
+  margin-bottom: 14px;
+}
+.ev-biz-card h4 { font-size: 18px; font-weight: 800; margin-bottom: 2px; }
+.ev-biz-card .role { font-size: 12px; color: var(--text-mute); margin-bottom: 14px; }
+.ev-biz-card .line { font-size: 12px; color: var(--text-2); padding: 4px 0; display: flex; align-items: center; gap: 8px; }
+.ev-biz-card .line svg { width: 12px; height: 12px; color: var(--text-mute); }
+.ev-biz-card .sns-row { display: flex; gap: 6px; margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(0,0,0,0.06); flex-wrap: wrap; }
+.ev-biz-card .sns { width: 26px; height: 26px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; color: white; }
+.ev-biz-card .sns.ig { background: linear-gradient(135deg, #833AB4, #E1306C); }
+.ev-biz-card .sns.li { background: #0077B5; }
+.ev-biz-card .sns.gh { background: #181717; }
+.ev-biz-card .sns.tw { background: #1DA1F2; }
+.ev-biz-card .sns.yt { background: #FF0000; }
+.ev-biz-card .sns.tk { background: #000; }
+.ev-scan-box {
+  position: absolute; top: -20px; right: -30px;
+  background: #FFEFE0; padding: 14px 16px;
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.08);
+  transform: rotate(-8deg); z-index: 3;
+  width: 180px;
+}
+.ev-scan-box .scan-title { font-size: 11px; font-weight: 700; color: var(--text-mute); margin-bottom: 6px; }
+.ev-scan-box .scan-img {
+  height: 80px; border-radius: 6px;
+  background-image: url('https://images.unsplash.com/photo-1553484771-cc0d9b8c2b33?w=400&q=80&auto=format&fit=crop');
+  background-size: cover; background-position: center;
+  margin-bottom: 8px;
+}
+.ev-scan-box .scan-status {
+  font-size: 10px; color: #10B981; font-weight: 700;
+  display: flex; align-items: center; gap: 4px;
+}
+.ev-scan-box .scan-status::before { content: '●'; font-size: 8px; }
+
+/* === MOCKUP: MEETING === */
+.ev-meeting { position: relative; z-index: 1; }
+.ev-meet-card {
+  background: white; border-radius: 16px; padding: 22px;
+  border: 1px solid rgba(0,0,0,0.06);
+}
+.ev-meet-card .rec-bar {
+  display: flex; align-items: center; gap: 12px;
+  background: #141414; color: white;
+  padding: 12px 16px; border-radius: 999px;
+  margin-bottom: 16px;
+}
+.ev-meet-card .rec-dot { width: 8px; height: 8px; border-radius: 50%; background: #EF4444; animation: blink 1s infinite; }
+.ev-meet-card .rec-time { font-family: monospace; font-weight: 700; }
+.ev-meet-card .waveform { flex: 1; display: flex; align-items: center; gap: 2px; height: 20px; }
+.ev-meet-card .waveform span { flex: 1; background: #FF8C42; border-radius: 1px; animation: wave 1.2s ease-in-out infinite; }
+.ev-meet-card .waveform span:nth-child(2n) { animation-delay: 0.2s; }
+.ev-meet-card .waveform span:nth-child(3n) { animation-delay: 0.4s; }
+@keyframes wave { 0%, 100% { height: 30%; } 50% { height: 100%; } }
+.ev-meet-card .transcript { padding: 10px 12px; background: #FAF6EF; border-radius: 10px; font-size: 12px; line-height: 1.6; margin-bottom: 10px; color: var(--text-2); }
+.ev-meet-card .transcript strong { display: block; font-size: 10px; color: var(--text-mute); margin-bottom: 2px; }
+.ev-meet-card .summary-btn {
+  background: #FF8C42; color: white; padding: 10px 14px; border-radius: 10px;
+  font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 8px;
+  margin-top: 12px; justify-content: center;
+}
+
+/* Responsive ev */
+@media (max-width: 960px) {
+  .ev-row, .ev-row.reverse { grid-template-columns: 1fr; gap: 48px; padding: 60px 24px; }
+  .ev-row.reverse .ev-text { order: 1; }
+  .ev-row.reverse .ev-visual { order: 2; }
+  .ev-stamp { right: 0; transform: rotate(3deg) scale(0.85); }
+  .ev-scan-box { right: 0; }
+  .ev-visual { min-height: 360px; }
+}
+
+/* ========== ALL FEATURES SHOWCASE (LEGACY, 하단 이미지 갤러리용) ========== */
 .section-all {
   background: var(--bg);
   padding: 100px 0;
@@ -873,8 +1230,411 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   </div>
 </section>
 
-<!-- ========== ALL FEATURES SHOWCASE ========== -->
-<section class="section-all" id="features">
+<!-- ========== EVERNOTE-STYLE ROWS ========== -->
+<section class="section-ev" id="features">
+  <div class="ev-intro">
+    <span class="ev-tag" style="background:#FF8C42; color:white; padding:6px 16px; border-radius:999px; font-size:14px; font-weight:700;">모든 기능</span>
+    <h2 style="margin-top:20px;">메모장 하나에<br />두 번째 두뇌를 담다</h2>
+    <p>정리 · 검색 · AI · 동기화 · 그림판 · 명함 · 회의록까지. 당신이 필요한 모든 도구를 한 파일에.</p>
+  </div>
+
+  <!-- ROW 1: 정리 (에디터 + 워크스페이스) -->
+  <div class="ev-row">
+    <div class="ev-text">
+      <span class="ev-tag">정리</span>
+      <h3>모든 메모를<br />한 곳에</h3>
+      <p>워크스페이스로 분리하고, 무제한 탭으로 정리하세요. 태그와 즐겨찾기, 컬러 구분으로 수백 개 메모도 1초 안에 찾습니다.</p>
+      <a href="/app" class="ev-btn">
+        무료로 사용해보세요
+        <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+    <div class="ev-visual">
+      <div class="ev-editor">
+        <div class="titlebar">
+          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+          <span class="url">justanotepad.com/app</span>
+        </div>
+        <div class="body">
+          <aside class="side">
+            <h6>워크스페이스</h6>
+            <div class="side-tab"><span class="sq" style="background:#FF8C42"></span>업무</div>
+            <div class="side-tab"><span class="sq" style="background:#2D7FF9"></span>개인</div>
+            <h6>탭</h6>
+            <div class="side-tab active"><span class="sq" style="background:#FF8C42"></span>주간 회의록</div>
+            <div class="side-tab"><span class="sq" style="background:#FFD23F"></span>아이디어</div>
+            <div class="side-tab"><span class="sq" style="background:#10B981"></span>독서 메모</div>
+            <div class="side-tab"><span class="sq" style="background:#8B5CF6"></span>여행 계획</div>
+          </aside>
+          <div class="content">
+            <h2>주간 팀 회의록</h2>
+            <div class="meta">2026.04.18 · 5명 참석</div>
+            <p>이번 주 <span class="hl">스프린트 회고</span>와 다음 분기 OKR 정렬 논의.</p>
+            <div style="font-weight:700; font-size:13px; margin-top:10px;">결정 사항</div>
+            <ul>
+              <li class="done">랜딩페이지 리뉴얼</li>
+              <li class="done">Supabase 동기화</li>
+              <li>사용자 인터뷰 5건</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 2: 검색 (에버노트 그대로 모방) -->
+  <div class="ev-row reverse ev-alt">
+    <div class="ev-text">
+      <span class="ev-tag">검색</span>
+      <h3>필요한 정보를<br />빠르게 찾으세요</h3>
+      <p>타이핑하는 순간 실시간으로 검색되는 메모·명함·레시피·여행 일정. 오프라인에서도 동일하게 작동합니다.</p>
+      <a href="/app" class="ev-btn">
+        무료로 사용해보세요
+        <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+    <div class="ev-visual">
+      <div class="ev-mock">
+        <span class="ev-toggle">Offline</span>
+        <div class="ev-search-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <span class="q">교토</span>
+          <svg class="x-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </div>
+        <div class="ev-result">
+          <div class="content">
+            <div class="ev-type"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>여행 계획</div>
+            <h4>일본 <span class="hl">교토</span> 4박 5일</h4>
+            <p>D1: 간사이공항 도착 → <span class="hl">교토</span> 호텔 체크인</p>
+          </div>
+          <div class="thumb" style="background-image:url('https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=200&q=70&auto=format&fit=crop')"></div>
+        </div>
+        <div class="ev-result">
+          <div class="content">
+            <div class="ev-type"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>여행 계획</div>
+            <h4><span class="hl">교토</span> 항공편 비교</h4>
+            <p>ANA vs 대한항공 vs 아시아나 가격 비교</p>
+          </div>
+        </div>
+        <div class="ev-result">
+          <div class="content">
+            <div class="ev-type"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>업무</div>
+            <h4><span class="hl">교토</span> 출장 보고서 (초안)</h4>
+            <p>2025 글로벌 워크샵 참가 내용 정리</p>
+          </div>
+        </div>
+        <div class="ev-result">
+          <div class="content">
+            <div class="ev-type"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>맛집</div>
+            <h4>추천 레스토랑</h4>
+            <p>기온 이자카야 · <span class="hl">교토</span> 라멘 · 니시키 시장...</p>
+          </div>
+          <div class="thumb" style="background-image:url('https://images.unsplash.com/photo-1526318896980-cf78c088247c?w=200&q=70&auto=format&fit=crop')"></div>
+        </div>
+      </div>
+      <div class="ev-stamp">
+        <div class="tear-top"></div>
+        <div class="stamp-title">TORRE DE BELÉM</div>
+        <div class="stamp-sub">LISBON, PORTUGAL</div>
+        <div class="stamp-img"></div>
+        <div class="stamp-info">
+          <strong>DATE: 14 NOV 2026</strong>
+          <strong>TIME: 10:30 AM</strong>
+          <div class="qr"></div>
+          <strong style="margin-top:6px;">PRICE: €12.00</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 3: AI -->
+  <div class="ev-row ev-alt2">
+    <div class="ev-text">
+      <span class="ev-tag">AI</span>
+      <h3>16개 AI 모델로<br />두 번째 두뇌를</h3>
+      <p>GPT · Claude · Gemini를 한 곳에서 자유롭게. 우클릭 한 번에 요약 · 번역 · 이어쓰기 · 플래시카드 생성까지.</p>
+      <a href="/app" class="ev-btn">
+        무료로 사용해보세요
+        <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+    <div class="ev-visual">
+      <div class="ev-ai-floater">AI 온라인</div>
+      <div class="ev-ai">
+        <div class="head">
+          <strong>AI 어시스턴트</strong>
+          <span class="model">GPT-4o</span>
+        </div>
+        <div class="bub user">이 회의록 3줄로 요약해줘</div>
+        <div class="bub ai">1. 4월 스프린트 회고 완료, 리뉴얼 작업 마무리<br>2. 다음 분기 OKR 3개 확정 (사용자 50% 증가 · NPS 40→50 · 전환율 5%)<br>3. 다음 주 사용자 인터뷰 5건 진행 예정</div>
+        <div class="bub user">이걸 영어로 번역해줘</div>
+        <div class="bub ai">1. April sprint retrospective completed, renewal work wrapped up...</div>
+        <div class="actions">
+          <span class="active">요약</span>
+          <span>번역</span>
+          <span>이어쓰기</span>
+          <span>플래시카드</span>
+          <span>질문 생성</span>
+          <span>문법 검사</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 4: 그림판 -->
+  <div class="ev-row reverse">
+    <div class="ev-text">
+      <span class="ev-tag">그림판</span>
+      <h3>포토샵이<br />통째로 들어있습니다</h3>
+      <p>레이어 시스템 · 16종 블렌드 모드 · 11종 필터 · AI 이미지 생성. 별도 프로그램 설치 없이 브라우저에서 바로.</p>
+      <a href="/app" class="ev-btn">
+        무료로 사용해보세요
+        <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+    <div class="ev-visual">
+      <div class="ev-paint">
+        <div class="toolbar">
+          <div class="tool active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/></svg></div>
+          <div class="tool"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg></div>
+          <div class="tool"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16"/></svg></div>
+          <div class="tool"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7l16-3M4 17l16-3"/></svg></div>
+          <div class="tool"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L9 8l-6 1 4.5 4.5L6 20l6-3 6 3-1.5-6.5L21 9l-6-1z"/></svg></div>
+          <div class="tool"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3z"/><circle cx="9" cy="9" r="2"/></svg></div>
+        </div>
+        <div class="canvas">
+          <svg viewBox="0 0 400 340" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <linearGradient id="sky" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0" stop-color="#FFEFE0"/>
+                <stop offset="1" stop-color="#FFF3C0"/>
+              </linearGradient>
+              <linearGradient id="sun" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0" stop-color="#FF8C42"/>
+                <stop offset="1" stop-color="#FFD23F"/>
+              </linearGradient>
+            </defs>
+            <rect width="400" height="340" fill="url(#sky)"/>
+            <circle cx="320" cy="100" r="45" fill="url(#sun)"/>
+            <path d="M0,280 Q100,200 200,240 T400,220 L400,340 L0,340 Z" fill="#2E5BFF" opacity="0.7"/>
+            <path d="M0,300 Q120,260 240,280 T400,270 L400,340 L0,340 Z" fill="#141414" opacity="0.85"/>
+            <path d="M50,240 Q80,180 110,230 Q140,200 170,250" stroke="#FF8C42" stroke-width="4" fill="none" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="layers">
+          <h6>레이어</h6>
+          <div class="layer-item active">
+            <svg class="vis" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <span class="thumb" style="background:linear-gradient(135deg,#FF8C42,#FFD23F)"></span>
+            <span>태양</span>
+          </div>
+          <div class="layer-item">
+            <svg class="vis" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/></svg>
+            <span class="thumb" style="background:#2E5BFF"></span>
+            <span>바다</span>
+          </div>
+          <div class="layer-item">
+            <svg class="vis" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/></svg>
+            <span class="thumb" style="background:#141414"></span>
+            <span>지평선</span>
+          </div>
+          <div class="layer-item">
+            <svg class="vis" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/></svg>
+            <span class="thumb" style="background:linear-gradient(135deg,#FFEFE0,#FFF3C0)"></span>
+            <span>하늘</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 5: 동기화 -->
+  <div class="ev-row ev-alt">
+    <div class="ev-text">
+      <span class="ev-tag">동기화</span>
+      <h3>어느 기기에서나<br />같은 메모</h3>
+      <p>데스크톱에서 쓰고 스마트폰에서 이어쓰세요. Google · 매직링크 로그인만으로 실시간 동기화. 인터넷이 끊겨도 작업하다가 연결 시 자동 업로드.</p>
+      <a href="/app" class="ev-btn">
+        무료로 사용해보세요
+        <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+    <div class="ev-visual">
+      <div class="ev-sync">
+        <span class="sync-indicator">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10"/></svg>
+          실시간 동기화 중
+        </span>
+        <div class="lap">
+          <div class="scr">
+            <div class="note-head">주간 팀 회의록</div>
+            <div style="font-size:10px; color:var(--text-mute); margin-bottom:10px;">2026.04.18 · 데스크톱에서 편집</div>
+            <div class="note-ln w1"></div>
+            <div class="note-ln w2"></div>
+            <div class="note-ln w1"></div>
+            <div class="note-ln w3"></div>
+            <div class="note-ln w2"></div>
+            <div class="note-ln w1"></div>
+            <div class="note-ln w3"></div>
+          </div>
+        </div>
+        <div class="phone">
+          <div class="scr">
+            <div style="font-size:10px; font-weight:700; margin-bottom:4px;">주간 팀 회의록</div>
+            <div style="font-size:8px; color:var(--text-mute); margin-bottom:8px;">방금 sync</div>
+            <div style="height:2px; background:rgba(0,0,0,0.1); margin-bottom:3px;"></div>
+            <div style="height:2px; background:rgba(0,0,0,0.1); margin-bottom:3px; width:75%;"></div>
+            <div style="height:2px; background:rgba(0,0,0,0.1); margin-bottom:3px;"></div>
+            <div style="height:2px; background:#FF8C42; margin-bottom:3px; width:50%;"></div>
+            <div style="height:2px; background:rgba(0,0,0,0.1); margin-bottom:3px; width:80%;"></div>
+            <div style="height:2px; background:rgba(0,0,0,0.1); margin-bottom:3px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 6: 명함 OCR -->
+  <div class="ev-row reverse ev-alt2">
+    <div class="ev-text">
+      <span class="ev-tag">명함</span>
+      <h3>사진 한 장으로<br />명함 자동 수집</h3>
+      <p>AI OCR이 이름·회사·직책·전화·이메일 자동 추출. 16개 SNS 플랫폼 자동 인식. vCard로 기존 연락처와 바로 연동.</p>
+      <a href="/app" class="ev-btn">
+        무료로 사용해보세요
+        <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+    <div class="ev-visual">
+      <div class="ev-card-mock">
+        <div class="ev-scan-box">
+          <div class="scan-title">원본 사진</div>
+          <div class="scan-img"></div>
+          <div class="scan-status">OCR 완료</div>
+        </div>
+        <div class="ev-biz-card">
+          <div class="avatar"></div>
+          <h4>김지훈</h4>
+          <div class="role">Product Designer · 카카오</div>
+          <div class="line">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>
+            +82 10-1234-5678
+          </div>
+          <div class="line">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path d="M22 6l-10 7L2 6"/></svg>
+            jihoon.kim@kakao.com
+          </div>
+          <div class="line">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            서울 성남시 판교역로 235
+          </div>
+          <div class="sns-row">
+            <div class="sns ig">IG</div>
+            <div class="sns li">in</div>
+            <div class="sns gh">GH</div>
+            <div class="sns tw">X</div>
+            <div class="sns yt">YT</div>
+            <div class="sns tk">TK</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 7: 회의 녹음 -->
+  <div class="ev-row">
+    <div class="ev-text">
+      <span class="ev-tag">회의</span>
+      <h3>녹음하면 AI가<br />회의록을 완성합니다</h3>
+      <p>실시간 받아쓰기 + 자동 요약 + 액션 아이템 추출. 회의가 끝나면 완성된 회의록이 메모장에 저장됩니다.</p>
+      <a href="/app" class="ev-btn">
+        무료로 사용해보세요
+        <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+    <div class="ev-visual">
+      <div class="ev-meeting">
+        <div class="ev-meet-card">
+          <div class="rec-bar">
+            <span class="rec-dot"></span>
+            <span class="rec-time">00:42:18</span>
+            <div class="waveform">
+              <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+            </div>
+          </div>
+          <div class="transcript"><strong>김 팀장 · 00:41:02</strong>다음 분기 OKR는 사용자 50% 증가를 최우선으로 하고, 결제 전환율을 5%까지 끌어올리는 걸로 정리하겠습니다.</div>
+          <div class="transcript"><strong>박 매니저 · 00:41:48</strong>네, 저는 사용자 인터뷰 5건을 다음 주까지 완료하겠습니다.</div>
+          <div class="summary-btn">
+            <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L9.5 8.5 3 11l6.5 2.5L12 20l2.5-6.5L21 11l-6.5-2.5z"/></svg>
+            AI로 회의록 생성
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 8: 14 역할별 -->
+  <div class="ev-row reverse ev-alt">
+    <div class="ev-text">
+      <span class="ev-tag">역할별</span>
+      <h3>당신 역할에 맞는<br />도구가 있습니다</h3>
+      <p>학생·회사원·주부·창작자까지. 14가지 역할 각자의 전용 위젯을 내장했습니다. 강의표·가계부·견적서·무드보드까지 모두 내장.</p>
+      <a href="/app" class="ev-btn">
+        무료로 사용해보세요
+        <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+    <div class="ev-visual">
+      <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:10px;">
+        <div style="background:white; padding:14px; border-radius:12px; border:1px solid rgba(0,0,0,0.06);">
+          <div style="width:100%; aspect-ratio:1; background:url('https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=400&q=80&auto=format&fit=crop') center/cover; border-radius:8px; margin-bottom:10px;"></div>
+          <div style="font-size:13px; font-weight:700;">대학생</div>
+          <div style="font-size:11px; color:var(--text-mute);">시간표 · GPA · D-Day</div>
+        </div>
+        <div style="background:white; padding:14px; border-radius:12px; border:1px solid rgba(0,0,0,0.06);">
+          <div style="width:100%; aspect-ratio:1; background:url('https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=400&q=80&auto=format&fit=crop') center/cover; border-radius:8px; margin-bottom:10px;"></div>
+          <div style="font-size:13px; font-weight:700;">회사원</div>
+          <div style="font-size:11px; color:var(--text-mute);">OKR · 미팅 · 견적</div>
+        </div>
+        <div style="background:white; padding:14px; border-radius:12px; border:1px solid rgba(0,0,0,0.06);">
+          <div style="width:100%; aspect-ratio:1; background:url('https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=400&q=80&auto=format&fit=crop') center/cover; border-radius:8px; margin-bottom:10px;"></div>
+          <div style="font-size:13px; font-weight:700;">가정주부</div>
+          <div style="font-size:11px; color:var(--text-mute);">가계부 · 식단</div>
+        </div>
+        <div style="background:white; padding:14px; border-radius:12px; border:1px solid rgba(0,0,0,0.06);">
+          <div style="width:100%; aspect-ratio:1; background:url('https://images.unsplash.com/photo-1556761175-b413da4baf72?w=400&q=80&auto=format&fit=crop') center/cover; border-radius:8px; margin-bottom:10px;"></div>
+          <div style="font-size:13px; font-weight:700;">프리랜서</div>
+          <div style="font-size:11px; color:var(--text-mute);">견적 · 청구 · CRM</div>
+        </div>
+        <div style="background:#FF8C42; color:white; padding:14px; border-radius:12px; display:flex; flex-direction:column; justify-content:center; text-align:center;">
+          <div style="font-family:Georgia, serif; font-size:32px; font-weight:800; letter-spacing:-0.04em;">+10</div>
+          <div style="font-size:11px; font-weight:700; margin-top:4px;">더 보기</div>
+        </div>
+        <div style="background:white; padding:14px; border-radius:12px; border:1px solid rgba(0,0,0,0.06);">
+          <div style="width:100%; aspect-ratio:1; background:url('https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400&q=80&auto=format&fit=crop') center/cover; border-radius:8px; margin-bottom:10px;"></div>
+          <div style="font-size:13px; font-weight:700;">여행자</div>
+          <div style="font-size:11px; color:var(--text-mute);">일정 · 환율 · 경비</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 9: CTA 마무리 -->
+  <div class="ev-row" style="justify-content: center; text-align: center; padding: 100px 24px; display: block;">
+    <div style="max-width: 600px; margin: 0 auto; text-align: center;">
+      <span class="ev-tag">지금 시작</span>
+      <h3 style="font-size: clamp(32px, 4vw, 48px); margin-top: 20px; text-align: center;">오늘 두 번째 두뇌를<br />경험해보세요</h3>
+      <p style="margin: 20px auto 32px; max-width: 480px; text-align: center;">가입하지 않아도 됩니다. 다운로드도 필요 없습니다. 평생 무료입니다.</p>
+      <a href="/app" class="ev-btn" style="font-size: 16px; padding: 16px 32px;">
+        무료로 사용해보세요
+        <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ========== LEGACY ALL FEATURES (숨김) ========== -->
+<section class="section-all" id="features-legacy" style="display:none;">
   <div class="wrap">
     <div class="all-intro">
       <span class="section-eyebrow">ALL FEATURES</span>
