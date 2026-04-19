@@ -238,72 +238,54 @@
   function installCaptureOverrides() {
     if (!isTauri) return;
 
-    // Always-on diagnostic logging so we can see what's happening if the
-    // close click doesn't actually terminate the process.
+    // Try every known path to close the current window. Whichever one the
+    // runtime exposes will win. No UI interaction required.
     async function forceCloseWindow(trigger) {
-      console.log('[JNP-CLOSE] triggered by', trigger);
       const T = window.__TAURI__ || {};
-      console.log('[JNP-CLOSE] __TAURI__ keys:', Object.keys(T));
-      console.log('[JNP-CLOSE] window ns keys:', T.window ? Object.keys(T.window) : '-');
-      console.log('[JNP-CLOSE] webviewWindow ns keys:', T.webviewWindow ? Object.keys(T.webviewWindow) : '-');
-
       const attempts = [
-        ['window.getCurrentWindow().close',       async () => T.window && T.window.getCurrentWindow && T.window.getCurrentWindow().close()],
-        ['webviewWindow.getCurrentWebviewWindow().close', async () => T.webviewWindow && T.webviewWindow.getCurrentWebviewWindow && T.webviewWindow.getCurrentWebviewWindow().close()],
-        ['window.getCurrent().close',             async () => T.window && T.window.getCurrent && T.window.getCurrent().close()],
-        ['invoke plugin:webview|close',           async () => T.core && T.core.invoke && T.core.invoke('plugin:webview|close', { label: 'main' })],
-        ['invoke plugin:window|close',            async () => T.core && T.core.invoke && T.core.invoke('plugin:window|close', { label: 'main' })],
-        ['process.exit(0)',                       async () => T.process && T.process.exit && T.process.exit(0)],
-        ['app.exit(0)',                           async () => T.app && T.app.exit && T.app.exit(0)],
+        async () => T.window && T.window.getCurrentWindow && T.window.getCurrentWindow().close(),
+        async () => T.webviewWindow && T.webviewWindow.getCurrentWebviewWindow && T.webviewWindow.getCurrentWebviewWindow().close(),
+        async () => T.window && T.window.getCurrent && T.window.getCurrent().close(),
+        async () => T.core && T.core.invoke && T.core.invoke('plugin:webview|close', { label: 'main' }),
+        async () => T.core && T.core.invoke && T.core.invoke('plugin:window|close', { label: 'main' }),
+        async () => T.process && T.process.exit && T.process.exit(0),
       ];
-      for (const [name, fn] of attempts) {
-        try {
-          console.log('[JNP-CLOSE] trying', name);
-          const ret = await fn();
-          console.log('[JNP-CLOSE]   → ok, returned', ret);
-        } catch (e) {
-          console.warn('[JNP-CLOSE]   ✗', name, '—', e && e.message);
-        }
-      }
-      console.log('[JNP-CLOSE] all attempts dispatched');
-    }
-
-    // Expose to DevTools for manual triggering:
-    // user can just type  jnpCloseNow()  in the console
-    window.jnpCloseNow = () => forceCloseWindow('manual console trigger');
-    async function forceMinimizeWindow() {
-      const win = getWin();
-      if (win && typeof win.minimize === 'function') {
-        try { await win.minimize(); } catch {}
+      for (const fn of attempts) {
+        try { await fn(); } catch {}
       }
     }
+    window.jnpCloseNow = () => forceCloseWindow('manual');
 
-    document.addEventListener('click', (e) => {
-      const close = e.target.closest && e.target.closest('#closeBtn');
-      if (close) {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        forceCloseWindow('closeBtn click');
-        return;
-      }
-      const min = e.target.closest && e.target.closest('#minBtn');
-      if (min) {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        forceMinimizeWindow();
-        return;
-      }
-    }, true); // capture phase — runs before any app-level listener
+    // Rather than intercepting the click event (which app.html's own
+    // handler also listens to via addEventListener), we REPLACE
+    // window.close itself. app.html calls window.close() inside its
+    // confirm dialog — now that call goes to Tauri's close APIs.
+    const nativeClose = window.close.bind(window);
+    window.close = function () {
+      forceCloseWindow('window.close shim');
+      try { nativeClose(); } catch {}
+    };
 
-    // Ctrl+Q / Cmd+Q escape hatch — works even if the UI buttons are stuck.
+    // Ctrl+Q escape hatch in case every UI button is borked.
     window.addEventListener('keydown', (e) => {
       const isMac = navigator.platform.toUpperCase().includes('MAC');
       const mod = isMac ? e.metaKey : e.ctrlKey;
       if (mod && (e.key === 'q' || e.key === 'Q')) {
         e.preventDefault();
-        forceCloseWindow('Ctrl+Q shortcut');
+        forceCloseWindow('Ctrl+Q');
       }
     });
+
+    // Real OS-level minimize when the in-app minimize button is pressed.
+    // app.html only toggles a CSS class; we also minimize the OS window.
+    const minBtn = document.getElementById('minBtn');
+    if (minBtn && !minBtn.dataset.jnpMinBound) {
+      minBtn.dataset.jnpMinBound = '1';
+      minBtn.addEventListener('click', () => {
+        const T = window.__TAURI__ || {};
+        try { T.window && T.window.getCurrentWindow && T.window.getCurrentWindow().minimize(); } catch {}
+      });
+    }
   }
 
   // ---- Drag region ----------------------------------------------------
