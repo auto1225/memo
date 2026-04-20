@@ -6,6 +6,18 @@
 <title>JustANotepad — 공유 노트</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<!-- Open Graph / Social share (populated dynamically by JS below) -->
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="JustANotepad">
+<meta property="og:title" id="og-title" content="공유 노트 — JustANotepad">
+<meta property="og:description" id="og-desc" content="JustANotepad에서 누군가가 공유한 노트입니다.">
+<meta property="og:image" content="https://justanotepad.com/icons/icon-1024.png">
+<meta property="og:url" id="og-url" content="https://justanotepad.com">
+<meta property="og:locale" content="ko_KR">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" id="tw-title" content="공유 노트 — JustANotepad">
+<meta name="twitter:description" id="tw-desc" content="JustANotepad에서 누군가가 공유한 노트입니다.">
+<meta name="description" id="meta-desc" content="JustANotepad에서 누군가가 공유한 노트입니다.">
 <style>
   :root { --ink:#1f2937; --soft:#6b7280; --faint:#9ca3af; --line:#e5e7eb; --accent:#D97757; --bg:#fff; --success:#10b981; }
   body { margin:0; background:var(--bg); color:var(--ink); line-height:1.7;
@@ -106,6 +118,7 @@
   <div class="presence" id="presence"></div>
   <span id="liveBadge" class="live offline">오프라인</span>
   <button id="btnEdit" class="toggle" style="display:none;">편집</button>
+  <button id="btnEmbed" class="toggle" title="iframe 임베드 코드 복사">&lt;/&gt; 임베드</button>
   <a href="/" class="cta">나도 무료로 시작</a>
 </header>
 
@@ -265,6 +278,22 @@
     lastServerBody = data.body || '';
     document.title = (data.title || '공유 노트') + ' — JustANotepad';
 
+    // Update Open Graph + Twitter meta tags dynamically for social previews.
+    // Strip Markdown syntax for the excerpt preview.
+    const excerpt = (data.body || '')
+      .replace(/[#*_`>~\[\]|]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 160);
+    const pageUrl = location.origin + '/s/' + encodeURIComponent(token);
+    const titleTxt = (data.title || '공유 노트') + ' — JustANotepad';
+    document.getElementById('og-title').setAttribute('content', titleTxt);
+    document.getElementById('og-desc').setAttribute('content', excerpt || 'JustANotepad에서 공유한 노트');
+    document.getElementById('og-url').setAttribute('content', pageUrl);
+    document.getElementById('tw-title').setAttribute('content', titleTxt);
+    document.getElementById('tw-desc').setAttribute('content', excerpt || 'JustANotepad에서 공유한 노트');
+    document.getElementById('meta-desc').setAttribute('content', excerpt || 'JustANotepad에서 공유한 노트');
+
     // best-effort view-count bump
     try { await sb.from('cms_shared_notes').update({ view_count: (data.view_count||0)+1 }).eq('token', token); } catch {}
 
@@ -344,6 +373,20 @@
     if (!note || note.mode !== 'edit') return;
     isEditing = !isEditing;
     if (isEditing) renderEditor(); else renderReadOnly();
+  });
+
+  $('btnEmbed').addEventListener('click', async () => {
+    const embedUrl = location.origin + '/embed/' + encodeURIComponent(token);
+    const html = `<iframe src="${embedUrl}" width="100%" height="500" style="border:1px solid #e5e7eb;border-radius:8px;" loading="lazy"></iframe>`;
+    try {
+      await navigator.clipboard.writeText(html);
+      const btn = $('btnEmbed');
+      const orig = btn.textContent;
+      btn.textContent = '✓ 복사됨';
+      setTimeout(() => { btn.textContent = orig; }, 1500);
+    } catch {
+      prompt('아래 iframe 코드를 복사하세요:', html);
+    }
   });
 
   $('editArea').addEventListener('input', () => { updatePreview(); scheduleSave(); });

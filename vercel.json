@@ -36,6 +36,14 @@
         { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" },
         { "key": "Service-Worker-Allowed", "value": "/" }
       ]
+    },
+    {
+      "source": "/embed.html",
+      "headers": [
+        { "key": "X-Frame-Options", "value": "ALLOWALL" },
+        { "key": "Content-Security-Policy", "value": "frame-ancestors *;" },
+        { "key": "Cache-Control", "value": "public, max-age=60, s-maxage=300" }
+      ]
     }
   ],
   "redirects": [
@@ -48,6 +56,7 @@
     { "source": "/home", "destination": "/home.html" },
     { "source": "/extension-connect", "destination": "/extension-connect.html" },
     { "source": "/graph", "destination": "/graph.html" },
-    { "source": "/s/:token", "destination": "/share.html" }
+    { "source": "/s/:token", "destination": "/share.html" },
+    { "source": "/embed/:token", "destination": "/embed.html" }
   ]
 }

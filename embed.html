@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JustANotepad Embed</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+  :root { --ink:#1f2937; --soft:#6b7280; --faint:#9ca3af; --line:#e5e7eb; --accent:#D97757; }
+  html, body { margin:0; background:#fff; color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+    font-size:14px; line-height:1.65; }
+  .frame {
+    max-width:760px; margin:0 auto; padding:20px 22px;
+    position:relative;
+  }
+  .credit {
+    position:sticky; bottom:0; background:linear-gradient(to top, #fff 60%, rgba(255,255,255,0.8));
+    padding:12px 0 4px; text-align:right; font-size:10px; color:var(--faint);
+    z-index:2;
+  }
+  .credit a { color:var(--accent); text-decoration:none; font-weight:600; }
+  h1 { font-size:26px; font-weight:800; margin:0 0 6px; letter-spacing:-0.02em; }
+  .sub { color:var(--faint); font-size:11px; margin-bottom:20px; padding-bottom:12px; border-bottom:1px solid var(--line); }
+  #body h1, #body h2, #body h3 { letter-spacing:-0.02em; margin-top:1.6em; }
+  #body h1 { font-size:22px; }
+  #body h2 { font-size:18px; }
+  #body h3 { font-size:15px; }
+  #body code { background:#f3f4f6; padding:2px 5px; border-radius:3px; font-size:90%; }
+  #body pre { background:#fafbfc; border:1px solid var(--line); padding:12px; border-radius:8px; overflow-x:auto; font-size:12px; }
+  #body blockquote { border-left:3px solid var(--accent); padding:2px 14px; color:var(--soft); margin:14px 0; }
+  #body a { color:var(--accent); }
+  #body img { max-width:100%; border-radius:6px; }
+  #body ul, #body ol { padding-left:1.5em; }
+  .wikilink { display:inline-block; padding:0 5px; background:#FFFBE6;
+    border:1px solid #F5E58C; border-radius:3px; font-size:95%;
+    color:#a16207; text-decoration:none; font-weight:500; }
+  .wikilink.missing { background:#fef2f2; border-color:#fecaca; color:#b91c1c; font-style:italic; }
+  .wikilink.missing::before { content:'?'; margin-right:3px; font-weight:700; }
+  .empty { padding:40px 20px; text-align:center; color:var(--soft); font-size:13px; }
+</style>
+</head>
+<body>
+<div class="frame">
+  <div id="loading" class="empty">불러오는 중…</div>
+  <article id="content" style="display:none;">
+    <h1 id="title"></h1>
+    <div class="sub" id="sub"></div>
+    <div id="body"></div>
+  </article>
+  <div id="notFound" class="empty" style="display:none;">
+    이 노트를 찾을 수 없습니다.
+  </div>
+  <div class="credit">
+    Powered by
+    <a id="credit-link" href="https://justanotepad.com" target="_blank" rel="noopener">JustANotepad</a>
+  </div>
+</div>
+
+<script src="/config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
+<script>
+(async () => {
+  const m = location.pathname.match(/\/embed\/([^/?#]+)/);
+  const token = m ? decodeURIComponent(m[1]) : null;
+  const show = (id) => {
+    ['loading','content','notFound'].forEach(x => {
+      const el = document.getElementById(x);
+      if (el) el.style.display = (x === id ? 'block' : 'none');
+    });
+  };
+  if (!token) { show('notFound'); return; }
+
+  const sb = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, { auth: { persistSession: false } });
+  const { data, error } = await sb.from('cms_shared_notes').select('*').eq('token', token).maybeSingle();
+  if (error || !data) { show('notFound'); return; }
+  if (data.expires_at && new Date(data.expires_at).getTime() < Date.now()) { show('notFound'); return; }
+
+  // Resolve wikilinks
+  const wikiRe = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g;
+  const titles = new Set();
+  let mm;
+  while ((mm = wikiRe.exec(data.body || '')) !== null) titles.add(mm[1].trim());
+  const tokenByTitle = {};
+  if (titles.size) {
+    const { data: rows } = await sb.from('cms_shared_notes').select('token,title').in('title', [...titles]);
+    (rows || []).forEach(r => { tokenByTitle[r.title] = r.token; });
+  }
+
+  document.title = (data.title || 'Note') + ' — JustANotepad';
+  document.getElementById('title').textContent = data.title || '(제목 없음)';
+  document.getElementById('sub').textContent =
+    new Date(data.created_at).toLocaleDateString('ko-KR', { dateStyle: 'medium' });
+  document.getElementById('credit-link').href = location.origin + '/s/' + encodeURIComponent(token);
+
+  let html = window.marked.parse(data.body || '');
+  html = html.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_, title, alias) => {
+    const t = title.trim(), display = (alias || title).trim();
+    const tok = tokenByTitle[t];
+    if (tok) return `<a class="wikilink" href="/s/${encodeURIComponent(tok)}" target="_top">${display}</a>`;
+    return `<span class="wikilink missing">${display}</span>`;
+  });
+
+  document.getElementById('body').innerHTML = window.DOMPurify.sanitize(html, { ADD_ATTR: ['class', 'target'] });
+  show('content');
+})();
+</script>
+</body>
+</html>
