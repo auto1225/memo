@@ -157,23 +157,41 @@
       if (['오후','저녁','밤'].includes(apm[1])) ampmShift = 12;
       s = s.replace(apm[0], '').trim();
     }
-    const hhmm = s.match(/(\d{1,2})\s*[시:]\s*(\d{0,2})\s*분?/);
-    if (hhmm) {
-      let h = +hhmm[1];
-      const m = hhmm[2] ? +hhmm[2] : 0;
+    // "X시 반" → X:30 (combines hour + half in one match so "반" is not
+    // left in the title string)
+    const hhHalf = s.match(/(\d{1,2})\s*시\s*반/);
+    if (hhHalf) {
+      let h = +hhHalf[1];
       if (ampmShift && h < 12) h += ampmShift;
-      if (ampmShift === 12 && h === 12) h = 12;
-      if (!ampmShift && h === 12) h = 12;
-      out.startAt.setHours(h, m, 0, 0);
+      out.startAt.setHours(h, 30, 0, 0);
       hasTime = true;
-      s = s.replace(hhmm[0], '').trim();
-    } else if (apm) {
-      // '점심' = 12:00, '저녁' = 18:00, '아침' = 8:00
-      const def = { '오전':9, '오후':13, '아침':8, '점심':12, '저녁':18, '새벽':6, '밤':21 };
-      out.startAt.setHours(def[apm[1]] || 12, 0, 0, 0);
-      hasTime = true;
+      s = s.replace(hhHalf[0], '').trim();
     }
-    if (s.match(/\b반\b/)) { out.startAt.setMinutes(30); s = s.replace('반', '').trim(); }
+    if (!hasTime) {
+      const hhmm = s.match(/(\d{1,2})\s*[시:]\s*(\d{1,2})\s*분?/);
+      const hhOnly = s.match(/(\d{1,2})\s*시(?!\s*\d)/);
+      if (hhmm) {
+        let h = +hhmm[1];
+        const m = hhmm[2] ? +hhmm[2] : 0;
+        if (ampmShift && h < 12) h += ampmShift;
+        out.startAt.setHours(h, m, 0, 0);
+        hasTime = true;
+        s = s.replace(hhmm[0], '').trim();
+      } else if (hhOnly) {
+        let h = +hhOnly[1];
+        if (ampmShift && h < 12) h += ampmShift;
+        out.startAt.setHours(h, 0, 0, 0);
+        hasTime = true;
+        s = s.replace(hhOnly[0], '').trim();
+      } else if (apm) {
+        // '점심' = 12:00, '저녁' = 18:00, '아침' = 8:00
+        const def = { '오전':9, '오후':13, '아침':8, '점심':12, '저녁':18, '새벽':6, '밤':21 };
+        out.startAt.setHours(def[apm[1]] || 12, 0, 0, 0);
+        hasTime = true;
+      }
+    }
+    // Fallback: standalone "반" if user wrote "3시 반" unusually
+    s = s.replace(/(^|\s)반(\s|$)/g, ' ').trim();
 
     if (!hasTime) out.allDay = true;
 
