@@ -127,9 +127,52 @@
     white-space:nowrap; }
   .tdm-item:hover { background:var(--tab-hover); color:var(--accent); }
   .tdm-item.divider { border-top:1px solid rgba(0,0,0,0.08); margin-top:4px; padding-top:11px; }
-  .topbar button { background:transparent; border:none; color:#fff; font-size:14px;
-    width:28px; height:28px; border-radius:6px; cursor:pointer; opacity:.9; }
-  .topbar button:hover { background:rgba(255,255,255,.2); opacity:1; }
+  /* Topbar buttons — clearer icons with subtle contrast badge */
+  .topbar button { background:rgba(0,0,0,.08); border:1px solid rgba(255,255,255,.08);
+    color:#fff; font-size:14px; width:30px; height:30px; border-radius:7px;
+    cursor:pointer; opacity:1;
+    display:inline-flex; align-items:center; justify-content:center;
+    transition:background .12s, transform .12s, box-shadow .12s; flex:0 0 auto; }
+  .topbar button:hover { background:rgba(255,255,255,.22); box-shadow:0 1px 3px rgba(0,0,0,.2); }
+  .topbar button:active { transform:scale(0.92); }
+  .topbar button .ico { width:16px; height:16px; stroke-width:2.2;
+    filter: drop-shadow(0 1px 1.5px rgba(0,0,0,.5)); }
+  /* Window-control buttons sit at the very right, always visible */
+  .topbar .win-ctrl { margin-left:2px; flex:0 0 auto; }
+  .topbar #closeBtn { background:rgba(220,60,60,.35); border-color:rgba(220,60,60,.45); }
+  .topbar #closeBtn:hover { background:#e53935; border-color:#e53935; }
+  .topbar #maxBtn, .topbar #minBtn, .topbar #pinBtn { background:rgba(255,255,255,.14); }
+  .topbar #pinBtn.pinned { background:#FAE100; color:#333; }
+  .topbar #pinBtn.pinned .ico { filter:none; stroke-width:2.4; }
+
+  /* Overflow menu — collapsible button holder for narrow widths */
+  .topbar-overflow { position:relative; display:none; flex:0 0 auto; }
+  .topbar-overflow-menu {
+    position:absolute; top:calc(100% + 4px); right:0; z-index:1100;
+    background:#fff; border:1px solid rgba(0,0,0,.1); border-radius:8px;
+    padding:6px; box-shadow:0 6px 20px rgba(0,0,0,.15);
+    display:none; flex-wrap:wrap; gap:4px; min-width:200px;
+  }
+  .topbar-overflow.open .topbar-overflow-menu { display:flex; }
+  .topbar-overflow-menu button {
+    background:#f3f4f6; border:1px solid #e5e7eb; color:#333;
+    padding:6px 10px; border-radius:6px; font-size:12px;
+    display:flex; align-items:center; gap:6px; cursor:pointer;
+    white-space:nowrap; min-width:90px;
+  }
+  .topbar-overflow-menu button:hover { background:#e5e7eb; }
+  .topbar-overflow-menu button .ico { width:14px; height:14px; stroke-width:2.2; stroke:#333; filter:none; }
+
+  /* Responsive: collapse non-essential buttons into overflow menu below 700px */
+  @media (max-width: 760px) {
+    .topbar .collapsible { display:none !important; }
+    .topbar-overflow { display:inline-flex; }
+    .topbar .title input { width:90px; }
+  }
+  @media (max-width: 520px) {
+    .topbar .title input { width:60px; font-size:12px; }
+    .topbar button { width:28px; height:28px; }
+  }
   .pomo-display {
     display:inline-flex; align-items:center; gap:4px; padding:2px 8px; margin-right:4px;
     background:rgba(255,255,255,.2); border-radius:10px; font-size:11px; font-weight:700;
@@ -1510,11 +1553,11 @@
       <svg class="ico app-logo" title="JustANotepad"><use href="#i-jan-logo"/></svg>
       <input id="padTitle" value="JustANotepad" />
     </div>
-    <div class="pomo-display hidden" id="pomoDisplay" title="포모도로 클릭: 일시정지/재개"><svg class="ico-sm"><use href="#i-timer"/></svg><span id="pomoMode">FOCUS</span>&nbsp;<span id="pomoTime">25:00</span></div>
-    <button id="palBtn" title="명령 팔레트 (Ctrl+K)"><svg class="ico"><use href="#i-cmd"/></svg></button>
-    <button id="webBtn" title="웹 검색 (Ctrl+Shift+F)"><svg class="ico"><use href="#i-globe"/></svg></button>
-    <button id="aiBtn" title="AI 어시스턴트 (Ctrl+Space)"><svg class="ico"><use href="#i-sparkles"/></svg></button>
-    <div class="topbar-drop" id="calDropWrap" style="position:relative; display:inline-flex;">
+    <div class="pomo-display hidden collapsible" id="pomoDisplay" title="포모도로 클릭: 일시정지/재개"><svg class="ico-sm"><use href="#i-timer"/></svg><span id="pomoMode">FOCUS</span>&nbsp;<span id="pomoTime">25:00</span></div>
+    <button id="palBtn" class="collapsible" title="명령 팔레트 (Ctrl+K)"><svg class="ico"><use href="#i-cmd"/></svg></button>
+    <button id="webBtn" class="collapsible" title="웹 검색 (Ctrl+Shift+F)"><svg class="ico"><use href="#i-globe"/></svg></button>
+    <button id="aiBtn" class="collapsible" title="AI 어시스턴트 (Ctrl+Space)"><svg class="ico"><use href="#i-sparkles"/></svg></button>
+    <div class="topbar-drop collapsible" id="calDropWrap" style="position:relative; display:inline-flex;">
       <button id="calOpenBtn" title="캘린더 (Ctrl+J) · 길게누르면 메뉴"><svg class="ico"><use href="#i-calendar"/></svg></button>
       <div class="topbar-drop-menu" id="calDropMenu" style="display:none;">
         <div class="tdm-item" data-act="cal">월간 캘린더</div>
@@ -1523,17 +1566,29 @@
         <div class="tdm-item" data-act="insertTag">캘린더 태그 삽입</div>
       </div>
     </div>
-    <button id="cardsTopBtn" title="명함관리"><svg class="ico"><use href="#i-id-card"/></svg><span id="cardsTopBadge" class="topbar-badge"></span></button>
-    <button id="paintTopBtn" title="그림판 (Paint)"><svg class="ico"><use href="#i-bucket"/></svg></button>
-    <button id="imgCvtTopBtn" title="이미지 변환기 (크기·용량·포맷)"><svg class="ico"><use href="#i-resize"/></svg></button>
-    <button id="roleDashTopBtn" title="내 도구 모음 (역할별)"><svg class="ico"><use href="#i-users"/></svg><span id="roleDashBadge" class="topbar-badge"></span></button>
-    <button id="themeBtn" title="테마 변경"><svg class="ico"><use href="#i-palette"/></svg></button>
-    <button id="searchToggle" title="검색 (Ctrl+F)"><svg class="ico"><use href="#i-search"/></svg></button>
-    <button id="focusBtn" title="집중 모드"><svg class="ico"><use href="#i-target"/></svg></button>
-    <button id="helpBtn" title="도움말"><svg class="ico"><use href="#i-help"/></svg></button>
-    <button id="authBtn" title="로그인" style="display:none;"><svg class="ico"><use href="#i-users"/></svg></button>
-    <button id="minBtn" title="최소화"><svg class="ico"><use href="#i-min"/></svg></button>
-    <button id="closeBtn" title="닫기"><svg class="ico"><use href="#i-x"/></svg></button>
+    <button id="cardsTopBtn" class="collapsible" title="명함관리"><svg class="ico"><use href="#i-id-card"/></svg><span id="cardsTopBadge" class="topbar-badge"></span></button>
+    <button id="paintTopBtn" class="collapsible" title="그림판 (Paint)"><svg class="ico"><use href="#i-bucket"/></svg></button>
+    <button id="imgCvtTopBtn" class="collapsible" title="이미지 변환기 (크기·용량·포맷)"><svg class="ico"><use href="#i-resize"/></svg></button>
+    <button id="roleDashTopBtn" class="collapsible" title="내 도구 모음 (역할별)"><svg class="ico"><use href="#i-users"/></svg><span id="roleDashBadge" class="topbar-badge"></span></button>
+    <button id="themeBtn" class="collapsible" title="테마 변경"><svg class="ico"><use href="#i-palette"/></svg></button>
+    <button id="searchToggle" class="collapsible" title="검색 (Ctrl+F)"><svg class="ico"><use href="#i-search"/></svg></button>
+    <button id="focusBtn" class="collapsible" title="집중 모드"><svg class="ico"><use href="#i-target"/></svg></button>
+    <button id="helpBtn" class="collapsible" title="도움말"><svg class="ico"><use href="#i-help"/></svg></button>
+    <button id="authBtn" class="collapsible" title="로그인" style="display:none;"><svg class="ico"><use href="#i-users"/></svg></button>
+
+    <!-- Overflow menu for narrow widths (≤ 760px) — hidden by CSS at wide widths. -->
+    <div class="topbar-overflow" id="topbarOverflow">
+      <button id="overflowBtn" title="더보기">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
+      </button>
+      <div class="topbar-overflow-menu" id="overflowMenu"></div>
+    </div>
+
+    <!-- Window controls: always visible at the right. -->
+    <button id="pinBtn" class="win-ctrl" title="항상 위에 (Tauri 데스크톱 전용)"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14l-1.68-9.24A2 2 0 0 0 15.36 6H8.64a2 2 0 0 0-1.96 1.76L5 17z"/></svg></button>
+    <button id="minBtn" class="win-ctrl" title="최소화"><svg class="ico"><use href="#i-min"/></svg></button>
+    <button id="maxBtn" class="win-ctrl" title="최대화 / 복원"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="1"/></svg></button>
+    <button id="closeBtn" class="win-ctrl" title="닫기"><svg class="ico"><use href="#i-x"/></svg></button>
   </div>
 
   <div class="sidebar" id="sidebar">
@@ -17006,6 +17061,8 @@ if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
 </script>
 <!-- JustANotepad frameless window + topbar badge fix (cross-OS) -->
 <script src="/frameless-patch.js"></script>
+<!-- JustANotepad topbar window controls (min/max/pin/close + overflow menu) -->
+<script src="/topbar-controls.js"></script>
 <!-- JustANotepad universal command palette (Cmd/Ctrl+K) -->
 <script type="module" src="/command-palette.js"></script>
 <!-- JustANotepad web chrome: PWA install prompt + fullscreen + WCO -->
