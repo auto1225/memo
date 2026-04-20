@@ -3793,6 +3793,9 @@ function addTab(name, html = '') {
 }
 // Expose to app-integration.js for template insertion
 window.addTab = addTab;
+// Expose save() + state to calendar-pro.js for event persistence
+window.save = save;
+window.state = state;
 async function closeTab(id) {
   const t = state.tabs.find(t => t.id === id);
   if (!t) return;
@@ -17088,6 +17091,9 @@ if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
 <script src="/frameless-patch.js"></script>
 <!-- JustANotepad topbar window controls (min/max/pin/close + overflow menu) -->
 <script src="/topbar-controls.js"></script>
+<!-- JustANotepad Calendar Pro (월/주/일/년/할일 + CRUD + 알림 + ICS) -->
+<script src="/calendar-data.js"></script>
+<script src="/calendar-pro.js"></script>
 <!-- JustANotepad universal command palette (Cmd/Ctrl+K) -->
 <script type="module" src="/command-palette.js"></script>
 <!-- JustANotepad web chrome: PWA install prompt + fullscreen + WCO -->
