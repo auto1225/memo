@@ -37,6 +37,10 @@
   let cursor = new Date();
   let selectedId = null;
   let query = '';
+  // Category filter — set of category ids that are SHOWN. Default: all.
+  let activeCategories = new Set(CATEGORIES.map(c => c.id));
+  // Drag state for month-view rescheduling
+  let dragging = null;
 
   // ---- Utilities -------------------------------------------------------
   const $ = (sel, root) => (root||document).querySelector(sel);
@@ -83,7 +87,13 @@
 
       .cp-body { display:flex; max-height:540px; overflow:hidden; }
       .cp-main { flex:1; overflow:auto; padding:0; position:relative; }
-      .cp-side { width:200px; border-left:1px solid var(--paper-edge); padding:10px; overflow-y:auto; font-size:12px; display:flex; flex-direction:column; gap:14px; }
+      .cp-side { width:200px; border-left:1px solid var(--paper-edge); padding:10px; overflow-y:auto; font-size:12px; display:flex; flex-direction:column; gap:14px; flex:0 0 auto; }
+      .cp-side-toggle { display:none; position:absolute; top:8px; right:8px; width:28px; height:28px; border:0; background:var(--paper-edge); border-radius:6px; cursor:pointer; font-size:12px; color:var(--ink); z-index:50; }
+      @media (max-width: 720px) {
+        .cp-side { display:none; }
+        .cp-side.show { display:flex; position:absolute; right:0; top:0; bottom:0; z-index:30; background:#fff; width:240px; box-shadow:-6px 0 20px rgba(0,0,0,.1); }
+        .cp-side-toggle { display:flex; align-items:center; justify-content:center; }
+      }
       .cp-side .section-title { font-size:10px; color:var(--ink-soft); font-weight:700; letter-spacing:0.05em; text-transform:uppercase; margin-bottom:4px; }
       .cp-side .upcoming-item { padding:6px 8px; border-radius:6px; background:var(--tab-inactive); margin-bottom:4px; cursor:pointer; border-left:3px solid var(--accent); }
       .cp-side .upcoming-item:hover { background:var(--tab-hover); }
@@ -215,6 +225,8 @@
     if (!state || !Array.isArray(state.calEvents)) return [];
     const out = [];
     state.calEvents.forEach(ev => {
+      // Category filter — empty set OR not in set → skip
+      if (activeCategories.size > 0 && !activeCategories.has(ev.category || 'other')) return;
       const occs = D.expandRecurring(ev, rs, re);
       occs.forEach(occ => out.push({ ev, occ }));
     });
@@ -264,6 +276,7 @@
           <input id="cpNLText" placeholder="예: 내일 오후 3시 치과 예약">
           <div class="hint">"내일 / 모레", "3월 15일", "오후 2시 반", "다음 주 수요일" 인식</div>
         </div>
+        <button class="cp-side-toggle" id="cpSideToggle" title="사이드 패널" aria-label="사이드 패널 열기">☰</button>
         <div class="cp-body">
           <div class="cp-main" id="cpMain"></div>
           <div class="cp-side" id="cpSide"></div>
@@ -322,6 +335,25 @@
       if (!('Notification' in window)) return alert('이 브라우저는 알림을 지원하지 않습니다.');
       const p = await Notification.requestPermission();
       alert('알림 권한: ' + p);
+    });
+    $('#cpSideToggle')?.addEventListener('click', () => {
+      $('#cpSide')?.classList.toggle('show');
+    });
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (!document.getElementById('calModal')?.classList.contains('open')) return;
+      // Don't hijack when typing in inputs or the editor is open
+      if (document.querySelector('.cp-edit-backdrop')) return;
+      const tag = e.target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (e.key === 'n' || e.key === 'N') { e.preventDefault(); openEditor(null); }
+      else if (e.key === 'ArrowLeft') shiftCursor(-1);
+      else if (e.key === 'ArrowRight') shiftCursor(1);
+      else if (e.key === 't' || e.key === 'T') { cursor = new Date(); renderAll(); }
+      else if (e.key === 'm') setView('month');
+      else if (e.key === 'w') setView('week');
+      else if (e.key === 'd') setView('day');
+      else if (e.key === 'y') setView('year');
     });
   }
 
@@ -419,15 +451,47 @@
     host.innerHTML = html;
     host.querySelectorAll('.cp-day').forEach(el => {
       el.addEventListener('click', (e) => {
+        if (dragging && dragging.moved) return;  // don't open editor if we just dragged
         if (e.target.closest('.ev')) return;
         const k = el.dataset.key;
         selectedId = k;
         const [yy, mm, dd] = k.split('-').map(Number);
         openEditor(null, new Date(yy, mm-1, dd, 9, 0));
       });
+      // DROP TARGET for drag-reschedule
+      el.addEventListener('dragover', (e) => { e.preventDefault(); el.style.outline = '2px dashed var(--accent)'; });
+      el.addEventListener('dragleave', () => { el.style.outline = ''; });
+      el.addEventListener('drop', (e) => {
+        e.preventDefault();
+        el.style.outline = '';
+        const evId = e.dataTransfer.getData('jan-ev-id');
+        if (!evId) return;
+        const ev = state.calEvents.find(x => x.id === evId);
+        if (!ev) return;
+        const newDate = el.dataset.key.split('-').map(Number);
+        const oldStart = new Date(ev.startAt);
+        const newStart = new Date(newDate[0], newDate[1]-1, newDate[2], oldStart.getHours(), oldStart.getMinutes());
+        const diffMs = newStart - oldStart;
+        ev.startAt = newStart.toISOString();
+        if (ev.endAt) ev.endAt = new Date(new Date(ev.endAt).getTime() + diffMs).toISOString();
+        window.save?.();
+        renderAll();
+      });
     });
     host.querySelectorAll('.ev').forEach(el => {
+      el.setAttribute('draggable', 'true');
+      el.addEventListener('dragstart', (e) => {
+        dragging = { id: el.dataset.eid, moved: true };
+        e.dataTransfer.setData('jan-ev-id', el.dataset.eid);
+        e.dataTransfer.effectAllowed = 'move';
+        el.style.opacity = '0.5';
+      });
+      el.addEventListener('dragend', () => {
+        el.style.opacity = '';
+        setTimeout(() => { dragging = null; }, 100);
+      });
       el.addEventListener('click', (e) => {
+        if (dragging) return;
         e.stopPropagation();
         const ev = state.calEvents.find(x => x.id === el.dataset.eid);
         if (ev) openEditor(ev);
@@ -597,12 +661,17 @@
         }).join('') : '<div style="color:var(--ink-soft);font-size:11px;">없음</div>'}
       </div>
       <div>
-        <div class="section-title">카테고리</div>
+        <div class="section-title" style="display:flex;align-items:center;">
+          카테고리 필터
+          <button id="cpCatAll" style="margin-left:auto;font-size:10px;padding:2px 6px;border:1px solid var(--paper-edge);background:#fff;border-radius:4px;cursor:pointer;color:var(--ink-soft);font-weight:600;">전체</button>
+        </div>
         ${CATEGORIES.map(c => `
-          <div class="cat-filter" data-cat="${c.id}">
+          <label class="cat-filter" data-cat="${c.id}" style="display:flex;align-items:center;gap:6px;padding:4px 0;cursor:pointer;user-select:none;">
+            <input type="checkbox" ${activeCategories.has(c.id)?'checked':''} style="margin:0;cursor:pointer;" data-cat-cb="${c.id}">
             <span class="cat-dot" style="background:${c.color}"></span>
-            <span>${c.name}</span>
-          </div>`).join('')}
+            <span style="flex:1;">${c.name}</span>
+            <span style="font-size:10px;color:var(--ink-faint);" data-cat-count="${c.id}"></span>
+          </label>`).join('')}
       </div>
       <div>
         <div class="section-title">통계 (${cursor.getFullYear()}년)</div>
@@ -616,6 +685,30 @@
       const ev = state.calEvents.find(x => x.id === el.dataset.eid);
       if (ev) openEditor(ev);
     }));
+    // Category filter checkboxes
+    side.querySelectorAll('[data-cat-cb]').forEach(cb => cb.addEventListener('change', (e) => {
+      const id = cb.dataset.catCb;
+      if (cb.checked) activeCategories.add(id); else activeCategories.delete(id);
+      renderAll();
+    }));
+    side.querySelector('#cpCatAll')?.addEventListener('click', () => {
+      const allSelected = activeCategories.size === CATEGORIES.length;
+      activeCategories = new Set(allSelected ? [] : CATEGORIES.map(c => c.id));
+      renderAll();
+    });
+    // Update per-category counts (events in current year)
+    const yStart = new Date(cursor.getFullYear(), 0, 1);
+    const yEnd = new Date(cursor.getFullYear(), 11, 31, 23, 59, 59);
+    const counts = {};
+    (state.calEvents || []).forEach(ev => {
+      const occs = D.expandRecurring(ev, yStart, yEnd);
+      const cat = ev.category || 'other';
+      counts[cat] = (counts[cat] || 0) + occs.length;
+    });
+    Object.entries(counts).forEach(([cat, n]) => {
+      const el = side.querySelector(`[data-cat-count="${cat}"]`);
+      if (el) el.textContent = n || '';
+    });
   }
 
   function matchesQuery(ev, q) {
@@ -645,7 +738,10 @@
     back.className = 'cp-edit-backdrop';
     back.innerHTML = `
       <div class="cp-edit-card">
-        <h3>${isNew ? '새 이벤트' : '이벤트 편집'}</h3>
+        <h3 style="display:flex;align-items:center;">
+          ${isNew ? '새 이벤트' : '이벤트 편집'}
+          <button id="eClose" style="margin-left:auto;width:28px;height:28px;border:0;background:transparent;font-size:20px;cursor:pointer;color:var(--ink-soft);border-radius:50%;" title="닫기 (Esc)">×</button>
+        </h3>
         <div class="cp-edit-field"><label>제목</label><input id="eTitle" value="${esc(e.title)}" placeholder="이벤트 제목"></div>
         <div class="cp-edit-row">
           <div class="cp-edit-field"><label>시작</label><input id="eStart" type="datetime-local" value="${fmtDT(e.startAt)}"></div>
@@ -655,10 +751,15 @@
           <label><input type="checkbox" id="eAllDay" ${e.allDay?'checked':''}> 종일 이벤트</label>
         </div>
         <div class="cp-edit-field">
-          <label>카테고리</label>
+          <label>카테고리 · 색상 직접 지정 가능</label>
           <div class="cp-edit-cats">${CATEGORIES.map(c =>
-            `<button data-c="${c.id}" class="${c.id===e.category?'active':''}" style="${c.id===e.category?`background:${c.color};`:''}">${c.name}</button>`
-          ).join('')}</div>
+            `<button data-c="${c.id}" class="${c.id===e.category?'active':''}" style="${c.id===e.category?`background:${c.color};color:#fff;`:''}">${c.name}</button>`
+          ).join('')}
+          <label style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border:1px solid var(--paper-edge);border-radius:999px;cursor:pointer;font-size:11px;">
+            색상
+            <input type="color" id="eColor" value="${esc(e.color || CAT_BY_ID[e.category]?.color || '#D97757')}" style="width:20px;height:20px;padding:0;border:0;cursor:pointer;">
+          </label>
+          </div>
         </div>
         <div class="cp-edit-row">
           <div class="cp-edit-field"><label>장소</label><input id="eLoc" value="${esc(e.location||'')}" placeholder="장소 (선택)"></div>
@@ -712,9 +813,12 @@
         bb.style.color = bb.dataset.c === selectedCat ? '#fff' : 'var(--ink)';
       });
     }));
-    const close = () => back.remove();
+    const close = () => { back.remove(); document.removeEventListener('keydown', escHandler); };
+    const escHandler = (evt) => { if (evt.key === 'Escape') close(); };
+    document.addEventListener('keydown', escHandler);
     back.addEventListener('click', (evt) => { if (evt.target === back) close(); });
     back.querySelector('#eCancel').addEventListener('click', close);
+    back.querySelector('#eClose').addEventListener('click', close);
     back.querySelector('#eSave').addEventListener('click', () => {
       const title = back.querySelector('#eTitle').value.trim() || '(제목 없음)';
       const startStr = back.querySelector('#eStart').value;
@@ -726,6 +830,8 @@
       const untilStr = back.querySelector('#eUntil').value;
       const remind = back.querySelector('#eRemind').value;
       if (!startStr) return alert('시작 시각 필수');
+      const customColor = back.querySelector('#eColor').value;
+      const catDefault = CAT_BY_ID[selectedCat].color;
       const newEv = {
         ...e,
         title,
@@ -733,7 +839,8 @@
         endAt: endStr ? new Date(endStr).toISOString() : null,
         allDay, location: loc, memo,
         category: selectedCat,
-        color: CAT_BY_ID[selectedCat].color,
+        // If user picked a custom color different from the category default, use it.
+        color: (customColor && customColor.toLowerCase() !== catDefault.toLowerCase()) ? customColor : catDefault,
         recurring: freq ? { freq, interval: 1, until: untilStr ? new Date(untilStr).toISOString() : null } : null,
         reminder: remind === '' ? null : { offsetMin: +remind },
         notified: false,
