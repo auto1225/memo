@@ -554,12 +554,17 @@
       await stopRec();
     }
     close(true);
+    // 안전장치: 어떤 경로로든 DOM 에 남아있는 이전 박스 모두 제거
+    document.querySelectorAll('.jnp-lec-box').forEach(b => b.remove());
 
     const page = pageEl();
     if (!page) { toast('먼저 탭을 하나 열어 주세요'); return; }
 
     const box = buildBox(kind);
-    page.insertBefore(box, page.firstChild);
+    // 박스는 contenteditable 바깥에 (page 의 형제로) 두어야 탭 HTML 에 저장되지 않음.
+    // 그렇지 않으면 탭 전환/재렌더 시 HTML 이 되살아나 X 버튼 무응답 + 탭 복제 유발.
+    const pageWrap = page.parentNode;
+    pageWrap.insertBefore(box, page);
 
     state.kind = kind;
     state.open = true;
@@ -598,14 +603,13 @@
   }
 
   function close(silent = false) {
-    const b = document.querySelector('.jnp-lec-box');
-    if (b) {
-      if (state.recording && !silent) {
-        if (!confirm('녹음 중입니다. 종료하시겠습니까?')) return;
-      }
-      endSession(true); stopRec(true); stopVideo(); stopScreen(); killPip();
-      b.remove();
+    if (state.recording && !silent) {
+      if (!confirm('녹음 중입니다. 종료하시겠습니까?')) return;
     }
+    // 모든 관련 리소스 중단
+    endSession(true); stopRec(true); stopVideo(); stopScreen(); killPip();
+    // DOM 에 존재하는 모든 박스 제거 (혹시 여러 개면 전부)
+    document.querySelectorAll('.jnp-lec-box').forEach(b => b.remove());
     state.ui = {};
     state.open = false;
   }
@@ -1380,6 +1384,30 @@
     return true;
   }
 
+  // 이전 버전에서 탭 HTML 에 박혀 들어간 박스 잔해 제거
+  function cleanLeakedBoxFromTabs() {
+    try {
+      const s = window.state;
+      if (!s || !Array.isArray(s.tabs)) return;
+      let cleaned = 0;
+      for (const tab of s.tabs) {
+        if (typeof tab.html !== 'string') continue;
+        if (!tab.html.includes('jnp-lec-box')) continue;
+        // 박스 전체 제거 (시작태그 ~ 닫힘태그까지 greedy 하게)
+        const tmp = document.createElement('div');
+        tmp.innerHTML = tab.html;
+        tmp.querySelectorAll('.jnp-lec-box').forEach(b => b.remove());
+        tab.html = tmp.innerHTML;
+        cleaned++;
+      }
+      if (cleaned) {
+        console.info('[lecture-mode] cleaned leaked boxes from', cleaned, 'tabs');
+        try { window.save?.(); } catch {}
+        try { window.renderPage?.(); } catch {}
+      }
+    } catch (e) { console.warn('[cleanLeakedBoxFromTabs]', e); }
+  }
+
   // 기존 툴바의 #meetingNoteBtn 을 가로채서 v5 회의노트 박스로 라우팅
   function hijackLegacyMeetingBtn() {
     const btn = document.getElementById('meetingNoteBtn');
@@ -1396,6 +1424,8 @@
     injectTopbarButtons() || setTimeout(boot, 400);
     tryRegisterPalette() || setTimeout(tryRegisterPalette, 600);
     hijackLegacyMeetingBtn();
+    // 기존 탭 안에 스며든 박스 HTML 잔해 제거 (1회)
+    setTimeout(cleanLeakedBoxFromTabs, 1500);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
   else boot();
