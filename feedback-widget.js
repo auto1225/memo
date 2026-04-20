@@ -38,8 +38,8 @@
     }
     .jan-fb-card {
       background:#fff; width:min(440px, 94vw); max-height:92vh;
-      border-radius:14px; overflow-y:auto;
-      box-shadow:0 20px 60px rgba(0,0,0,0.25);
+      border-radius:12px; overflow-y:auto;
+      box-shadow:0 20px 60px rgba(0,0,0,0.18);
       padding:22px 24px;
       color:#1f2937;
     }

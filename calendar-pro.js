@@ -234,7 +234,7 @@
       /* Event editor modal */
       .cp-edit-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.3); z-index:10002; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(3px); }
       .cp-edit-card { background:#fff; width:min(500px, 94vw); max-height:92vh; overflow-y:auto;
-        border-radius:12px; padding:22px; box-shadow:0 20px 60px rgba(0,0,0,0.25); }
+        border-radius:12px; padding:22px; box-shadow:0 20px 60px rgba(0,0,0,0.18); }
       .cp-edit-card h3 { margin:0 0 14px; font-size:16px; }
       .cp-edit-field { margin-bottom:10px; }
       .cp-edit-field label { display:block; font-size:11px; color:var(--ink-soft); margin-bottom:4px; font-weight:600; }

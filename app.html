@@ -363,8 +363,11 @@
   /* Safety net: any modal opened after another automatically stacks higher */
   body > .modal-backdrop.open ~ .modal-backdrop.open { z-index:150; }
   .modal-backdrop.open { display:flex; }
+  /* 앱 전체 모달 공통 스타일 — 모서리 12px · 동일한 그림자 · overflow hidden
+     해서 inline padding:0인 모달의 내부 컬러 헤더 바도 둥글게 clip됨. */
   .modal { background:#fff; color:#333; border-radius:12px; padding:18px 20px;
-    width:340px; max-width:90vw; box-shadow:0 10px 40px rgba(40,10,80,.25); }
+    width:340px; max-width:90vw; box-shadow:0 20px 60px rgba(0,0,0,.18);
+    overflow:hidden; }
   .modal h3 { margin:0 0 10px; font-size:14px; }
   .modal input, .modal textarea, .modal select { width:100%; padding:8px 10px;
     border:1px solid #ddd; border-radius:8px; font-size:14px; outline:none; margin-bottom:6px; }

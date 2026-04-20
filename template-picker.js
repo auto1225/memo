@@ -75,7 +75,7 @@
       @keyframes jan-fadein { from { opacity:0; } to { opacity:1; } }
       .jan-tpl-modal {
         background:#fff; width:min(880px, 94vw); max-height:85vh;
-        border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,0.25);
+        border-radius:12px; box-shadow:0 20px 60px rgba(0,0,0,0.18);
         display:flex; flex-direction:column; overflow:hidden;
       }
       .jan-tpl-hd {
