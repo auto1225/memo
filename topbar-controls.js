@@ -199,11 +199,43 @@
     });
   }
 
+  // ---- Container-based overflow detection -----------------------------
+  // Pad width is often smaller than viewport, so viewport @media rules
+  // don't catch it. We observe the topbar's own size and toggle a class
+  // on the pad that CSS can react to, independent of viewport size.
+  function wireResponsive() {
+    const pad = padEl();
+    const topbar = document.getElementById('topbar');
+    if (!pad || !topbar) return;
+
+    const evaluate = () => {
+      // First remove the narrow class to measure at full width
+      pad.classList.remove('narrow-topbar');
+      // Force reflow
+      void topbar.offsetWidth;
+      // If scrollWidth > offsetWidth means content overflows
+      const overflows = topbar.scrollWidth > topbar.offsetWidth + 4;
+      pad.classList.toggle('narrow-topbar', overflows);
+    };
+
+    if ('ResizeObserver' in window) {
+      const ro = new ResizeObserver(() => requestAnimationFrame(evaluate));
+      ro.observe(pad);
+      ro.observe(topbar);
+    }
+    window.addEventListener('resize', evaluate);
+    // Initial + a few retries while layout settles
+    evaluate();
+    setTimeout(evaluate, 200);
+    setTimeout(evaluate, 800);
+  }
+
   function init() {
     wireMinimize();
     wireMaximize();
     wirePin();
     wireOverflow();
+    wireResponsive();
   }
 
   // Run after app.html's DOMContentLoaded scripts, and also after

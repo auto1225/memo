@@ -173,6 +173,11 @@
     .topbar .title input { width:60px; font-size:12px; }
     .topbar button { width:28px; height:28px; }
   }
+  /* Container-based overflow: topbar-controls.js adds `.narrow-topbar` to
+     the pad when the topbar overflows, regardless of viewport width. */
+  .pad.narrow-topbar .topbar .collapsible { display:none !important; }
+  .pad.narrow-topbar .topbar .topbar-overflow { display:inline-flex; }
+  .pad.narrow-topbar .topbar .title input { width:80px; font-size:12px; }
   .pomo-display {
     display:inline-flex; align-items:center; gap:4px; padding:2px 8px; margin-right:4px;
     background:rgba(255,255,255,.2); border-radius:10px; font-size:11px; font-weight:700;
