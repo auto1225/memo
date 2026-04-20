@@ -1,352 +1,302 @@
 /**
- * justanotepad · Storage Quota Patch (v1.1.0)
+ * justanotepad · Storage Quota Patch (v1.2.0)
  * --------------------------------------------------------------------------
  * 증상:
- *   · "저장 공간 부족 — 현재 사용량 1411KB / 전체 할당 585391102KB" 다이얼로그가
- *     계속 반복해서 뜸
+ *   "저장 공간 부족 — 현재 사용량 N KB / 전체 할당 585391102KB" 다이얼로그가
+ *   타이핑·탭전환마다 계속 반복해서 뜸. 실제 사용량은 1~2MB에 불과.
  *
- * 원인 (기존 app.html 3640-3780 라인):
- *   1) 다이얼로그가 보여주는 숫자는 navigator.storage.estimate() (origin 전체).
- *      그러나 실제로 실패한 건 localStorage 의 별개 5MB 하드캡. 두 숫자가 달라서
- *      "585GB 남았는데 왜?" 라는 모순이 생김.
- *   2) 타이핑 · 탭 전환 · 마우스 이동이 scheduleSave → save 를 계속 트리거하는데,
- *      save 가 실패하면 다이얼로그만 띄우고 상태를 바꾸지 않으므로 루프가 발생.
- *   3) externalizeState 후에도 state.history / state.trash 에 inline 본문이
- *      남아있어 slim JSON 이 여전히 5MB 를 넘는 경우가 있음.
+ * 원인:
+ *   app.html 내 `async function save()` 가 지역 스코프라 window.save 로는
+ *   접근 불가 → v1.1.0 패치는 save() 를 감싸지 못해 사실상 no-op 이었다.
  *
- * 이 패치가 하는 일:
- *   A) save() / handleQuotaExceeded() 를 런타임에 감싸서
- *      - 쿨다운 플래그로 재진입 차단 (다이얼로그가 닫힐 때까지 save 멈춤)
- *      - 정확한 메시지: "localStorage 한계 ~5MB · 슬림 저장 시도 N KB"
- *      - 실패 원인 실태: 상위 3 탭 / 히스토리 / 휴지통 크기를 한 화면에 표시
- *   B) 자동 복구 경로를 넓힘:
- *      - history / trash 자동 트리밍 (오래된 것 80% 삭제) 후 재시도
- *      - 여전히 실패면 history/trash 를 IndexedDB 로 격리 (state 에서 제거)
- *      - 마지막 수단으로 state 전체를 IndexedDB 에 넣고 localStorage 에는
- *        포인터만 남김 ("state-in-idb")
- *   C) 사용자에게 한 번만 묻고, 선택이 끝나면 쿨다운 해제
+ *   근본 원인은 state 안에 누적된 탭의 inline base64 이미지 + history/trash
+ *   가 커져서 슬림 JSON 이 여전히 5MB(localStorage 하드캡)를 넘는 것.
+ *   navigator.storage.estimate() 는 origin 전체 quota(585GB)를 반환하므로
+ *   "585GB 중 1MB 썼는데 왜 거부?" 라는 모순된 다이얼로그가 생긴다.
  *
- * 통합 (app.html, </body> 직전, 다른 patch 들 다음에):
- *   <script src="./storage-quota-patch.js"></script>
+ * v1.2.0 이 하는 일 (근본 수정):
+ *   localStorage.setItem 자체를 몽키패치. QuotaExceededError 를 잡아
+ *   자동 복구한 뒤 재시도. 성공하면 호출자는 에러를 못 봄 → 다이얼로그
+ *   애초에 안 뜸.
  *
- * 적용 대상: justanotepad v1.0.9 이하. v1.1.0 에서 정식 수정 계획.
+ *   자동 복구 순서:
+ *     1. IDB 외부화 (window.__idbStore.externalizeState)
+ *     2. state.history / state.trash 트리밍 (최신 20% 유지)
+ *     3. state.history / state.trash 를 통째로 IDB 로 격리
+ *     4. state 전체를 IDB 로 이관, localStorage 에는 포인터만
+ *
+ *   1~4 모두 실패해야 쿨다운 플래그 + 사용자 대화 한 번.
+ *   타이핑·탭전환이 scheduleSave 를 계속 호출해도 쿨다운 동안은 setItem
+ *   이 조용히 skip 되므로 다이얼로그 루프가 발생하지 않음.
+ *
+ * 통합 (이미 적용됨):
+ *   <script src="/storage-quota-patch.js"></script>
+ *
+ * 디버그 엔드포인트:
+ *   window.__storageQuotaPatch.version         // '1.2.0'
+ *   window.__storageQuotaPatch.diagnose()      // 현재 크기 분석
+ *   window.__storageQuotaPatch.clearCooldown() // 쿨다운 즉시 해제
+ *   window.__storageQuotaPatch.forceRecover()  // 수동으로 4단계 복구 실행
  * --------------------------------------------------------------------------
  */
 (() => {
   'use strict';
-  if (window.__storageQuotaPatchApplied) return;
-  window.__storageQuotaPatchApplied = true;
+  if (window.__storageQuotaPatch && window.__storageQuotaPatch.version === '1.2.0') return;
+  if (window.__storageQuotaPatch) {
+    console.log('[quota-patch] v1.2.0 upgrading from', window.__storageQuotaPatch.version);
+  }
 
-  const STORAGE_KEY    = 'sticky-memo-v4';
-  const LS_HARD_LIMIT  = 5 * 1024 * 1024;   // 실측 보수값. 브라우저별 4.8~10MB.
-  const SAFE_BUDGET    = 4 * 1024 * 1024;   // 이 선을 넘으면 선제 트리밍
-  const TRIM_KEEP_RATIO = 0.2;              // history/trash 에서 최신 20%만 유지
-  const COOLDOWN_MS    = 8000;              // 다이얼로그 중 재진입 차단
-  const IDB_STATE_KEY  = 'sticky-memo-v4:state';
+  const STORAGE_KEY     = 'sticky-memo-v4';
+  const SAFE_BUDGET     = 4 * 1024 * 1024;   // 4MB 넘으면 선제 트리밍
+  const TRIM_KEEP_RATIO = 0.2;               // history/trash 최신 20%만 남김
+  const COOLDOWN_MS     = 8000;              // 대화창 동안 setItem 스킵
+  const IDB_STATE_KEY   = 'sticky-memo-v4:state';
 
-  // 외부 상태
+  // 공유 상태
   let cooldownUntil = 0;
+  let recovering = false;
   let dialogOpen = false;
-  let lastFailKB = 0;
 
-  // 안전한 getter 들
-  const getState = () => window.state || null;
-  const setItemRaw = (k, v) => localStorage.setItem(k, v);
-  const getStateSize = () => { try { return JSON.stringify(getState() || {}).length; } catch { return 0; } };
-
-  // --------------------------------------------------------------
-  // 0. 로거
-  // --------------------------------------------------------------
   const log = (...a) => console.log('[quota-patch]', ...a);
-  log('applied. STORAGE_KEY =', STORAGE_KEY, 'LS_HARD_LIMIT =', LS_HARD_LIMIT);
+  log('v1.2.0 applied');
 
-  // --------------------------------------------------------------
-  // 1. history / trash 트리밍 (큰 원흉)
-  //    - state.history / state.trash 의 최신 N 개만 남기고 제거
-  // --------------------------------------------------------------
+  // ---- 유틸 ----
+  const getState = () => window.state || null;
+  const stateSize = () => { try { return JSON.stringify(getState() || {}).length; } catch { return 0; } };
+  const toastSafe = (t) => { try { if (typeof window.toast === 'function') return window.toast(t); } catch {} console.log('[toast]', t); };
+
+  // ---- 복구 루틴 ----
+  async function idbExternalize() {
+    if (!window.__idbStore || !window.__idbStore.externalizeState) return null;
+    try {
+      const slim = await window.__idbStore.externalizeState(getState(), { minBytes: 2 * 1024 });
+      return JSON.stringify(slim);
+    } catch (e) { log('externalize failed', e); return null; }
+  }
+
   function trimHistoryAndTrash() {
-    const s = getState(); if (!s) return { trimmed: 0 };
+    const s = getState(); if (!s) return 0;
     let trimmed = 0;
     ['history', 'trash'].forEach(k => {
       const arr = s[k];
       if (!Array.isArray(arr) || !arr.length) return;
-      const keep = Math.max(5, Math.floor(arr.length * TRIM_KEEP_RATIO));
-      if (arr.length > keep) {
-        trimmed += arr.length - keep;
-        s[k] = arr.slice(-keep); // 최신 keep 개만
-      }
+      const keep = Math.max(3, Math.floor(arr.length * TRIM_KEEP_RATIO));
+      if (arr.length > keep) { trimmed += arr.length - keep; s[k] = arr.slice(-keep); }
     });
-    return { trimmed };
+    return trimmed;
   }
 
-  // --------------------------------------------------------------
-  // 2. history/trash 를 통째로 IndexedDB 로 격리 (state 에서 제거)
-  //    - 복구 시 다른 패치/기능에서 읽을 수 있도록 window.__archivedHistory/Trash 에도 보관
-  // --------------------------------------------------------------
   async function archiveHeavyFields() {
     const s = getState(); if (!s) return false;
-    const archive = {
-      history: s.history || [],
-      trash: s.trash || [],
-      at: Date.now()
-    };
+    const archive = { history: s.history || [], trash: s.trash || [], at: Date.now() };
     try {
-      if (window.__idbStore && window.__idbStore.setKV) {
-        await window.__idbStore.setKV('archived:history-trash', archive);
-      } else {
-        // IDB 미지원: 그냥 메모리에 둔다 (세션 종료 시 손실됨을 경고)
-        window.__archivedHistoryTrash = archive;
-      }
-      s.history = [];
-      s.trash = [];
+      if (window.__idbStore?.setKV) await window.__idbStore.setKV('archived:history-trash', archive);
+      else window.__archivedHistoryTrash = archive;
+      s.history = []; s.trash = [];
       return true;
-    } catch (e) {
-      log('archiveHeavyFields failed', e);
-      return false;
-    }
+    } catch (e) { log('archive failed', e); return false; }
   }
 
-  // --------------------------------------------------------------
-  // 3. 최후 수단: state 전체를 IDB 에 넣고 localStorage 에는 포인터만
-  // --------------------------------------------------------------
   async function moveStateToIdb() {
     const s = getState(); if (!s) return false;
+    if (!window.__idbStore?.setKV) return false;
     try {
-      if (!window.__idbStore || !window.__idbStore.setKV) return false;
       await window.__idbStore.setKV(IDB_STATE_KEY, s);
-      const pointer = JSON.stringify({ __stateInIdb: true, key: IDB_STATE_KEY, at: Date.now() });
-      setItemRaw(STORAGE_KEY, pointer);
-      return true;
+      return JSON.stringify({ __stateInIdb: true, key: IDB_STATE_KEY, at: Date.now() });
     } catch (e) { log('moveStateToIdb failed', e); return false; }
   }
 
-  // --------------------------------------------------------------
-  // 4. 정확한 진단 보고서
-  // --------------------------------------------------------------
-  function diagnose(attemptPayload) {
+  // 4단계 복구 파이프라인. 성공 시 payload 문자열 반환, 실패 시 null.
+  async function recoverPayload(key, originalValue) {
+    if (key !== STORAGE_KEY) return null;
+    if (recovering) return null;
+    recovering = true;
+    try {
+      // 1) IDB 외부화
+      const slim = await idbExternalize();
+      if (slim && slim.length < SAFE_BUDGET) { log('recovered via externalize', slim.length); return slim; }
+
+      // 2) history/trash 트리밍
+      const trimmed = trimHistoryAndTrash();
+      if (trimmed > 0) {
+        const payload = JSON.stringify(getState());
+        if (payload.length < SAFE_BUDGET) { log('recovered via trim', trimmed, payload.length); return payload; }
+      }
+
+      // 3) history/trash IDB 격리
+      if (await archiveHeavyFields()) {
+        const payload = JSON.stringify(getState());
+        if (payload.length < SAFE_BUDGET) { log('recovered via archive', payload.length); return payload; }
+      }
+
+      // 4) state 전체 IDB 로
+      const pointer = await moveStateToIdb();
+      if (pointer) { log('recovered via state-to-idb'); return pointer; }
+
+      return null;
+    } finally { recovering = false; }
+  }
+
+  // ---- localStorage.setItem 몽키패치 ----
+  const proto = Object.getPrototypeOf(localStorage);
+  const origSetItem = proto.setItem;
+  const origGetItem = proto.getItem;
+
+  proto.setItem = function patchedSetItem(key, value) {
+    // 쿨다운 중인 STORAGE_KEY 저장은 조용히 drop (다이얼로그 루프 차단)
+    if (key === STORAGE_KEY && Date.now() < cooldownUntil) {
+      log('setItem suppressed (cooldown)', key);
+      return;
+    }
+
+    // 선제 트리밍: 너무 크면 미리 줄임
+    if (key === STORAGE_KEY && typeof value === 'string' && value.length > SAFE_BUDGET) {
+      const trimmed = trimHistoryAndTrash();
+      if (trimmed > 0) {
+        try { value = JSON.stringify(getState()); log('preemptive trim', trimmed, value.length); } catch {}
+      }
+    }
+
+    try {
+      return origSetItem.call(this, key, value);
+    } catch (e) {
+      if (e && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014)) {
+        if (key !== STORAGE_KEY) throw e; // 다른 키면 그대로
+        log('QuotaExceededError intercepted for', key, '· payload', (value||'').length, 'bytes');
+
+        // 비동기 복구를 시작하되, 이 setItem 호출은 throw 하지 않고 성공처럼 반환
+        // (원본 save() 의 catch 블록에서 다이얼로그가 뜨지 않도록).
+        // 복구가 완료되면 별도로 localStorage 에 기록됨.
+        setCooldown(COOLDOWN_MS);
+
+        (async () => {
+          const payload = await recoverPayload(key, value);
+          if (payload) {
+            try {
+              origSetItem.call(localStorage, key, payload);
+              window.lastSaveSize = payload.length;
+              try { window.updateStorageIndicator?.(); } catch {}
+              toastSafe(`공간 확보 완료 — ${Math.round(payload.length/1024)}KB 로 슬림화됨`);
+              cooldownUntil = Date.now() + 500; // 짧은 쿨다운으로 후속 저장은 바로 허용
+            } catch (e2) { log('retry write after recovery failed', e2); await openRecoveryDialog(); }
+          } else {
+            await openRecoveryDialog();
+          }
+        })();
+
+        return; // 원본 호출자는 성공한 것으로 간주
+      }
+      throw e;
+    }
+  };
+
+  function setCooldown(ms) { cooldownUntil = Math.max(cooldownUntil, Date.now() + ms); }
+
+  // 원본 getItem 도 감싸서 IDB 포인터면 그대로 리턴 (원본 코드는 파싱 후 문제 없음)
+  // — 여기선 변경할 필요 없음 (load 시 별도 hydrate 루틴에서 처리)
+
+  // ---- 부팅: 포인터 감지 + 앱 state 에 주입 ----
+  (async () => {
+    try {
+      const raw = origGetItem.call(localStorage, STORAGE_KEY);
+      if (!raw) return;
+      let parsed;
+      try { parsed = JSON.parse(raw); } catch { return; }
+      if (parsed && parsed.__stateInIdb && window.__idbStore?.getKV) {
+        log('IDB-state pointer detected, hydrating from IDB');
+        const real = await window.__idbStore.getKV(parsed.key || IDB_STATE_KEY);
+        if (real && typeof real === 'object') {
+          // 앱이 이미 빈 state 로 부팅 직후라면 Object.assign 으로 주입
+          const tryInject = () => {
+            if (!window.state) return false;
+            Object.assign(window.state, real);
+            try { window.renderSidebar?.(); } catch {}
+            try { if (real.activeId) window.setActive?.(real.activeId); } catch {}
+            log('state hydrated from IDB');
+            return true;
+          };
+          if (!tryInject()) {
+            // state 가 아직 없으면 정의되기를 기다림
+            let tries = 0;
+            const iv = setInterval(() => { if (tryInject() || ++tries > 50) clearInterval(iv); }, 100);
+          }
+        }
+      }
+    } catch (e) { log('IDB hydrate failed', e); }
+  })();
+
+  // ---- 마지막 보루: 에러가 원본 save() 의 catch 로 샜을 경우 대비 ----
+  async function openRecoveryDialog() {
+    if (dialogOpen) return;
+    dialogOpen = true;
+    setCooldown(COOLDOWN_MS);
+    try {
+      const kb = Math.round(stateSize() / 1024);
+      const diag = diagnose();
+      const lines = [
+        `localStorage 한계(~5MB)에 도달했고, 자동 복구도 실패했습니다.`,
+        `현재 state: ${kb}KB`,
+        `큰 탭: ${diag.tabs.map(t => `${t.name} ${Math.round(t.size/1024)}KB`).join(', ') || '없음'}`,
+        `히스토리 ${Math.round(diag.histSize/1024)}KB · 휴지통 ${Math.round(diag.trashSize/1024)}KB`,
+        ``,
+        `확인 = 히스토리·휴지통 완전 비우고 IDB 이관 시도`,
+        `취소 = 자동 저장 1시간 정지 (수동 새로고침 필요)`,
+      ];
+      if (confirm(lines.join('\n'))) {
+        const s = getState();
+        if (s) { s.history = []; s.trash = []; }
+        const pointer = await moveStateToIdb();
+        if (pointer) {
+          try { origSetItem.call(localStorage, STORAGE_KEY, pointer); toastSafe('복구 완료 — IDB 이관'); }
+          catch (e) { log('final fallback failed', e); }
+        }
+      } else {
+        cooldownUntil = Date.now() + 60 * 60 * 1000;
+        toastSafe('자동 저장 1시간 정지 — 새로고침 후 재시도 가능');
+      }
+    } finally { dialogOpen = false; }
+  }
+
+  function diagnose() {
     const s = getState() || {};
     const tabs = (s.tabs || [])
       .map(t => ({ name: (t.name || '(무제)').slice(0, 30), size: (t.html || '').length + (t.raw || '').length }))
       .sort((a, b) => b.size - a.size).slice(0, 5);
-    const histSize = JSON.stringify(s.history || []).length;
-    const trashSize = JSON.stringify(s.trash || []).length;
-    const attemptKB = attemptPayload ? Math.round(attemptPayload.length / 1024) : Math.round(JSON.stringify(s).length / 1024);
-    return { tabs, histSize, trashSize, attemptKB };
-  }
-
-  // --------------------------------------------------------------
-  // 5. save() 래퍼 — 쿨다운, 선제 트리밍, 자세한 폴백
-  // --------------------------------------------------------------
-  function wrapSave() {
-    const orig = window.save;
-    if (typeof orig !== 'function') {
-      log('window.save not found — will retry when available');
-      setTimeout(wrapSave, 300);
-      return;
-    }
-
-    window.save = async function patchedSave(...args) {
-      if (Date.now() < cooldownUntil) {
-        log('save suppressed (cooldown)');
-        return;
-      }
-
-      // 선제 트리밍: state 가 SAFE_BUDGET 을 넘으면 미리 줄여서 저장 시도
-      if (getStateSize() > SAFE_BUDGET) {
-        const { trimmed } = trimHistoryAndTrash();
-        if (trimmed > 0) log('preemptive trim', trimmed, 'items');
-      }
-
-      try {
-        return await orig.apply(this, args);
-      } catch (e) {
-        if (e && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014)) {
-          log('save threw quota error (caught in wrapper)');
-          await handleQuotaSmart();
-          return;
-        }
-        throw e;
-      }
+    return {
+      tabs,
+      histSize: JSON.stringify(s.history || []).length,
+      trashSize: JSON.stringify(s.trash || []).length,
+      attemptKB: Math.round(JSON.stringify(s).length / 1024),
+      stateInIdbPointer: !!(() => { try { return JSON.parse(origGetItem.call(localStorage, STORAGE_KEY))?.__stateInIdb; } catch { return false; } })(),
     };
-    log('save() wrapped');
   }
 
-  // --------------------------------------------------------------
-  // 6. handleQuotaExceeded() 대체 — 자동 복구를 먼저, 그래도 안 되면 대화
-  // --------------------------------------------------------------
-  async function handleQuotaSmart() {
-    if (dialogOpen) return;
-
-    // Step 1: IDB externalize (기존 로직 최대 활용)
-    if (window.__idbStore?.externalizeState) {
-      try {
-        const slim = await window.__idbStore.externalizeState(getState(), { minBytes: 2 * 1024 });
-        const payload = JSON.stringify(slim);
-        lastFailKB = Math.round(payload.length / 1024);
-        if (payload.length < LS_HARD_LIMIT) {
-          setItemRaw(STORAGE_KEY, payload);
-          window.lastSaveSize = payload.length;
-          window.updateStorageIndicator?.();
-          toastSafe(`공간 확보 — 이미지/첨부를 IndexedDB 로 이관 (${lastFailKB}KB)`);
-          return;
-        }
-      } catch (e) { log('externalize retry failed', e); }
-    }
-
-    // Step 2: history / trash 트리밍 + 재시도
-    {
-      const { trimmed } = trimHistoryAndTrash();
-      if (trimmed > 0) {
-        try {
-          const payload = JSON.stringify(getState());
-          lastFailKB = Math.round(payload.length / 1024);
-          setItemRaw(STORAGE_KEY, payload);
-          window.lastSaveSize = payload.length;
-          toastSafe(`자동 정리 — 히스토리/휴지통 ${trimmed}개 트리밍 (${lastFailKB}KB)`);
-          window.updateStorageIndicator?.();
-          return;
-        } catch {}
-      }
-    }
-
-    // Step 3: history / trash 를 IDB 로 격리 후 재시도
-    if (await archiveHeavyFields()) {
-      try {
-        const payload = JSON.stringify(getState());
-        lastFailKB = Math.round(payload.length / 1024);
-        setItemRaw(STORAGE_KEY, payload);
-        window.lastSaveSize = payload.length;
-        toastSafe(`공간 확보 — 히스토리/휴지통을 IndexedDB 로 옮김 (${lastFailKB}KB)`);
-        window.updateStorageIndicator?.();
-        return;
-      } catch {}
-    }
-
-    // Step 4: 그래도 실패 → 쿨다운 걸고 사용자에게 정확한 대화 한 번
-    cooldownUntil = Date.now() + COOLDOWN_MS;
-    dialogOpen = true;
-    try { await promptUserFix(); }
-    finally { dialogOpen = false; cooldownUntil = Date.now() + 1000; /* 선택 직후 살짝 쿨다운 */ }
-  }
-
-  // --------------------------------------------------------------
-  // 7. 정직한 대화창
-  // --------------------------------------------------------------
-  async function promptUserFix() {
-    const payload = JSON.stringify(getState());
-    const kb = Math.round(payload.length / 1024);
-    const d = diagnose(payload);
-    const fmtKB = n => (n/1024).toFixed(1) + 'KB';
-
-    const subtitle =
-      `localStorage 한계는 ~5MB 입니다.\n` +
-      `현재 저장 시도 크기: ${kb}KB (한계 초과)\n` +
-      `큰 탭: ${d.tabs.map(t => `${t.name} ${fmtKB(t.size)}`).join(', ') || '없음'}\n` +
-      `히스토리 ${fmtKB(d.histSize)} · 휴지통 ${fmtKB(d.trashSize)}\n` +
-      `\n※ 이전 다이얼로그의 1411KB 는 브라우저 전체 quota (~585GB) 를 잘못 표시한 것입니다.`;
-
-    const pickList = window.pickList;
-    let choice = null;
-    if (typeof pickList === 'function') {
-      choice = await pickList('저장 공간 부족 — 어떻게 할까요? (수정판)', [
-        '큰 파일을 IndexedDB 로 분리하고 저장 (가장 안전)',
-        '히스토리·휴지통 완전 비우기 + 저장',
-        '백업 JSON 내려받기 + 전부 정리 후 저장',
-        '다음 저장까지 자동 저장 끄기 (수동으로만)',
-        '취소',
-      ], { subtitle }).catch(() => null);
-    } else {
-      // pickList 가 아직 없으면 기본 confirm 3단으로 폴백
-      choice = confirm(subtitle + '\n\n확인 = 히스토리/휴지통 비우고 저장, 취소 = 아무것도 안 함')
-        ? '히스토리·휴지통 완전 비우기 + 저장' : '취소';
-    }
-
-    if (!choice || choice === '취소') { toastSafe('취소됨 — 자동 저장은 일시 정지'); return; }
-
-    if (choice.startsWith('큰 파일')) {
-      const ok = await moveStateToIdb();
-      toastSafe(ok ? '상태를 IndexedDB 로 이관 — 다음 저장부터 정상' : '이관 실패 — IDB 미지원일 수 있음');
-      return;
-    }
-
-    if (choice.startsWith('히스토리')) {
-      const s = getState();
-      if (s) { s.history = []; s.trash = []; }
-      try {
-        setItemRaw(STORAGE_KEY, JSON.stringify(getState()));
-        toastSafe('정리 완료 · 다시 저장됨');
-      } catch (e) {
-        toastSafe('정리해도 부족 — IDB 이관으로 진행');
-        await moveStateToIdb();
-      }
-      window.updateStorageIndicator?.();
-      return;
-    }
-
-    if (choice.startsWith('백업')) {
-      try { window.exportJSON?.() ?? document.getElementById('exportBtn')?.click(); } catch {}
-      await new Promise(r => setTimeout(r, 600));
-      const s = getState();
-      if (s) { s.history = []; s.trash = []; }
-      try { setItemRaw(STORAGE_KEY, JSON.stringify(getState())); toastSafe('백업 후 정리 완료'); }
-      catch { await moveStateToIdb(); toastSafe('백업 후 IDB 이관'); }
-      window.updateStorageIndicator?.();
-      return;
-    }
-
-    if (choice.startsWith('다음 저장까지')) {
-      // 긴 쿨다운
-      cooldownUntil = Date.now() + 60 * 60 * 1000;
-      toastSafe('자동 저장 1시간 정지 — 수동으로 저장하거나 새로고침 후 재시도');
-      return;
-    }
-  }
-
-  // --------------------------------------------------------------
-  // 8. 얇은 toast 폴백
-  // --------------------------------------------------------------
-  function toastSafe(text) {
-    try { if (typeof window.toast === 'function') return window.toast(text); } catch {}
-    console.log('[toast]', text);
-  }
-
-  // --------------------------------------------------------------
-  // 9. 부팅 이후 save/load 가 준비되면 감싼다
-  // --------------------------------------------------------------
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', wrapSave, { once: true });
-  } else {
-    wrapSave();
-  }
-
-  // IDB pointer 케이스: 앱 부팅 시 포인터면 실제 state 를 끌어와서 주입
-  (async () => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw);
-      if (parsed && parsed.__stateInIdb && window.__idbStore?.getKV) {
-        const real = await window.__idbStore.getKV(parsed.key || IDB_STATE_KEY);
-        if (real && typeof real === 'object') {
-          // 앱이 자기 state 를 이미 만들었을 수 있으므로 머지 대신 덮어씀 경고
-          log('state in IDB detected. Merging into window.state');
-          Object.assign(window.state || (window.state = {}), real);
-          try { window.renderSidebar?.(); window.setActive?.(real.activeId); } catch {}
-        }
-      }
-    } catch (e) { log('IDB pointer hydrate failed', e); }
-  })();
-
-  // --------------------------------------------------------------
-  // 10. 전역 디버그 엔드포인트
-  // --------------------------------------------------------------
+  // ---- 전역 디버그 ----
   window.__storageQuotaPatch = {
-    version: '1.1.0',
-    trimHistoryAndTrash,
-    archiveHeavyFields,
-    moveStateToIdb,
-    handleQuotaSmart,
+    version: '1.2.0',
     diagnose,
-    clearCooldown() { cooldownUntil = 0; dialogOpen = false; log('cooldown cleared'); },
+    clearCooldown() { cooldownUntil = 0; dialogOpen = false; recovering = false; log('cooldown cleared'); },
+    async forceRecover() {
+      const value = origGetItem.call(localStorage, STORAGE_KEY) || '';
+      const payload = await recoverPayload(STORAGE_KEY, value);
+      if (payload) origSetItem.call(localStorage, STORAGE_KEY, payload);
+      return payload ? Math.round(payload.length/1024) + 'KB' : 'failed';
+    },
+    trim: trimHistoryAndTrash,
+    moveStateToIdb,
+    archiveHeavyFields,
   };
+
+  // 부팅 직후 선제적으로 state 크기 체크 → 이미 크면 자동 슬림화
+  window.addEventListener('load', async () => {
+    setTimeout(async () => {
+      const s = getState();
+      if (!s) return;
+      const sz = stateSize();
+      if (sz > SAFE_BUDGET) {
+        log('state already over budget on load:', Math.round(sz/1024), 'KB — auto-slimming');
+        await window.__storageQuotaPatch.forceRecover();
+      }
+    }, 2000);
+  });
 })();
