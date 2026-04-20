@@ -444,12 +444,12 @@
     const rangeEnd = new Date(y, m, daysIn + (42 - firstDay - daysIn), 23, 59, 59);
     const todayKey = D.dateKey(new Date());
 
-    // Build occurrences by day
+    // Build occurrences by day (preserve span info for multi-day bars)
     const byDay = {};
-    occurrencesInRange(rangeStart, rangeEnd).forEach(({ ev, occ }) => {
+    occurrencesInRange(rangeStart, rangeEnd).forEach(({ ev, occ, span }) => {
       if (query && !matchesQuery(ev, query)) return;
       const k = D.dateKey(occ);
-      (byDay[k] = byDay[k] || []).push({ ev, occ });
+      (byDay[k] = byDay[k] || []).push({ ev, occ, span });
     });
 
     let html = `<div class="cp-month-grid">`;
