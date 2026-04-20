@@ -225,8 +225,9 @@
     if (!state || !Array.isArray(state.calEvents)) return [];
     const out = [];
     state.calEvents.forEach(ev => {
-      // Category filter — empty set OR not in set → skip
-      if (activeCategories.size > 0 && !activeCategories.has(ev.category || 'other')) return;
+      // Category filter — event's category must be in the active set.
+      // Empty set → show none (user explicitly unchecked all).
+      if (!activeCategories.has(ev.category || 'other')) return;
       const occs = D.expandRecurring(ev, rs, re);
       occs.forEach(occ => out.push({ ev, occ }));
     });
