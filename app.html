@@ -3629,53 +3629,140 @@ function save() {
 }
 function scheduleSave() { clearTimeout(saveTimer); saveTimer = setTimeout(save, 400); }
 
-// 용량 초과 처리
-async function handleQuotaExceeded() {
-  const sizeKB = Math.round(JSON.stringify(state).length / 1024);
-  const histCount = state.history?.length || 0;
-  const trashCount = state.trash?.length || 0;
-  const action = await confirm2(
-    '저장 공간 부족',
-    `현재 ${sizeKB}KB로 브라우저 저장 한계(~5MB)에 도달했습니다.\n\n` +
-    `히스토리 ${histCount}개 · 휴지통 ${trashCount}개 · 탭 ${state.tabs.length}개\n\n` +
-    `자동 정리하시겠어요? (히스토리·휴지통 삭제)\n취소하면 먼저 백업 파일 내보내기가 실행됩니다.`,
-    '자동 정리', '먼저 백업'
-  );
-  if (action) {
-    state.trash = [];
-    state.history = [];
-    // 이미지가 너무 큰 오래된 탭 경고
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      toast(`정리 완료 (히스토리 ${histCount}개, 휴지통 ${trashCount}개 삭제됨)`);
-      renderSidebar();
-    } catch (e2) {
-      toast('여전히 공간 부족. 이미지·파일 많은 탭을 삭제해주세요');
-      // 가장 큰 탭 찾기
-      const bigTabs = state.tabs
-        .map(t => ({ name:t.name, size: (t.html || '').length }))
-        .sort((a,b) => b.size - a.size).slice(0, 3);
-      toast('큰 탭: ' + bigTabs.map(t => `${t.name}(${Math.round(t.size/1024)}KB)`).join(', '));
+/* Persistent Storage 요청 — 브라우저가 저장소를 쉽게 제거하지 않도록
+   (이미 persisted면 no-op). 한 번만 호출. */
+(async () => {
+  try {
+    if (navigator.storage && navigator.storage.persist) {
+      const already = await navigator.storage.persisted?.();
+      if (!already) await navigator.storage.persist();
     }
-  } else {
-    // 백업 내보내기
+  } catch {}
+})();
+
+/* 실제 localStorage/Storage API의 남은 공간 조회 (가능하면 정확한 값, 아니면 추정)
+   반환: { usageKB, quotaKB, source }  — source는 'api' 또는 'estimate' */
+async function getStorageFacts() {
+  let usageKB = Math.round((lastSaveSize || JSON.stringify(state).length) / 1024);
+  let quotaKB = 5 * 1024;        // 기본 추정치
+  let source = 'estimate';
+  try {
+    if (navigator.storage && navigator.storage.estimate) {
+      const est = await navigator.storage.estimate();
+      if (est && est.usage && est.quota) {
+        usageKB = Math.round(est.usage / 1024);
+        quotaKB = Math.round(est.quota / 1024);
+        source = 'api';
+      }
+    }
+  } catch {}
+  return { usageKB, quotaKB, source };
+}
+
+/* 백업(JSON export)을 실행하고 완료될 때까지 기다림 */
+async function runBackupExport() {
+  try {
     if (typeof exportJSON === 'function') exportJSON();
     else $('exportBtn')?.click();
-    toast('백업 저장 후 다시 정리를 시도하세요');
+    /* 다운로드 다이얼로그가 뜰 시간 확보 */
+    await new Promise(r => setTimeout(r, 600));
+    return true;
+  } catch { return false; }
+}
+
+/* 자동 정리 (히스토리·휴지통 삭제) */
+function cleanupStorage() {
+  const histCount = state.history?.length || 0;
+  const trashCount = state.trash?.length || 0;
+  state.trash = [];
+  state.history = [];
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    lastSaveSize = JSON.stringify(state).length;
+    toast(`정리 완료 — 히스토리 ${histCount}, 휴지통 ${trashCount} 삭제 (${Math.round(lastSaveSize/1024)}KB)`);
+    try { renderSidebar(); } catch {}
+    updateStorageIndicator();
+    return true;
+  } catch (e2) {
+    const bigTabs = state.tabs
+      .map(t => ({ name: t.name, size: (t.html || '').length }))
+      .sort((a, b) => b.size - a.size).slice(0, 3);
+    toast('여전히 공간 부족 — 큰 탭: ' +
+      bigTabs.map(t => `${t.name}(${Math.round(t.size / 1024)}KB)`).join(', '));
+    return false;
   }
 }
 
-// 상태바에 저장 용량 표시
-function updateStorageIndicator() {
+// 용량 초과 처리
+async function handleQuotaExceeded() {
+  const { usageKB, quotaKB, source } = await getStorageFacts();
+  const attemptKB = Math.round(JSON.stringify(state).length / 1024);
+  const histCount = state.history?.length || 0;
+  const trashCount = state.trash?.length || 0;
+
+  /* 브라우저가 실제로 QuotaExceededError를 던졌으므로 메시지는 "꽉 찼다"로 정직하게.
+     단, usage/quota를 같이 표시해 사용자가 상황을 정확히 이해하도록 함. */
+  const quotaLine = source === 'api'
+    ? `현재 사용량: ${usageKB}KB / 전체 할당: ${quotaKB}KB`
+    : `저장 시도 크기: ${attemptKB}KB (브라우저 저장 한계는 환경에 따라 다름, 대부분 5MB)`;
+
+  const choice = await pickList('저장 공간 부족 — 어떻게 할까요?', [
+    '백업 내보낸 뒤 자동 정리 (추천)',
+    '정리만 (백업 없이 히스토리·휴지통 삭제)',
+    '백업만 (정리 안 함)',
+    '취소',
+  ], {
+    subtitle:
+      `브라우저가 저장을 거부했습니다.\n` +
+      `${quotaLine}\n` +
+      `히스토리 ${histCount}개 · 휴지통 ${trashCount}개 · 탭 ${state.tabs.length}개`,
+  }).catch(() => null);
+
+  if (!choice || choice === '취소') return;
+
+  if (choice.startsWith('백업 내보낸 뒤')) {
+    toast('1/2 백업 내보내는 중…');
+    await runBackupExport();
+    toast('2/2 자동 정리 중…');
+    cleanupStorage();
+  } else if (choice.startsWith('정리만')) {
+    cleanupStorage();
+  } else if (choice.startsWith('백업만')) {
+    await runBackupExport();
+    toast('백업 완료 — 필요 시 수동으로 탭을 정리하세요');
+  }
+}
+
+// 상태바에 저장 용량 표시 — 디바이스 실제 quota 기준으로 계산 (5MB 가정 제거)
+let _cachedQuotaKB = null;
+async function updateStorageIndicator() {
   const el = $('storageIndicator');
   if (!el) return;
   const sizeKB = Math.round(lastSaveSize / 1024);
-  const percent = Math.min(100, Math.round((lastSaveSize / (5 * 1024 * 1024)) * 100));
-  el.textContent = `${sizeKB}KB (${percent}%)`;
-  el.style.color = percent > 85 ? '#d32f2f' : percent > 60 ? '#f57c00' : 'var(--ink-soft)';
-  el.title = percent > 85
-    ? '공간 거의 꽉 참! 이미지·파일 많은 탭을 정리하세요'
-    : `localStorage 사용량: ${sizeKB}KB / 5,120KB`;
+
+  /* quota: navigator.storage.estimate()로 가져오되, 응답을 캐시해서 매번 호출 방지.
+     API 미지원 시 "unknown"으로 표기 (5MB 가정을 쓰지 않음). */
+  if (_cachedQuotaKB === null && navigator.storage && navigator.storage.estimate) {
+    try {
+      const est = await navigator.storage.estimate();
+      if (est && est.quota) _cachedQuotaKB = Math.round(est.quota / 1024);
+    } catch {}
+  }
+
+  if (_cachedQuotaKB && _cachedQuotaKB > 0) {
+    const percent = Math.min(100, Math.round((lastSaveSize / (_cachedQuotaKB * 1024)) * 100));
+    const quotaMB = (_cachedQuotaKB / 1024).toFixed(_cachedQuotaKB >= 1024 ? 0 : 1);
+    el.textContent = `${sizeKB}KB (${percent}%)`;
+    el.style.color = percent > 85 ? '#d32f2f' : percent > 60 ? '#f57c00' : 'var(--ink-soft)';
+    el.title = percent > 85
+      ? `공간 거의 꽉 참! 이미지·파일 많은 탭을 정리하세요 (${sizeKB}KB / ${quotaMB}MB)`
+      : `이 디바이스의 할당 저장공간: ${sizeKB}KB / ${quotaMB}MB`;
+  } else {
+    /* Storage API 미지원 — 용량만 표시 (퍼센트 없음) */
+    el.textContent = `${sizeKB}KB`;
+    el.style.color = 'var(--ink-soft)';
+    el.title = `현재 저장된 데이터: ${sizeKB}KB (디바이스 한계 조회 불가)`;
+  }
 }
 
 /* ============================================================
@@ -6169,10 +6256,14 @@ function prompt2(title, initial) {
     input.addEventListener('keydown', kh);
   });
 }
-function pickList(title, items) {
+function pickList(title, items, opts) {
   return new Promise(resolve => {
     modalTitle.textContent = title;
-    modalBody.innerHTML = `<select id="_pickSel" size="${Math.min(items.length, 8)}">${items.map(i => `<option>${escapeHtml(i)}</option>`).join('')}</select>`;
+    const subtitle = opts && opts.subtitle
+      ? `<div style="font-size:12px; color:var(--ink-soft); margin-bottom:10px; white-space:pre-wrap; line-height:1.55;">${escapeHtml(opts.subtitle)}</div>`
+      : '';
+    modalBody.innerHTML = subtitle +
+      `<select id="_pickSel" size="${Math.min(items.length, 8)}" style="width:100%;">${items.map(i => `<option>${escapeHtml(i)}</option>`).join('')}</select>`;
     const sel = modalBody.querySelector('select');
     modal.classList.add('open'); sel.focus(); sel.selectedIndex = 0;
     const ok = () => { cleanup(); resolve(sel.value); };
@@ -8788,7 +8879,7 @@ $('mnInsertBtn').addEventListener('click', async () => {
   if (audioSizeKB > 3000) {
     const answer = await confirm2(
       '큰 오디오 감지',
-      `녹음 용량이 ${(audioSizeKB/1024).toFixed(1)}MB로 큽니다.\n\n메모에 포함하면 브라우저 저장 공간(5MB)을 많이 차지합니다.\n\n어떻게 할까요?`,
+      `녹음 용량이 ${(audioSizeKB/1024).toFixed(1)}MB로 큽니다.\n\n메모에 그대로 포함하면 디바이스 저장 공간을 크게 차지할 수 있습니다.\n\n어떻게 할까요?`,
       '오디오 제외 (텍스트만)', '그래도 삽입'
     );
     if (answer) {
