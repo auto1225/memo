@@ -123,6 +123,8 @@
       .cp-day .dn.sun { color:#e53935; }
       .cp-day .dn.sat { color:#1e88e5; }
       .cp-day .hol { display:block; color:#e53935; font-size:9px; font-weight:600; margin-bottom:2px; }
+      .cp-day .lun { display:inline-block; color:#94a3b8; font-size:9px; font-weight:500; margin-left:4px; vertical-align:1px; }
+      .cp-day .lun.leap { color:#a16207; font-style:italic; }
       .cp-day .ev {
         display:block; background:var(--accent); color:#fff; padding:1px 4px;
         border-radius:3px; font-size:10px; margin-bottom:1px;
@@ -375,7 +377,10 @@
     });
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
-      if (!document.getElementById('calModal')?.classList.contains('open')) return;
+      // Fire whenever the calendar is visible — modal OR tab mode
+      const modalOpen = document.getElementById('calModal')?.classList.contains('open');
+      const tabOpen = !!document.querySelector('#page #calProRoot');
+      if (!modalOpen && !tabOpen) return;
       // Don't hijack when typing in inputs or the editor is open
       if (document.querySelector('.cp-edit-backdrop')) return;
       const tag = e.target.tagName;
@@ -470,8 +475,13 @@
         k === selectedId ? 'selected' : '',
       ].filter(Boolean).join(' ');
       const dnCls = dow === 0 ? 'sun' : dow === 6 ? 'sat' : '';
+      // Lunar date — show on every day if lookup succeeds
+      const lun = D.solarToLunar ? D.solarToLunar(dt) : null;
+      const lunHtml = lun
+        ? `<span class="lun${lun.leap?' leap':''}" title="음력 ${lun.leap?'윤 ':''}${lun.month}월 ${lun.day}일">음 ${lun.month}.${lun.day}${lun.leap?'閏':''}</span>`
+        : '';
       html += `<div class="${cls}" data-key="${k}">
-        <span class="dn ${dnCls}">${dt.getDate()}</span>
+        <span class="dn ${dnCls}">${dt.getDate()}</span>${lunHtml}
         ${hol ? `<span class="hol">${esc(hol)}</span>` : ''}
         ${evs.slice(0, 3).map(({ ev, occ, span }) => {
           const hhmm = ev.allDay ? '' : `${String(new Date(occ).getHours()).padStart(2,'0')}:${String(new Date(occ).getMinutes()).padStart(2,'0')} `;
@@ -539,6 +549,28 @@
   // ---- Week / Day view -----------------------------------------------
   function renderWeek(host) { renderTimeline(host, 7); }
   function renderDay(host)  { renderTimeline(host, 1); }
+
+  // Column layout for overlapping timed events within a single day.
+  // Returns: Map<ev.id+startISO → { col, totalCols }> so the render
+  // loop can compute left/width without stacking events on top of each other.
+  function layoutDayColumns(daySlots) {
+    // daySlots: [{ ev, occ, start, end }]
+    const sorted = daySlots.slice().sort((a, b) => a.start - b.start || a.end - b.end);
+    const columns = [];  // array of last-end Date per column
+    const placement = new Map();
+    sorted.forEach((s, i) => {
+      let col = columns.findIndex(endT => endT <= s.start);
+      if (col === -1) { col = columns.length; columns.push(s.end); }
+      else columns[col] = s.end;
+      placement.set(s.ev.id + s.start.toISOString(), { col, _raw: s });
+    });
+    // For each placement, find the max concurrent columns its group shares
+    // (bands of overlapping events all use the same totalCols)
+    const totalCols = columns.length;
+    placement.forEach((v, k) => { v.totalCols = totalCols; });
+    return placement;
+  }
+
   function renderTimeline(host, days) {
     const start = days === 7 ? startOfWeek(cursor) : new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate());
     const rangeEnd = new Date(start); rangeEnd.setDate(rangeEnd.getDate() + days - 1); rangeEnd.setHours(23,59,59,999);
@@ -560,33 +592,43 @@
     html += `</div>`;
     host.innerHTML = html;
 
-    // Place events
+    // Place events — first group by day and compute column layout for
+    // overlapping events, then render with left/width adjusted.
     const main = host.querySelector('.cp-week-wrap');
-    const slot0 = main.querySelector('.cp-hour-slot');
-    if (!slot0) return;
+    if (!main.querySelector('.cp-hour-slot')) return;
     const slotH = 32;
-    const cols = 7; // will also work for day
+    // Group day slots
+    const byDay = {};
     occurrencesInRange(start, rangeEnd).forEach(({ ev, occ }) => {
       if (query && !matchesQuery(ev, query)) return;
-      if (ev.allDay) return; // skip in timeline
+      if (ev.allDay) return;
       const dt = new Date(occ);
       const dayIdx = days === 7 ? dt.getDay() : 0;
-      const hrStart = dt.getHours() + dt.getMinutes()/60;
-      const durH = ev.endAt ? Math.max(0.5, (new Date(ev.endAt) - dt) / 3600000) : 1;
-      const top = (hrStart * slotH) + 26;  // header offset
-      const height = durH * slotH - 2;
-      const el = document.createElement('div');
-      el.className = 'cp-week-ev';
-      el.dataset.eid = ev.id;
-      const color = ev.color || CAT_BY_ID[ev.category]?.color || 'var(--accent)';
-      el.style.cssText = `top:${top}px;height:${height}px;background:${color};`;
-      el.style.gridColumn = (dayIdx + 2).toString();
-      el.style.gridRow = 'auto';
-      el.textContent = `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')} ${ev.title}`;
-      main.appendChild(el);
-      el.addEventListener('click', (e) => {
-        e.stopPropagation();
-        openEditor(ev);
+      const endT = ev.endAt ? new Date(ev.endAt) : new Date(dt.getTime() + 3600000);
+      const key = dayIdx;
+      (byDay[key] = byDay[key] || []).push({ ev, occ, start: dt, end: endT });
+    });
+    Object.entries(byDay).forEach(([dayIdx, slots]) => {
+      const placement = layoutDayColumns(slots);
+      slots.forEach((s) => {
+        const p = placement.get(s.ev.id + s.start.toISOString());
+        const hrStart = s.start.getHours() + s.start.getMinutes()/60;
+        const durH = Math.max(0.5, (s.end - s.start) / 3600000);
+        const top = (hrStart * slotH) + 26;
+        const height = durH * slotH - 2;
+        const el = document.createElement('div');
+        el.className = 'cp-week-ev';
+        el.dataset.eid = s.ev.id;
+        const color = s.ev.color || CAT_BY_ID[s.ev.category]?.color || 'var(--accent)';
+        // Column math: each event gets 1/totalCols width, offset by col
+        const widthPct = 100 / Math.max(1, p.totalCols);
+        const leftPct = p.col * widthPct;
+        el.style.cssText = `top:${top}px;height:${height}px;background:${color};left:calc(${leftPct}% + 1px);width:calc(${widthPct}% - 2px);`;
+        el.style.gridColumn = (Number(dayIdx) + 2).toString();
+        el.style.gridRow = 'auto';
+        el.textContent = `${String(s.start.getHours()).padStart(2,'0')}:${String(s.start.getMinutes()).padStart(2,'0')} ${s.ev.title}`;
+        main.appendChild(el);
+        el.addEventListener('click', (e) => { e.stopPropagation(); openEditor(s.ev); });
       });
     });
 
@@ -1117,12 +1159,11 @@
         ensureStateHooks();
         cursor = cursor || new Date();
         mountIntoPage();
-        // Hide content editor affordances specific to memo mode
+        startReminderLoop();
         const wordCount = document.getElementById('wordCount');
         if (wordCount) wordCount.textContent = '— 캘린더 탭 —';
         return;
       } else {
-        // Restore contenteditable when leaving calendar
         const pageEl = document.getElementById('page');
         if (pageEl?.classList.contains('cal-tab-mode')) {
           pageEl.classList.remove('cal-tab-mode');
@@ -1131,6 +1172,12 @@
         return orig.apply(this, arguments);
       }
     };
+    // If a calendar tab is already the active tab (e.g. persisted from
+    // a previous session), trigger an immediate re-render so the user
+    // sees the calendar, not an empty page.
+    if (isCalendarTabActive()) {
+      setTimeout(() => { try { window.renderPage(); } catch {} }, 50);
+    }
   }
 
   // Add a calendar tab (or activate existing one)
@@ -1166,8 +1213,19 @@
     document.getElementById('calModal').classList.add('open');
     startReminderLoop();
   };
-  // Auto-wire tab override once state/renderPage are ready
-  document.addEventListener('DOMContentLoaded', () => setTimeout(wireTabRenderOverride, 1000));
+  // Auto-wire tab override once state/renderPage are ready. Poll every
+  // 200ms until we catch the moment renderPage is exposed, then re-render
+  // if a calendar tab is active (survives page reloads).
+  (function autowire() {
+    let tries = 0;
+    const t = setInterval(() => {
+      tries++;
+      if (window.renderPage || tries > 50) {  // 10s cap
+        clearInterval(t);
+        wireTabRenderOverride();
+      }
+    }, 200);
+  })();
 
   // Start reminder loop even if user doesn't open calendar
   document.addEventListener('DOMContentLoaded', () => {

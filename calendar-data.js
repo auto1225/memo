@@ -257,6 +257,48 @@
     return occ;
   }
 
+  // ------- Korean lunar calendar (음력) 2024-2028 -------------------------
+  // Compact encoding: for each year we store the solar date of lunar 1/1
+  // ("new year") plus an array of month lengths (29 or 30). Leap months
+  // are inserted at the appropriate position in the months array.
+  // Source: Korea Astronomy and Space Science Institute (KASI).
+  const LUNAR = {
+    2024: { start: [2024, 2, 10], lens: [29,30,29,30,29,30,30,30,29,30,30,29], leap: 0 },  // no leap
+    2025: { start: [2025, 1, 29], lens: [30,29,29,30,29,30,29,30,29,30,30,30,29], leap: 7 }, // 윤 6월 → 7th slot
+    2026: { start: [2026, 2, 17], lens: [29,30,29,30,29,30,29,30,30,29,30,30], leap: 0 },
+    2027: { start: [2027, 2, 6],  lens: [30,29,30,29,30,29,30,29,30,30,30,29], leap: 0 },
+    2028: { start: [2028, 1, 26], lens: [29,30,30,29,30,29,30,29,30,29,30,30,30], leap: 6 }, // 윤 5월
+  };
+  // Returns { month, day, leap } or null if date is outside the supported range
+  function solarToLunar(date) {
+    const d = new Date(date);
+    d.setHours(0,0,0,0);
+    const target = d.getTime();
+    // Try the year the date falls into, else the previous year (lunar start
+    // can be in Feb, so a Jan solar date belongs to previous lunar year)
+    for (const y of [d.getFullYear(), d.getFullYear() - 1]) {
+      const y2 = LUNAR[y];
+      if (!y2) continue;
+      const start = new Date(y2.start[0], y2.start[1] - 1, y2.start[2]).getTime();
+      if (target < start) continue;
+      let diff = Math.floor((target - start) / 86400000);  // days since lunar new year
+      // Walk through months
+      for (let i = 0; i < y2.lens.length; i++) {
+        const L = y2.lens[i];
+        if (diff < L) {
+          // month number (1-based, accounting for leap)
+          let monthNum = i + 1;
+          let isLeap = false;
+          if (y2.leap && i + 1 > y2.leap) monthNum = i;         // months after leap are shifted
+          if (y2.leap && i + 1 === y2.leap) { monthNum = y2.leap - 1; isLeap = true; }
+          return { month: monthNum, day: diff + 1, leap: isLeap };
+        }
+        diff -= L;
+      }
+    }
+    return null;
+  }
+
   // ------- Convert date to YYYY-MM-DD key ---------------------------------
   function dateKey(d) {
     const dt = new Date(d);
@@ -272,6 +314,7 @@
     parseNaturalKR,
     formatRelativeKR,
     expandRecurring,
+    solarToLunar,
     dateKey,
     monthKey,
   };
