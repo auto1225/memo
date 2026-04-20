@@ -3224,31 +3224,31 @@
 
 <!-- ========== 명함관리 모달 ========== -->
 <div class="modal-backdrop" id="cardsModal">
-  <div class="modal" style="width:min(1100px,96vw); max-height:92vh; display:flex; flex-direction:column; padding:0;">
-    <div style="display:flex; align-items:center; gap:10px; padding:14px 18px; border-bottom:1px solid var(--paper-edge);">
+  <div class="modal cards-pro" style="width:min(1100px,96vw); max-height:92vh; display:flex; flex-direction:column; padding:0; background:#fff;">
+    <div class="cards-toolbar" style="display:flex; align-items:center; gap:8px; padding:14px 18px; border-bottom:1px solid var(--paper-edge); flex-wrap:wrap; background:#fafafa;">
       <svg class="ico" style="stroke:var(--accent); width:22px; height:22px;"><use href="#i-id-card"/></svg>
       <h3 style="margin:0; font-size:16px;">명함관리</h3>
-      <span id="cardsStat" style="font-size:11px; color:var(--ink-soft);"></span>
+      <span id="cardsStat" style="font-size:11px; color:var(--ink-soft); padding:2px 8px; background:var(--paper-edge); border-radius:999px;"></span>
       <span style="flex:1;"></span>
-      <button id="cardsAddBtn" style="background:var(--accent); color:white; border:none; padding:7px 12px; border-radius:6px; cursor:pointer; font-weight:600; display:flex; align-items:center; gap:5px;">
-        <svg class="ico" style="stroke:white;"><use href="#i-user-plus"/></svg>명함 추가
+      <button id="cardsAddBtn" class="ct-btn primary" title="새 명함 추가 (AI 스캔/직접 입력)">
+        <svg class="ico"><use href="#i-user-plus"/></svg><span>명함 추가</span>
       </button>
-      <button id="cardsImportBtn" title="CSV/vCard 가져오기" style="background:transparent; border:1px solid var(--paper-edge); padding:7px 10px; border-radius:6px; cursor:pointer;">
-        <svg class="ico"><use href="#i-download"/></svg>
+      <button id="cardsImportBtn" class="ct-btn" title="CSV 또는 vCard 파일에서 여러 명함 한 번에 가져오기">
+        <svg class="ico"><use href="#i-download"/></svg><span>가져오기</span>
       </button>
-      <button id="cardsExportBtn" title="vCard로 내보내기" style="background:transparent; border:1px solid var(--paper-edge); padding:7px 10px; border-radius:6px; cursor:pointer;">
-        <svg class="ico"><use href="#i-upload"/></svg>
+      <button id="cardsExportBtn" class="ct-btn" title="선택한 명함을 vCard / CSV 파일로 내려받기">
+        <svg class="ico"><use href="#i-upload"/></svg><span>내보내기</span>
       </button>
-      <button id="cardsStatsBtn" title="통계" style="background:transparent; border:1px solid var(--paper-edge); padding:7px 10px; border-radius:6px; cursor:pointer;">
-        <svg class="ico"><use href="#i-stats"/></svg>
+      <button id="cardsStatsBtn" class="ct-btn" title="회사·그룹·태그별 명함 분포 통계">
+        <svg class="ico"><use href="#i-stats"/></svg><span>통계</span>
       </button>
-      <button id="cardsPhoneSyncBtn" title="스마트폰 연락처 연동 (iOS/Android)" style="background:transparent; border:1px solid var(--paper-edge); padding:7px 10px; border-radius:6px; cursor:pointer;">
-        <svg class="ico"><use href="#i-smartphone"/></svg>
+      <button id="cardsPhoneSyncBtn" class="ct-btn" title="iOS·Android 연락처 가져오기/내보내기">
+        <svg class="ico"><use href="#i-smartphone"/></svg><span>연락처</span>
       </button>
-      <button id="cardsMyBtn" title="내 명함 / QR 공유" style="background:transparent; border:1px solid var(--paper-edge); padding:7px 10px; border-radius:6px; cursor:pointer;">
-        <svg class="ico"><use href="#i-qr"/></svg>
+      <button id="cardsMyBtn" class="ct-btn" title="내 명함 만들기 · QR로 공유">
+        <svg class="ico"><use href="#i-qr"/></svg><span>내 QR</span>
       </button>
-      <button id="cardsClose" title="닫기 (Esc)" style="background:transparent; border:none; padding:6px; cursor:pointer;">
+      <button id="cardsClose" class="ct-close" title="닫기 (Esc)">
         <svg class="ico"><use href="#i-x"/></svg>
       </button>
     </div>
@@ -3384,6 +3384,80 @@
 </div>
 
 <style>
+/* ---- Cards pro toolbar ---- */
+.cards-pro .ct-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 10px; border-radius: 7px; cursor: pointer;
+  background: #ffffff; color: var(--ink);
+  border: 1px solid var(--paper-edge);
+  font-size: 12px; font-weight: 500; font-family: inherit;
+  white-space: nowrap; line-height: 1;
+  transition: background .12s, border-color .12s, transform .08s;
+}
+.cards-pro .ct-btn:hover { background: var(--tab-hover); border-color: var(--accent); color: var(--accent); }
+.cards-pro .ct-btn:active { transform: scale(0.96); }
+.cards-pro .ct-btn .ico { width: 14px; height: 14px; stroke-width: 2; }
+.cards-pro .ct-btn.primary {
+  background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600;
+}
+.cards-pro .ct-btn.primary:hover { background: color-mix(in srgb, var(--accent) 85%, black); color: #fff; }
+.cards-pro .ct-btn.primary .ico { stroke: #fff; }
+.cards-pro .ct-close {
+  background: transparent; border: 0; padding: 6px; cursor: pointer;
+  width: 30px; height: 30px; border-radius: 50%;
+  color: var(--ink-soft); display: inline-flex; align-items: center; justify-content: center;
+}
+.cards-pro .ct-close:hover { background: #fee; color: #c62828; }
+@media (max-width: 640px) {
+  .cards-pro .ct-btn span { display: none; }  /* icon-only on mobile */
+  .cards-pro .ct-btn { padding: 7px; }
+}
+
+/* ---- Detail panel action buttons (consistent, accessible) ---- */
+.cd-action-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px 12px; border-radius: 8px; cursor: pointer; font-family: inherit;
+  background: #fff; color: var(--ink);
+  border: 1px solid var(--paper-edge);
+  font-size: 12px; font-weight: 600;
+  transition: all .12s;
+}
+.cd-action-btn:hover { background: var(--tab-hover); border-color: var(--accent); color: var(--accent); }
+.cd-action-btn:active { transform: scale(0.97); }
+.cd-action-btn .ico { width: 14px; height: 14px; stroke-width: 2; }
+.cd-action-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.cd-action-btn.primary:hover { background: color-mix(in srgb, var(--accent) 85%, black); color: #fff; }
+.cd-action-btn.primary .ico { stroke: #fff; }
+
+/* ---- Detail panel header icons (favorite / edit / delete) polish ---- */
+#cardsDetailBody #cdFavBtn,
+#cardsDetailBody #cdEditBtn,
+#cardsDetailBody #cdDeleteBtn {
+  width: 32px; height: 32px; border-radius: 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid transparent;
+  transition: background .12s, border-color .12s;
+}
+#cardsDetailBody #cdFavBtn:hover { background: #fff9e6; border-color: #f9d71c; }
+#cardsDetailBody #cdEditBtn:hover { background: color-mix(in srgb, var(--accent) 15%, transparent); border-color: var(--accent); }
+#cardsDetailBody #cdDeleteBtn:hover { background: #fee; border-color: #c62828; }
+
+/* ---- Card tile hover polish ---- */
+.card-grid-item { transition: transform .12s, box-shadow .12s, border-color .12s; }
+.card-grid-item:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(0,0,0,.08); border-color: var(--accent); }
+.card-grid-item.selected { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent); }
+
+/* ---- Empty state design ---- */
+#cardsList .cg-empty {
+  text-align: center; padding: 60px 20px; color: var(--ink-soft);
+}
+#cardsList .cg-empty .big-ico {
+  width: 56px; height: 56px; margin: 0 auto 16px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+}
+#cardsList .cg-empty .big-ico .ico { width: 28px; height: 28px; stroke: var(--accent); }
+
 .cards-view { color:var(--ink-soft); }
 .cards-view.active { background:var(--accent); color:white; }
 .card-filter-item { display:flex; align-items:center; gap:6px; padding:6px 8px; border-radius:5px; cursor:pointer; font-size:12px; color:var(--ink); margin-bottom:2px; }
@@ -15635,10 +15709,28 @@ function renderCardsList() {
   $('cardsStat').textContent = `${list.length}개`;
 
   if (list.length === 0) {
-    wrap.innerHTML = `<div style="text-align:center; padding:50px 20px; color:var(--ink-soft);">
-      <svg class="ico" style="width:48px; height:48px; opacity:0.4;"><use href="#i-id-card"/></svg>
-      <div style="margin-top:12px; font-size:14px;">명함이 없습니다</div>
-      <div style="font-size:11px; margin-top:4px;">"명함 추가" 버튼을 눌러 시작하세요</div>
+    const anyCards = (state.businessCards || []).length > 0;
+    wrap.innerHTML = `<div class="cg-empty">
+      <div class="big-ico"><svg class="ico"><use href="#i-id-card"/></svg></div>
+      <div style="font-size:15px; font-weight:600; color:var(--ink); margin-bottom:4px;">
+        ${anyCards ? '필터 조건에 맞는 명함이 없습니다' : '아직 명함이 없어요'}
+      </div>
+      <div style="font-size:12px; color:var(--ink-soft); margin-bottom:18px;">
+        ${anyCards ? '다른 필터를 선택하거나 검색어를 지우세요' : '명함을 추가하면 연락처 · QR 공유 · AI 자동 입력 · 스마트폰 연동을 사용할 수 있습니다'}
+      </div>
+      ${anyCards ? '' : `
+        <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
+          <button class="ct-btn primary" onclick="openCardEditor(null)">
+            <svg class="ico"><use href="#i-user-plus"/></svg><span>명함 추가</span>
+          </button>
+          <button class="ct-btn" onclick="document.getElementById('cardsImportBtn').click()">
+            <svg class="ico"><use href="#i-download"/></svg><span>파일에서 가져오기</span>
+          </button>
+          <button class="ct-btn" onclick="document.getElementById('cardsMyBtn').click()">
+            <svg class="ico"><use href="#i-qr"/></svg><span>내 명함 만들기</span>
+          </button>
+        </div>
+      `}
     </div>`;
     return;
   }
@@ -15808,13 +15900,19 @@ function renderCardsDetail(id) {
         </div>`).join('')}
       </div>`;
     })()}
-    <div style="margin-top:14px; display:flex; gap:6px; flex-wrap:wrap;">
-      <button class="cd-bulk-btn" id="cdInsertBtn" style="flex:1; min-width:80px; background:var(--accent); color:white; border:none; padding:8px; border-radius:5px; cursor:pointer; font-size:12px;">메모 삽입</button>
-      <button class="cd-bulk-btn" id="cdPhoneBtn" style="background:#ff6b35; color:white; border:none; padding:8px 10px; border-radius:5px; cursor:pointer; font-size:12px; display:flex; align-items:center; gap:4px;">
-        <svg class="ico" style="stroke:white; width:14px; height:14px;"><use href="#i-smartphone"/></svg>폰으로
+    <div class="cd-actions" style="margin-top:16px; display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+      <button class="cd-action-btn primary" id="cdInsertBtn" title="현재 메모에 이 명함 정보 붙여넣기">
+        <svg class="ico"><use href="#i-note"/></svg><span>메모에 삽입</span>
       </button>
-      <button class="cd-bulk-btn" id="cdVcardBtn" style="background:#4caf50; color:white; border:none; padding:8px 10px; border-radius:5px; cursor:pointer; font-size:12px;">vCard</button>
-      <button class="cd-bulk-btn" id="cdShareBtn" style="background:#888; color:white; border:none; padding:8px 10px; border-radius:5px; cursor:pointer; font-size:12px;">복사</button>
+      <button class="cd-action-btn" id="cdPhoneBtn" title="스마트폰 연락처로 전송">
+        <svg class="ico"><use href="#i-smartphone"/></svg><span>폰으로 보내기</span>
+      </button>
+      <button class="cd-action-btn" id="cdVcardBtn" title="vCard(.vcf) 파일 내려받기">
+        <svg class="ico"><use href="#i-download"/></svg><span>vCard 파일</span>
+      </button>
+      <button class="cd-action-btn" id="cdShareBtn" title="클립보드에 연락처 정보 복사">
+        <svg class="ico"><use href="#i-copy"/></svg><span>복사</span>
+      </button>
     </div>
   `;
 
