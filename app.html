@@ -3711,6 +3711,8 @@ function addTab(name, html = '') {
   save(); renderTabs(); renderPage(); renderSidebar(); pageEl.focus();
   return id;
 }
+// Expose to app-integration.js for template insertion
+window.addTab = addTab;
 async function closeTab(id) {
   const t = state.tabs.find(t => t.id === id);
   if (!t) return;
@@ -17022,6 +17024,8 @@ if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
 <script src="/super-admin-link.js"></script>
 <!-- JustANotepad template picker (cms_templates) -->
 <script src="/template-picker.js"></script>
+<!-- JustANotepad app ↔ CMS integration (template insertion, state bridge) -->
+<script src="/app-integration.js"></script>
 <!-- JustANotepad home hub — dashboard drawer with recent activity -->
 <script src="/home-hub.js"></script>
 </body>

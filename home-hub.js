@@ -179,12 +179,40 @@
 
     const totalViews = (shared.data||[]).reduce((a,r) => a + (r.view_count||0), 0);
 
+    // Local app state snapshot (from app-integration.js)
+    const localState = window.JANAppState?.snapshot?.() || null;
+    const tagEntries = localState ? Object.entries(localState.tags).sort((a,b) => b[1] - a[1]) : [];
+    const todoTxt = localState && localState.todos.total
+      ? `${localState.todos.done}/${localState.todos.total}`
+      : '—';
+
     bd.innerHTML = `
       <div class="jan-hub-kpis">
+        <div class="jan-hub-kpi"><div class="v">${localState?.tabsTotal ?? 0}</div><div class="l">탭</div></div>
+        <div class="jan-hub-kpi"><div class="v">${todoTxt}</div><div class="l">할 일</div></div>
         <div class="jan-hub-kpi"><div class="v">${clipCount.count ?? 0}</div><div class="l">클립</div></div>
-        <div class="jan-hub-kpi"><div class="v">${sharedCount.count ?? 0}</div><div class="l">공유</div></div>
-        <div class="jan-hub-kpi"><div class="v">${totalViews}</div><div class="l">조회</div></div>
       </div>
+
+      ${tagEntries.length ? `
+        <div class="jan-hub-section">
+          <h3>태그</h3>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            ${tagEntries.slice(0,12).map(([t,c]) => `
+              <span style="padding:3px 10px;background:#f3f4f6;border-radius:999px;font-size:11px;color:#6b7280;font-weight:600;">
+                ${escape(t)} <span style="color:#9ca3af;">${c}</span>
+              </span>`).join('')}
+          </div>
+        </div>
+      ` : ''}
+
+      ${localState && localState.todos.total ? `
+        <div class="jan-hub-section">
+          <h3>오늘 할 일 — ${localState.todos.done}/${localState.todos.total} 완료</h3>
+          <div style="background:#f3f4f6;border-radius:4px;height:6px;overflow:hidden;">
+            <div style="background:#10b981;height:100%;width:${Math.round((localState.todos.done/localState.todos.total)*100)}%;transition:width 0.3s;"></div>
+          </div>
+        </div>
+      ` : ''}
 
       <div class="jan-hub-section">
         <h3>빠른 시작
@@ -215,6 +243,17 @@
             <div class="d">${s.view_count||0}회 · ${s.mode==='edit'?'편집':'읽기'}</div>
           </a>`).join('') : '<div class="jan-hub-empty">공유한 노트가 없습니다.</div>'}
       </div>
+
+      ${localState?.recent?.length ? `
+        <div class="jan-hub-section">
+          <h3>최근 탭</h3>
+          ${localState.recent.slice(0, 5).map(t => `
+            <div class="jan-hub-item" style="cursor:default;">
+              ${t.starred ? '<span style="color:#eab308;">★</span>' : ''}
+              <div class="t">${escape(t.name || '(무제)')}</div>
+              <div class="d">${t.tag ? `#${escape(t.tag)}` : ''}</div>
+            </div>`).join('')}
+        </div>` : ''}
 
       <div class="jan-hub-section">
         <h3>공지</h3>
