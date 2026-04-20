@@ -1585,7 +1585,8 @@
     <div class="topbar-drop collapsible" id="calDropWrap" style="position:relative; display:inline-flex;">
       <button id="calOpenBtn" title="캘린더 (Ctrl+J) · 길게누르면 메뉴"><svg class="ico"><use href="#i-calendar"/></svg></button>
       <div class="topbar-drop-menu" id="calDropMenu" style="display:none;">
-        <div class="tdm-item" data-act="cal">월간 캘린더</div>
+        <div class="tdm-item" data-act="cal">월간 캘린더 (팝업)</div>
+        <div class="tdm-item" data-act="calTab">캘린더 탭으로 열기</div>
         <div class="tdm-item" data-act="today">오늘 메모</div>
         <div class="tdm-item" data-act="insertDate">현재 날짜/시간 삽입</div>
         <div class="tdm-item" data-act="insertTag">캘린더 태그 삽입</div>
@@ -3796,6 +3797,11 @@ window.addTab = addTab;
 // Expose save() + state to calendar-pro.js for event persistence
 window.save = save;
 window.state = state;
+// Expose renderers for calendar-pro.js tab integration
+window.renderPage = renderPage;
+window.renderTabs = renderTabs;
+window.renderSidebar = renderSidebar;
+window.setActive = setActive;
 async function closeTab(id) {
   const t = state.tabs.find(t => t.id === id);
   if (!t) return;
@@ -9791,6 +9797,7 @@ pageEl.addEventListener('input', () => {
       closeAllTopbarMenus();
       const act = el.dataset.act;
       if (act === 'cal') openCalendar();
+      else if (act === 'calTab') window.openCalendarAsTab && window.openCalendarAsTab();
       else if (act === 'today') openTodayMemo();
       else if (act === 'insertDate') $('dateBtn').click();
       else if (act === 'insertTag') $('dateTagBtn').click();

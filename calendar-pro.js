@@ -129,6 +129,11 @@
         overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
       }
       .cp-day .ev.all-day { font-weight:700; }
+      /* Multi-day span chips */
+      .cp-day .ev.span-start { border-radius:3px 0 0 3px; margin-right:-1px; }
+      .cp-day .ev.span-mid { border-radius:0; margin-left:-1px; margin-right:-1px; padding-left:0; padding-right:0; }
+      .cp-day .ev.span-end { border-radius:0 3px 3px 0; margin-left:-1px; padding-left:0; }
+      .cp-day .ev.span-mid, .cp-day .ev.span-end { color:rgba(255,255,255,0.4); }
       .cp-day .more { font-size:9px; color:var(--ink-soft); }
 
       /* Week/Day view */
@@ -221,20 +226,47 @@
   }
 
   // ---- Occurrences in range ------------------------------------------
+  // Returns occurrences as { ev, occ, span?: { total, idx, position } }
+  //   span is set for multi-day events
+  //   idx = 0..total-1 (which day within the span)
+  //   position = 'start' | 'mid' | 'end' | 'solo'
   function occurrencesInRange(rs, re) {
     if (!state || !Array.isArray(state.calEvents)) return [];
     const out = [];
     state.calEvents.forEach(ev => {
-      // Category filter — event's category must be in the active set.
-      // Empty set → show none (user explicitly unchecked all).
       if (!activeCategories.has(ev.category || 'other')) return;
       const occs = D.expandRecurring(ev, rs, re);
-      occs.forEach(occ => out.push({ ev, occ }));
+      // Determine if the event spans multiple days
+      let spanDays = 1;
+      if (ev.endAt) {
+        const sd = new Date(ev.startAt);
+        const ed = new Date(ev.endAt);
+        const s0 = new Date(sd.getFullYear(), sd.getMonth(), sd.getDate()).getTime();
+        const e0 = new Date(ed.getFullYear(), ed.getMonth(), ed.getDate()).getTime();
+        spanDays = Math.max(1, Math.floor((e0 - s0) / 86400000) + 1);
+      }
+      occs.forEach(occ => {
+        if (spanDays === 1) {
+          out.push({ ev, occ });
+          return;
+        }
+        // Emit one entry per day of the span
+        for (let i = 0; i < spanDays; i++) {
+          const d = new Date(occ);
+          d.setDate(d.getDate() + i);
+          if (d < rs || d > re) continue;
+          const position = i === 0 ? 'start' : (i === spanDays - 1 ? 'end' : 'mid');
+          out.push({ ev, occ: d, span: { total: spanDays, idx: i, position } });
+        }
+      });
     });
     return out;
   }
 
-  // ---- Main mount ----------------------------------------------------
+  // Track current mount host — either the modal card or the #page element
+  let host = null;
+
+  // ---- Main mount (modal) --------------------------------------------
   function mount() {
     const modal = document.getElementById('calModal');
     if (!modal) return;
@@ -244,6 +276,7 @@
     card.style.maxWidth = '96vw';
     card.style.padding = '0';
     card.style.overflow = 'hidden';
+    host = card;
     card.innerHTML = `
       <div id="calProRoot" style="position:relative;">
         <div class="cp-topbar">
@@ -440,10 +473,13 @@
       html += `<div class="${cls}" data-key="${k}">
         <span class="dn ${dnCls}">${dt.getDate()}</span>
         ${hol ? `<span class="hol">${esc(hol)}</span>` : ''}
-        ${evs.slice(0, 3).map(({ ev, occ }) => {
+        ${evs.slice(0, 3).map(({ ev, occ, span }) => {
           const hhmm = ev.allDay ? '' : `${String(new Date(occ).getHours()).padStart(2,'0')}:${String(new Date(occ).getMinutes()).padStart(2,'0')} `;
           const color = ev.color || CAT_BY_ID[ev.category]?.color || 'var(--accent)';
-          return `<span class="ev${ev.allDay?' all-day':''}" data-eid="${ev.id}" style="background:${color};">${esc(hhmm + ev.title)}</span>`;
+          const spanCls = span ? ' span-' + span.position : '';
+          // Title on start only (and solo events); mid/end get a blank bar that still connects visually
+          const label = span && span.position !== 'start' ? '\u00a0' : (hhmm + ev.title);
+          return `<span class="ev${ev.allDay?' all-day':''}${spanCls}" data-eid="${ev.id}" style="background:${color};" title="${esc(ev.title)}">${esc(label)}</span>`;
         }).join('')}
         ${evs.length > 3 ? `<span class="more">+${evs.length - 3}개</span>` : ''}
       </div>`;
@@ -749,7 +785,11 @@
           <div class="cp-edit-field"><label>종료 (선택)</label><input id="eEnd" type="datetime-local" value="${e.endAt ? fmtDT(e.endAt) : ''}"></div>
         </div>
         <div class="cp-edit-field">
-          <label><input type="checkbox" id="eAllDay" ${e.allDay?'checked':''}> 종일 이벤트</label>
+          <label style="display:flex;align-items:center;gap:16px;">
+            <span><input type="checkbox" id="eAllDay" ${e.allDay?'checked':''}> 종일</span>
+            <button type="button" id="eMultiDay" style="padding:3px 10px;border:1px solid var(--paper-edge);border-radius:999px;font-size:11px;background:#fff;cursor:pointer;font-family:inherit;">여러 날</button>
+            <span style="font-size:10px;color:var(--ink-soft);">종료일을 다른 날로 설정하면 캘린더에 연속된 바로 표시됩니다</span>
+          </label>
         </div>
         <div class="cp-edit-field">
           <label>카테고리 · 색상 직접 지정 가능</label>
@@ -820,6 +860,19 @@
     back.addEventListener('click', (evt) => { if (evt.target === back) close(); });
     back.querySelector('#eCancel').addEventListener('click', close);
     back.querySelector('#eClose').addEventListener('click', close);
+    // Multi-day quick-set: allDay + endAt = start + 1 day (00:00)
+    back.querySelector('#eMultiDay').addEventListener('click', () => {
+      back.querySelector('#eAllDay').checked = true;
+      const startEl = back.querySelector('#eStart');
+      const endEl = back.querySelector('#eEnd');
+      const sd = startEl.value ? new Date(startEl.value) : new Date();
+      const ed = new Date(sd);
+      ed.setDate(ed.getDate() + 1);
+      ed.setHours(sd.getHours(), sd.getMinutes(), 0, 0);
+      const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+      endEl.value = fmt(ed);
+      endEl.focus();
+    });
     back.querySelector('#eSave').addEventListener('click', () => {
       const title = back.querySelector('#eTitle').value.trim() || '(제목 없음)';
       const startStr = back.querySelector('#eStart').value;
@@ -996,6 +1049,108 @@
     }, 30000);
   }
 
+  // ---- Mount into page (tab mode) ------------------------------------
+  function mountIntoPage() {
+    const pageEl = document.getElementById('page');
+    if (!pageEl) return;
+    pageEl.setAttribute('contenteditable', 'false');
+    pageEl.classList.add('cal-tab-mode');
+    host = pageEl;
+    pageEl.innerHTML = `
+      <div id="calProRoot" style="position:relative;height:100%;display:flex;flex-direction:column;">
+        <div class="cp-topbar">
+          <div class="cp-tabs" id="cpTabs">
+            <button class="cp-tab" data-v="month">월</button>
+            <button class="cp-tab" data-v="week">주</button>
+            <button class="cp-tab" data-v="day">일</button>
+            <button class="cp-tab" data-v="year">년</button>
+            <button class="cp-tab" data-v="todo">할 일</button>
+          </div>
+          <div class="cp-nav">
+            <button id="cpPrev">◀</button>
+            <span class="cp-label" id="cpLabel">—</span>
+            <button id="cpNext">▶</button>
+          </div>
+          <button class="cp-today" id="cpToday">오늘</button>
+          <input type="search" class="cp-search" id="cpSearch" placeholder="이벤트 검색">
+          <div class="cp-spacer"></div>
+          <button class="cp-add" id="cpNL" title="자연어로 추가">+ 빠른 추가</button>
+          <button class="cp-add" id="cpAdd" title="상세 입력">+ 이벤트</button>
+          <button class="cp-menu-btn" id="cpMenu" title="더보기">⋯</button>
+          <div class="cp-menu-dropdown" id="cpMenuDrop">
+            <button id="cpExportIcs">ICS 파일 내보내기</button>
+            <button id="cpImportIcs">ICS 파일 가져오기</button>
+            <button id="cpEnableNotify">알림 권한 요청</button>
+          </div>
+        </div>
+        <div class="cp-nl-input" id="cpNLInput">
+          <h5>자연어로 빠르게</h5>
+          <input id="cpNLText" placeholder="예: 내일 오후 3시 치과 예약">
+          <div class="hint">"내일 / 모레", "3월 15일", "오후 2시 반", "다음 주 수요일" 인식</div>
+        </div>
+        <button class="cp-side-toggle" id="cpSideToggle" title="사이드 패널">☰</button>
+        <div class="cp-body" style="flex:1;max-height:none;">
+          <div class="cp-main" id="cpMain"></div>
+          <div class="cp-side" id="cpSide"></div>
+        </div>
+      </div>
+    `;
+    wireHandlers();
+    renderAll();
+  }
+
+  // ---- Tab integration -----------------------------------------------
+  function isCalendarTabActive() {
+    const st = window.state;
+    if (!st) return false;
+    const t = st.tabs?.find(x => x.id === st.activeId);
+    return t?.type === 'calendar';
+  }
+
+  function wireTabRenderOverride() {
+    if (!window.renderPage || window.__janCalRenderPatched) return;
+    window.__janCalRenderPatched = true;
+    const orig = window.renderPage;
+    window.renderPage = function() {
+      if (isCalendarTabActive()) {
+        injectCSS();
+        ensureStateHooks();
+        cursor = cursor || new Date();
+        mountIntoPage();
+        // Hide content editor affordances specific to memo mode
+        const wordCount = document.getElementById('wordCount');
+        if (wordCount) wordCount.textContent = '— 캘린더 탭 —';
+        return;
+      } else {
+        // Restore contenteditable when leaving calendar
+        const pageEl = document.getElementById('page');
+        if (pageEl?.classList.contains('cal-tab-mode')) {
+          pageEl.classList.remove('cal-tab-mode');
+          pageEl.setAttribute('contenteditable', 'true');
+        }
+        return orig.apply(this, arguments);
+      }
+    };
+  }
+
+  // Add a calendar tab (or activate existing one)
+  window.openCalendarAsTab = function() {
+    if (!ensureStateHooks()) return;
+    wireTabRenderOverride();
+    const st = window.state;
+    let t = st.tabs.find(x => x.type === 'calendar' && x.wsId === st.meta.activeWs);
+    if (!t) {
+      const id = 't' + Date.now();
+      t = { id, wsId: st.meta.activeWs, name: '📅 캘린더', type: 'calendar', pinned: false, tag: '', html: '' };
+      st.tabs.push(t);
+    }
+    st.activeId = t.id;
+    if (window.save) window.save();
+    if (window.renderTabs) window.renderTabs();
+    if (window.renderPage) window.renderPage();
+    if (window.renderSidebar) window.renderSidebar();
+  };
+
   // ---- Public entry --------------------------------------------------
   const oldOpen = window.openCalendar;
   window.openCalendar = function() {
@@ -1011,6 +1166,8 @@
     document.getElementById('calModal').classList.add('open');
     startReminderLoop();
   };
+  // Auto-wire tab override once state/renderPage are ready
+  document.addEventListener('DOMContentLoaded', () => setTimeout(wireTabRenderOverride, 1000));
 
   // Start reminder loop even if user doesn't open calendar
   document.addEventListener('DOMContentLoaded', () => {
