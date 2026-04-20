@@ -158,6 +158,7 @@
     'ls-featured': { prefix: 'featured.', label: '피처드 카드',  desc: '14가지 도구, 평생 무료 등 4개 카드' },
     'ls-features': { prefix: 'features.', label: '기능 소개',    desc: '850KB 헤드라인부터 워크스페이스 샘플까지' },
     'ls-download': { prefix: 'download.', label: '다운로드 섹션', desc: '다운로드 헤드라인 + 4개 다운로드 카드 + PWA 가이드' },
+    'ls-compare':  { prefix: 'compare.',  label: '비교 (Evernote)', desc: 'Evernote vs JustANotepad 비교표 섹션' },
     'ls-cta':      { prefix: 'cta.',      label: '무료 시작 CTA', desc: '가입 유도 섹션 (버튼/부제/공지)' },
     'ls-faq':      { prefix: 'faq.',      label: 'FAQ',          desc: '자주 묻는 질문 제목과 항목' },
     'ls-footer':   { prefix: 'footer.',   label: '푸터',         desc: '하단 링크·저작권·회사 정보' },
@@ -199,6 +200,9 @@
     activity: ['활동 로그', '미디어 / 활동 로그'],
     backup:   ['백업 / 내보내기', '미디어 / 백업'],
     search:   ['전역 검색', '미디어 / 검색'],
+    templates:['템플릿 라이브러리', '콘텐츠 라이브러리 / 템플릿'],
+    shared:   ['공유 노트', '콘텐츠 라이브러리 / 공유 노트'],
+    clips:    ['웹 클리퍼 수신함', '콘텐츠 라이브러리 / 클리퍼'],
   };
 
   // Tracks current logged-in user's email for activity logging
@@ -279,6 +283,9 @@
       else if (v === 'redirects')  await renderRedirects();
       else if (v === 'backup')     await renderBackup();
       else if (v === 'search')     await renderGlobalSearchPage();
+      else if (v === 'templates')  await renderTemplates();
+      else if (v === 'shared')     await renderSharedNotes();
+      else if (v === 'clips')      await renderClips();
       else                         renderContentPage(v);
     } catch (e) {
       view.innerHTML = '<div style="color:var(--danger);padding:20px;">오류: ' + (e.message || e) + '</div>';
@@ -1581,6 +1588,7 @@
       'cms_content','cms_notices','cms_faq','cms_popups','cms_docs','cms_sections',
       'cms_board','cms_payments','cms_serials','cms_entitlements','cms_settings',
       'cms_seo','cms_redirects','cms_media','cms_activity_log',
+      'cms_templates','cms_shared_notes','cms_clips',
     ];
     view.innerHTML = `
       <div class="panel">
@@ -1770,6 +1778,9 @@
       { label: 'SEO (cms_seo)',          view: 'seo',       table: 'cms_seo',      fields: ['path','title','description'] },
       { label: '리다이렉트 (cms_redirects)', view: 'redirects', table: 'cms_redirects', fields: ['source','destination'] },
       { label: '활동 로그 (cms_activity_log)', view: 'activity', table: 'cms_activity_log', fields: ['actor_email','resource_type','resource_id'] },
+      { label: '템플릿 (cms_templates)',        view: 'templates', table: 'cms_templates',  fields: ['slug','name','category','description'] },
+      { label: '공유 노트 (cms_shared_notes)',  view: 'shared',    table: 'cms_shared_notes', fields: ['token','title','body'] },
+      { label: '웹 클립 (cms_clips)',           view: 'clips',     table: 'cms_clips',      fields: ['url','title','excerpt'] },
     ];
 
     const results = await Promise.all(searches.map(async (s) => {
@@ -1804,6 +1815,195 @@
       container.style.display = 'none';
       const gs = $('globalSearch'); if (gs) gs.value = '';
     }));
+  }
+
+  // ---- MODULE: 템플릿 라이브러리 (cms_templates) -------------------
+  async function renderTemplates() {
+    return renderCmsListCrud('cms_templates',
+      ['slug','name','category','description','icon','body','is_official','is_public','sort_order'],
+      '템플릿',
+      ['슬러그 (고유)','이름','카테고리','설명','아이콘 키','본문 (Markdown)','공식 템플릿','공개','정렬 순서']
+    );
+  }
+
+  // ---- MODULE: 공유 노트 (cms_shared_notes) ----------------------
+  async function renderSharedNotes() {
+    view.innerHTML = `
+      <div class="panel">
+        <div class="panel-title">공유 노트
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input type="search" id="snSearch" placeholder="제목/본문 검색" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
+            <button class="btn primary" id="snNew">+ 새 공유 링크</button>
+          </div>
+        </div>
+        <p style="color:var(--ink-soft);font-size:12px;">
+          공개 URL: <code>/s/{token}</code> — 모든 사용자가 토큰만 알면 읽을 수 있습니다. 만료일 설정 가능.
+        </p>
+        <div id="snList" style="margin-top:10px;">로딩…</div>
+      </div>
+      <div class="panel" id="snEd" style="display:none;">
+        <div class="panel-title"><span id="snEdTitle">공유 노트</span>
+          <button class="btn" id="snCancel">취소</button></div>
+        <div class="field"><label>토큰 (URL에 들어갈 고유 값)</label>
+          <div style="display:flex;gap:6px;"><input id="sn-token" style="flex:1;"><button class="btn" id="snGenTok" type="button">자동 생성</button></div>
+        </div>
+        <div class="field"><label>제목</label><input id="sn-title"></div>
+        <div class="field"><label>본문 (Markdown)</label><textarea id="sn-body" rows="10"></textarea></div>
+        <div class="field"><label>접근 모드</label>
+          <select id="sn-mode"><option value="readonly">읽기 전용</option><option value="edit">편집 가능</option></select>
+        </div>
+        <div class="field"><label>만료일 (선택)</label><input id="sn-exp" type="datetime-local"></div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn primary" id="snSave">저장</button>
+          <button class="btn danger" id="snDel" style="display:none;">삭제</button>
+          <button class="btn" id="snCopy" style="margin-left:auto;display:none;">공유 URL 복사</button>
+        </div>
+      </div>`;
+    let current = null;
+    let rows = [];
+    const genToken = () => {
+      const bytes = new Uint8Array(8);
+      crypto.getRandomValues(bytes);
+      return [...bytes].map(b => b.toString(36).padStart(2,'0')).join('').slice(0,12);
+    };
+    const renderList = (q) => {
+      const ql = (q || '').toLowerCase();
+      const filtered = !ql ? rows
+        : rows.filter(r => ((r.title||'') + ' ' + (r.body||'') + ' ' + r.token).toLowerCase().includes(ql));
+      $('snList').innerHTML = filtered.length ? `
+        <table class="t"><thead><tr><th>토큰</th><th>제목</th><th>모드</th><th>조회수</th><th>만료</th><th></th></tr></thead>
+        <tbody>${filtered.map(r => `<tr>
+          <td><code style="font-size:11px;">${escape(r.token)}</code></td>
+          <td>${escape(r.title || '(제목 없음)')}</td>
+          <td><span class="badge ${r.mode==='edit'?'admin':'user'}">${r.mode}</span></td>
+          <td>${r.view_count || 0}</td>
+          <td>${r.expires_at ? fmtDate(r.expires_at) : '<span style="color:var(--ink-faint);">없음</span>'}</td>
+          <td><button class="btn sn-edit" data-tok="${encodeURIComponent(r.token)}">편집</button></td>
+        </tr>`).join('')}</tbody></table>` :
+        '<div style="color:var(--ink-soft);padding:40px;text-align:center;">공유 링크가 없습니다.</div>';
+      document.querySelectorAll('.sn-edit').forEach(b => b.addEventListener('click', async () => {
+        const tok = decodeURIComponent(b.dataset.tok);
+        const { data } = await sb.from('cms_shared_notes').select('*').eq('token', tok).single();
+        openEd(data);
+      }));
+    };
+    const load = async () => {
+      const { data, error } = await sb.from('cms_shared_notes').select('*').order('created_at', { ascending: false });
+      if (error) { $('snList').innerHTML = '<div style="color:var(--danger);">'+error.message+'</div>'; return; }
+      rows = data || [];
+      renderList($('snSearch').value.trim());
+    };
+    const openEd = (r) => {
+      current = r || null;
+      $('snEd').style.display = 'block';
+      $('snEdTitle').textContent = r ? ('편집: ' + r.token) : '새 공유 링크';
+      $('sn-token').value = r?.token || genToken();
+      $('sn-token').readOnly = !!r;
+      $('sn-title').value = r?.title || '';
+      $('sn-body').value  = r?.body || '';
+      $('sn-mode').value  = r?.mode || 'readonly';
+      $('sn-exp').value   = r?.expires_at ? new Date(r.expires_at).toISOString().slice(0,16) : '';
+      $('snDel').style.display = r ? 'inline-flex' : 'none';
+      $('snCopy').style.display = r ? 'inline-flex' : 'none';
+    };
+    $('snNew').addEventListener('click', () => openEd(null));
+    $('snGenTok').addEventListener('click', () => { $('sn-token').value = genToken(); });
+    $('snCancel').addEventListener('click', () => $('snEd').style.display='none');
+    $('snCopy').addEventListener('click', async () => {
+      const url = location.origin + '/s/' + $('sn-token').value;
+      try { await navigator.clipboard.writeText(url); $('snCopy').textContent = '복사됨'; setTimeout(() => $('snCopy').textContent = '공유 URL 복사', 1500); }
+      catch { prompt('URL을 복사하세요:', url); }
+    });
+    $('snSave').addEventListener('click', async () => {
+      const payload = {
+        token: $('sn-token').value.trim(),
+        title: $('sn-title').value,
+        body:  $('sn-body').value,
+        mode:  $('sn-mode').value,
+        expires_at: $('sn-exp').value ? new Date($('sn-exp').value).toISOString() : null,
+      };
+      if (!payload.token) { alert('토큰 필수'); return; }
+      const { error } = await sb.from('cms_shared_notes').upsert(payload);
+      if (error) { alert(error.message); return; }
+      logActivity(current ? 'update' : 'insert', 'cms_shared_notes', payload.token, payload);
+      $('snEd').style.display = 'none';
+      await load();
+    });
+    $('snDel').addEventListener('click', async () => {
+      if (!current || !confirm('이 공유 링크를 삭제하시겠어요?')) return;
+      const { error } = await sb.from('cms_shared_notes').delete().eq('token', current.token);
+      if (error) { alert(error.message); return; }
+      logActivity('delete', 'cms_shared_notes', current.token, current);
+      $('snEd').style.display = 'none';
+      await load();
+    });
+    let t;
+    $('snSearch').addEventListener('input', (e) => {
+      clearTimeout(t); t = setTimeout(() => renderList(e.target.value.trim()), 200);
+    });
+    load();
+  }
+
+  // ---- MODULE: 웹 클리퍼 수신함 (cms_clips) ----------------------
+  async function renderClips() {
+    view.innerHTML = `
+      <div class="panel">
+        <div class="panel-title">웹 클리퍼 수신함
+          <div style="display:flex;gap:8px;align-items:center;">
+            <select id="cpFilter" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
+              <option value="">전체</option>
+              <option value="unimported">아직 미 가져감</option>
+              <option value="imported">노트로 가져간 것</option>
+            </select>
+            <input type="search" id="cpSearch" placeholder="URL/제목 검색" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
+          </div>
+        </div>
+        <p style="color:var(--ink-soft);font-size:12px;">
+          브라우저 확장프로그램(<code>/extensions/clipper</code>)으로 저장된 웹 페이지 스크랩. 각 사용자는 자신이 저장한 클립만 보입니다 (관리자는 전체).
+        </p>
+        <div id="cpList" style="margin-top:10px;">로딩…</div>
+      </div>`;
+    let rows = [];
+    const load = async () => {
+      let q = sb.from('cms_clips').select('*').order('created_at', { ascending: false }).limit(200);
+      const f = $('cpFilter').value;
+      if (f === 'imported')   q = q.eq('imported', true);
+      if (f === 'unimported') q = q.eq('imported', false);
+      const { data, error } = await q;
+      if (error) { $('cpList').innerHTML = '<div style="color:var(--danger);">'+error.message+'</div>'; return; }
+      rows = data || [];
+      renderList($('cpSearch').value.trim());
+    };
+    const renderList = (q) => {
+      const ql = (q || '').toLowerCase();
+      const filtered = !ql ? rows
+        : rows.filter(r => ((r.url||'') + ' ' + (r.title||'') + ' ' + (r.excerpt||'')).toLowerCase().includes(ql));
+      $('cpList').innerHTML = filtered.length ? `
+        <table class="t"><thead><tr><th>수집일</th><th>제목</th><th>URL</th><th>상태</th><th></th></tr></thead>
+        <tbody>${filtered.map(r => `<tr>
+          <td>${fmtDate(r.created_at)}</td>
+          <td style="max-width:320px;">${escape(r.title || '(제목 없음)')}</td>
+          <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><a href="${escape(r.url||'#')}" target="_blank" rel="noopener" style="color:var(--accent);font-size:11px;">${escape((r.url||'').replace(/^https?:\/\//,'').slice(0,60))}</a></td>
+          <td>${r.imported
+            ? '<span class="badge paid">가져감</span>'
+            : '<span class="badge trial">대기</span>'}</td>
+          <td><button class="btn cp-del" data-id="${r.id}">삭제</button></td>
+        </tr>`).join('')}</tbody></table>` :
+        '<div style="color:var(--ink-soft);padding:40px;text-align:center;">저장된 클립이 없습니다. 브라우저 확장프로그램을 설치해보세요.</div>';
+      document.querySelectorAll('.cp-del').forEach(b => b.addEventListener('click', async () => {
+        if (!confirm('이 클립을 삭제하시겠어요?')) return;
+        const { error } = await sb.from('cms_clips').delete().eq('id', b.dataset.id);
+        if (error) { alert(error.message); return; }
+        logActivity('delete', 'cms_clips', b.dataset.id, null);
+        await load();
+      }));
+    };
+    $('cpFilter').addEventListener('change', load);
+    let t;
+    $('cpSearch').addEventListener('input', (e) => {
+      clearTimeout(t); t = setTimeout(() => renderList(e.target.value.trim()), 200);
+    });
+    load();
   }
 
   // ---- utils ---------------------------------------------------------

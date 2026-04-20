@@ -44,6 +44,8 @@
   ],
   "rewrites": [
     { "source": "/app", "destination": "/app.html" },
-    { "source": "/admin", "destination": "/admin.html" }
+    { "source": "/admin", "destination": "/admin.html" },
+    { "source": "/extension-connect", "destination": "/extension-connect.html" },
+    { "source": "/s/:token", "destination": "/share.html" }
   ]
 }

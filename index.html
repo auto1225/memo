@@ -1227,6 +1227,65 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .press-card .tags { display: flex; gap: 6px; flex-wrap: wrap; font-size: 12px; }
 .press-card .tags span { color: var(--text-mute); }
 
+/* ========== COMPARE (Evernote vs JustANotepad) ========== */
+.section-compare {
+  padding: 110px 0; background: #FFFFFF;
+  border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+}
+.compare-head { text-align: center; max-width: 720px; margin: 0 auto 56px; padding: 0 24px; }
+.compare-head .section-eyebrow {
+  display: inline-block; padding: 5px 14px;
+  background: #F5F1EB; color: #D97757; font-size: 11px;
+  font-weight: 700; letter-spacing: 0.1em; border-radius: 999px;
+  margin-bottom: 18px;
+}
+.compare-head h2 {
+  font-size: clamp(32px, 4.5vw, 52px); font-weight: 800;
+  letter-spacing: -0.03em; line-height: 1.22; margin-bottom: 16px; color: var(--text);
+}
+.compare-head p { font-size: 17px; color: var(--text-2); line-height: 1.65; }
+.compare-table {
+  max-width: 960px; margin: 0 auto; padding: 0 24px;
+}
+.ct {
+  display: grid; grid-template-columns: 1.5fr 1fr 1fr;
+  border: 1px solid var(--line); border-radius: 16px;
+  background: #fff; overflow: hidden;
+}
+.ct > div { padding: 18px 22px; font-size: 15px; border-bottom: 1px solid var(--line); }
+.ct > div:nth-last-child(-n+3) { border-bottom: 0; }
+.ct-head-cell {
+  font-size: 13px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.04em; color: var(--text-mute);
+  background: #FAFAF7;
+}
+.ct-head-cell.us { background: #141414; color: #FAE100; }
+.ct-label { font-weight: 600; color: var(--text); }
+.ct-rival { color: var(--text-2); }
+.ct-us {
+  color: var(--text); font-weight: 600; background: #FFFBE6;
+  border-left: 1px solid #F5E58C;
+}
+.ct-us::before {
+  content: ''; display: inline-block; width: 14px; height: 14px;
+  margin-right: 8px; vertical-align: -2px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230D7A2E' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E") center/contain no-repeat;
+}
+.compare-cta {
+  text-align: center; margin-top: 48px; padding: 0 24px;
+}
+.compare-cta a {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 14px 30px; background: #141414; color: #fff;
+  border-radius: 10px; font-size: 16px; font-weight: 700;
+  transition: transform 0.15s;
+}
+.compare-cta a:hover { transform: translateY(-2px); }
+@media (max-width: 640px) {
+  .ct { grid-template-columns: 1.2fr 0.9fr 0.9fr; }
+  .ct > div { padding: 14px 12px; font-size: 13px; }
+}
+
 /* ========== SECTION 3: RELATION (= 큰 CTA 배너) ========== */
 /* ========== 다운로드 섹션 (네이티브 앱) ========== */
 .section-download {
@@ -2218,6 +2277,81 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 
 
 
+
+<!-- ========== COMPARE (Evernote vs JustANotepad) ========== -->
+<section class="section-compare" id="compare">
+  <div class="wrap">
+    <div class="compare-head">
+      <div class="section-eyebrow" data-cms="compare.eyebrow">COMPARE</div>
+      <h2 data-cms="compare.title">Evernote가 잘 해온 것, 우리는 <em style="font-family:var(--font-serif); font-style:italic; font-weight:400; color:var(--claude-orange);">다 풀어서</em></h2>
+      <p data-cms="compare.subtitle">웹 클리퍼, 문서 스캔, AI 글쓰기, 캘린더 연동 — Evernote가 유료로 가둬둔 기능을 한 파일 안에 무료로 담았습니다.</p>
+    </div>
+
+    <div class="compare-table">
+      <div class="ct">
+        <div class="ct-head-cell" data-cms="compare.col.feature">기능</div>
+        <div class="ct-head-cell" data-cms="compare.col.rival">Evernote 무료</div>
+        <div class="ct-head-cell us" data-cms="compare.col.us">JustANotepad</div>
+
+        <div class="ct-label" data-cms="compare.r1.label">기기 동기화</div>
+        <div class="ct-rival" data-cms="compare.r1.rival">제한 있음</div>
+        <div class="ct-us" data-cms="compare.r1.us">무제한</div>
+
+        <div class="ct-label" data-cms="compare.r2.label">월 업로드 용량</div>
+        <div class="ct-rival" data-cms="compare.r2.rival">60MB</div>
+        <div class="ct-us" data-cms="compare.r2.us">제한 없음</div>
+
+        <div class="ct-label" data-cms="compare.r3.label">웹 클리퍼</div>
+        <div class="ct-rival" data-cms="compare.r3.rival">지원</div>
+        <div class="ct-us" data-cms="compare.r3.us">지원 (확장프로그램 제공)</div>
+
+        <div class="ct-label" data-cms="compare.r4.label">AI 글쓰기 · 다시쓰기 · 요약</div>
+        <div class="ct-rival" data-cms="compare.r4.rival">유료 플랜 전용</div>
+        <div class="ct-us" data-cms="compare.r4.us">무료 · 16개 모델</div>
+
+        <div class="ct-label" data-cms="compare.r5.label">문서 스캔 · OCR</div>
+        <div class="ct-rival" data-cms="compare.r5.rival">지원</div>
+        <div class="ct-us" data-cms="compare.r5.us">지원 (명함/영수증 특화)</div>
+
+        <div class="ct-label" data-cms="compare.r6.label">손글씨 · 스타일러스 입력</div>
+        <div class="ct-rival" data-cms="compare.r6.rival">부분 지원</div>
+        <div class="ct-us" data-cms="compare.r6.us">필압 · Apple Pencil · S Pen</div>
+
+        <div class="ct-label" data-cms="compare.r7.label">오프라인 노트</div>
+        <div class="ct-rival" data-cms="compare.r7.rival">유료 플랜 전용</div>
+        <div class="ct-us" data-cms="compare.r7.us">기본 제공</div>
+
+        <div class="ct-label" data-cms="compare.r8.label">캘린더 연동</div>
+        <div class="ct-rival" data-cms="compare.r8.rival">Google 캘린더</div>
+        <div class="ct-us" data-cms="compare.r8.us">Google · 로컬 · iCal</div>
+
+        <div class="ct-label" data-cms="compare.r9.label">템플릿 라이브러리</div>
+        <div class="ct-rival" data-cms="compare.r9.rival">수십 종</div>
+        <div class="ct-us" data-cms="compare.r9.us">역할별 14종 + 사용자 공유</div>
+
+        <div class="ct-label" data-cms="compare.r10.label">실시간 협업</div>
+        <div class="ct-rival" data-cms="compare.r10.rival">유료 플랜 전용</div>
+        <div class="ct-us" data-cms="compare.r10.us">공유 링크 · 읽기/편집</div>
+
+        <div class="ct-label" data-cms="compare.r11.label">데이터 내보내기</div>
+        <div class="ct-rival" data-cms="compare.r11.rival">ENEX 포맷</div>
+        <div class="ct-us" data-cms="compare.r11.us">JSON · 단일 HTML · Markdown</div>
+
+        <div class="ct-label" data-cms="compare.r12.label">광고</div>
+        <div class="ct-rival" data-cms="compare.r12.rival">없음</div>
+        <div class="ct-us" data-cms="compare.r12.us">없음 · 앞으로도</div>
+
+        <div class="ct-label" data-cms="compare.r13.label">가격</div>
+        <div class="ct-rival" data-cms="compare.r13.rival">Personal 월 $14.99</div>
+        <div class="ct-us" data-cms="compare.r13.us">평생 무료</div>
+      </div>
+    </div>
+
+    <div class="compare-cta">
+      <a href="/app?signup=1" data-cms="compare.cta">지금 Evernote에서 이사오기 →</a>
+    </div>
+  </div>
+</section>
 
 <!-- ========== FINAL CTA (다크 배너) ========== -->
 <!-- ========== 다운로드 섹션 ========== -->

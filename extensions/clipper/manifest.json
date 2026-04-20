@@ -1,0 +1,37 @@
+{
+  "manifest_version": 3,
+  "name": "JustANotepad Web Clipper",
+  "short_name": "JANotepad Clip",
+  "version": "1.0.0",
+  "description": "현재 보고 있는 페이지를 JustANotepad 수신함에 한 번에 저장합니다. 로그인 후 사용하세요.",
+  "default_locale": "ko",
+  "action": {
+    "default_title": "JustANotepad에 저장",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16":  "icons/icon-16.png",
+      "32":  "icons/icon-32.png",
+      "48":  "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "icons": {
+    "16":  "icons/icon-16.png",
+    "32":  "icons/icon-32.png",
+    "48":  "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "permissions": ["activeTab", "scripting", "storage", "contextMenus"],
+  "host_permissions": [
+    "https://rbscvtnfveakwjwrteux.supabase.co/*",
+    "https://justanotepad.com/*",
+    "<all_urls>"
+  ],
+  "background": { "service_worker": "background.js" },
+  "commands": {
+    "clip-page": {
+      "suggested_key": { "default": "Ctrl+Shift+J", "mac": "Command+Shift+J" },
+      "description": "현재 페이지를 JustANotepad에 저장"
+    }
+  }
+}

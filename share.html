@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JustANotepad — 공유 노트</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<style>
+  :root { --ink:#1f2937; --soft:#6b7280; --faint:#9ca3af; --line:#e5e7eb; --accent:#D97757; --bg:#fff; }
+  body { margin:0; background:var(--bg); color:var(--ink); line-height:1.7;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Noto Sans KR",sans-serif; }
+  .topbar { position:sticky; top:0; z-index:10; padding:12px 24px;
+    background:rgba(255,255,255,0.85); backdrop-filter:saturate(1.5) blur(10px);
+    border-bottom:1px solid var(--line);
+    display:flex; align-items:center; gap:12px; }
+  .topbar .logo { width:28px; height:28px; border-radius:7px; background:#FAE100;
+    display:flex; align-items:center; justify-content:center;
+    font-family:Georgia,serif; font-style:italic; font-weight:900; color:#fff; font-size:17px; }
+  .topbar .brand { font-weight:700; }
+  .topbar .spacer { flex:1; }
+  .topbar .cta { padding:7px 14px; background:#141414; color:#fff; border-radius:7px;
+    font-size:13px; font-weight:600; text-decoration:none; }
+  main { max-width:720px; margin:40px auto; padding:0 24px 80px; }
+  h1 { font-size:36px; font-weight:800; letter-spacing:-0.02em; margin:0 0 8px; }
+  .meta { color:var(--faint); font-size:12px; margin-bottom:32px; border-bottom:1px solid var(--line); padding-bottom:20px; }
+  .meta .mode { display:inline-block; padding:2px 8px; border-radius:4px; background:#eff6ff; color:#1e40af; font-weight:600; margin-left:8px; }
+  #body { font-size:16px; }
+  #body h1, #body h2, #body h3 { margin-top:2em; letter-spacing:-0.02em; }
+  #body code { background:#f3f4f6; padding:2px 6px; border-radius:4px; font-size:90%; }
+  #body pre { background:#fafbfc; border:1px solid var(--line); padding:14px; border-radius:8px; overflow-x:auto; }
+  #body blockquote { border-left:3px solid var(--accent); padding:4px 16px; color:var(--soft); margin:20px 0; }
+  #body a { color:var(--accent); }
+  #body img { max-width:100%; border-radius:8px; }
+  #body ul, #body ol { padding-left:1.6em; }
+  .empty { text-align:center; padding:80px 20px; color:var(--soft); }
+  .expired { padding:20px; background:#fef2f2; color:#991b1b; border-radius:8px; text-align:center; margin:40px 0; }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="logo">j.</div>
+  <div class="brand">JustANotepad</div>
+  <div class="spacer"></div>
+  <a href="/" class="cta">나도 무료로 시작</a>
+</header>
+
+<main>
+  <div id="loading" style="text-align:center;padding:100px 0;color:var(--soft);">노트 불러오는 중…</div>
+  <article id="note" style="display:none;">
+    <h1 id="title"></h1>
+    <div class="meta" id="meta"></div>
+    <div id="body"></div>
+  </article>
+  <div id="notFound" class="empty" style="display:none;">
+    <h2 style="margin:0 0 12px;">노트를 찾을 수 없습니다</h2>
+    <p>이 링크가 만료되었거나 삭제됐을 수 있습니다.</p>
+    <a href="/" style="color:var(--accent);">JustANotepad 홈으로</a>
+  </div>
+</main>
+
+<script src="/config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
+<script>
+(async () => {
+  const m = location.pathname.match(/\/s\/([^/?#]+)/);
+  const token = m ? decodeURIComponent(m[1]) : null;
+  if (!token) { show('notFound'); return; }
+
+  const sb = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, { auth: { persistSession: false } });
+  const { data, error } = await sb.from('cms_shared_notes').select('*').eq('token', token).maybeSingle();
+  if (error || !data) { show('notFound'); return; }
+  if (data.expires_at && new Date(data.expires_at).getTime() < Date.now()) { show('notFound'); return; }
+
+  // best-effort view-count increment (RLS may block if anon can't update; fine)
+  try { await sb.from('cms_shared_notes').update({ view_count: (data.view_count||0)+1 }).eq('token', token); } catch {}
+
+  document.title = (data.title || '공유 노트') + ' — JustANotepad';
+  document.getElementById('title').textContent = data.title || '(제목 없음)';
+  document.getElementById('meta').innerHTML =
+    `${new Date(data.created_at).toLocaleDateString('ko-KR', { dateStyle: 'medium' })} ·
+     조회 ${(data.view_count||0)+1}회
+     <span class="mode">${data.mode === 'edit' ? '편집 가능' : '읽기 전용'}</span>`;
+
+  const rawHtml = window.marked.parse(data.body || '');
+  const safe = window.DOMPurify.sanitize(rawHtml);
+  document.getElementById('body').innerHTML = safe;
+
+  show('note');
+})();
+function show(id) {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById(id).style.display = 'block';
+}
+</script>
+</body>
+</html>
