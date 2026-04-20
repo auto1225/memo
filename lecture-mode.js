@@ -428,13 +428,6 @@
             <button class="jnp-lec-btn" data-act="pip-toggle" disabled>${svg('i-eye',14)}<span>카메라 창</span></button>
             <button class="jnp-lec-btn on" data-act="transcribe-toggle">${svg('i-quote',14)}<span>자동 필기</span></button>
           </div>
-          <div class="jnp-lec-row">
-            <button class="jnp-lec-btn" data-act="pick-folder" title="녹화·내보내기 저장 폴더">${svg('i-note',14)}<span>루트 저장 폴더</span></button>
-            <span class="jnp-lec-folder-pill">
-              <strong data-role="folder-name-full">미지정</strong>
-              <span style="color:var(--ink-soft);font-size:11px;">/ ${kind === 'lecture' ? 'lectures' : 'meetings'} / 날짜_제목 / audio.m4a · camera.mp4 · screen.mp4 · note.md</span>
-            </span>
-          </div>
         </div>
 
         <!-- 서식 -->
@@ -516,6 +509,13 @@
 
         <!-- 내보내기 -->
         <div class="jnp-lec-section" data-sec="out">
+          <div class="jnp-lec-row">
+            <button class="jnp-lec-btn" data-act="pick-folder" title="녹화·내보내기가 저장될 루트 폴더">${svg('i-note',14)}<span>저장 폴더</span></button>
+            <span class="jnp-lec-folder-pill">
+              <strong data-role="folder-name-full">미지정</strong>
+              <span style="color:var(--ink-soft);font-size:11px;">/ ${kind === 'lecture' ? 'lectures' : 'meetings'} / 날짜_제목 / audio.m4a · camera.mp4 · screen.mp4 · note.md</span>
+            </span>
+          </div>
           <div class="jnp-lec-row">
             <button class="jnp-lec-btn" data-act="export-md">${svg('i-md',14)}<span>Markdown</span></button>
             <button class="jnp-lec-btn" data-act="export-txt">${svg('i-quote',14)}<span>텍스트</span></button>
