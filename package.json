@@ -4,6 +4,10 @@
   "description": "JustANotepad — 14가지 역할별 도구, 16개 AI, 그림판, 명함 OCR, 클라우드 동기화까지 담은 무료 메모장.",
   "private": true,
   "scripts": {
+    "release": "node scripts/release.js",
+    "release:dry": "node scripts/release.js --dry",
+    "release:minor": "node scripts/release.js minor",
+    "release:major": "node scripts/release.js major",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
