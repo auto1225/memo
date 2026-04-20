@@ -4920,6 +4920,9 @@ let calSelected = null;
 let currentEvents = {};
 
 function openCalendar() {
+  const m = $('calModal');
+  /* 이미 열려있으면 토글 닫기 — Ctrl+J / 버튼 재클릭 시 */
+  if (m && m.classList.contains('open')) { m.classList.remove('open'); return; }
   syncPageToState();
   currentEvents = scanDates();
   const now = new Date();
@@ -4929,7 +4932,7 @@ function openCalendar() {
   calSelected = todayKey;
   renderCalendar();
   renderDayEvents(todayKey);
-  $('calModal').classList.add('open');
+  m.classList.add('open');
 }
 function renderCalendar() {
   $('calLabel').textContent = `${calYear}년 ${calMonth + 1}월`;
@@ -5136,6 +5139,15 @@ function renderPalette(q) {
     }}))
   ).filter(c => !query || (c.name + c.desc).toLowerCase().includes(query));
   palSelected = 0;
+  if (palFiltered.length === 0) {
+    palResults.innerHTML = `
+      <div style="padding:32px 20px; text-align:center; color:#9ca3af; font-size:13px;">
+        <div style="font-size:32px; margin-bottom:8px; opacity:.4;">🔍</div>
+        <div style="font-weight:600; margin-bottom:4px; color:#6b7280;">검색 결과가 없습니다</div>
+        <div style="font-size:11px;">"${escapeHtml(q || '')}"에 맞는 명령을 찾을 수 없어요.<br>다른 키워드로 검색해보세요.</div>
+      </div>`;
+    return;
+  }
   palResults.innerHTML = palFiltered.map((c, i) =>
     `<div class="row ${i===0?'selected':''}" data-i="${i}">
        <div class="ico-wrap"><svg class="ico"><use href="#${c.ico}"/></svg></div>
@@ -5165,7 +5177,9 @@ function updatePalSelection() {
 }
 $('palBtn').addEventListener('click', (e) => {
   e.stopPropagation();  // document 핸들러가 같은 클릭으로 닫지 않도록
-  openPalette();
+  /* 이미 열려있으면 닫기 (토글) */
+  if (palette.classList.contains('open')) closePalette();
+  else openPalette();
 });
 document.addEventListener('click', (e) => {
   if (palette.classList.contains('open') &&
@@ -5174,6 +5188,31 @@ document.addEventListener('click', (e) => {
     closePalette();
   }
 });
+
+/* ============================================================
+   command-palette.js 중복 실행 방지 — 동일한 window.justanotepadPalette
+   API를 legacy #palette에 바인딩해서, command-palette.js의
+   `if (window.justanotepadPalette) return;` idempotent 가드가 걸리도록.
+   이렇게 하지 않으면 palBtn/Ctrl+K가 서로 다른 팔레트를 여는 중복 UI가
+   발생한다 (pen-surface.js / pwa-chrome.js 가 이 API로 명령을 등록함).
+   ============================================================ */
+window.justanotepadPalette = {
+  open: () => openPalette(),
+  close: () => closePalette(),
+  toggle: () => palette.classList.contains('open') ? closePalette() : openPalette(),
+  register: (cmd) => {
+    if (!cmd || (!cmd.run && !cmd.action)) return;
+    COMMANDS.push({
+      ico: cmd.icon || cmd.ico || 'i-cmd',
+      name: cmd.title || cmd.name || '(무제)',
+      desc: cmd.description || cmd.desc || '',
+      hint: cmd.shortcut || cmd.hint || '',
+      run: cmd.run || cmd.action,
+    });
+    /* 팔레트가 열려있으면 목록 즉시 갱신 */
+    if (palette.classList.contains('open')) renderPalette(palInput.value || '');
+  },
+};
 
 /* ============================================================
    테마 / 사이드바
@@ -5898,7 +5937,10 @@ pageEl.addEventListener('keydown', (e) => {
    ============================================================ */
 document.addEventListener('keydown', e => {
   const ctrl = e.ctrlKey || e.metaKey;
-  if (ctrl && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); openPalette(); return; }
+  if (ctrl && (e.key === 'k' || e.key === 'K')) { e.preventDefault();
+    palette.classList.contains('open') ? closePalette() : openPalette();
+    return;
+  }
   if (ctrl && (e.key === 'j' || e.key === 'J')) { e.preventDefault(); openCalendar(); return; }
   if (ctrl && (e.key === 'd' || e.key === 'D')) { e.preventDefault(); openTodayMemo(); return; }
   if (ctrl && (e.key === 'f' || e.key === 'F')) { e.preventDefault(); toggleSearch(true); return; }
@@ -5951,7 +5993,11 @@ $('closeBtn').addEventListener('click', () => {
     try { location.href = '/home'; } catch {}
   }
 });
-$('helpBtn').addEventListener('click', () => $('helpModal').classList.add('open'));
+$('helpBtn').addEventListener('click', () => {
+  const hm = $('helpModal');
+  if (hm.classList.contains('open')) hm.classList.remove('open');
+  else hm.classList.add('open');
+});
 $('helpClose').addEventListener('click', () => $('helpModal').classList.remove('open'));
 
 /* ============================================================
@@ -7115,22 +7161,22 @@ const webCurrentUrl = $('webCurrentUrl');
 let webHistory = [], webHistoryIdx = -1;
 let webLoadTimer = null;
 
+let webLoadedOnce = false;
 function navigateWeb(url) {
   if (!url) return;
   webPlaceholder.style.display = 'none';
   webError.style.display = 'none';
   webFrame.style.display = 'block';
+  webLoadedOnce = false;
   clearTimeout(webLoadTimer);
-  // iframe load 실패를 위한 타임아웃
+  /* 6초 내 load 이벤트가 오지 않으면 X-Frame-Options 등으로 차단된 것으로 간주하고
+     에러 화면 표시 (이전에는 주석만 있고 아무 일도 일어나지 않음) */
   webLoadTimer = setTimeout(() => {
-    // X-Frame-Options로 차단된 경우 iframe은 로드 이벤트를 발생시키지 않음
-    // 사용자에게 알려줌
-    try {
-      if (!webFrame.contentDocument || webFrame.contentDocument.body.childNodes.length === 0) {
-        // 비어있으면 실패로 간주
-      }
-    } catch {}
-  }, 5000);
+    if (!webLoadedOnce) {
+      webFrame.style.display = 'none';
+      webError.style.display = 'flex';
+    }
+  }, 6000);
   webFrame.src = url;
   if (webHistory[webHistoryIdx] !== url) {
     webHistory = webHistory.slice(0, webHistoryIdx + 1);
@@ -7142,6 +7188,8 @@ function navigateWeb(url) {
 }
 
 webFrame.addEventListener('load', () => {
+  webLoadedOnce = true;
+  clearTimeout(webLoadTimer);
   try {
     const loc = webFrame.contentWindow?.location?.href;
     if (loc && loc !== 'about:blank') {
@@ -7743,7 +7791,10 @@ async function runAiAction(action) {
 }
 
 $('aiBtn').addEventListener('click', () => {
-  $('aiModal').classList.add('open');
+  const m = $('aiModal');
+  /* 이미 열려있으면 토글 닫기 */
+  if (m.classList.contains('open')) { m.classList.remove('open'); return; }
+  m.classList.add('open');
   if (!getActiveProvider()) { openAiKeyPanel(); }
   else { showAiMain(); }
   $('aiResult').classList.remove('show');
@@ -9994,8 +10045,16 @@ pageEl.addEventListener('input', () => {
     clearTimeout(longPressTimer);
     longPressTimer = setTimeout(() => { longPressed = true; toggleCalMenu(); }, 500);
   });
-  calBtn.addEventListener('pointerup', () => clearTimeout(longPressTimer));
-  calBtn.addEventListener('pointerleave', () => clearTimeout(longPressTimer));
+  /* pointerup/leave에서 타이머만 정리하고, click 핸들러가 longPressed를 리셋함.
+     하지만 click 이벤트가 발생하지 않는 경우(예: 마우스가 버튼 밖으로 나갔을 때)
+     longPressed가 true로 남아 다음 클릭이 무효화될 수 있어 40ms 후 안전장치로 리셋. */
+  const softResetLongPress = () => {
+    clearTimeout(longPressTimer);
+    setTimeout(() => { longPressed = false; }, 40);
+  };
+  calBtn.addEventListener('pointerup', softResetLongPress);
+  calBtn.addEventListener('pointerleave', softResetLongPress);
+  calBtn.addEventListener('pointercancel', softResetLongPress);
   calBtn.addEventListener('pointermove', (e) => {
     // 움직임이 크면 취소 (스크롤/드래그 방지)
     if (Math.abs(e.movementX) > 3 || Math.abs(e.movementY) > 3) clearTimeout(longPressTimer);
@@ -11895,7 +11954,12 @@ window.openCaptureInPaint = openCaptureInPaint;
 
 // 상단바 그림판 버튼 (주 진입점) — 바로 보이는 위치
 const paintTopBtn = $('paintTopBtn');
-if (paintTopBtn) paintTopBtn.addEventListener('click', () => Paint.open());
+if (paintTopBtn) paintTopBtn.addEventListener('click', () => {
+  const pm = $('paintModal');
+  /* 토글: 이미 열려있으면 닫기 (편집 중이 아니라면) */
+  if (pm && pm.classList.contains('open')) { pm.classList.remove('open'); return; }
+  Paint.open();
+});
 
 /* ============================================================
    이미지 변환기 (ImageConverter) — 크기/용량/포맷/품질
@@ -12249,7 +12313,11 @@ const ImageConverter = (function() {
 window.ImageConverter = ImageConverter;
 
 // 상단바 버튼
-if ($('imgCvtTopBtn')) $('imgCvtTopBtn').addEventListener('click', () => ImageConverter.open());
+if ($('imgCvtTopBtn')) $('imgCvtTopBtn').addEventListener('click', () => {
+  const m = $('imgCvtModal');
+  if (m && m.classList.contains('open')) { m.classList.remove('open'); return; }
+  ImageConverter.open();
+});
 
 // 명령 팔레트 추가
 if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
@@ -12477,7 +12545,10 @@ $('rolesApply').addEventListener('click', applyRoles);
 
 /* --- 역할 대시보드 --- */
 function openRoleDashboard() {
-  $('roleDashModal').classList.add('open');
+  const m = $('roleDashModal');
+  /* 토글 */
+  if (m && m.classList.contains('open')) { m.classList.remove('open'); return; }
+  m.classList.add('open');
   const body = $('roleDashBody');
   if (!state.userRoles || state.userRoles.length === 0) {
     body.innerHTML = `<div style="text-align:center; padding:40px 20px; color:var(--ink-soft);">
@@ -15674,9 +15745,12 @@ function collectSnsFromEditor() {
 function cardUid() { return 'bc_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,8); }
 
 function openCardsModal() {
+  const m = $('cardsModal');
+  /* 토글: 이미 열려있으면 닫기 */
+  if (m && m.classList.contains('open')) { closeCardsModal(); return; }
   // 현재 편집 중인 탭 내용을 state에 반영 (역참조 정확성)
   if (typeof syncPageToState === 'function') try { syncPageToState(); } catch {}
-  $('cardsModal').classList.add('open');
+  m.classList.add('open');
   renderCardsFilters();
   renderCardsList();
   updateCardsCountBadge();
