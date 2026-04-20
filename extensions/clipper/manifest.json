@@ -1,10 +1,12 @@
 {
   "manifest_version": 3,
-  "name": "JustANotepad Web Clipper",
-  "short_name": "JANotepad Clip",
-  "version": "1.0.0",
-  "description": "현재 보고 있는 페이지를 JustANotepad 수신함에 한 번에 저장합니다. 로그인 후 사용하세요.",
+  "name": "__MSG_app_name__",
+  "short_name": "__MSG_app_short_name__",
+  "version": "1.0.1",
+  "description": "__MSG_app_description__",
   "default_locale": "ko",
+  "homepage_url": "https://justanotepad.com",
+  "author": "JustANotepad",
   "action": {
     "default_title": "JustANotepad에 저장",
     "default_popup": "popup.html",

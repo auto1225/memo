@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JustANotepad Web Clipper — 개인정보 처리방침</title>
+<style>
+  body { margin:0; background:#fff; color:#1f2937; line-height:1.8;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Noto Sans KR",sans-serif; }
+  main { max-width:720px; margin:60px auto; padding:0 24px 80px; }
+  h1 { font-size:28px; font-weight:800; margin:0 0 8px; letter-spacing:-0.02em; }
+  .sub { color:#6b7280; margin-bottom:32px; padding-bottom:20px; border-bottom:1px solid #e5e7eb; }
+  h2 { font-size:18px; font-weight:700; margin:32px 0 10px; }
+  p, li { font-size:15px; }
+  code { background:#f3f4f6; padding:2px 6px; border-radius:4px; font-size:90%; }
+  a { color:#D97757; }
+</style>
+</head>
+<body>
+<main>
+  <h1>JustANotepad Web Clipper — 개인정보 처리방침</h1>
+  <div class="sub">최근 수정일: 2026년 4월 20일</div>
+
+  <p>이 문서는 브라우저 확장 "JustANotepad Web Clipper"가 수집·저장·전송하는 데이터에 관해 설명합니다.</p>
+
+  <h2>1. 수집하는 정보</h2>
+  <p>확장은 사용자가 <b>명시적으로 저장 버튼/단축키/컨텍스트 메뉴를 누를 때에만</b> 다음을 수집합니다:</p>
+  <ul>
+    <li>현재 탭의 <code>URL</code>과 <code>&lt;title&gt;</code></li>
+    <li>해당 페이지의 본문 HTML/텍스트 (전체 페이지 모드일 때) 또는 사용자가 선택한 영역</li>
+    <li>사용자가 입력한 메모 · 태그 (팝업 UI)</li>
+  </ul>
+  <p>페이지를 단순히 방문하거나 저장 버튼을 누르지 않는 한 <b>아무 것도 전송되지 않습니다</b>.</p>
+
+  <h2>2. 인증 정보</h2>
+  <p>확장은 JustANotepad 웹사이트의 로그인 세션 토큰을 <code>chrome.storage.local</code>에 저장합니다. 이 토큰은 사용자가 직접 <code>justanotepad.com/extension-connect</code>에서 "연결"을 누를 때에만 전송되며, 저장된 클립을 본인 계정에만 귀속시키는 용도로만 사용합니다.</p>
+
+  <h2>3. 전송 대상</h2>
+  <p>수집된 클립 데이터는 <b>Supabase</b>(사업자: Supabase Inc., 미국)에 호스팅된 JustANotepad의 데이터베이스로만 전송됩니다. 제3자 분석 서비스나 광고 네트워크는 사용되지 않습니다.</p>
+
+  <h2>4. 보관 기간</h2>
+  <p>저장된 클립은 사용자가 직접 삭제할 때까지 데이터베이스에 남아있습니다. JustANotepad 계정을 삭제하면 연관된 모든 클립도 <code>ON DELETE CASCADE</code>로 함께 삭제됩니다.</p>
+
+  <h2>5. 권한 설명</h2>
+  <ul>
+    <li><code>activeTab</code> + <code>scripting</code>: 저장 버튼을 누른 탭의 본문을 한 번 읽기 위해</li>
+    <li><code>storage</code>: 로그인 토큰을 로컬에 저장하기 위해</li>
+    <li><code>contextMenus</code>: 우클릭 메뉴 3종 추가</li>
+    <li><code>notifications</code>: 저장 성공/실패 알림 표시</li>
+    <li><code>&lt;all_urls&gt;</code>: 어느 웹 페이지에서든 저장할 수 있게</li>
+  </ul>
+
+  <h2>6. 문의</h2>
+  <p>데이터 관련 문의는 <a href="mailto:auto0104@gmail.com">auto0104@gmail.com</a>으로 주세요.</p>
+
+  <p style="margin-top:48px;color:#9ca3af;font-size:12px;">
+    JustANotepad는 이용자 데이터를 판매하거나 광고에 활용하지 않습니다. 코드는 전부 <a href="https://github.com/auto1225/memo/tree/main/extensions/clipper" target="_blank" rel="noopener">GitHub</a>에 공개되어 있습니다.
+  </p>
+</main>
+</body>
+</html>

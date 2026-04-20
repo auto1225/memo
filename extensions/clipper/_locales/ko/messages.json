@@ -1,0 +1,18 @@
+{
+  "app_name": {
+    "message": "JustANotepad 웹 클리퍼",
+    "description": "The extension's name as shown in the Chrome Web Store."
+  },
+  "app_short_name": {
+    "message": "JustANotepad Clip",
+    "description": "Shorter name for action tooltip and installed extensions list."
+  },
+  "app_description": {
+    "message": "보고 있는 웹 페이지를 한 번에 JustANotepad 수신함에 저장합니다. 전체 페이지 · 선택 영역 · 링크 3종 저장 + Ctrl+Shift+J 단축키.",
+    "description": "Store listing description."
+  },
+  "clip_page": {
+    "message": "JustANotepad에 저장",
+    "description": "Default action button tooltip."
+  }
+}

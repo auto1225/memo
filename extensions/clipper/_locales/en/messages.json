@@ -1,0 +1,18 @@
+{
+  "app_name": {
+    "message": "JustANotepad Web Clipper",
+    "description": "The extension's name as shown in the Chrome Web Store."
+  },
+  "app_short_name": {
+    "message": "JANotepad Clip",
+    "description": "Shorter name for action tooltip and installed extensions list."
+  },
+  "app_description": {
+    "message": "Save the page you're reading to your JustANotepad inbox in one click. Supports full page, selection, and links — plus a Ctrl+Shift+J shortcut.",
+    "description": "Store listing description."
+  },
+  "clip_page": {
+    "message": "Save to JustANotepad",
+    "description": "Default action button tooltip."
+  }
+}

@@ -70,6 +70,14 @@
   #body a { color:var(--accent); }
   #body img { max-width:100%; border-radius:8px; }
   #body ul, #body ol { padding-left:1.6em; }
+  .wikilink {
+    display:inline-block; padding:1px 6px; background:#FFFBE6;
+    border:1px solid #F5E58C; border-radius:4px; font-size:95%;
+    color:#a16207; text-decoration:none; font-weight:500;
+  }
+  .wikilink:hover { background:#FEF08A; border-color:#EAB308; }
+  .wikilink.missing { background:#fef2f2; border-color:#fecaca; color:#b91c1c; font-style:italic; }
+  .wikilink.missing::before { content:'?'; margin-right:4px; font-weight:700; }
   #editPane { display:none; padding:20px 0; }
   #editArea {
     width:100%; min-height:360px; padding:16px;
@@ -161,31 +169,66 @@
   let localDirty = false;
   let saveTimer = null;
 
-  const renderReadOnly = () => {
+  // Transform [[wikilinks]] in Markdown source → HTML anchors before parsing.
+  // Supports [[Title]] and [[Title|Display]]. Resolves to /s/{token} if a
+  // shared-note title matches exactly (cheap check via cache), otherwise
+  // renders as a "missing" pill so the author sees it's broken.
+  const wikiCache = new Map();
+  const resolveWikiLink = async (title) => {
+    if (wikiCache.has(title)) return wikiCache.get(title);
+    try {
+      const { data } = await sb.from('cms_shared_notes').select('token').eq('title', title).limit(1).maybeSingle();
+      const tok = data?.token || null;
+      wikiCache.set(title, tok);
+      return tok;
+    } catch { return null; }
+  };
+  const renderMarkdownWithWiki = async (src) => {
+    // 1) Pass through marked first
+    let html = window.marked.parse(src || '');
+    // 2) Replace [[Title]] and [[Title|Display]] with anchors (or pills)
+    //    Look for [[...]] inside text nodes only — handle inside-html gotchas
+    //    by simple regex which is fine given DOMPurify sanitization
+    const matches = [...src.matchAll(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g)];
+    if (matches.length) {
+      const titles = [...new Set(matches.map(m => m[1].trim()))];
+      const results = await Promise.all(titles.map(t => resolveWikiLink(t)));
+      const tokenByTitle = Object.fromEntries(titles.map((t,i) => [t, results[i]]));
+      html = html.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_, title, alias) => {
+        const t = title.trim();
+        const display = (alias || title).trim();
+        const tok = tokenByTitle[t];
+        if (tok) return `<a class="wikilink" href="/s/${encodeURIComponent(tok)}">${display}</a>`;
+        return `<span class="wikilink missing" title="일치하는 노트 없음">${display}</span>`;
+      });
+    }
+    return window.DOMPurify.sanitize(html, { ADD_ATTR: ['class', 'title'] });
+  };
+
+  const renderReadOnly = async () => {
     $('title').textContent = note.title || '(제목 없음)';
     $('meta').innerHTML =
       `${new Date(note.created_at).toLocaleDateString('ko-KR', { dateStyle: 'medium' })} ·
        조회 ${note.view_count||0}회
        <span class="mode ${note.mode==='edit'?'edit':''}">${note.mode === 'edit' ? '편집 가능' : '읽기 전용'}</span>`;
-    const rawHtml = window.marked.parse(note.body || '');
-    $('body').innerHTML = window.DOMPurify.sanitize(rawHtml);
+    $('body').innerHTML = await renderMarkdownWithWiki(note.body || '');
     show('note');
     if (note.mode === 'edit') { $('btnEdit').style.display = 'inline-flex'; $('btnEdit').textContent = '편집'; }
     else                      { $('btnEdit').style.display = 'none'; }
   };
 
-  const renderEditor = () => {
+  const renderEditor = async () => {
     $('editTitle').textContent = note.title || '(제목 없음)';
     $('editArea').value = note.body || '';
-    $('livePreview').innerHTML = window.DOMPurify.sanitize(window.marked.parse(note.body || ''));
+    $('livePreview').innerHTML = await renderMarkdownWithWiki(note.body || '');
     show('editPane');
     $('btnEdit').textContent = '읽기로';
     $('saveStatus').textContent = '최신';
     $('saveStatus').className = 'save-status saved';
   };
 
-  const updatePreview = () => {
-    $('livePreview').innerHTML = window.DOMPurify.sanitize(window.marked.parse($('editArea').value || ''));
+  const updatePreview = async () => {
+    $('livePreview').innerHTML = await renderMarkdownWithWiki($('editArea').value || '');
   };
 
   const scheduleSave = () => {
@@ -225,7 +268,7 @@
     // best-effort view-count bump
     try { await sb.from('cms_shared_notes').update({ view_count: (data.view_count||0)+1 }).eq('token', token); } catch {}
 
-    renderReadOnly();
+    await renderReadOnly();
 
     // Generate a stable-ish session identity for presence
     const sessionId = (() => {
@@ -270,10 +313,10 @@
             // only refresh if text actually differs
             if ($('editArea').value !== lastServerBody) {
               $('editArea').value = lastServerBody;
-              updatePreview();
+              updatePreview().catch(()=>{});
             }
           } else {
-            renderReadOnly();
+            renderReadOnly().catch(()=>{});
           }
         }
       )
