@@ -23,22 +23,39 @@
   window.__jnpPenSurface__ = true;
 
   const CSS = `
+    /* Icon-only FAB — subtle, matches app's warm beige/yellow theme.
+       Label appears on hover only so it doesn't distract while typing. */
     .jnp-pen-fab {
-      position: fixed; right: 20px; bottom: 20px; z-index: 2147483200;
-      display: flex; align-items: center; gap: 8px;
-      padding: 12px 18px;
-      background: linear-gradient(135deg, #7e57c2, #5e35b1);
-      color: white; border: none; border-radius: 999px;
-      box-shadow: 0 8px 24px rgba(94,53,177,.35);
-      font: 600 14px/1 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+      position: fixed; right: 18px; bottom: 18px; z-index: 2147483200;
+      display: flex; align-items: center; gap: 0;
+      width: 38px; height: 38px;
+      padding: 0; overflow: hidden;
+      background: rgba(255, 255, 255, 0.92);
+      color: #555; border: 1px solid rgba(0,0,0,0.08);
+      border-radius: 999px;
+      box-shadow: 0 3px 10px rgba(0,0,0,.08);
+      font: 600 12px/1 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
              "Noto Sans KR", Roboto, sans-serif;
-      cursor: pointer; opacity: 0; transform: translateY(12px);
-      transition: opacity 180ms ease, transform 180ms ease;
+      cursor: pointer; opacity: 0; transform: translateY(6px);
+      transition: opacity 180ms ease, transform 180ms ease,
+                  width 160ms ease, background 120ms ease, color 120ms ease;
       pointer-events: none;
+      backdrop-filter: saturate(1.5) blur(6px);
     }
-    .jnp-pen-fab.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
-    .jnp-pen-fab:hover { filter: brightness(1.08); }
-    .jnp-pen-fab svg { width: 18px; height: 18px; }
+    .jnp-pen-fab.show { opacity: 0.7; transform: translateY(0); pointer-events: auto; }
+    .jnp-pen-fab:hover {
+      opacity: 1; width: 94px; color: #333;
+      background: #FAE100; border-color: #e0c800;
+      justify-content: flex-start; padding: 0 0 0 11px; gap: 6px;
+    }
+    .jnp-pen-fab svg { width: 16px; height: 16px; flex: 0 0 16px; }
+    .jnp-pen-fab span {
+      overflow: hidden; white-space: nowrap;
+      max-width: 0; opacity: 0;
+      transition: max-width 140ms ease, opacity 140ms ease;
+    }
+    .jnp-pen-fab:hover span { max-width: 60px; opacity: 1; }
+    .jnp-pen-fab.jnp-pen-hidden { display: none !important; }
 
     /* Toast that appears when stylus/pen is detected */
     .jnp-pen-toast {
@@ -80,6 +97,10 @@
 
   // ---- FAB --------------------------------------------------------
   function installFab() {
+    // User can permanently hide via command palette
+    try {
+      if (localStorage.getItem('jnp.penFab.hidden') === '1') return;
+    } catch {}
     if (document.getElementById('jnpPenFab')) return;
     const fab = document.createElement('button');
     fab.id = 'jnpPenFab';
@@ -157,6 +178,27 @@
           hint: '그림판 · 필압 감지 · 레이어 지원',
           keywords: ['pen', '펜', '손글씨', 'draw', '그림', '필기', 'paint'],
           run: openPaint,
+        });
+        // Allow users to permanently hide the FAB
+        window.justanotepadPalette.register({
+          id: 'hide-pen-fab',
+          title: '손글씨 플로팅 버튼 숨기기',
+          hint: '우하단 ✎ 버튼을 안 보이게 합니다 (명령 팔레트로 다시 켤 수 있어요)',
+          keywords: ['hide', 'pen', 'fab', '숨기기', '펜', '손글씨'],
+          run: () => {
+            try { localStorage.setItem('jnp.penFab.hidden', '1'); } catch {}
+            document.getElementById('jnpPenFab')?.remove();
+          },
+        });
+        window.justanotepadPalette.register({
+          id: 'show-pen-fab',
+          title: '손글씨 플로팅 버튼 보이기',
+          hint: '우하단에 손글씨 버튼을 다시 표시합니다',
+          keywords: ['show', 'pen', 'fab', '보이기', '펜', '손글씨'],
+          run: () => {
+            try { localStorage.removeItem('jnp.penFab.hidden'); } catch {}
+            installFab();
+          },
         });
       }
       if (++tries > 40) clearInterval(tick);

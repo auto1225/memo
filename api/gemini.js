@@ -46,9 +46,16 @@ export default async function handler(req, res) {
     const body = req.body || {};
     const sys = body.sys || '당신은 도움이 되는 한국어 AI 어시스턴트입니다.';
     const userMsg = body.user || body.prompt || '';
-    if (!userMsg) return res.status(400).json({ error: '메시지가 비어있습니다' });
+    const image = body.image;  // { mimeType, data (base64) } optional
+    if (!userMsg && !image) return res.status(400).json({ error: '메시지가 비어있습니다' });
 
-    // 5. Gemini 호출 (폴백 체인)
+    // 5. Gemini 호출 (폴백 체인). 이미지가 있으면 멀티모달 parts 구성.
+    const parts = [];
+    if (userMsg) parts.push({ text: userMsg });
+    if (image && image.data && image.mimeType) {
+      parts.push({ inlineData: { mimeType: image.mimeType, data: image.data } });
+    }
+
     let lastError = '';
     for (const model of MODELS) {
       try {
@@ -58,10 +65,10 @@ export default async function handler(req, res) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             systemInstruction: { parts: [{ text: sys }] },
-            contents: [{ role: 'user', parts: [{ text: userMsg }] }],
+            contents: [{ role: 'user', parts }],
             generationConfig: {
-              maxOutputTokens: 1200,
-              temperature: 0.7
+              maxOutputTokens: image ? 2000 : 1200,   // vision responses can run longer
+              temperature: image ? 0.2 : 0.7,         // vision → deterministic
             }
           })
         });

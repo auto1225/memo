@@ -7397,11 +7397,55 @@ async function callAIVision(prompt, dataUrl) {
   const prov = getActiveProvider();
   if (!prov) { openAiKeyPanel(); toast('AI 계정 연결 후 사용하세요'); return null; }
   try {
+    if (prov === 'default') return await callDefaultVision(prompt, dataUrl);
     if (prov === 'openai') return await callOpenAIVision(prompt, dataUrl);
     if (prov === 'gemini') return await callGeminiVision(prompt, dataUrl);
     if (prov === 'claude') return await callClaudeVision(prompt, dataUrl);
+    toast('이 AI 프로바이더는 이미지 분석을 지원하지 않습니다.');
+    return null;
   } catch (e) {
-    toast(`${AI_PROVIDERS[prov].name} 비전 오류: ${e.message}`);
+    toast(`${AI_PROVIDERS[prov]?.name || prov} 비전 오류: ${e.message}`);
+    return null;
+  }
+}
+
+// 기본 AI (로그인 사용자 전용, Supabase 인증 기반 Gemini 프록시) vision 호출
+async function callDefaultVision(prompt, dataUrl) {
+  if (!isLoggedIn()) {
+    toast('기본 AI는 로그인 후 이용 가능합니다');
+    const authBtn = document.getElementById('authBtn');
+    if (authBtn) authBtn.click();
+    return null;
+  }
+  const session = window.JANSync.getSession();
+  const token = session?.access_token;
+  if (!token) { toast('세션 토큰 없음 — 다시 로그인하세요'); return null; }
+  const today = new Date().toISOString().slice(0,10);
+  const usageKey = 'sticky-ai-usage-' + today;
+  const used = parseInt(localStorage.getItem(usageKey) || '0');
+  if (used >= 50) {
+    toast('오늘 무료 AI 한도 50회 소진', 5000);
+    return null;
+  }
+  // dataUrl 예: "data:image/png;base64,AAAA..."
+  const m = /^data:([^;]+);base64,(.+)$/.exec(dataUrl || '');
+  if (!m) { toast('이미지 데이터 형식 오류'); return null; }
+  try {
+    const r = await fetch('/api/gemini', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+token },
+      body: JSON.stringify({
+        sys: '당신은 이미지 분석 AI 어시스턴트입니다. 요청된 형식으로 정확히 응답하세요.',
+        user: prompt,
+        image: { mimeType: m[1], data: m[2] },
+      }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+    localStorage.setItem(usageKey, String(used + 1));
+    return data.text;
+  } catch (e) {
+    toast('기본 AI 비전 오류: ' + e.message);
     return null;
   }
 }
@@ -14600,12 +14644,11 @@ $('tourPrev').addEventListener('click', () => {
 });
 $('tourSkip').addEventListener('click', endTour);
 
-// 첫 방문자에게 자동 투어 (역할 선택 후)
-setTimeout(() => {
-  if (!localStorage.getItem('tour-completed') && localStorage.getItem('role-onboarded')) {
-    setTimeout(startTour, 1500);
-  }
-}, 3500);
+// 자동 투어는 비활성화 — 사용자가 도움말 메뉴/명령 팔레트에서 명시적으로
+// 실행할 때만 시작하도록 변경. (자동 팝업이 X 닫기 버튼 영역과 겹쳐서
+// 방해된다는 사용자 피드백 반영.) tour-completed 플래그를 자동 세팅해
+// 혹시 과거에 설정되지 않았다면 강제 스킵.
+if (!localStorage.getItem('tour-completed')) localStorage.setItem('tour-completed', '1');
 
 /* ---- 도움말 센터 ---- */
 const HELP_CATALOG = {
