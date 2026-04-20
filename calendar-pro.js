@@ -60,10 +60,42 @@
   function injectCSS() {
     if (document.getElementById('janCalProStyles')) return;
     const css = `
+      /* ========== TAB MODE OVERRIDES ==========
+         When calendar mounts into .page as a tab, neutralize every paper-
+         template background, padding, line-height, and placeholder that
+         would otherwise bleed through behind the calendar UI. */
+      .page.cal-tab-mode {
+        background: #ffffff !important;
+        background-image: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        min-height: 0 !important;
+        line-height: normal !important;
+        color: var(--ink) !important;
+        font-size: 14px !important;
+        outline: none !important;
+        cursor: default !important;
+      }
+      .page.cal-tab-mode:empty::before { content: none !important; }
+      .page.cal-tab-mode::before,
+      .page.cal-tab-mode::after { display: none !important; }
+      .page.cal-tab-mode * { cursor: inherit; }
+      .page.cal-tab-mode button,
+      .page.cal-tab-mode .cp-day,
+      .page.cal-tab-mode .cp-hour-slot,
+      .page.cal-tab-mode .upcoming-item,
+      .page.cal-tab-mode .cat-filter,
+      .page.cal-tab-mode .cp-year-day,
+      .page.cal-tab-mode .ev,
+      .page.cal-tab-mode .cp-week-ev { cursor: pointer; }
+      .page.cal-tab-mode input,
+      .page.cal-tab-mode textarea,
+      .page.cal-tab-mode select { cursor: text; }
+
       #calProRoot * { box-sizing: border-box; }
-      #calProRoot { font-family: inherit; color: var(--ink); }
-      .cp-topbar { display:flex; align-items:center; gap:8px; padding:10px 12px;
-        border-bottom:1px solid var(--paper-edge); flex-wrap:wrap; }
+      #calProRoot { font-family: inherit; color: var(--ink); background: #ffffff; }
+      .cp-topbar { display:flex; align-items:center; gap:8px; padding:12px 14px;
+        border-bottom:1px solid var(--paper-edge); flex-wrap:wrap; background:#fafaf7; }
       .cp-tabs { display:inline-flex; background:var(--paper-edge); border-radius:8px; padding:2px; }
       .cp-tab { padding:5px 12px; font-size:12px; border:0; background:transparent; color:var(--ink-soft);
         border-radius:6px; cursor:pointer; font-weight:600; }
@@ -85,9 +117,27 @@
         padding:7px 12px; font-size:12px; cursor:pointer; border-radius:4px; color:var(--ink); }
       .cp-menu-dropdown button:hover { background:var(--tab-hover); }
 
-      .cp-body { display:flex; max-height:540px; overflow:hidden; }
-      .cp-main { flex:1; overflow:auto; padding:0; position:relative; }
-      .cp-side { width:200px; border-left:1px solid var(--paper-edge); padding:10px; overflow-y:auto; font-size:12px; display:flex; flex-direction:column; gap:14px; flex:0 0 auto; }
+      .cp-body { display:flex; max-height:540px; overflow:hidden; background:#ffffff; }
+      .cp-main { flex:1; overflow:auto; padding:0; position:relative; background:#ffffff; }
+      .cp-side { width:200px; border-left:1px solid var(--paper-edge); padding:12px; overflow-y:auto; font-size:12px; display:flex; flex-direction:column; gap:14px; flex:0 0 auto; background:#fafaf7; }
+      /* Tab mode: fill whole page area */
+      .page.cal-tab-mode #calProRoot { height: 100%; display: flex; flex-direction: column; }
+      .page.cal-tab-mode .cp-body { flex: 1 1 auto; max-height: none !important; min-height: 0; position:relative; }
+      .page.cal-tab-mode .cp-main { overflow: auto; }
+      .page.cal-tab-mode .cp-month-grid { min-height: 100%; }
+      .page.cal-tab-mode .cp-day { min-height: 96px; }
+      /* Container-width hide: side panel vanishes when pad is narrower
+         than 600px and surfaces only on ☰ click */
+      #calProRoot.narrow .cp-side { display: none; }
+      #calProRoot.narrow .cp-side.show {
+        display: flex; position: absolute; right: 0; top: 0; bottom: 0;
+        width: min(240px, 85%); z-index: 30; background: #fafaf7;
+        box-shadow: -8px 0 24px rgba(0,0,0,.12);
+      }
+      #calProRoot.narrow .cp-side-toggle { display: flex; align-items:center; justify-content:center; }
+      #calProRoot.narrow .cp-topbar { padding: 10px 12px; }
+      #calProRoot.narrow .cp-topbar .cp-search { width: 120px; }
+      #calProRoot.narrow .cp-topbar .cp-label { min-width: auto; }
       .cp-side-toggle { display:none; position:absolute; top:8px; right:8px; width:28px; height:28px; border:0; background:var(--paper-edge); border-radius:6px; cursor:pointer; font-size:12px; color:var(--ink); z-index:50; }
       @media (max-width: 720px) {
         .cp-side { display:none; }
@@ -423,6 +473,27 @@
     else if (view === 'year') renderYear(main);
     else renderTodo(main);
     renderSide();
+    wireResponsiveSide();
+  }
+
+  // Container-width responsive side panel toggle (works whether calendar
+  // is in a modal, a narrow tab inside a wide viewport, or any size).
+  let _roWired = false;
+  function wireResponsiveSide() {
+    const root = document.getElementById('calProRoot');
+    if (!root) return;
+    const apply = () => {
+      if (!document.getElementById('calProRoot')) return;
+      const narrow = root.offsetWidth < 600;
+      root.classList.toggle('narrow', narrow);
+      if (!narrow) root.querySelector('.cp-side')?.classList.remove('show');
+    };
+    apply();
+    if (!_roWired && 'ResizeObserver' in window) {
+      _roWired = true;
+      const ro = new ResizeObserver(() => requestAnimationFrame(apply));
+      ro.observe(root);
+    }
   }
 
   function updateLabel() {
