@@ -149,22 +149,79 @@
   }
 
   async function loadData() {
+    const bd = drawer.querySelector('.jan-hub-bd');
+
+    // Local state works without login
+    const localState = window.JANAppState?.snapshot?.() || null;
+    const tagEntries = localState ? Object.entries(localState.tags).sort((a,b) => b[1] - a[1]) : [];
+    const todoTxt = localState && localState.todos.total
+      ? `${localState.todos.done}/${localState.todos.total}`
+      : '—';
+
+    const renderLocalOnly = (extraHeader = '') => {
+      bd.innerHTML = `
+        ${extraHeader}
+        <div class="jan-hub-kpis">
+          <div class="jan-hub-kpi"><div class="v">${localState?.tabsTotal ?? 0}</div><div class="l">탭</div></div>
+          <div class="jan-hub-kpi"><div class="v">${todoTxt}</div><div class="l">할 일</div></div>
+          <div class="jan-hub-kpi"><div class="v">${localState?.wsTotal ?? 0}</div><div class="l">워크스페이스</div></div>
+        </div>
+
+        <div class="jan-hub-section">
+          <h3>빠른 시작</h3>
+          <a href="#" class="jan-hub-cta" id="jan-hub-btn-tpl">템플릿 고르기</a>
+        </div>
+
+        ${tagEntries.length ? `
+          <div class="jan-hub-section">
+            <h3>태그</h3>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;">
+              ${tagEntries.slice(0,12).map(([t,c]) => `
+                <span style="padding:3px 10px;background:#f3f4f6;border-radius:999px;font-size:11px;color:#6b7280;font-weight:600;">
+                  ${escape(t)} <span style="color:#9ca3af;">${c}</span>
+                </span>`).join('')}
+            </div>
+          </div>` : ''}
+
+        ${localState && localState.todos.total ? `
+          <div class="jan-hub-section">
+            <h3>오늘 할 일 — ${localState.todos.done}/${localState.todos.total} 완료</h3>
+            <div style="background:#f3f4f6;border-radius:4px;height:6px;overflow:hidden;">
+              <div style="background:#10b981;height:100%;width:${Math.round((localState.todos.done/localState.todos.total)*100)}%;"></div>
+            </div>
+          </div>` : ''}
+
+        ${localState?.recent?.length ? `
+          <div class="jan-hub-section">
+            <h3>최근 탭</h3>
+            ${localState.recent.slice(0, 5).map(t => `
+              <div class="jan-hub-item" style="cursor:default;">
+                ${t.starred ? '<span style="color:#eab308;">★</span>' : ''}
+                <div class="t">${escape(t.name || '(무제)')}</div>
+                <div class="d">${t.tag ? `#${escape(t.tag)}` : ''}</div>
+              </div>`).join('')}
+          </div>` : ''}
+      `;
+      bd.querySelector('#jan-hub-btn-tpl')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (window.JANTemplatePicker) window.JANTemplatePicker.open({
+          onPick: (tpl) => document.dispatchEvent(new CustomEvent('jan:template-selected', { detail: tpl })),
+        });
+      });
+    };
+
     const client = await getSb();
     if (!client) {
-      drawer.querySelector('.jan-hub-bd').innerHTML =
-        '<div class="jan-hub-loading">Supabase 클라이언트를 불러올 수 없습니다.</div>';
+      renderLocalOnly('<div style="padding:10px 0;color:#9ca3af;font-size:11px;">Supabase 미연결 — 로컬 위젯만 표시됩니다.</div>');
       return;
     }
     const { data: { session } } = await client.auth.getSession();
     const userId = session?.user?.id || null;
-    const bd = drawer.querySelector('.jan-hub-bd');
 
     if (!userId) {
-      bd.innerHTML = `
-        <div class="jan-hub-loading">
-          홈 허브는 로그인 후 사용할 수 있습니다.<br><br>
-          <a href="/app?signin=1" class="jan-hub-cta">로그인</a>
-        </div>`;
+      renderLocalOnly(`<div style="padding:8px 12px;background:#fef3c7;color:#92400e;border-radius:8px;font-size:11px;margin-bottom:14px;">
+        클라우드(클립·공유·공지)를 보려면 <a href="/app?signin=1" style="color:inherit;font-weight:700;">로그인</a>하세요.
+      </div>`);
       return;
     }
 
@@ -178,13 +235,7 @@
     ]);
 
     const totalViews = (shared.data||[]).reduce((a,r) => a + (r.view_count||0), 0);
-
-    // Local app state snapshot (from app-integration.js)
-    const localState = window.JANAppState?.snapshot?.() || null;
-    const tagEntries = localState ? Object.entries(localState.tags).sort((a,b) => b[1] - a[1]) : [];
-    const todoTxt = localState && localState.todos.total
-      ? `${localState.todos.done}/${localState.todos.total}`
-      : '—';
+    // localState / tagEntries / todoTxt are already declared above — reused here.
 
     bd.innerHTML = `
       <div class="jan-hub-kpis">
