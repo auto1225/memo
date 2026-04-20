@@ -154,14 +154,23 @@
     display:none; flex-wrap:wrap; gap:4px; min-width:200px;
   }
   .topbar-overflow.open .topbar-overflow-menu { display:flex; }
+  .topbar-overflow-menu {
+    min-width:240px; max-width:280px;
+  }
   .topbar-overflow-menu button {
     background:#f3f4f6; border:1px solid #e5e7eb; color:#333;
     padding:6px 10px; border-radius:6px; font-size:12px;
     display:flex; align-items:center; gap:6px; cursor:pointer;
-    white-space:nowrap; min-width:90px;
+    width:100%; max-width:100%;
+    box-sizing:border-box; overflow:hidden;
+  }
+  .topbar-overflow-menu button span {
+    flex:1; min-width:0;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    text-align:left;
   }
   .topbar-overflow-menu button:hover { background:#e5e7eb; }
-  .topbar-overflow-menu button .ico { width:14px; height:14px; stroke-width:2.2; stroke:#333; filter:none; }
+  .topbar-overflow-menu button .ico { width:14px; height:14px; stroke-width:2.2; stroke:#333; filter:none; flex:0 0 auto; }
 
   /* Responsive: collapse non-essential buttons into overflow menu below 700px */
   @media (max-width: 760px) {
@@ -430,6 +439,17 @@
   .pad.minimized { height:42px !important; min-height:42px !important; resize:none; }
   .pad.minimized .tabs, .pad.minimized .toolbar, .pad.minimized .searchbar,
   .pad.minimized .page-wrap, .pad.minimized .statusbar, .pad.minimized .sidebar { display:none; }
+  /* Browser-mode maximize: make the pad fill the whole viewport.
+     Tauri uses the OS toggleMaximize; this class is only applied in
+     browser / PWA mode by /topbar-controls.js. */
+  .pad.maximized {
+    position:fixed !important;
+    top:0 !important; left:0 !important; right:0 !important; bottom:0 !important;
+    width:100vw !important; height:100vh !important;
+    max-width:100vw !important; max-height:100vh !important;
+    border-radius:0 !important; resize:none !important;
+    transition:none;
+  }
 
   .swatches { position:absolute; background:#fff; border-radius:10px;
     padding:8px; box-shadow:0 10px 30px rgba(0,0,0,.2); display:none; z-index:40; }

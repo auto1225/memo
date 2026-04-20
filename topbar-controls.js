@@ -95,23 +95,59 @@
   }
 
   // ---- Maximize / Restore ----------------------------------------------
+  // Fix for "bouncing back" bug (user report 2026-04-20):
+  //   - Cloned the button to strip any accidental pre-bound listeners
+  //     (same defensive pattern as wireMinimize).
+  //   - Added a 300ms debounce so rapid duplicate clicks (including any
+  //     synthetic events from drag region / focus handlers) collapse to
+  //     one action.
+  //   - stopPropagation on the click so the topbar drag/dblclick never
+  //     hears the click and can't retrigger maximize.
+  //   - In browser mode, toggle a .maximized class on the pad that makes
+  //     it fill the viewport — NOT browser fullscreen (which was
+  //     confusing because it filled the whole browser chrome, not the
+  //     pad). Users can restore by clicking the button again or Esc.
   function wireMaximize() {
-    const btn = $('maxBtn');
-    if (!btn) return;
-    btn.addEventListener('click', async () => {
+    const old = $('maxBtn');
+    if (!old) return;
+    const btn = old.cloneNode(true);
+    old.parentNode.replaceChild(btn, old);
+
+    let busy = false;
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      if (busy) return;               // debounce duplicate clicks
+      busy = true;
+      setTimeout(() => { busy = false; }, 300);
+
       if (isTauri) {
         const w = getTauriWindow();
-        try { await w?.toggleMaximize?.(); }
-        catch { try { await w?.maximize?.(); } catch {} }
+        try {
+          if (w?.toggleMaximize) await w.toggleMaximize();
+          else if (w?.isMaximized && w?.unmaximize && w?.maximize) {
+            const max = await w.isMaximized();
+            if (max) await w.unmaximize(); else await w.maximize();
+          }
+        } catch (err) {
+          console.warn('[JAN] maximize failed', err);
+        }
         return;
       }
-      // Browser/PWA: use Fullscreen API
-      const doc = document;
-      if (doc.fullscreenElement) {
-        doc.exitFullscreen?.();
-      } else {
-        doc.documentElement.requestFullscreen?.();
-      }
+      // Browser/PWA: toggle a .maximized class on the pad so it fills the
+      // viewport. Safer and more intuitive than requestFullscreen.
+      const pe = padEl();
+      if (!pe) return;
+      pe.classList.toggle('maximized');
+      pe.classList.remove('minimized');
+    });
+
+    // Esc key restores when maximized in browser mode
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      if (isTauri) return;
+      const pe = padEl();
+      if (pe?.classList.contains('maximized')) pe.classList.remove('maximized');
     });
   }
 
@@ -165,7 +201,15 @@
           clone.appendChild(svg);
         }
         const label = document.createElement('span');
-        label.textContent = origTitle.split('(')[0].trim();
+        // Clean up the label: strip shortcut hints in parens, em-dash tail
+        // text, and anything after a dash so menu entries stay one-line.
+        const cleaned = origTitle
+          .split('(')[0]
+          .split(/[—\-·]/)[0]
+          .trim();
+        label.textContent = cleaned.length > 14 ? cleaned.slice(0, 14) + '…' : cleaned;
+        // Full title preserved for hover
+        clone.title = origTitle;
         clone.appendChild(label);
 
         clone.addEventListener('click', (e) => {
