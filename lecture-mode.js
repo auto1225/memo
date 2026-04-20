@@ -1,5 +1,5 @@
 /**
- * justanotepad · Lecture / Meeting Notes (v4.0 · full control box)
+ * justanotepad · Lecture / Meeting Notes (v5.0 · organized storage)
  * --------------------------------------------------------------------------
  * v4 개선점 (v3 → v4):
  *   1. "수업 시작" 과 "녹음" 분리. 세션(타이머·마커)이 먼저, 녹음/카메라/화면은
@@ -18,7 +18,7 @@
  */
 (() => {
   'use strict';
-  if (window.justanotepadLecture && window.justanotepadLecture.__v === 4) return;
+  if (window.justanotepadLecture && window.justanotepadLecture.__v === 5) return;
 
   // ================================================================
   // 0) 유틸
@@ -429,10 +429,10 @@
             <button class="jnp-lec-btn on" data-act="transcribe-toggle">${svg('i-quote',14)}<span>자동 필기</span></button>
           </div>
           <div class="jnp-lec-row">
-            <button class="jnp-lec-btn" data-act="pick-folder" title="녹화 파일 저장 폴더">${svg('i-note',14)}<span>저장 폴더</span></button>
+            <button class="jnp-lec-btn" data-act="pick-folder" title="녹화·내보내기 저장 폴더">${svg('i-note',14)}<span>루트 저장 폴더</span></button>
             <span class="jnp-lec-folder-pill">
               <strong data-role="folder-name-full">미지정</strong>
-              <span style="color:var(--ink-soft);font-size:11px;">(미지정 시 다운로드 폴더)</span>
+              <span style="color:var(--ink-soft);font-size:11px;">/ ${kind === 'lecture' ? 'lectures' : 'meetings'} / 날짜_제목 / audio.m4a · camera.mp4 · screen.mp4 · note.md</span>
             </span>
           </div>
         </div>
@@ -692,11 +692,13 @@
         state.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       }
       state.chunks = [];
-      const rec = new MediaRecorder(state.mediaStream, { mimeType: pickMime() });
+      const mime = pickAudioMime();
+      const rec = new MediaRecorder(state.mediaStream, mime ? { mimeType: mime } : {});
       rec.ondataavailable = (e) => { if (e.data.size > 0) state.chunks.push(e.data); };
       rec.onstop = () => saveRec({ kind: 'audio' });
       rec.start(1000);
       state.mediaRecorder = rec;
+      state.recordedMime = mime;
       state.recording = true;
       state.ui.timePill.classList.add('rec');
       state.ui.recLbl.textContent = L[state.kind].recStop;
@@ -716,25 +718,38 @@
     if (!silent) toast('녹음 정지');
   }
 
-  // --- 카메라 (PIP 창 포함) ---
+  // --- 카메라 (PIP 창 + 실제 영상 녹화) ---
   async function startVideo() {
     if (state.videoOn) return;
     try {
-      state.camStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      state.camStream = await navigator.mediaDevices.getUserMedia({
+        video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false  // 오디오는 '녹음' 버튼 쪽에서 별도 녹음
+      });
       state.videoOn = true;
       state.ui.box.querySelector('[data-act="cam-toggle"]').classList.add('on');
       state.ui.box.querySelector('[data-act="pip-toggle"]').removeAttribute('disabled');
       openPip('camera', state.camStream);
-      toast('카메라 ON');
+
+      // 실제 파일로 녹화!
+      state.camChunks = [];
+      const mime = pickVideoMime();
+      const rec = new MediaRecorder(state.camStream, mime ? { mimeType: mime } : {});
+      rec.ondataavailable = (e) => { if (e.data.size > 0) state.camChunks.push(e.data); };
+      rec.onstop = () => saveRec({ kind: 'camera' });
+      rec.start(1000);
+      state.camRecorder = rec;
+      toast('카메라 녹화 시작 (' + extForMime(mime) + ')');
     } catch (e) { toast('카메라 권한이 필요합니다'); console.warn(e); }
   }
   function stopVideo() {
     if (!state.videoOn) return;
+    try { state.camRecorder?.state === 'recording' && state.camRecorder.stop(); } catch {}
     try { state.camStream?.getTracks().forEach(t => t.stop()); } catch {}
-    state.camStream = null; state.videoOn = false;
+    state.camStream = null; state.camRecorder = null; state.videoOn = false;
     state.ui.box?.querySelector('[data-act="cam-toggle"]')?.classList.remove('on');
     killPip('camera');
-    toast('카메라 OFF');
+    toast('카메라 녹화 종료');
   }
 
   // --- 화면 공유 ---
@@ -747,7 +762,8 @@
       openPip('screen', state.screenStream);
       // 자체 녹화
       state.screenChunks = [];
-      const rec = new MediaRecorder(state.screenStream, { mimeType: pickMime() });
+      const mime = pickVideoMime();
+      const rec = new MediaRecorder(state.screenStream, mime ? { mimeType: mime } : {});
       rec.ondataavailable = (e) => { if (e.data.size > 0) state.screenChunks.push(e.data); };
       rec.onstop = () => saveRec({ kind: 'screen' });
       rec.start(1000);
@@ -1095,31 +1111,113 @@
   }
 
   // ================================================================
-  // 12) 녹화 파일 저장 / 내보내기
+  // 12) 파일 포맷 & 저장 체계
+  //     - 오디오: .m4a (AAC) > .webm (Opus)
+  //     - 비디오: .mp4 (H.264) > .webm (VP9/8)
+  //     - 저장 구조: [루트폴더]/lectures/2026-04-21_과목명/ 안에 세션 파일들
   // ================================================================
-  function pickMime() {
-    const list = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm', 'audio/webm;codecs=opus', 'audio/webm'];
+  function pickAudioMime() {
+    const list = [
+      'audio/mp4;codecs=mp4a.40.2',  // AAC in MP4 (탐색기/카톡/모든 기기 재생)
+      'audio/mp4',
+      'audio/webm;codecs=opus',
+      'audio/webm',
+    ];
     for (const m of list) if (MediaRecorder.isTypeSupported?.(m)) return m;
-    return 'video/webm';
+    return '';
   }
+  function pickVideoMime() {
+    const list = [
+      'video/mp4;codecs=avc1.42E01E',  // H.264 baseline MP4 (기본 플레이어 재생)
+      'video/mp4;codecs=avc1',
+      'video/mp4',
+      'video/webm;codecs=vp9,opus',
+      'video/webm;codecs=vp8,opus',
+      'video/webm',
+    ];
+    for (const m of list) if (MediaRecorder.isTypeSupported?.(m)) return m;
+    return '';
+  }
+  function extForMime(mime) {
+    if (!mime) return 'bin';
+    if (mime.includes('mp4')) return mime.startsWith('audio') ? 'm4a' : 'mp4';
+    if (mime.includes('webm')) return 'webm';
+    if (mime.includes('wav')) return 'wav';
+    return 'bin';
+  }
+
+  // 현재 세션의 고유 폴더명 (날짜_제목)
+  function getSessionFolderName() {
+    const date = new Date().toISOString().slice(0, 10);
+    const rawTitle = document.getElementById('padTitle')?.value
+      || document.querySelector('.tab.active')?.textContent?.trim()
+      || (state.kind === 'lecture' ? '수업' : '회의');
+    const clean = rawTitle.replace(/[\\/:*?"<>|]/g, '_').slice(0, 40);
+    const ts = new Date().toTimeString().slice(0, 5).replace(':', '');
+    return `${date}_${ts}_${clean}`;
+  }
+  // 세션 폴더명을 localStorage 에 보관 (세션 중엔 계속 같은 폴더로)
+  function getOrCreateSessionFolderName() {
+    if (!state.session) return getSessionFolderName();
+    if (!state.session.folderName) state.session.folderName = getSessionFolderName();
+    return state.session.folderName;
+  }
+
+  // [dirHandle]/lectures or meetings / [세션 폴더]/ 까지 만들어 핸들 리턴
+  async function getSessionDirHandle() {
+    if (!state.dirHandle) return null;
+    try {
+      const perm = await state.dirHandle.queryPermission?.({ mode: 'readwrite' });
+      if (perm !== 'granted') {
+        const req = await state.dirHandle.requestPermission?.({ mode: 'readwrite' });
+        if (req !== 'granted') return null;
+      }
+      const cat = state.kind === 'lecture' ? 'lectures' : 'meetings';
+      const catHandle = await state.dirHandle.getDirectoryHandle(cat, { create: true });
+      const sessionName = getOrCreateSessionFolderName();
+      return await catHandle.getDirectoryHandle(sessionName, { create: true });
+    } catch (e) { console.warn('[session folder]', e); return null; }
+  }
+
   async function saveRec(opt = {}) {
-    const chunks = opt.kind === 'screen' ? state.screenChunks : state.chunks;
+    const chunks = opt.kind === 'screen' ? state.screenChunks
+                 : opt.kind === 'camera' ? state.camChunks
+                 : state.chunks;
     if (!chunks?.length) return;
     const blob = new Blob(chunks, { type: chunks[0].type });
-    const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    const prefix = state.kind === 'lecture' ? 'lecture' : 'meeting';
-    const name = `${prefix}-${ts}${opt.kind === 'screen' ? '-screen' : ''}.webm`;
-    await writeToFolder(name, blob);
+    const ext = extForMime(blob.type);
+    const name = opt.kind === 'screen' ? `screen.${ext}`
+               : opt.kind === 'camera' ? `camera.${ext}`
+               : `audio.${ext}`;
+    await writeSessionFile(name, blob);
   }
+
   async function pickFolder() {
     if (!('showDirectoryPicker' in window)) { toast('이 브라우저는 폴더 선택 미지원 — 다운로드로 대체'); return; }
     try {
       const handle = await window.showDirectoryPicker({ id: 'jnp-lec-dir', mode: 'readwrite' });
       state.dirHandle = handle; await kvSet('dirHandle', handle); setFolderLabel(handle.name);
-      toast('저장 폴더: ' + handle.name);
+      toast('루트 저장 폴더: ' + handle.name);
     } catch (e) { if (e.name !== 'AbortError') console.warn(e); }
   }
-  async function writeToFolder(filename, blob) {
+
+  // 세션 서브폴더 안에 파일 저장 (lectures/2026-04-21_물리/audio.m4a)
+  async function writeSessionFile(filename, blob) {
+    const sf = await getSessionDirHandle();
+    if (sf) {
+      try {
+        const fh = await sf.getFileHandle(filename, { create: true });
+        const w = await fh.createWritable(); await w.write(blob); await w.close();
+        const cat = state.kind === 'lecture' ? 'lectures' : 'meetings';
+        toast(`저장: ${cat}/${getOrCreateSessionFolderName()}/${filename}`);
+        return true;
+      } catch (e) { console.warn('[writeSessionFile]', e); }
+    }
+    return writeToFolder(filename, blob);
+  }
+
+  // 루트에 직접 (비세션, 일반 내보내기) — notes/ 서브로 묶음
+  async function writeToFolder(filename, blob, subfolder = null) {
     if (state.dirHandle) {
       try {
         const perm = await state.dirHandle.queryPermission?.({ mode: 'readwrite' });
@@ -1127,10 +1225,12 @@
           const req = await state.dirHandle.requestPermission?.({ mode: 'readwrite' });
           if (req !== 'granted') throw new Error('no permission');
         }
-        const fh = await state.dirHandle.getFileHandle(filename, { create: true });
+        let target = state.dirHandle;
+        if (subfolder) target = await state.dirHandle.getDirectoryHandle(subfolder, { create: true });
+        const fh = await target.getFileHandle(filename, { create: true });
         const w = await fh.createWritable(); await w.write(blob); await w.close();
-        toast('저장: ' + filename); return true;
-      } catch (e) { console.warn('[fs write fallback]', e); }
+        toast(`저장: ${subfolder ? subfolder + '/' : ''}${filename}`); return true;
+      } catch (e) { console.warn('[fs write]', e); }
     }
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -1150,19 +1250,32 @@
     const title = (document.getElementById('padTitle')?.value || kindTitle);
     const lines = collectLines();
     const text = lines.map(l => l.ts ? `[${l.ts}] ${l.text}` : l.text).join('\n');
-    const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    const base = `${state.kind}-${ts}`;
+
+    // 세션 중이면 세션 폴더, 아니면 notes/ 서브폴더
+    const inSession = !!state.session;
+    const filename = inSession
+      ? `note.${format === 'docx' ? 'doc' : format}`
+      : `${new Date().toISOString().slice(0,10)}_${title.replace(/[\\/:*?"<>|]/g,'_').slice(0,40)}.${format === 'docx' ? 'doc' : format}`;
+
+    const write = async (fname, blob) => {
+      if (inSession) return writeSessionFile(fname, blob);
+      return writeToFolder(fname, blob, 'notes');
+    };
+
     if (format === 'md' || format === 'txt') {
-      const body = format === 'md' ? `# ${title}\n\n${text}\n\n---\n${new Date().toLocaleString('ko-KR')}\n` : text;
-      await writeToFolder(`${base}.${format}`, new Blob([body], { type: format === 'md' ? 'text/markdown' : 'text/plain' })); return;
+      const body = format === 'md'
+        ? `# ${title}\n\n- 종류: ${state.kind === 'lecture' ? '강의노트' : '회의노트'}\n- 저장: ${new Date().toLocaleString('ko-KR')}\n\n---\n\n${text}\n`
+        : text;
+      await write(filename, new Blob([body], { type: format === 'md' ? 'text/markdown' : 'text/plain;charset=utf-8' }));
+      return;
     }
     if (format === 'json') {
-      const data = { title, kind: state.kind, lines, cards: state.session?.cards || [] };
-      await writeToFolder(`${base}.json`, new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })); return;
+      const data = { title, kind: state.kind, startedAt: state.session?.startedAt, lines, cards: state.session?.cards || [] };
+      await write(filename, new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })); return;
     }
     if (format === 'docx') {
       const html = `<html><head><meta charset="utf-8"><title>${escHtml(title)}</title></head><body><h1>${escHtml(title)}</h1><pre style="font-family:inherit;white-space:pre-wrap">${escHtml(text)}</pre></body></html>`;
-      await writeToFolder(`${base}.doc`, new Blob([html], { type: 'application/msword' }));
+      await write(filename, new Blob([html], { type: 'application/msword' }));
     }
   }
 
@@ -1220,9 +1333,22 @@
     return true;
   }
 
+  // 기존 툴바의 #meetingNoteBtn 을 가로채서 v5 회의노트 박스로 라우팅
+  function hijackLegacyMeetingBtn() {
+    const btn = document.getElementById('meetingNoteBtn');
+    if (!btn || btn.dataset.jnpHijacked) return;
+    btn.dataset.jnpHijacked = '1';
+    // 기존 리스너 제거는 어려우니, clone 으로 교체
+    const clone = btn.cloneNode(true);
+    clone.setAttribute('title', '회의노트 (녹음 + 자동 필기 + AI 요약)');
+    clone.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); open('meeting'); });
+    btn.parentNode.replaceChild(clone, btn);
+  }
+
   function boot() {
     injectTopbarButtons() || setTimeout(boot, 400);
     tryRegisterPalette() || setTimeout(tryRegisterPalette, 600);
+    hijackLegacyMeetingBtn();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
   else boot();
