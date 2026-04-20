@@ -39,6 +39,24 @@
     border-radius:7px; font-size:12px; cursor:pointer; font-weight:600;
   }
   .topbar .toggle:hover { background:#f3f4f6; }
+
+  /* Presence avatars */
+  .presence { display:flex; align-items:center; gap:-4px; margin-right:8px; }
+  .presence .p {
+    width:28px; height:28px; border-radius:50%; color:#fff;
+    display:flex; align-items:center; justify-content:center;
+    font-size:11px; font-weight:700; border:2px solid #fff;
+    margin-left:-6px; box-shadow:0 1px 3px rgba(0,0,0,0.1);
+    transition:transform 0.15s;
+  }
+  .presence .p:hover { transform:scale(1.15); z-index:1; }
+  .presence .p:first-child { margin-left:0; }
+  .presence .count {
+    padding:0 8px; height:28px; border-radius:14px;
+    background:#f3f4f6; color:var(--soft); font-size:11px;
+    display:flex; align-items:center; font-weight:600;
+    margin-left:4px;
+  }
   main { max-width:720px; margin:40px auto; padding:0 24px 80px; }
   h1 { font-size:36px; font-weight:800; letter-spacing:-0.02em; margin:0 0 8px; }
   .meta { color:var(--faint); font-size:12px; margin-bottom:32px; border-bottom:1px solid var(--line); padding-bottom:20px; }
@@ -77,6 +95,7 @@
   <div class="logo">j.</div>
   <div class="brand">JustANotepad</div>
   <div class="spacer"></div>
+  <div class="presence" id="presence"></div>
   <span id="liveBadge" class="live offline">오프라인</span>
   <button id="btnEdit" class="toggle" style="display:none;">편집</button>
   <a href="/" class="cta">나도 무료로 시작</a>
@@ -208,9 +227,33 @@
 
     renderReadOnly();
 
+    // Generate a stable-ish session identity for presence
+    const sessionId = (() => {
+      try { return crypto.randomUUID(); } catch { return 'sess-' + Math.random().toString(36).slice(2); }
+    })();
+    const palette = ['#D97757','#F59E0B','#10B981','#3B82F6','#8B5CF6','#EC4899','#14B8A6','#F97316'];
+    const myColor = palette[Math.floor(Math.random() * palette.length)];
+    const myName = '익명 ' + Math.floor(Math.random() * 900 + 100);
+
+    const renderPresence = (users) => {
+      const presenceDiv = document.getElementById('presence');
+      if (!presenceDiv) return;
+      const entries = Object.values(users).flat();
+      const others = entries.filter(u => u.session !== sessionId);
+      const shown = others.slice(0, 4);
+      presenceDiv.innerHTML = shown.map(u => `
+        <div class="p" title="${(u.name||'익명').replace(/"/g,'&quot;')}" style="background:${u.color}">
+          ${(u.name || 'A').charAt(u.name?.startsWith('익명')?3:0).toUpperCase()}
+        </div>
+      `).join('');
+      if (others.length > shown.length) {
+        presenceDiv.innerHTML += `<div class="count">+${others.length - shown.length}</div>`;
+      }
+    };
+
     // Realtime subscription — works for both readonly (live updates) and edit
     const channel = sb
-      .channel('shared:' + token)
+      .channel('shared:' + token, { config: { presence: { key: sessionId } } })
       .on('postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'cms_shared_notes', filter: `token=eq.${token}` },
         (payload) => {
@@ -234,11 +277,16 @@
           }
         }
       )
-      .subscribe((status) => {
+      .on('presence', { event: 'sync' }, () => {
+        renderPresence(channel.presenceState());
+      })
+      .subscribe(async (status) => {
         const badge = $('liveBadge');
         if (status === 'SUBSCRIBED') {
           badge.textContent = 'LIVE';
           badge.classList.remove('offline');
+          // Track my presence for this room
+          await channel.track({ session: sessionId, name: myName, color: myColor, at: Date.now() });
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
           badge.textContent = '오프라인';
           badge.classList.add('offline');
