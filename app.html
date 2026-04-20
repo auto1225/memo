@@ -64,6 +64,9 @@
 <!-- 클라우드 동기화 (선택적) -->
 <script src="/config.js" onerror="console.log('[Config] config.js 없음 — 오프라인 전용');"></script>
 <script src="/sync.js" defer></script>
+<!-- 로컬 IndexedDB blob 저장소 — 이미지/첨부를 localStorage에서 분리해 디바이스 용량만큼 사용
+     100% on-device, 네트워크 통신 없음, 외부 서버 접근 없음. -->
+<script src="/idb-store.js"></script>
 <style>
   :root,
   [data-theme="lavender"] {
@@ -3610,20 +3613,67 @@ function load() {
 }
 let state = load();
 
+/* IndexedDB 리하이드레이션 — state에 남은 `idb://<id>` 참조를 실제 data URL로
+   복원. load() 시점엔 IDB가 아직 안 열렸을 수 있어 비동기로 백그라운드 실행.
+   완료되면 현재 활성 탭을 다시 렌더링하여 이미지가 나타나도록 함. */
+(async () => {
+  try {
+    if (!window.__idbStore) return;
+    const before = JSON.stringify(state).length;
+    await window.__idbStore.rehydrateState(state);
+    const after = JSON.stringify(state).length;
+    if (after > before && typeof setActive === 'function' && state.activeId) {
+      /* 리하이드레이션으로 용량이 늘어났으면 (즉, 외부화된 blob이 있었으면)
+         현재 활성 탭을 다시 렌더링 */
+      try { setActive(state.activeId); } catch {}
+      try { if (typeof renderSidebar === 'function') renderSidebar(); } catch {}
+    }
+  } catch (e) { console.warn('[idb] initial rehydrate failed', e); }
+})();
+
 let saveTimer = null;
 let lastSaveSize = 0;
-function save() {
+let _saveInFlight = false;
+let _savePendingAfter = false;
+/* async save: 큰 inline base64 이미지/첨부를 IndexedDB로 이관한 슬림 state를
+   localStorage에 저장. IDB 미지원 시 원본 상태 그대로 폴백. */
+async function save() {
+  if (_saveInFlight) { _savePendingAfter = true; return; }
+  _saveInFlight = true;
   try {
-    const data = JSON.stringify(state);
+    let toWrite = state;
+    // 1) IDB로 외부화 시도 (가능한 경우)
+    try {
+      if (window.__idbStore && window.__idbStore.externalizeState) {
+        toWrite = await window.__idbStore.externalizeState(state);
+      }
+    } catch (e) {
+      console.warn('[save] externalize failed, using inline state', e);
+      toWrite = state;
+    }
+    // 2) localStorage에 슬림 state 기록
+    const data = JSON.stringify(toWrite);
     lastSaveSize = data.length;
-    localStorage.setItem(STORAGE_KEY, data);
+    try {
+      localStorage.setItem(STORAGE_KEY, data);
+    } catch (e) {
+      // Quota 초과: 핫패스로 핸들러 호출. 이미 외부화했는데도 실패한 거라면
+      // 정말 localStorage가 부족한 상황.
+      if (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014) {
+        await handleQuotaExceeded();
+        return;
+      }
+      throw e;
+    }
     flashSaved();
     updateStorageIndicator();
   } catch (e) {
-    if (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014) {
-      handleQuotaExceeded();
-    } else {
-      toast('저장 실패: ' + e.message);
+    toast('저장 실패: ' + (e.message || e));
+  } finally {
+    _saveInFlight = false;
+    if (_savePendingAfter) {
+      _savePendingAfter = false;
+      setTimeout(save, 50);
     }
   }
 }
@@ -3695,6 +3745,23 @@ function cleanupStorage() {
 
 // 용량 초과 처리
 async function handleQuotaExceeded() {
+  /* 1차 자동 구조책: IDB로 외부화해서 localStorage를 슬림하게 만든 뒤 재시도.
+     외부화가 성공적이면 다이얼로그 없이 조용히 복구. */
+  if (window.__idbStore && window.__idbStore.externalizeState) {
+    try {
+      const slim = await window.__idbStore.externalizeState(state, { minBytes: 4 * 1024 });
+      const payload = JSON.stringify(slim);
+      localStorage.setItem(STORAGE_KEY, payload);
+      lastSaveSize = payload.length;
+      toast(`공간 확보 완료 — 큰 이미지를 IndexedDB로 이관했습니다 (${Math.round(payload.length/1024)}KB)`);
+      updateStorageIndicator();
+      return;
+    } catch (e) {
+      console.warn('[handleQuotaExceeded] externalize retry failed', e);
+    }
+  }
+
+  /* 2차: 외부화해도 안 되면 사용자에게 정리 옵션 제시 */
   const { usageKB, quotaKB, source } = await getStorageFacts();
   const attemptKB = Math.round(JSON.stringify(state).length / 1024);
   const histCount = state.history?.length || 0;
@@ -3889,6 +3956,12 @@ function renderPage() {
   }
   pageEl.contentEditable = 'true';
   pageEl.innerHTML = t.html || '';
+  /* IDB 참조(`src="idb://..."`)가 남아있으면 실제 data URL로 폴백 해제.
+     일반적으로는 load() 직후 rehydrateState에서 미리 처리되지만, IDB가
+     아직 준비되기 전에 렌더되는 경우를 대비한 안전장치. */
+  if (window.__idbStore && window.__idbStore.resolveIdbRefsInDom) {
+    window.__idbStore.resolveIdbRefsInDom(pageEl).catch(() => {});
+  }
   processWikiLinks();
   updateWordCount();
   if (padEl.classList.contains('show-toc')) renderTOC();
@@ -5720,9 +5793,20 @@ function gotoMatch(dir, init) {
 /* ============================================================
    내보내기 / 가져오기 / 인쇄
    ============================================================ */
-$('exportBtn').addEventListener('click', () => {
+$('exportBtn').addEventListener('click', async () => {
   syncPageToState();
-  const blob = new Blob([JSON.stringify(state, null, 2)], { type:'application/json' });
+  /* 백업 파일은 자기완결적이어야 함 — IDB 참조가 있으면 inline data URL로 복원 */
+  let exportState = state;
+  try {
+    if (window.__idbStore && window.__idbStore.rehydrateState) {
+      // 깊은 복사본에 리하이드레이션 수행 (원본 메모리는 유지)
+      exportState = JSON.parse(JSON.stringify(state));
+      await window.__idbStore.rehydrateState(exportState);
+    }
+  } catch (e) {
+    console.warn('[export] rehydrate failed, exporting as-is (may contain idb:// refs)', e);
+  }
+  const blob = new Blob([JSON.stringify(exportState, null, 2)], { type:'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `sticky-memo-${new Date().toISOString().slice(0,10)}.json`;

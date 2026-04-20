@@ -42,9 +42,22 @@
     catch { return null; }
   }
 
+  /* 클라우드로 보내기 전 IndexedDB 참조(`idb://xxx`)를 실제 data URL로 치환.
+     다른 디바이스/브라우저에서 pull할 때 이미지가 자기완결적으로 복원되도록 함. */
+  async function getStateForUpload() {
+    const data = getStateJSON();
+    if (!data) return null;
+    try {
+      if (window.__idbStore && window.__idbStore.rehydrateState) {
+        await window.__idbStore.rehydrateState(data);
+      }
+    } catch (e) { console.warn('[Sync] rehydrate 실패, idb:// 참조 포함해 업로드', e); }
+    return data;
+  }
+
   async function pushToCloud() {
     if (!session || syncing) return { ok: false };
-    const data = getStateJSON();
+    const data = await getStateForUpload();
     if (!data) return { ok: false, reason: 'no-data' };
     syncing = true;
     try {
