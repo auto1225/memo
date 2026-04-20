@@ -351,6 +351,17 @@
 
   .modal-backdrop { position:fixed; inset:0; background:rgba(30,10,60,.4);
     display:none; align-items:center; justify-content:center; z-index:50; }
+  /* Generic prompt/confirm/pickList dialog always on top so it's never
+     hidden behind other modals. */
+  #modal.modal-backdrop.open { z-index:200; background:rgba(30,10,60,.55); }
+  /* Card editor sits above cards list modal */
+  #cardEditModal.modal-backdrop.open { z-index:120; }
+  /* My-card/QR, stats, phone-sync etc. above cards list too */
+  #myCardModal.modal-backdrop.open,
+  #cardStatsModal.modal-backdrop.open,
+  #phoneSyncModal.modal-backdrop.open { z-index:110; }
+  /* Safety net: any modal opened after another automatically stacks higher */
+  body > .modal-backdrop.open ~ .modal-backdrop.open { z-index:150; }
   .modal-backdrop.open { display:flex; }
   .modal { background:#fff; color:#333; border-radius:12px; padding:18px 20px;
     width:340px; max-width:90vw; box-shadow:0 10px 40px rgba(40,10,80,.25); }
@@ -3261,7 +3272,7 @@
         <div class="card-filter-item" data-filter="recent"><svg class="ico"><use href="#i-history"/></svg>최근 7일<span class="cf-count"></span></div>
         <div style="font-size:10px; color:var(--ink-soft); letter-spacing:1px; margin:12px 0 6px;">그룹</div>
         <div id="cardsGroups"></div>
-        <div class="card-filter-item" id="cardsAddGroup" style="color:var(--accent);"><svg class="ico"><use href="#i-plus"/></svg>그룹 추가</div>
+        <div class="card-filter-item" id="cardsAddGroup" title="새 그룹 만들기 (예: 업무 · 친구 · 거래처)" style="color:var(--accent); border:1px dashed var(--accent); margin-top:4px; padding:6px 8px;"><svg class="ico"><use href="#i-plus"/></svg>+ 새 그룹 추가</div>
         <div style="font-size:10px; color:var(--ink-soft); letter-spacing:1px; margin:12px 0 6px;">태그</div>
         <div id="cardsTags"></div>
       </div>
@@ -15885,7 +15896,7 @@ function renderCardsDetail(id) {
     <div style="margin-top:12px;">
       <div style="font-size:11px; font-weight:600; color:var(--ink-soft); margin-bottom:6px; display:flex; align-items:center; justify-content:space-between;">
         <span>미팅 기록</span>
-        <button id="cdAddMeeting" style="background:transparent; border:none; cursor:pointer; color:var(--accent); font-size:11px;">+ 추가</button>
+        <button id="cdAddMeeting" title="이 명함과의 미팅 날짜/장소/메모를 기록" style="background:color-mix(in srgb, var(--accent) 15%, transparent); border:1px solid var(--accent); color:var(--accent); padding:4px 10px; border-radius:999px; cursor:pointer; font-size:11px; font-weight:600;">+ 미팅 추가</button>
       </div>
       ${history}
     </div>
