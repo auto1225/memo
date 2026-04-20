@@ -17624,11 +17624,13 @@ if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
 <!-- JustANotepad home hub — dashboard drawer with recent activity -->
 <script src="/home-hub.js"></script>
 <!-- JustANotepad Service Worker refresh — ensures latest deploy is fetched -->
-<script src="/sw-refresh.js?v=4"></script>
+<script src="/sw-refresh.js?v=5"></script>
 <!-- JustANotepad storage quota patch (v1.3.0) — stops dialog loop + hard-slim state -->
-<script src="/storage-quota-patch.js?v=4"></script>
-<!-- JustANotepad · LectureOS v4 — in-tab control box (adapter → mode order matters) -->
-<script type="module" src="/lecture-adapter.js?v=4"></script>
-<script type="module" src="/lecture-mode.js?v=4"></script>
+<script src="/storage-quota-patch.js?v=5"></script>
+<!-- JustANotepad unified save system (v1.0) — global folder + auto-categorization -->
+<script src="/save-system.js?v=5"></script>
+<!-- JustANotepad · LectureOS v5 — in-tab control box, shares jnpSaveSystem -->
+<script type="module" src="/lecture-adapter.js?v=5"></script>
+<script type="module" src="/lecture-mode.js?v=5"></script>
 </body>
 </html>

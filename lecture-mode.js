@@ -576,13 +576,20 @@
     state.ui.folderNameFull = box.querySelector('[data-role="folder-name-full"]');
     state.ui.stats = box.querySelector('[data-role="stats"]');
 
-    // 저장된 폴더 힌트만 복원 (권한 재승인은 실제 저장 시점까지 미룸)
+    // 범용 save-system 의 폴더 먼저 사용 (공유)
     try {
-      const h = await kvGet('dirHandle');
-      if (h) {
-        state.dirHandle = h;
-        state.folderPermGranted = false; // 실제 사용 시 ensureFolderPermission()
-        setFolderLabel(h.name + ' (첫 저장 시 재확인)');
+      const sysHandle = window.jnpSaveSystem?.getHandle?.();
+      if (sysHandle) {
+        state.dirHandle = sysHandle;
+        state.folderPermGranted = window.jnpSaveSystem.getStatus().permGranted;
+        setFolderLabel(sysHandle.name);
+      } else {
+        const h = await kvGet('dirHandle');
+        if (h) {
+          state.dirHandle = h;
+          state.folderPermGranted = false;
+          setFolderLabel(h.name + ' (첫 저장 시 재확인)');
+        }
       }
     } catch {}
 
@@ -1211,15 +1218,35 @@
     const name = opt.kind === 'screen' ? `screen.${ext}`
                : opt.kind === 'camera' ? `camera.${ext}`
                : `audio.${ext}`;
+    // 범용 save-system 있으면 그걸로 (media/ 카테고리 + 세션 서브폴더)
+    if (window.jnpSaveSystem) {
+      await window.jnpSaveSystem.save(name, blob, {
+        category: state.kind === 'lecture' ? 'lecture' : 'meeting',
+        session: getOrCreateSessionFolderName(),
+        ask: false,  // 녹화는 묻지 않고 바로 저장
+      });
+      return;
+    }
     await writeSessionFile(name, blob);
   }
 
   async function pickFolder() {
+    // 앱 전체 통합 저장 시스템이 있으면 그걸 사용 (폴더 공유)
+    if (window.jnpSaveSystem) {
+      const h = await window.jnpSaveSystem.pickRootFolder();
+      if (h) {
+        state.dirHandle = h;
+        state.folderPermGranted = true;
+        setFolderLabel(h.name);
+      }
+      return;
+    }
+    // 폴백
     if (!('showDirectoryPicker' in window)) { toast('이 브라우저는 폴더 선택 미지원 — 다운로드로 대체'); return; }
     try {
       const handle = await window.showDirectoryPicker({ id: 'jnp-lec-dir', mode: 'readwrite' });
       state.dirHandle = handle;
-      state.folderPermGranted = true;     // 방금 사용자가 직접 선택했으므로 이미 grant됨
+      state.folderPermGranted = true;
       await kvSet('dirHandle', handle);
       setFolderLabel(handle.name);
       toast('저장 폴더 설정됨: ' + handle.name);
