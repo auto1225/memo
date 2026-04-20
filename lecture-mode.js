@@ -428,7 +428,8 @@
           <h5>AI 제안 카드</h5>
           <div class="jnp-lec-cards" data-role="cards">
             <div class="jnp-lec-empty">
-              자동 제안을 켜면 수업 중 20초마다 정의·연결·시험문항 카드가 여기에 올라옵니다.
+              로그인하면 <strong>기본 AI(Gemini, 하루 50회 무료)</strong>가 자동으로 연결됩니다.<br>
+              자동 제안을 켜면 수업 중 30초마다 정의·연결·시험문항 카드가 여기에 올라옵니다.
             </div>
           </div>
         </div>
@@ -744,12 +745,19 @@
     insertMarker('강의 종료');
     updateStats();
 
-    // 어댑터 요약 (있으면)
+    // 어댑터 요약이 있으면 그것을 우선, 없으면 window.callAI 로 자동 요약
     if (adapter().buildSummary) {
       try {
         const res = await adapter().buildSummary({ lines: state.session.lines, cards: state.session.cards });
         if (res?.summary) insertSummary(res.summary, 'AI 요약');
       } catch (e) { console.warn('[buildSummary]', e); }
+    } else if (state.session.lines.length >= 3 && typeof window.callAI === 'function') {
+      const text = state.session.lines.map(l => l.text).join('\n');
+      const sys = '당신은 한국 학생의 강의 조수입니다. 아래 실시간 자동 필기 텍스트를 3~6개 소제목의 마크다운 요약으로 만듭니다. 근거 없는 말 금지.';
+      try {
+        const out = await window.callAI(sys, text);
+        if (out) insertSummary(out, 'AI 요약');
+      } catch (e) { console.warn('[auto-summary]', e); }
     }
     toast('녹음 종료 · 녹화 파일을 저장합니다');
   }
@@ -831,76 +839,148 @@
   }
 
   // ================================================================
-  // 9) AI
+  // 9) AI — 앱 내장 window.callAI 를 최우선 사용
+  //    callAI(sys, user) 는 JustANotepad 의 통합 AI 게이트웨이로,
+  //      · 로그인된 사용자면: 기본 Gemini 프록시(/api/gemini) 또는 본인이 연결한
+  //        OpenAI / Gemini / Claude 중 활성 제공자 자동 라우팅
+  //      · 반환값: 텍스트(string) 또는 null
+  //    adapter 가 별도 주입돼 있으면 그것을 먼저 시도, 없으면 callAI 로 폴백.
   // ================================================================
+  async function aiText(system, user) {
+    if (typeof window.callAI === 'function') {
+      try {
+        const out = await window.callAI(system, user);
+        if (out != null) return String(out);
+      } catch (e) { console.warn('[lecture-ai] callAI failed', e); }
+    }
+    return null;
+  }
+
+  function tryParseJson(text) {
+    if (!text) return null;
+    // JSON 코드블록(```json ... ```) 안쪽 추출 or 첫 { ... } 블록
+    const m = text.match(/```json\s*([\s\S]+?)```/i) || text.match(/```\s*([\s\S]+?)```/);
+    const raw = m ? m[1] : text;
+    try { return JSON.parse(raw); } catch {}
+    const idx = raw.indexOf('{');
+    const last = raw.lastIndexOf('}');
+    if (idx >= 0 && last > idx) {
+      try { return JSON.parse(raw.slice(idx, last + 1)); } catch {}
+    }
+    return null;
+  }
+
   async function runAI(kind) {
     const lines = state.session.lines.map(l => ({ t: l.t, text: l.text }));
     const recentTranscript = lines.slice(-30).map(l => l.text).join('\n');
+
+    // --- ASK (직접 질문) ---
     if (kind === 'ask') {
       const q = prompt('AI 에 질문 (예: 지금까지 내용 한 줄 요약)');
       if (!q) return;
-      return runAdapterCards({ question: q, recentTranscript, notes: lines });
+      const sys = '당신은 수업 노트 보조 AI 입니다. 아래 사용자 노트를 근거로 한국어로 간결하게 답합니다. 근거 없는 말은 만들지 않습니다.';
+      const user = `[사용자 질문]\n${q}\n\n[현재까지 노트]\n${recentTranscript || '(없음)'}`;
+      toast('AI 에 질문 중…');
+      const out = await aiText(sys, user);
+      if (out) renderCard({ kind: '답변', title: q.slice(0, 40), body: out, cta: ['노트에 삽입','지나가기'] });
+      else toast('AI 응답 없음 — 로그인 상태와 무료 한도를 확인하세요');
+      switchSection('ai');
+      return;
     }
+
+    // --- SUMMARY ---
     if (kind === 'summary') {
       if (adapter().buildSummary) {
         try {
           const res = await adapter().buildSummary({ lines, cards: state.session.cards });
-          if (res?.summary) insertSummary(res.summary, 'AI 요약');
-          (res?.cards || []).forEach(renderCard);
-          return;
+          if (res?.summary) { insertSummary(res.summary, 'AI 요약'); (res?.cards || []).forEach(renderCard); return; }
         } catch (e) { console.warn(e); }
       }
-      // Mock
-      const top = lines.map(l => l.text).filter(t => t && t.length > 12).slice(-6).join('\n· ');
-      if (top) insertSummary('· ' + top, '간이 요약 (Mock)');
-      else toast('아직 필기가 충분하지 않습니다');
+      if (!lines.length) { toast('아직 필기가 없습니다'); return; }
+      const sys = '당신은 한국 대학생의 강의 조수입니다. 아래 실시간 자동 필기 텍스트를 읽고 마크다운 요약을 만듭니다. 3~6개 소제목, 핵심 용어, 수식은 LaTeX. 근거 없는 말 금지.';
+      const user = `[수업 종류] ${state.kind === 'lecture' ? '강의' : '회의'}\n\n[필기]\n${recentTranscript}`;
+      toast('요약 생성 중…');
+      const out = await aiText(sys, user);
+      if (out) insertSummary(out, 'AI 요약');
+      else toast('AI 응답 없음 — 로그인 후 다시 시도하세요');
       return;
     }
-    if (kind === 'quiz')      return runAdapterCards({ task: 'quiz', recentTranscript, notes: lines });
-    if (kind === 'translate') return runAdapterCards({ task: 'translate', recentTranscript, notes: lines });
-  }
 
-  async function runAdapterCards(ctx) {
-    if (adapter().getCopilotCards) {
-      try {
-        const cards = await adapter().getCopilotCards(ctx) || [];
-        if (cards.length === 0) toast('생성된 카드 없음');
-        cards.forEach(renderCard);
+    // --- QUIZ ---
+    if (kind === 'quiz') {
+      if (!lines.length) { toast('아직 필기가 없습니다'); return; }
+      const sys = '당신은 한국 학생용 문제 출제자입니다. 아래 노트를 근거로 JSON 만 출력합니다. 형식: {"items":[{"q":"문제","choices":["A","B","C","D","E"],"answer":2,"explain":"해설"}]} 5문항. 근거 없는 문제 금지.';
+      const user = `[노트]\n${recentTranscript}`;
+      toast('예상 시험문항 생성 중…');
+      const raw = await aiText(sys, user);
+      const parsed = tryParseJson(raw);
+      if (parsed?.items?.length) {
+        parsed.items.forEach((q, i) => {
+          const body = `${q.q}\n\n` + (q.choices || []).map((c, j) => `${j === q.answer ? '◉' : '○'} ${c}`).join('\n') + (q.explain ? `\n\n해설: ${q.explain}` : '');
+          renderCard({ kind: `Q${i+1}`, title: `예상 시험 문항 ${i+1}`, body, cta: ['노트에 삽입','지나가기'] });
+        });
         switchSection('ai');
-      } catch (e) { toast('AI 호출 실패'); console.warn(e); }
-    } else {
-      renderCard({ kind: 'Mock', title: 'AI 응답', body: 'adapter 미연결 — OPENAI_API_KEY 를 Vercel 환경변수에 설정하면 실제 LLM 답변이 여기에 표시됩니다.\n요청: ' + JSON.stringify(ctx).slice(0, 200), cta: ['확인'] });
-      switchSection('ai');
+      } else if (raw) {
+        renderCard({ kind: '시험', title: '예상 시험 (텍스트)', body: raw, cta: ['노트에 삽입','지나가기'] });
+        switchSection('ai');
+      } else toast('AI 응답 없음');
+      return;
+    }
+
+    // --- TRANSLATE ---
+    if (kind === 'translate') {
+      if (!lines.length) { toast('아직 필기가 없습니다'); return; }
+      const target = prompt('번역 대상 언어 (기본 English)', 'English') || 'English';
+      const sys = `당신은 전문 번역가입니다. 한국어 원문을 ${target} 로 자연스럽게 번역합니다. 마크다운 서식 유지.`;
+      const user = recentTranscript;
+      toast('번역 중…');
+      const out = await aiText(sys, user);
+      if (out) {
+        insertSummary(out, `번역 (${target})`);
+        renderCard({ kind: '번역', title: `→ ${target}`, body: out, cta: ['노트에 삽입','지나가기'] });
+        switchSection('ai');
+      } else toast('AI 응답 없음');
+      return;
     }
   }
 
-  // ---- Copilot 주기 ----
-  const MOCK_COP = [
-    { kind: '정의', title: '용어 정의 제안', body: '최근 구간 핵심 용어를 정리합니다. adapter 연결 시 실제 정의가 뽑힙니다.', cta: ['노트에 삽입','지나가기'] },
-    { kind: '연결', title: '이전 수업 연결', body: '이 개념은 지난 회차와 연결될 가능성이 큽니다.', cta: ['노트에 삽입','지나가기'] },
-    { kind: '퀴즈', title: '예상 시험 문항', body: '조금 더 필기가 쌓이면 예상 시험문항 카드가 올라옵니다.', cta: ['시험지에 추가','지나가기'] },
-  ];
-
+  // ================================================================
+  // 9-2) Copilot 주기 — 같은 경로(callAI) 로 실제 카드 생성
+  // ================================================================
   function startCopilot() {
     stopCopilot();
-    state.copilotTimer = setInterval(maybeTriggerCopilot, 20000);
+    state.copilotTimer = setInterval(maybeTriggerCopilot, 30000); // 30초 간격 (무료 한도 절약)
   }
   function stopCopilot() { if (state.copilotTimer) { clearInterval(state.copilotTimer); state.copilotTimer = null; } }
 
   async function maybeTriggerCopilot() {
     if (!state.recording || !flags.copilot) return;
     const recent = state.session.lines.slice(-6).map(l => l.text).join('\n');
-    if (recent.length < 20 && state.session.lines.length < 2) return;
-    let cards = [];
-    try {
-      if (adapter().getCopilotCards) {
-        cards = await adapter().getCopilotCards({ recentTranscript: recent, notes: state.session.lines }) || [];
-      } else {
-        cards = [MOCK_COP[state.copilotCtr % MOCK_COP.length]];
-        state.copilotCtr++;
-      }
-    } catch (e) { console.warn('[copilot]', e); return; }
-    cards.forEach(renderCard);
+    if (recent.length < 30 && state.session.lines.length < 3) return;
+
+    // adapter 가 있으면 adapter 사용 (별도 hook)
+    if (adapter().getCopilotCards) {
+      try {
+        const cards = await adapter().getCopilotCards({ recentTranscript: recent, notes: state.session.lines }) || [];
+        cards.forEach(renderCard);
+        return;
+      } catch (e) { console.warn('[copilot adapter]', e); }
+    }
+
+    // 내장 callAI 경로
+    if (typeof window.callAI !== 'function') return; // 로그인 전/미지원 환경이면 조용히 스킵
+
+    const sys = '당신은 수업 중 옆에서 도와주는 한국어 AI 조수입니다. 아래 최근 발화를 읽고, 학생에게 도움이 될 제안 카드 1~3개를 만듭니다. JSON 한 개만 출력: {"cards":[{"kind":"정의|연결|퀴즈|자료","title":"짧게","body":"한두 문장","cta":["노트에 삽입","지나가기"]}]}. 환각 금지. 최근 발화 내용에서 도출 가능한 것만.';
+    const user = `[최근 발화]\n${recent}`;
+    const raw = await aiText(sys, user);
+    const parsed = tryParseJson(raw);
+    const cards = parsed?.cards || [];
+    if (cards.length === 0 && raw) {
+      // JSON 파싱 실패 시 원문을 단일 카드로
+      renderCard({ kind: 'AI', title: '제안', body: raw.slice(0, 500), cta: ['노트에 삽입','지나가기'] });
+    } else {
+      cards.forEach(renderCard);
+    }
   }
 
   function renderCard(card) {
