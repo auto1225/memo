@@ -203,6 +203,7 @@
     templates:['템플릿 라이브러리', '콘텐츠 라이브러리 / 템플릿'],
     shared:   ['공유 노트', '콘텐츠 라이브러리 / 공유 노트'],
     clips:    ['웹 클리퍼 수신함', '콘텐츠 라이브러리 / 클리퍼'],
+    feedback: ['사용자 피드백', '콘텐츠 라이브러리 / 피드백'],
   };
 
   // Tracks current logged-in user's email for activity logging
@@ -286,6 +287,7 @@
       else if (v === 'templates')  await renderTemplates();
       else if (v === 'shared')     await renderSharedNotes();
       else if (v === 'clips')      await renderClips();
+      else if (v === 'feedback')   await renderFeedback();
       else                         renderContentPage(v);
     } catch (e) {
       view.innerHTML = '<div style="color:var(--danger);padding:20px;">오류: ' + (e.message || e) + '</div>';
@@ -1589,6 +1591,7 @@
       'cms_board','cms_payments','cms_serials','cms_entitlements','cms_settings',
       'cms_seo','cms_redirects','cms_media','cms_activity_log',
       'cms_templates','cms_shared_notes','cms_clips','cms_shared_note_versions',
+      'cms_feedback',
     ];
     view.innerHTML = `
       <div class="panel">
@@ -1784,6 +1787,7 @@
       { label: '템플릿 (cms_templates)',        view: 'templates', table: 'cms_templates',  fields: ['slug','name','category','description'] },
       { label: '공유 노트 (cms_shared_notes)',  view: 'shared',    table: 'cms_shared_notes', fields: ['token','title','body'] },
       { label: '웹 클립 (cms_clips)',           view: 'clips',     table: 'cms_clips',      fields: ['url','title','excerpt'] },
+      { label: '피드백 (cms_feedback)',         view: 'feedback',  table: 'cms_feedback',   fields: ['message','email','category'] },
     ];
 
     // Escape PostgREST special chars that break .or() syntax
@@ -1865,6 +1869,13 @@
           <select id="sn-mode"><option value="readonly">읽기 전용</option><option value="edit">편집 가능</option></select>
         </div>
         <div class="field"><label>만료일 (선택)</label><input id="sn-exp" type="datetime-local"></div>
+        <div class="field"><label>비밀번호 (선택) · 설정 시 방문자가 입력해야 열립니다</label>
+          <div style="display:flex;gap:6px;">
+            <input id="sn-pw" type="text" placeholder="비워두면 보호 없음">
+            <button class="btn" type="button" id="sn-pw-clear">제거</button>
+          </div>
+        </div>
+        <div class="field"><label>비밀번호 힌트 (선택)</label><input id="sn-hint" placeholder="예: 팀 생일"></div>
         <div style="display:flex;gap:8px;">
           <button class="btn primary" id="snSave">저장</button>
           <button class="btn danger" id="snDel" style="display:none;">삭제</button>
@@ -1920,6 +1931,9 @@
       $('sn-body').value  = r?.body || '';
       $('sn-mode').value  = r?.mode || 'readonly';
       $('sn-exp').value   = r?.expires_at ? new Date(r.expires_at).toISOString().slice(0,16) : '';
+      $('sn-pw').value    = '';  // never show existing hash
+      $('sn-pw').placeholder = r?.password_hash ? '● ● ● ● (설정됨) — 변경하려면 입력' : '비워두면 보호 없음';
+      $('sn-hint').value  = r?.password_hint || '';
       $('snDel').style.display = r ? 'inline-flex' : 'none';
       $('snCopy').style.display = r ? 'inline-flex' : 'none';
       $('snHist').style.display = r ? 'inline-flex' : 'none';
@@ -1964,6 +1978,17 @@
     $('snGenTok').addEventListener('click', () => { $('sn-token').value = genToken(); });
     $('snCancel').addEventListener('click', () => $('snEd').style.display='none');
     $('snHist').addEventListener('click', loadHistory);
+    $('sn-pw-clear').addEventListener('click', async () => {
+      if (!current) { $('sn-pw').value = ''; return; }
+      if (!confirm('이 노트의 비밀번호를 제거할까요?')) return;
+      const { error } = await sb.from('cms_shared_notes')
+        .update({ password_hash: null, password_hint: null }).eq('token', current.token);
+      if (error) { alert(error.message); return; }
+      $('sn-pw').value = '';
+      $('sn-pw').placeholder = '비워두면 보호 없음';
+      $('sn-hint').value = '';
+      logActivity('update', 'cms_shared_notes', current.token, { removed: 'password' });
+    });
     $('snCopy').addEventListener('click', async () => {
       const url = location.origin + '/s/' + $('sn-token').value;
       try { await navigator.clipboard.writeText(url); $('snCopy').textContent = '복사됨'; setTimeout(() => $('snCopy').textContent = '공유 URL 복사', 1500); }
@@ -1976,8 +2001,20 @@
         body:  $('sn-body').value,
         mode:  $('sn-mode').value,
         expires_at: $('sn-exp').value ? new Date($('sn-exp').value).toISOString() : null,
+        password_hint: $('sn-hint').value.trim() || null,
       };
       if (!payload.token) { alert('토큰 필수'); return; }
+      // Password handling: if user typed a password, SHA-256 hash it.
+      // If blank + existing note: leave password_hash untouched (don't overwrite).
+      // If blank + new note: no protection.
+      const pwRaw = $('sn-pw').value;
+      if (pwRaw) {
+        const buf = new TextEncoder().encode(pwRaw);
+        const hashBuf = await crypto.subtle.digest('SHA-256', buf);
+        payload.password_hash = [...new Uint8Array(hashBuf)].map(b => b.toString(16).padStart(2,'0')).join('');
+      } else if (!current) {
+        payload.password_hash = null;
+      }
       const { error } = await sb.from('cms_shared_notes').upsert(payload);
       if (error) { alert(error.message); return; }
       logActivity(current ? 'update' : 'insert', 'cms_shared_notes', payload.token, payload);
@@ -2056,6 +2093,92 @@
     $('cpFilter').addEventListener('change', load);
     let t;
     $('cpSearch').addEventListener('input', (e) => {
+      clearTimeout(t); t = setTimeout(() => renderList(e.target.value.trim()), 200);
+    });
+    load();
+  }
+
+  // ---- MODULE: 사용자 피드백 (cms_feedback) ---------------------
+  async function renderFeedback() {
+    view.innerHTML = `
+      <div class="panel">
+        <div class="panel-title">사용자 피드백
+          <div style="display:flex;gap:8px;align-items:center;">
+            <select id="fbFilter" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
+              <option value="">전체</option>
+              <option value="unhandled">미처리</option>
+              <option value="handled">처리완료</option>
+            </select>
+            <input type="search" id="fbSearch" placeholder="내용/이메일 검색" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
+            <button class="btn" id="fbRefresh">새로고침</button>
+          </div>
+        </div>
+        <p style="color:var(--ink-soft);font-size:12px;">방문자가 <code>jan-feedback-widget</code>으로 제출한 피드백입니다 (익명/이메일 포함).</p>
+        <div id="fbList" style="margin-top:10px;">로딩…</div>
+      </div>`;
+    let rows = [];
+    const load = async () => {
+      let q = sb.from('cms_feedback').select('*').order('created_at', { ascending: false }).limit(200);
+      const f = $('fbFilter').value;
+      if (f === 'handled')   q = q.eq('handled', true);
+      if (f === 'unhandled') q = q.eq('handled', false);
+      const { data, error } = await q;
+      if (error) { $('fbList').innerHTML = '<div style="color:var(--danger);">'+error.message+'</div>'; return; }
+      rows = data || [];
+      renderList($('fbSearch').value.trim());
+    };
+    const renderList = (query) => {
+      const ql = (query || '').toLowerCase();
+      const filtered = !ql ? rows
+        : rows.filter(r => ((r.message||'') + ' ' + (r.email||'') + ' ' + (r.category||'')).toLowerCase().includes(ql));
+      if (!filtered.length) {
+        $('fbList').innerHTML = '<div style="color:var(--ink-soft);padding:40px;text-align:center;">피드백 없음</div>';
+        return;
+      }
+      $('fbList').innerHTML = filtered.map(r => `
+        <div style="padding:14px;border:1px solid var(--border);border-radius:10px;margin-bottom:10px;${r.handled ? 'opacity:0.6;' : ''}">
+          <div style="display:flex;gap:10px;align-items:flex-start;">
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:12px;color:var(--ink-soft);margin-bottom:4px;">
+                ${fmtDate(r.created_at)}
+                ${r.rating ? ` · <b style="color:#eab308;">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</b>` : ''}
+                ${r.category ? ` · <code style="font-size:11px;">${escape(r.category)}</code>` : ''}
+                ${r.email ? ` · <a href="mailto:${escape(r.email)}" style="color:var(--accent);">${escape(r.email)}</a>` : ' · <i>익명</i>'}
+              </div>
+              <div style="font-size:13px;white-space:pre-wrap;">${escape(r.message || '')}</div>
+              ${r.url ? `<div style="font-size:10px;color:var(--ink-faint);margin-top:6px;">출처: ${escape(r.url)}</div>` : ''}
+              ${r.handled_note ? `<div style="margin-top:8px;padding:6px 10px;background:#f3f4f6;border-radius:4px;font-size:11px;color:var(--ink-soft);">처리 메모: ${escape(r.handled_note)}</div>` : ''}
+            </div>
+            <div style="flex:0 0 auto;display:flex;flex-direction:column;gap:6px;">
+              <button class="btn fb-toggle" data-id="${r.id}" data-state="${r.handled ? 'true' : 'false'}">
+                ${r.handled ? '미처리로' : '✓ 처리'}
+              </button>
+              <button class="btn danger fb-del" data-id="${r.id}">삭제</button>
+            </div>
+          </div>
+        </div>`).join('');
+      document.querySelectorAll('.fb-toggle').forEach(b => b.addEventListener('click', async () => {
+        const newState = b.dataset.state !== 'true';
+        const memo = newState ? (prompt('처리 메모 (선택):') || '') : null;
+        const { error } = await sb.from('cms_feedback').update({
+          handled: newState, handled_note: memo,
+        }).eq('id', b.dataset.id);
+        if (error) { alert(error.message); return; }
+        logActivity('update', 'cms_feedback', b.dataset.id, { handled: newState });
+        load();
+      }));
+      document.querySelectorAll('.fb-del').forEach(b => b.addEventListener('click', async () => {
+        if (!confirm('이 피드백을 삭제할까요?')) return;
+        const { error } = await sb.from('cms_feedback').delete().eq('id', b.dataset.id);
+        if (error) { alert(error.message); return; }
+        logActivity('delete', 'cms_feedback', b.dataset.id, null);
+        load();
+      }));
+    };
+    $('fbFilter').addEventListener('change', load);
+    $('fbRefresh').addEventListener('click', load);
+    let t;
+    $('fbSearch').addEventListener('input', (e) => {
       clearTimeout(t); t = setTimeout(() => renderList(e.target.value.trim()), 200);
     });
     load();

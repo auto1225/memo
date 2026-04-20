@@ -118,9 +118,22 @@
   <div class="presence" id="presence"></div>
   <span id="liveBadge" class="live offline">오프라인</span>
   <button id="btnEdit" class="toggle" style="display:none;">편집</button>
+  <button id="btnDownload" class="toggle" title="Markdown(.md)로 내려받기">↓ MD</button>
   <button id="btnEmbed" class="toggle" title="iframe 임베드 코드 복사">&lt;/&gt; 임베드</button>
   <a href="/" class="cta">나도 무료로 시작</a>
 </header>
+
+<!-- Password gate overlay -->
+<div id="pwGate" style="display:none;position:fixed;inset:0;background:rgba(20,20,20,0.6);backdrop-filter:blur(4px);z-index:100;align-items:center;justify-content:center;">
+  <div style="background:#fff;padding:32px 28px;border-radius:14px;width:min(400px,90vw);text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
+    <svg style="width:40px;height:40px;color:#D97757;margin-bottom:8px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    <h2 style="margin:4px 0 6px;font-size:18px;">비밀번호가 필요한 노트</h2>
+    <p id="pwHint" style="color:#6b7280;font-size:12px;margin:0 0 16px;"></p>
+    <input id="pwInput" type="password" placeholder="비밀번호" style="width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;box-sizing:border-box;" autofocus>
+    <div id="pwError" style="color:#b91c1c;font-size:12px;margin-top:8px;min-height:16px;"></div>
+    <button id="pwSubmit" style="margin-top:12px;padding:10px 24px;background:#141414;color:#fff;border:0;border-radius:8px;font-weight:700;cursor:pointer;width:100%;">열기</button>
+  </div>
+</div>
 
 <main>
   <div id="loading" style="text-align:center;padding:100px 0;color:var(--soft);">노트 불러오는 중…</div>
@@ -275,6 +288,36 @@
     if (error || !data) { show('notFound'); return; }
     if (data.expires_at && new Date(data.expires_at).getTime() < Date.now()) { show('notFound'); return; }
     note = data;
+    // Password gate check — body is withheld until user proves password
+    if (data.password_hash) {
+      document.getElementById('pwHint').textContent = data.password_hint ? ('힌트: ' + data.password_hint) : '노트 소유자가 설정한 비밀번호를 입력하세요.';
+      document.getElementById('pwGate').style.display = 'flex';
+      document.getElementById('pwInput').focus();
+      const sha256 = async (s) => {
+        const buf = new TextEncoder().encode(s);
+        const hash = await crypto.subtle.digest('SHA-256', buf);
+        return [...new Uint8Array(hash)].map(b => b.toString(16).padStart(2,'0')).join('');
+      };
+      const attempt = async () => {
+        const input = document.getElementById('pwInput').value;
+        const h = await sha256(input);
+        if (h === data.password_hash) {
+          document.getElementById('pwGate').style.display = 'none';
+          return true;
+        }
+        document.getElementById('pwError').textContent = '비밀번호가 일치하지 않습니다.';
+        return false;
+      };
+      const ok = await new Promise((resolve) => {
+        document.getElementById('pwSubmit').addEventListener('click', async () => {
+          if (await attempt()) resolve(true);
+        });
+        document.getElementById('pwInput').addEventListener('keydown', async (e) => {
+          if (e.key === 'Enter') { if (await attempt()) resolve(true); }
+        });
+      });
+      if (!ok) return;
+    }
     lastServerBody = data.body || '';
     document.title = (data.title || '공유 노트') + ' — JustANotepad';
 
@@ -373,6 +416,17 @@
     if (!note || note.mode !== 'edit') return;
     isEditing = !isEditing;
     if (isEditing) renderEditor(); else renderReadOnly();
+  });
+
+  $('btnDownload').addEventListener('click', () => {
+    if (!note) return;
+    const md = `# ${note.title || '(제목 없음)'}\n\n${note.body || ''}\n`;
+    const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const safeName = (note.title || 'note').replace(/[\\/:*?"<>|]+/g, '_').slice(0, 60);
+    a.href = url; a.download = `${safeName}.md`;
+    a.click(); URL.revokeObjectURL(url);
   });
 
   $('btnEmbed').addEventListener('click', async () => {
