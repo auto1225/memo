@@ -109,11 +109,19 @@
     color:#fff; user-select:none; cursor:grab; position:relative; z-index:30; }
   .topbar:active { cursor:grabbing; }
   .topbar .title { flex:1; font-weight:600; font-size:13px; padding-left:4px;
-    display:flex; align-items:center; gap:6px; }
+    display:flex; align-items:center; gap:6px; min-width:0; }
   .topbar .title input { background:transparent; border:none; color:#fff; font-weight:600;
-    font-size:13px; outline:none; width:150px; }
+    font-size:13px; outline:none; min-width:80px; width:clamp(80px, 18ch, 260px);
+    max-width:100%; text-overflow:ellipsis; border-radius:4px;
+    transition: background 0.15s; padding:2px 4px; }
+  .topbar .title input:hover { background:rgba(255,255,255,0.08); }
+  .topbar .title input:focus { background:rgba(255,255,255,0.14); }
   .app-logo { color:#fff; width:20px; height:20px; flex-shrink:0;
-    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.25)); }
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.25));
+    cursor:pointer; pointer-events:auto; border-radius:4px;
+    transition: transform 0.12s, background 0.15s; padding:2px; }
+  .app-logo:hover { background:rgba(255,255,255,0.12); transform:scale(1.05); }
+  .app-logo:focus-visible { outline:2px solid rgba(255,255,255,0.6); outline-offset:1px; }
   .topbar #cardsTopBtn, .topbar #calOpenBtn { position:relative; }
   .topbar-badge { position:absolute; top:-2px; right:-2px; background:#ff5252; color:white;
     font-size:9px; font-weight:700; padding:0 4px; border-radius:8px; min-width:14px;
@@ -135,6 +143,14 @@
     transition:background .12s, transform .12s, box-shadow .12s; flex:0 0 auto; }
   .topbar button:hover { background:rgba(255,255,255,.22); box-shadow:0 1px 3px rgba(0,0,0,.2); }
   .topbar button:active { transform:scale(0.92); }
+  /* 키보드 탐색 시 시각적 포커스 */
+  .topbar button:focus-visible,
+  .topbar [role="button"]:focus-visible {
+    outline:2px solid rgba(255,255,255,.8); outline-offset:1px;
+    background:rgba(255,255,255,.28); }
+  .topbar #closeBtn:focus-visible { outline-color:#ffcdd2; }
+  .pomo-display { cursor:pointer; user-select:none; }
+  .pomo-display:focus-visible { outline:2px solid rgba(255,255,255,.8); outline-offset:1px; border-radius:6px; }
   .topbar button .ico { width:16px; height:16px; stroke-width:2.2;
     filter: drop-shadow(0 1px 1.5px rgba(0,0,0,.5)); }
   /* Window-control buttons sit at the very right, always visible */
@@ -1588,16 +1604,16 @@
 <div class="pad" id="pad">
   <div class="topbar" id="topbar">
     <div class="title">
-      <button id="sideBtn" title="사이드바"><svg class="ico"><use href="#i-menu"/></svg></button>
-      <svg class="ico app-logo" title="JustANotepad"><use href="#i-jan-logo"/></svg>
-      <input id="padTitle" value="JustANotepad" />
+      <button id="sideBtn" title="사이드바 (워크스페이스·태그·도구)" aria-label="사이드바 열기/닫기"><svg class="ico"><use href="#i-menu"/></svg></button>
+      <svg class="ico app-logo" id="appLogo" role="button" tabindex="0" aria-label="JustANotepad 홈" data-tooltip="홈 페이지 열기"><title>JustANotepad — 클릭: 홈 페이지</title><use href="#i-jan-logo"/></svg>
+      <input id="padTitle" value="JustANotepad" aria-label="현재 노트 제목" placeholder="노트 제목" autocomplete="off" spellcheck="false" />
     </div>
-    <div class="pomo-display hidden collapsible" id="pomoDisplay" title="포모도로 클릭: 일시정지/재개"><svg class="ico-sm"><use href="#i-timer"/></svg><span id="pomoMode">FOCUS</span>&nbsp;<span id="pomoTime">25:00</span></div>
-    <button id="palBtn" class="collapsible" title="명령 팔레트 (Ctrl+K)"><svg class="ico"><use href="#i-cmd"/></svg></button>
-    <button id="webBtn" class="collapsible" title="웹 검색 (Ctrl+Shift+F)"><svg class="ico"><use href="#i-globe"/></svg></button>
-    <button id="aiBtn" class="collapsible" title="AI 어시스턴트 (Ctrl+Space)"><svg class="ico"><use href="#i-sparkles"/></svg></button>
+    <div class="pomo-display hidden collapsible" id="pomoDisplay" role="button" tabindex="0" aria-label="포모도로 타이머 — 클릭하여 일시정지/재개" title="포모도로 · 클릭: 일시정지/재개"><svg class="ico-sm"><use href="#i-timer"/></svg><span id="pomoMode">FOCUS</span>&nbsp;<span id="pomoTime">25:00</span></div>
+    <button id="palBtn" class="collapsible" aria-label="명령 팔레트 열기" title="명령 팔레트 (Ctrl+K)"><svg class="ico"><use href="#i-cmd"/></svg></button>
+    <button id="webBtn" class="collapsible" aria-label="웹 검색 열기" title="웹 검색 (Ctrl+Shift+F)"><svg class="ico"><use href="#i-globe"/></svg></button>
+    <button id="aiBtn" class="collapsible" aria-label="AI 어시스턴트 열기" title="AI 어시스턴트 (Ctrl+Space)"><svg class="ico"><use href="#i-sparkles"/></svg></button>
     <div class="topbar-drop collapsible" id="calDropWrap" style="position:relative; display:inline-flex;">
-      <button id="calOpenBtn" title="캘린더 (Ctrl+J) · 길게누르면 메뉴"><svg class="ico"><use href="#i-calendar"/></svg></button>
+      <button id="calOpenBtn" aria-label="캘린더 열기 (길게누르면 메뉴)" title="캘린더 (Ctrl+J) · 길게누르면 메뉴"><svg class="ico"><use href="#i-calendar"/></svg></button>
       <div class="topbar-drop-menu" id="calDropMenu" style="display:none;">
         <div class="tdm-item" data-act="cal">월간 캘린더 (팝업)</div>
         <div class="tdm-item" data-act="calTab">캘린더 탭으로 열기</div>
@@ -1606,29 +1622,29 @@
         <div class="tdm-item" data-act="insertTag">캘린더 태그 삽입</div>
       </div>
     </div>
-    <button id="cardsTopBtn" class="collapsible" title="명함관리"><svg class="ico"><use href="#i-id-card"/></svg><span id="cardsTopBadge" class="topbar-badge"></span></button>
-    <button id="paintTopBtn" class="collapsible" title="그림판 (Paint)"><svg class="ico"><use href="#i-bucket"/></svg></button>
-    <button id="imgCvtTopBtn" class="collapsible" title="이미지 변환기 (크기·용량·포맷)"><svg class="ico"><use href="#i-resize"/></svg></button>
-    <button id="roleDashTopBtn" class="collapsible" title="내 도구 모음 (역할별)"><svg class="ico"><use href="#i-users"/></svg><span id="roleDashBadge" class="topbar-badge"></span></button>
-    <button id="themeBtn" class="collapsible" title="테마 변경"><svg class="ico"><use href="#i-palette"/></svg></button>
-    <button id="searchToggle" class="collapsible" title="검색 (Ctrl+F)"><svg class="ico"><use href="#i-search"/></svg></button>
-    <button id="focusBtn" class="collapsible" title="집중 모드"><svg class="ico"><use href="#i-target"/></svg></button>
-    <button id="helpBtn" class="collapsible" title="도움말"><svg class="ico"><use href="#i-help"/></svg></button>
-    <button id="authBtn" class="collapsible" title="로그인" style="display:none;"><svg class="ico"><use href="#i-users"/></svg></button>
+    <button id="cardsTopBtn" class="collapsible" aria-label="명함관리 열기" title="명함관리"><svg class="ico"><use href="#i-id-card"/></svg><span id="cardsTopBadge" class="topbar-badge"></span></button>
+    <button id="paintTopBtn" class="collapsible" aria-label="그림판 열기" title="그림판"><svg class="ico"><use href="#i-bucket"/></svg></button>
+    <button id="imgCvtTopBtn" class="collapsible" aria-label="이미지 변환기 열기" title="이미지 변환기 (크기·용량·포맷)"><svg class="ico"><use href="#i-resize"/></svg></button>
+    <button id="roleDashTopBtn" class="collapsible" aria-label="내 도구 모음 (역할별) 열기" title="내 도구 모음 (역할별)"><svg class="ico"><use href="#i-users"/></svg><span id="roleDashBadge" class="topbar-badge"></span></button>
+    <button id="themeBtn" class="collapsible" aria-label="테마 변경" title="테마 변경"><svg class="ico"><use href="#i-palette"/></svg></button>
+    <button id="searchToggle" class="collapsible" aria-label="검색 열기" title="검색 (Ctrl+F)"><svg class="ico"><use href="#i-search"/></svg></button>
+    <button id="focusBtn" class="collapsible" aria-label="집중 모드 전환" title="집중 모드"><svg class="ico"><use href="#i-target"/></svg></button>
+    <button id="helpBtn" class="collapsible" aria-label="도움말 열기" title="도움말"><svg class="ico"><use href="#i-help"/></svg></button>
+    <button id="authBtn" class="collapsible" aria-label="로그인" title="로그인" style="display:none;"><svg class="ico"><use href="#i-users"/></svg></button>
 
     <!-- Overflow menu for narrow widths (≤ 760px) — hidden by CSS at wide widths. -->
     <div class="topbar-overflow" id="topbarOverflow">
-      <button id="overflowBtn" title="더보기">
+      <button id="overflowBtn" aria-label="더보기 메뉴" aria-haspopup="menu" aria-expanded="false" title="더보기">
         <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
       </button>
-      <div class="topbar-overflow-menu" id="overflowMenu"></div>
+      <div class="topbar-overflow-menu" id="overflowMenu" role="menu"></div>
     </div>
 
     <!-- Window controls: always visible at the right. -->
-    <button id="pinBtn" class="win-ctrl" title="항상 위에 (Tauri 데스크톱 전용)"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14l-1.68-9.24A2 2 0 0 0 15.36 6H8.64a2 2 0 0 0-1.96 1.76L5 17z"/></svg></button>
-    <button id="minBtn" class="win-ctrl" title="최소화"><svg class="ico"><use href="#i-min"/></svg></button>
-    <button id="maxBtn" class="win-ctrl" title="최대화 / 복원"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="1"/></svg></button>
-    <button id="closeBtn" class="win-ctrl" title="닫기"><svg class="ico"><use href="#i-x"/></svg></button>
+    <button id="pinBtn" class="win-ctrl" aria-label="항상 위에 고정 토글" aria-pressed="false" title="항상 위에 (Tauri 데스크톱 전용)"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14l-1.68-9.24A2 2 0 0 0 15.36 6H8.64a2 2 0 0 0-1.96 1.76L5 17z"/></svg></button>
+    <button id="minBtn" class="win-ctrl" aria-label="최소화" title="최소화"><svg class="ico"><use href="#i-min"/></svg></button>
+    <button id="maxBtn" class="win-ctrl" aria-label="최대화 또는 복원" title="최대화 / 복원"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="1"/></svg></button>
+    <button id="closeBtn" class="win-ctrl" aria-label="앱 닫기" title="닫기"><svg class="ico"><use href="#i-x"/></svg></button>
   </div>
 
   <div class="sidebar" id="sidebar">
@@ -4120,6 +4136,10 @@ $('pomoBtn').addEventListener('click', () => {
   else if (confirm('포모도로를 중지할까요?')) pomoStop();
 });
 $('pomoDisplay').addEventListener('click', pomoToggle);
+/* pomoDisplay는 <div>이므로 키보드 접근성 보장 — Enter/Space로 토글 */
+$('pomoDisplay').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pomoToggle(); }
+});
 
 /* ============================================================
     스케치 캔버스
@@ -4749,7 +4769,12 @@ function markdownToHtml(md) {
 $('focusBtn').addEventListener('click', () => {
   padEl.classList.toggle('focus');
   pageEl.classList.toggle('focus-mode');
-  toast(padEl.classList.contains('focus') ? '집중 모드 ON' : '일반 모드');
+  const on = padEl.classList.contains('focus');
+  try {
+    $('focusBtn').setAttribute('aria-pressed', on ? 'true' : 'false');
+    $('focusBtn').setAttribute('aria-label', on ? '집중 모드 끄기' : '집중 모드 켜기');
+  } catch {}
+  toast(on ? '집중 모드 ON' : '일반 모드');
 });
 
 /* ============================================================
@@ -5162,6 +5187,15 @@ function cycleTheme() {
 }
 function applyTheme() {
   document.documentElement.setAttribute('data-theme', state.meta.theme || 'lavender');
+  /* 현재 테마명을 버튼 aria-label/title에 반영 */
+  try {
+    const tb = document.getElementById('themeBtn');
+    if (tb) {
+      const t = state.meta.theme || 'lavender';
+      tb.setAttribute('aria-label', `테마 변경 (현재: ${t})`);
+      tb.setAttribute('title', `테마 변경 (현재: ${t})`);
+    }
+  } catch {}
 }
 $('themeBtn').addEventListener('click', cycleTheme);
 $('sideBtn').addEventListener('click', (e) => {
@@ -5442,6 +5476,8 @@ function toggleSearch(show) {
   searchbar.classList.toggle('open', show);
   if (show) { searchInput.focus(); searchInput.select(); }
   else { clearSearchHighlight(); searchCount.textContent = '0 / 0'; }
+  /* 토글 버튼 aria-pressed 동기화 */
+  try { $('searchToggle').setAttribute('aria-pressed', show ? 'true' : 'false'); } catch {}
 }
 $('searchToggle').addEventListener('click', () => toggleSearch(!searchbar.classList.contains('open')));
 $('searchClose').addEventListener('click', () => toggleSearch(false));
@@ -5898,7 +5934,22 @@ document.addEventListener('keydown', e => {
    ============================================================ */
 $('minBtn').addEventListener('click', () => padEl.classList.toggle('minimized'));
 $('closeBtn').addEventListener('click', () => {
-  if (confirm('메모장을 닫을까요? (내용은 자동 저장됩니다)')) window.close();
+  if (!confirm('메모장을 닫을까요? (내용은 자동 저장됩니다)')) return;
+  /* 브라우저 탭에서는 window.close()가 막히는 경우가 많음 —
+     실패하면 홈으로 이동 (사용자가 단절감을 느끼지 않도록) */
+  try {
+    const before = Date.now();
+    window.close();
+    /* close()가 작동했으면 아래 코드는 실행되지 않음.
+       200ms 후에도 살아있으면 홈으로 폴백. */
+    setTimeout(() => {
+      if (Date.now() - before < 5000 && !document.hidden) {
+        try { location.href = '/home'; } catch {}
+      }
+    }, 200);
+  } catch {
+    try { location.href = '/home'; } catch {}
+  }
 });
 $('helpBtn').addEventListener('click', () => $('helpModal').classList.add('open'));
 $('helpClose').addEventListener('click', () => $('helpModal').classList.remove('open'));
@@ -5932,7 +5983,48 @@ opacity.addEventListener('input', () => {
   opacityVal.textContent = opacity.value + '%';
   scheduleSave();
 });
-titleInput.addEventListener('input', () => { state.meta.title = titleInput.value; scheduleSave(); });
+titleInput.addEventListener('input', () => {
+  state.meta.title = titleInput.value;
+  scheduleSave();
+});
+/* 포커스 시 전체 선택 — 제목 입력 UX의 표준 패턴 */
+titleInput.addEventListener('focus', () => {
+  try { titleInput.select(); } catch {}
+});
+/* Enter → blur (커밋), Escape → 취소 후 blur */
+titleInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); titleInput.blur(); }
+  else if (e.key === 'Escape') { e.preventDefault(); titleInput.blur(); }
+});
+/* blur → 빈 값 방지 + document.title 동기화 */
+titleInput.addEventListener('blur', () => {
+  const v = (titleInput.value || '').trim();
+  if (!v) {
+    titleInput.value = 'JustANotepad';
+    state.meta.title = 'JustANotepad';
+    scheduleSave();
+  }
+  try {
+    const t = titleInput.value || 'JustANotepad';
+    document.title = t + ' — JustANotepad';
+  } catch {}
+});
+/* 초기 document.title 동기화 */
+try { document.title = (titleInput.value || 'JustANotepad') + ' — JustANotepad'; } catch {}
+
+/* 앱 로고 클릭/키보드 → 홈 페이지 새 탭으로 열기 */
+(() => {
+  const logo = document.getElementById('appLogo');
+  if (!logo) return;
+  const goHome = () => {
+    try { window.open('/home', '_blank', 'noopener'); }
+    catch { location.href = '/home'; }
+  };
+  logo.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); goHome(); });
+  logo.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goHome(); }
+  });
+})();
 
 /* ============================================================
    탭 컨텍스트 메뉴
@@ -9654,9 +9746,11 @@ init();
     const s = window.JANSync.getSession && window.JANSync.getSession();
     if (s && s.user) {
       authBtn.title = s.user.email + ' · 클릭하여 계정 관리';
+      authBtn.setAttribute('aria-label', `계정 관리 (${s.user.email})`);
       authBtn.style.background = 'rgba(255,255,255,0.25)';
     } else {
       authBtn.title = '클라우드 로그인 — 여러 기기 동기화';
+      authBtn.setAttribute('aria-label', '클라우드 로그인');
       authBtn.style.background = '';
     }
   }

@@ -167,6 +167,8 @@
         await w?.setAlwaysOnTop?.(pinned);
         btn.classList.toggle('pinned', pinned);
         btn.title = pinned ? '항상 위에 (켜짐)' : '항상 위에';
+        btn.setAttribute('aria-pressed', pinned ? 'true' : 'false');
+        btn.setAttribute('aria-label', pinned ? '항상 위에 고정 해제' : '항상 위에 고정 토글');
       } catch (e) {
         console.warn('[JAN] setAlwaysOnTop failed', e);
         pinned = !pinned;
@@ -228,18 +230,22 @@
       });
     }
 
+    const syncAria = () => {
+      toggle.setAttribute('aria-expanded', wrap.classList.contains('open') ? 'true' : 'false');
+    };
     toggle.addEventListener('click', (e) => {
       e.stopPropagation();
       if (!wrap.classList.contains('open')) buildMenu();
       wrap.classList.toggle('open');
+      syncAria();
     });
 
     document.addEventListener('click', (e) => {
-      if (!wrap.contains(e.target)) wrap.classList.remove('open');
+      if (!wrap.contains(e.target)) { wrap.classList.remove('open'); syncAria(); }
     });
 
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') wrap.classList.remove('open');
+      if (e.key === 'Escape') { wrap.classList.remove('open'); syncAria(); }
     });
   }
 
