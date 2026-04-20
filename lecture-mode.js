@@ -576,8 +576,15 @@
     state.ui.folderNameFull = box.querySelector('[data-role="folder-name-full"]');
     state.ui.stats = box.querySelector('[data-role="stats"]');
 
-    // 저장된 폴더 복원
-    try { const h = await kvGet('dirHandle'); if (h) { state.dirHandle = h; setFolderLabel(h.name); } } catch {}
+    // 저장된 폴더 힌트만 복원 (권한 재승인은 실제 저장 시점까지 미룸)
+    try {
+      const h = await kvGet('dirHandle');
+      if (h) {
+        state.dirHandle = h;
+        state.folderPermGranted = false; // 실제 사용 시 ensureFolderPermission()
+        setFolderLabel(h.name + ' (첫 저장 시 재확인)');
+      }
+    } catch {}
 
     try { page.dispatchEvent(new Event('input', { bubbles: true })); } catch {}
     scrollToBox();
@@ -1164,19 +1171,34 @@
   }
 
   // [dirHandle]/lectures or meetings / [세션 폴더]/ 까지 만들어 핸들 리턴
+  // 중요: 권한이 없으면 사용자에게 미리 안내한 뒤 request (Chrome 네이티브 대화창 트리거)
   async function getSessionDirHandle() {
     if (!state.dirHandle) return null;
+    if (!(await ensureFolderPermission())) return null;
     try {
-      const perm = await state.dirHandle.queryPermission?.({ mode: 'readwrite' });
-      if (perm !== 'granted') {
-        const req = await state.dirHandle.requestPermission?.({ mode: 'readwrite' });
-        if (req !== 'granted') return null;
-      }
       const cat = state.kind === 'lecture' ? 'lectures' : 'meetings';
       const catHandle = await state.dirHandle.getDirectoryHandle(cat, { create: true });
       const sessionName = getOrCreateSessionFolderName();
       return await catHandle.getDirectoryHandle(sessionName, { create: true });
     } catch (e) { console.warn('[session folder]', e); return null; }
+  }
+
+  // 권한이 이번 세션에서 이미 확인됐는지 플래그로 기억 (재호출 방지)
+  async function ensureFolderPermission() {
+    if (!state.dirHandle) return false;
+    if (state.folderPermGranted) return true;
+    try {
+      const perm = await state.dirHandle.queryPermission?.({ mode: 'readwrite' });
+      if (perm === 'granted') { state.folderPermGranted = true; return true; }
+      // 상단 토스트로 브라우저 창이 뜰 것임을 안내 (우리 규칙대로 상단에)
+      toast('폴더 접근 권한 확인 창이 뜹니다 — 허용을 눌러 주세요', 3500);
+      // 약간 지연 후 Chrome 대화창 띄움
+      await new Promise(r => setTimeout(r, 400));
+      const req = await state.dirHandle.requestPermission?.({ mode: 'readwrite' });
+      if (req === 'granted') { state.folderPermGranted = true; return true; }
+      toast('폴더 접근이 거부되어 파일은 다운로드 폴더로 저장됩니다');
+      return false;
+    } catch (e) { console.warn('[ensureFolderPermission]', e); return false; }
   }
 
   async function saveRec(opt = {}) {
@@ -1196,8 +1218,11 @@
     if (!('showDirectoryPicker' in window)) { toast('이 브라우저는 폴더 선택 미지원 — 다운로드로 대체'); return; }
     try {
       const handle = await window.showDirectoryPicker({ id: 'jnp-lec-dir', mode: 'readwrite' });
-      state.dirHandle = handle; await kvSet('dirHandle', handle); setFolderLabel(handle.name);
-      toast('루트 저장 폴더: ' + handle.name);
+      state.dirHandle = handle;
+      state.folderPermGranted = true;     // 방금 사용자가 직접 선택했으므로 이미 grant됨
+      await kvSet('dirHandle', handle);
+      setFolderLabel(handle.name);
+      toast('저장 폴더 설정됨: ' + handle.name);
     } catch (e) { if (e.name !== 'AbortError') console.warn(e); }
   }
 
@@ -1218,13 +1243,8 @@
 
   // 루트에 직접 (비세션, 일반 내보내기) — notes/ 서브로 묶음
   async function writeToFolder(filename, blob, subfolder = null) {
-    if (state.dirHandle) {
+    if (state.dirHandle && await ensureFolderPermission()) {
       try {
-        const perm = await state.dirHandle.queryPermission?.({ mode: 'readwrite' });
-        if (perm !== 'granted') {
-          const req = await state.dirHandle.requestPermission?.({ mode: 'readwrite' });
-          if (req !== 'granted') throw new Error('no permission');
-        }
         let target = state.dirHandle;
         if (subfolder) target = await state.dirHandle.getDirectoryHandle(subfolder, { create: true });
         const fh = await target.getFileHandle(filename, { create: true });
