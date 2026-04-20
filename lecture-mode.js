@@ -428,12 +428,11 @@
             <button class="jnp-lec-btn" data-act="pip-toggle" disabled>${svg('i-eye',14)}<span>카메라 창</span></button>
             <button class="jnp-lec-btn on" data-act="transcribe-toggle">${svg('i-quote',14)}<span>자동 필기</span></button>
           </div>
-          <h5>저장 위치</h5>
           <div class="jnp-lec-row">
-            <button class="jnp-lec-btn" data-act="pick-folder">${svg('i-note',14)}<span>폴더 선택</span></button>
+            <button class="jnp-lec-btn" data-act="pick-folder" title="녹화 파일 저장 폴더">${svg('i-note',14)}<span>저장 폴더</span></button>
             <span class="jnp-lec-folder-pill">
-              <span>현재:</span><strong data-role="folder-name-full">미지정</strong>
-              <span style="color:var(--ink-soft);font-size:11px;">(미지정 시 다운로드 폴더로)</span>
+              <strong data-role="folder-name-full">미지정</strong>
+              <span style="color:var(--ink-soft);font-size:11px;">(미지정 시 다운로드 폴더)</span>
             </span>
           </div>
         </div>
@@ -662,11 +661,11 @@
     stopSpeech(); stopCopilot(); stopTick();
     insertMarker(lang.endMarker);
 
-    // 자동 요약
-    if (state.session.lines.length >= 3 && typeof window.callAI === 'function') {
+    // 자동 요약 (aiText 통합 경로)
+    if (state.session.lines.length >= 3) {
       const text = state.session.lines.map(l => l.text).join('\n');
       try {
-        const out = await window.callAI(lang.summaryPrompt, text);
+        const out = await aiText(lang.summaryPrompt, text);
         if (out) insertSummary(out, lang.summaryTitle);
       } catch (e) { console.warn('[auto-summary]', e); }
     }
@@ -929,11 +928,55 @@
   // ================================================================
   // 11) AI
   // ================================================================
-  async function aiText(sys, user) {
-    if (typeof window.callAI === 'function') {
-      try { const out = await window.callAI(sys, user); if (out != null) return String(out); }
-      catch (e) { console.warn('[ai]', e); }
+  // JANSync 준비 대기 (최대 3초)
+  async function waitForAuth(timeoutMs = 3000) {
+    const t0 = Date.now();
+    while (Date.now() - t0 < timeoutMs) {
+      const s = window.JANSync?.getSession?.();
+      if (s !== undefined) return s;  // 로딩 완료 (null 이든 세션이든)
+      await new Promise(r => setTimeout(r, 150));
     }
+    return null;
+  }
+
+  async function aiText(sys, user) {
+    // 1. JANSync 로딩 대기
+    await waitForAuth();
+    const session = window.JANSync?.getSession?.();
+    const loggedIn = !!(session && session.user);
+
+    // 2. 로그인 되어 있으면 default provider 강제 활성화
+    if (loggedIn && typeof window.setActiveProvider === 'function') {
+      const active = localStorage.getItem('ai-active-provider');
+      if (!active) {
+        try { window.setActiveProvider('default'); } catch {}
+      }
+    }
+
+    // 3. 통합 API 시도
+    if (typeof window.callAI === 'function') {
+      try {
+        const out = await window.callAI(sys, user);
+        if (out != null) return String(out);
+      } catch (e) { console.warn('[lecture-ai] callAI error', e); }
+    }
+
+    // 4. 직접 프록시 폴백 (callAI 실패 + 로그인 되어 있음)
+    if (loggedIn && session?.access_token) {
+      try {
+        const r = await fetch('/api/gemini', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token },
+          body: JSON.stringify({ sys, user })
+        });
+        if (r.ok) { const d = await r.json(); return d.text || null; }
+        else console.warn('[lecture-ai] /api/gemini', r.status);
+      } catch (e) { console.warn('[lecture-ai] direct gemini error', e); }
+    }
+
+    // 5. 실패 — 정확한 안내
+    if (!loggedIn) toast('로그인이 필요합니다 (우상단 계정 아이콘)');
+    else toast('AI 호출 실패 — 콘솔을 확인하세요');
     return null;
   }
   function tryParseJson(text) {
@@ -1010,7 +1053,6 @@
     if (adapter().getCopilotCards) {
       try { const cards = await adapter().getCopilotCards({ recentTranscript: recent, kind: state.kind }) || []; cards.forEach(renderCard); return; } catch {}
     }
-    if (typeof window.callAI !== 'function') return;
     const sys = state.kind === 'lecture'
       ? '당신은 수업 중 옆에서 도와주는 한국어 AI 조수입니다. 최근 발화를 읽고 학생에게 도움될 제안 카드 1~3개를 만듭니다. JSON: {"cards":[{"kind":"정의|연결|퀴즈|자료","title":"짧게","body":"한두 문장","cta":["노트에 삽입","지나가기"]}]}. 환각 금지.'
       : '당신은 회의 서기 AI 입니다. 최근 발언을 읽고 의사록 작성에 유용한 제안 카드 1~3개를 만듭니다. JSON: {"cards":[{"kind":"결정|액션|의제|요약","title":"짧게","body":"한두 문장","cta":["노트에 삽입","지나가기"]}]}. 환각 금지.';

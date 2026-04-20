@@ -17623,10 +17623,12 @@ if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
 <script src="/app-integration.js"></script>
 <!-- JustANotepad home hub — dashboard drawer with recent activity -->
 <script src="/home-hub.js"></script>
-<!-- JustANotepad storage quota patch (v1.1.0) — fixes "저장 공간 부족" loop -->
-<script src="/storage-quota-patch.js"></script>
-<!-- JustANotepad · LectureOS v0 — AI 강의노트 (adapter → mode 순서 중요) -->
-<script type="module" src="/lecture-adapter.js"></script>
-<script type="module" src="/lecture-mode.js"></script>
+<!-- JustANotepad Service Worker refresh — ensures latest deploy is fetched -->
+<script src="/sw-refresh.js?v=4"></script>
+<!-- JustANotepad storage quota patch (v1.3.0) — stops dialog loop + hard-slim state -->
+<script src="/storage-quota-patch.js?v=4"></script>
+<!-- JustANotepad · LectureOS v4 — in-tab control box (adapter → mode order matters) -->
+<script type="module" src="/lecture-adapter.js?v=4"></script>
+<script type="module" src="/lecture-mode.js?v=4"></script>
 </body>
 </html>
