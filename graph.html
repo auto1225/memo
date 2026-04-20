@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JustANotepad — 그래프 뷰</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<style>
+  :root { --ink:#1f2937; --soft:#6b7280; --faint:#9ca3af; --line:#e5e7eb; --accent:#D97757; --bg:#fafaf7; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); overflow:hidden;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Noto Sans KR",sans-serif; }
+
+  .topbar {
+    position:absolute; top:0; left:0; right:0; z-index:10;
+    display:flex; align-items:center; gap:12px;
+    padding:12px 20px; background:rgba(255,255,255,0.9);
+    backdrop-filter:saturate(1.5) blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .topbar .logo { width:28px; height:28px; border-radius:7px; background:#FAE100;
+    display:flex; align-items:center; justify-content:center;
+    font-family:Georgia,serif; font-style:italic; font-weight:900; color:#fff; font-size:17px; }
+  .topbar .brand { font-weight:700; }
+  .topbar .spacer { flex:1; }
+  .topbar input { padding:7px 12px; border:1px solid var(--line); border-radius:7px;
+    font-size:13px; width:220px; background:#fff; }
+  .topbar a, .topbar button { padding:7px 12px; border-radius:7px; background:#fff;
+    border:1px solid var(--line); font-size:12px; font-weight:600; cursor:pointer;
+    text-decoration:none; color:var(--ink); }
+  .topbar .primary { background:#141414; color:#fff; border-color:#141414; }
+
+  #canvas { width:100vw; height:100vh; display:block; cursor:grab; }
+  #canvas:active { cursor:grabbing; }
+
+  .side {
+    position:absolute; top:70px; right:20px; width:280px;
+    background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px;
+    box-shadow:0 6px 24px rgba(0,0,0,0.06); z-index:5;
+    max-height:70vh; overflow-y:auto;
+  }
+  .side h3 { margin:0 0 10px; font-size:13px; font-weight:700; }
+  .side .item { padding:8px 10px; border-radius:6px; cursor:pointer; font-size:13px;
+    display:flex; align-items:center; gap:8px; }
+  .side .item:hover { background:#f3f4f6; }
+  .side .item .dot { width:8px; height:8px; border-radius:50%; flex:0 0 8px; background:#D97757; }
+  .side .item .c { font-size:10px; color:var(--faint); margin-left:auto; }
+  .side .empty { color:var(--faint); font-size:12px; text-align:center; padding:20px 10px; }
+
+  .legend { position:absolute; bottom:20px; left:20px; z-index:5; font-size:11px;
+    background:rgba(255,255,255,0.9); padding:10px 14px; border-radius:8px;
+    border:1px solid var(--line); color:var(--soft); }
+  .legend b { color:var(--ink); }
+
+  .gate { position:absolute; inset:0; display:grid; place-items:center;
+    background:#fafaf7; z-index:20; }
+  .gate .card { background:#fff; border:1px solid var(--line); border-radius:14px;
+    padding:32px 28px; text-align:center; max-width:400px; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <a href="/"><div class="logo">j.</div></a>
+  <div class="brand">JustANotepad</div>
+  <div style="font-size:12px;color:var(--soft);">그래프 뷰</div>
+  <div class="spacer"></div>
+  <input id="search" placeholder="제목 검색">
+  <a href="/home">홈</a>
+  <a href="/app" class="primary">앱으로</a>
+</header>
+
+<svg id="canvas"></svg>
+
+<aside class="side" id="side">
+  <h3>노트 목록</h3>
+  <div id="nodeList"><div class="empty">로딩…</div></div>
+</aside>
+
+<div class="legend" id="legend">
+  <b id="legNodes">0</b> 노트 · <b id="legEdges">0</b> 위키링크<br>
+  <span style="color:var(--faint);">마우스 드래그: 팬 · 휠: 줌 · 노드 클릭: 열기</span>
+</div>
+
+<div id="gate" class="gate" style="display:none;">
+  <div class="card">
+    <h2 style="margin:0 0 10px;">그래프 뷰는 로그인이 필요해요</h2>
+    <p style="color:var(--soft);margin:0 0 20px;">내 공유 노트 간의 <code>[[위키링크]]</code> 관계를 시각화합니다.</p>
+    <a href="/app?signin=1" class="primary" style="padding:10px 24px;border-radius:8px;display:inline-block;text-decoration:none;background:#141414;color:#fff;font-weight:700;">로그인</a>
+  </div>
+</div>
+
+<script src="/config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script>
+(async () => {
+  const $ = (id) => document.getElementById(id);
+  const sb = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, {
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+  });
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { $('gate').style.display = 'grid'; return; }
+
+  // Fetch all shared notes owned by this user
+  const { data: notes, error } = await sb
+    .from('cms_shared_notes')
+    .select('token,title,body,created_at')
+    .eq('owner_id', session.user.id);
+  if (error) { $('nodeList').innerHTML = '<div class="empty">' + error.message + '</div>'; return; }
+  if (!notes || !notes.length) {
+    $('nodeList').innerHTML = `<div class="empty">아직 공유 노트가 없습니다.<br><br>
+      <a href="/home" style="color:var(--accent);">홈에서 만들기 →</a></div>`;
+    $('legNodes').textContent = 0; $('legEdges').textContent = 0;
+    return;
+  }
+
+  // Build node + edge data
+  const titleToToken = {};
+  notes.forEach(n => { titleToToken[n.title] = n.token; });
+
+  const nodes = notes.map(n => ({
+    id: n.token,
+    title: n.title || '(무제)',
+    body: n.body || '',
+    bodyLen: (n.body || '').length,
+  }));
+
+  const links = [];
+  const wikiRe = /\[\[([^\]|]+)(?:\|[^\]]+)?\]\]/g;
+  notes.forEach(n => {
+    const seen = new Set();
+    let m;
+    while ((m = wikiRe.exec(n.body || '')) !== null) {
+      const target = titleToToken[m[1].trim()];
+      if (target && target !== n.token && !seen.has(target)) {
+        seen.add(target);
+        links.push({ source: n.token, target });
+      }
+    }
+    wikiRe.lastIndex = 0;
+  });
+
+  $('legNodes').textContent = nodes.length;
+  $('legEdges').textContent = links.length;
+
+  // Render node list
+  $('nodeList').innerHTML = nodes.map(n => `
+    <div class="item" data-id="${n.id}">
+      <div class="dot"></div>
+      <div>${escape(n.title)}</div>
+      <div class="c">${n.bodyLen}자</div>
+    </div>`).join('');
+
+  // D3 force simulation
+  const svg = d3.select('#canvas');
+  const W = window.innerWidth, H = window.innerHeight;
+  svg.attr('width', W).attr('height', H);
+
+  const g = svg.append('g');
+
+  // Zoom/pan
+  const zoom = d3.zoom().scaleExtent([0.2, 4]).on('zoom', (e) => g.attr('transform', e.transform));
+  svg.call(zoom);
+
+  const simulation = d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(links).id(d => d.id).distance(120))
+    .force('charge', d3.forceManyBody().strength(-260))
+    .force('center', d3.forceCenter(W/2, H/2))
+    .force('collide', d3.forceCollide(30));
+
+  const link = g.append('g')
+    .attr('stroke', '#d1d5db')
+    .attr('stroke-opacity', 0.7)
+    .attr('stroke-width', 1.2)
+    .selectAll('line')
+    .data(links)
+    .join('line')
+    .attr('marker-end', 'url(#arrow)');
+
+  // Arrow marker
+  svg.append('defs').append('marker')
+    .attr('id', 'arrow').attr('viewBox', '0 -5 10 10')
+    .attr('refX', 22).attr('refY', 0)
+    .attr('markerWidth', 8).attr('markerHeight', 8).attr('orient', 'auto')
+    .append('path').attr('d', 'M0,-5L10,0L0,5').attr('fill', '#9ca3af');
+
+  const node = g.append('g').selectAll('g').data(nodes).join('g')
+    .attr('class', 'node')
+    .style('cursor', 'pointer')
+    .call(d3.drag()
+      .on('start', (e,d) => { if (!e.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+      .on('drag',  (e,d) => { d.fx = e.x; d.fy = e.y; })
+      .on('end',   (e,d) => { if (!e.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; }));
+
+  node.append('circle')
+    .attr('r', d => 10 + Math.min(20, Math.sqrt(Math.max(1, d.bodyLen)) / 6))
+    .attr('fill', '#D97757')
+    .attr('stroke', '#fff')
+    .attr('stroke-width', 2);
+
+  node.append('text')
+    .attr('x', 0).attr('y', d => 24 + Math.min(20, Math.sqrt(Math.max(1, d.bodyLen)) / 6))
+    .attr('text-anchor', 'middle')
+    .attr('font-size', '11px')
+    .attr('font-weight', '600')
+    .attr('fill', '#1f2937')
+    .style('pointer-events', 'none')
+    .text(d => d.title.length > 18 ? d.title.slice(0,18) + '…' : d.title);
+
+  node.on('click', (e, d) => { window.open('/s/' + encodeURIComponent(d.id), '_blank'); });
+  node.append('title').text(d => d.title + '\n' + d.bodyLen + '자');
+
+  simulation.on('tick', () => {
+    link
+      .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+      .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+    node.attr('transform', d => `translate(${d.x},${d.y})`);
+  });
+
+  // Node list click → center on node
+  $('nodeList').querySelectorAll('.item').forEach(el => {
+    el.addEventListener('click', () => {
+      const id = el.dataset.id;
+      const n = nodes.find(x => x.id === id);
+      if (!n) return;
+      const k = 1.5;
+      const tx = W/2 - n.x * k, ty = H/2 - n.y * k;
+      svg.transition().duration(450).call(zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(k));
+    });
+  });
+
+  // Search
+  $('search').addEventListener('input', (e) => {
+    const q = e.target.value.trim().toLowerCase();
+    node.select('circle')
+      .attr('opacity', d => !q ? 1 : (d.title.toLowerCase().includes(q) ? 1 : 0.15))
+      .attr('fill', d => !q ? '#D97757' : (d.title.toLowerCase().includes(q) ? '#eab308' : '#D97757'));
+    node.select('text').attr('opacity', d => !q ? 1 : (d.title.toLowerCase().includes(q) ? 1 : 0.15));
+  });
+
+  window.addEventListener('resize', () => {
+    const W2 = window.innerWidth, H2 = window.innerHeight;
+    svg.attr('width', W2).attr('height', H2);
+    simulation.force('center', d3.forceCenter(W2/2, H2/2));
+    simulation.alpha(0.3).restart();
+  });
+
+  function escape(s) {
+    return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'})[c]);
+  }
+})();
+</script>
+</body>
+</html>

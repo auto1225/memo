@@ -1588,7 +1588,7 @@
       'cms_content','cms_notices','cms_faq','cms_popups','cms_docs','cms_sections',
       'cms_board','cms_payments','cms_serials','cms_entitlements','cms_settings',
       'cms_seo','cms_redirects','cms_media','cms_activity_log',
-      'cms_templates','cms_shared_notes','cms_clips',
+      'cms_templates','cms_shared_notes','cms_clips','cms_shared_note_versions',
     ];
     view.innerHTML = `
       <div class="panel">
@@ -1868,7 +1868,12 @@
         <div style="display:flex;gap:8px;">
           <button class="btn primary" id="snSave">저장</button>
           <button class="btn danger" id="snDel" style="display:none;">삭제</button>
+          <button class="btn" id="snHist" style="display:none;">버전 기록</button>
           <button class="btn" id="snCopy" style="margin-left:auto;display:none;">공유 URL 복사</button>
+        </div>
+        <div id="snHistPanel" style="display:none;margin-top:18px;border-top:1px solid var(--border);padding-top:14px;">
+          <div style="font-weight:700;font-size:13px;margin-bottom:8px;">버전 히스토리 — 본문이 바뀔 때마다 자동 스냅샷</div>
+          <div id="snHistList" style="font-size:12px;"></div>
         </div>
       </div>`;
     let current = null;
@@ -1917,10 +1922,48 @@
       $('sn-exp').value   = r?.expires_at ? new Date(r.expires_at).toISOString().slice(0,16) : '';
       $('snDel').style.display = r ? 'inline-flex' : 'none';
       $('snCopy').style.display = r ? 'inline-flex' : 'none';
+      $('snHist').style.display = r ? 'inline-flex' : 'none';
+      $('snHistPanel').style.display = 'none';
+      $('snHistList').innerHTML = '';
+    };
+
+    const loadHistory = async () => {
+      if (!current) return;
+      $('snHistPanel').style.display = 'block';
+      $('snHistList').innerHTML = '로딩…';
+      const { data, error } = await sb.from('cms_shared_note_versions')
+        .select('id, body, snapshot_at')
+        .eq('token', current.token)
+        .order('snapshot_at', { ascending: false })
+        .limit(50);
+      if (error) { $('snHistList').innerHTML = '<div style="color:var(--danger);">'+error.message+'</div>'; return; }
+      if (!data.length) {
+        $('snHistList').innerHTML = '<div style="color:var(--ink-soft);padding:10px 0;">아직 스냅샷이 없습니다. (본문을 수정하면 이전 본문이 자동으로 이 기록에 저장됩니다.)</div>';
+        return;
+      }
+      $('snHistList').innerHTML = data.map(v => `
+        <div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border);">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:11px;color:var(--ink-soft);">${fmtDate(v.snapshot_at)}</div>
+            <pre style="margin:4px 0 0;padding:8px;background:#fafbfc;border-radius:6px;max-height:120px;overflow:auto;font-size:11px;white-space:pre-wrap;">${escape((v.body||'').slice(0, 400))}${(v.body||'').length > 400 ? '\n…' : ''}</pre>
+          </div>
+          <button class="btn sn-restore" data-id="${v.id}" style="flex:0 0 auto;">복원</button>
+        </div>`).join('');
+      document.querySelectorAll('.sn-restore').forEach(b => b.addEventListener('click', async () => {
+        if (!confirm('이 버전으로 되돌릴까요? 현재 본문은 새 스냅샷으로 자동 저장됩니다.')) return;
+        const { error } = await sb.rpc('restore_shared_note_version', { version_id: b.dataset.id });
+        if (error) { alert(error.message); return; }
+        logActivity('update', 'cms_shared_notes', current.token, { restored_version: b.dataset.id });
+        alert('복원되었습니다.');
+        // Refresh the editor with the new body
+        const { data: fresh } = await sb.from('cms_shared_notes').select('*').eq('token', current.token).single();
+        if (fresh) { current = fresh; openEd(fresh); loadHistory(); }
+      }));
     };
     $('snNew').addEventListener('click', () => openEd(null));
     $('snGenTok').addEventListener('click', () => { $('sn-token').value = genToken(); });
     $('snCancel').addEventListener('click', () => $('snEd').style.display='none');
+    $('snHist').addEventListener('click', loadHistory);
     $('snCopy').addEventListener('click', async () => {
       const url = location.origin + '/s/' + $('sn-token').value;
       try { await navigator.clipboard.writeText(url); $('snCopy').textContent = '복사됨'; setTimeout(() => $('snCopy').textContent = '공유 URL 복사', 1500); }
