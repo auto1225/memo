@@ -1001,6 +1001,47 @@
     _state: state,
   };
 
+  // ==================================================================
+  // 13. 토픽바 버튼 주입 ("🎙️ 강의")
+  // ==================================================================
+  function injectTopbarButton() {
+    if (document.getElementById('lectureTopBtn')) return true;
+    // 여러 후보 위치 시도 (calendar / ai / palette 바로 옆)
+    const anchor =
+      document.getElementById('calOpenBtn') ||
+      document.getElementById('aiBtn') ||
+      document.getElementById('cardsTopBtn') ||
+      document.getElementById('palBtn');
+    if (!anchor || !anchor.parentNode) return false;
+
+    const btn = document.createElement('button');
+    btn.id = 'lectureTopBtn';
+    btn.className = anchor.className || 'collapsible';
+    btn.setAttribute('aria-label', '강의 모드 열기');
+    btn.setAttribute('title', '강의 모드 · 수업 녹음 + 자동 필기 + AI Copilot (Ctrl+K → 강의)');
+    btn.textContent = '🎙️ 강의';
+    btn.style.cssText = 'cursor:pointer;';
+    btn.addEventListener('click', (e) => {
+      e.preventDefault(); e.stopPropagation();
+      open();
+    });
+    // calendar 버튼 바로 다음에 삽입 (없으면 palBtn 다음)
+    anchor.parentNode.insertBefore(btn, anchor.nextSibling);
+    console.info('[lecture-mode] topbar button injected next to #' + anchor.id);
+    return true;
+  }
+
+  function tryInjectTopbar(attempts = 0) {
+    if (injectTopbarButton()) return;
+    if (attempts > 60) { console.warn('[lecture-mode] topbar not found after 30s; using palette only'); return; }
+    setTimeout(() => tryInjectTopbar(attempts + 1), 500);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => tryInjectTopbar(0), { once: true });
+  } else {
+    tryInjectTopbar(0);
+  }
+
   // Self-test log (non-invasive)
   if (window?.justanotepadPalette || window?.justanotepadLectureAdapter) {
     console.info('[lecture-mode] ready. window.justanotepadLecture');
