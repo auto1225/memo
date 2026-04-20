@@ -16,13 +16,28 @@
   if (window.__janHomeHub__) return;
   window.__janHomeHub__ = true;
 
-  const URL_ = window.SUPABASE_URL;
-  const KEY  = window.SUPABASE_ANON_KEY;
-  if (!URL_ || !KEY || !window.supabase) return;
+  // Wait up to 8s for Supabase lib to load (sync.js loads it with defer).
+  function waitFor(testFn, timeoutMs = 8000, intervalMs = 100) {
+    return new Promise((resolve) => {
+      if (testFn()) return resolve(true);
+      const started = Date.now();
+      const t = setInterval(() => {
+        if (testFn()) { clearInterval(t); resolve(true); }
+        else if (Date.now() - started > timeoutMs) { clearInterval(t); resolve(false); }
+      }, intervalMs);
+    });
+  }
 
-  const sb = window.supabase.createClient(URL_, KEY, {
-    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
-  });
+  let sb = null;
+  async function getSb() {
+    if (sb) return sb;
+    const ok = await waitFor(() => window.SUPABASE_URL && window.SUPABASE_ANON_KEY && window.supabase?.createClient);
+    if (!ok) return null;
+    sb = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+    });
+    return sb;
+  }
 
   const escape = (s) => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'})[c]);
   const fmtRel = (s) => {
@@ -134,7 +149,13 @@
   }
 
   async function loadData() {
-    const { data: { session } } = await sb.auth.getSession();
+    const client = await getSb();
+    if (!client) {
+      drawer.querySelector('.jan-hub-bd').innerHTML =
+        '<div class="jan-hub-loading">Supabase 클라이언트를 불러올 수 없습니다.</div>';
+      return;
+    }
+    const { data: { session } } = await client.auth.getSession();
     const userId = session?.user?.id || null;
     const bd = drawer.querySelector('.jan-hub-bd');
 
@@ -149,11 +170,11 @@
 
     // Parallel fetch
     const [clips, shared, notices, clipCount, sharedCount] = await Promise.all([
-      sb.from('cms_clips').select('id,url,title,created_at').order('created_at', { ascending:false }).limit(4),
-      sb.from('cms_shared_notes').select('token,title,view_count,mode,created_at').eq('owner_id', userId).order('created_at', { ascending:false }).limit(4),
-      sb.from('cms_notices').select('id,title,pinned,created_at').eq('published', true).order('pinned', { ascending:false }).order('created_at', { ascending:false }).limit(3),
-      sb.from('cms_clips').select('*', { count:'exact', head:true }),
-      sb.from('cms_shared_notes').select('view_count', { count:'exact' }).eq('owner_id', userId),
+      client.from('cms_clips').select('id,url,title,created_at').order('created_at', { ascending:false }).limit(4),
+      client.from('cms_shared_notes').select('token,title,view_count,mode,created_at').eq('owner_id', userId).order('created_at', { ascending:false }).limit(4),
+      client.from('cms_notices').select('id,title,pinned,created_at').eq('published', true).order('pinned', { ascending:false }).order('created_at', { ascending:false }).limit(3),
+      client.from('cms_clips').select('*', { count:'exact', head:true }),
+      client.from('cms_shared_notes').select('view_count', { count:'exact' }).eq('owner_id', userId),
     ]);
 
     const totalViews = (shared.data||[]).reduce((a,r) => a + (r.view_count||0), 0);
@@ -222,7 +243,7 @@
       if (!title) return;
       const body = prompt('본문 (Markdown OK)') || '';
       const token = Math.random().toString(36).slice(2, 14);
-      const { error } = await sb.from('cms_shared_notes').insert({
+      const { error } = await client.from('cms_shared_notes').insert({
         token, owner_id: userId, title, body, mode: 'readonly',
       });
       if (error) { alert(error.message); return; }
