@@ -21,13 +21,20 @@
     "48":  "icons/icon-48.png",
     "128": "icons/icon-128.png"
   },
-  "permissions": ["activeTab", "scripting", "storage", "contextMenus"],
+  "permissions": ["activeTab", "scripting", "storage", "contextMenus", "notifications"],
   "host_permissions": [
     "https://rbscvtnfveakwjwrteux.supabase.co/*",
     "https://justanotepad.com/*",
     "<all_urls>"
   ],
-  "background": { "service_worker": "background.js" },
+  "background": { "service_worker": "background.js", "type": "module" },
+  "externally_connectable": {
+    "matches": [
+      "https://justanotepad.com/*",
+      "https://www.justanotepad.com/*",
+      "http://localhost:*/*"
+    ]
+  },
   "commands": {
     "clip-page": {
       "suggested_key": { "default": "Ctrl+Shift+J", "mac": "Command+Shift+J" },

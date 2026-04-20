@@ -1766,6 +1766,9 @@
 
   async function runGlobalSearch(q, container, expanded) {
     container.innerHTML = '<div class="gsr-empty">검색 중…</div>';
+    // Use FTS for tables that have search_vector indexed, ilike fallback for the rest.
+    // Merge both and dedupe by id/token/key.
+    const FTS_TABLES = new Set(['cms_content','cms_notices','cms_faq','cms_templates','cms_clips','cms_shared_notes']);
     const searches = [
       { label: '회원 (profiles)',        view: 'users',     table: 'profiles',     fields: ['email','display_name'] },
       { label: 'CMS 콘텐츠 (cms_content)', view: 'content',   table: 'cms_content',  fields: ['key','value','note'] },
@@ -1783,10 +1786,19 @@
       { label: '웹 클립 (cms_clips)',           view: 'clips',     table: 'cms_clips',      fields: ['url','title','excerpt'] },
     ];
 
+    // Escape PostgREST special chars that break .or() syntax
+    const safeQ = q.replace(/[,()]/g, ' ').trim();
     const results = await Promise.all(searches.map(async (s) => {
       try {
-        const or = s.fields.map(f => `${f}.ilike.%${q}%`).join(',');
-        const { data } = await sb.from(s.table).select('*').or(or).limit(expanded ? 25 : 4);
+        let query = sb.from(s.table).select('*').limit(expanded ? 25 : 4);
+        if (FTS_TABLES.has(s.table) && /^[\w가-힣 ]+$/.test(safeQ)) {
+          // Fast path: tsvector match — only works for whole tokens
+          const ftsQuery = safeQ.split(/\s+/).filter(Boolean).join(' | ');
+          const ftsRes = await sb.from(s.table).select('*').textSearch('search_vector', ftsQuery, { type: 'plain' }).limit(expanded ? 25 : 4);
+          if (ftsRes.data && ftsRes.data.length) return { ...s, rows: ftsRes.data };
+        }
+        const or = s.fields.map(f => `${f}.ilike.%${safeQ}%`).join(',');
+        const { data } = await query.or(or);
         return { ...s, rows: data || [] };
       } catch { return { ...s, rows: [] }; }
     }));

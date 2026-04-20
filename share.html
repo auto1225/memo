@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <style>
-  :root { --ink:#1f2937; --soft:#6b7280; --faint:#9ca3af; --line:#e5e7eb; --accent:#D97757; --bg:#fff; }
+  :root { --ink:#1f2937; --soft:#6b7280; --faint:#9ca3af; --line:#e5e7eb; --accent:#D97757; --bg:#fff; --success:#10b981; }
   body { margin:0; background:var(--bg); color:var(--ink); line-height:1.7;
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Noto Sans KR",sans-serif; }
   .topbar { position:sticky; top:0; z-index:10; padding:12px 24px;
@@ -19,12 +19,31 @@
     font-family:Georgia,serif; font-style:italic; font-weight:900; color:#fff; font-size:17px; }
   .topbar .brand { font-weight:700; }
   .topbar .spacer { flex:1; }
+  .topbar .live {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:4px 10px; background:#ecfdf5; color:#065f46;
+    border-radius:999px; font-size:11px; font-weight:600;
+  }
+  .topbar .live::before {
+    content:''; width:6px; height:6px; border-radius:50%;
+    background:var(--success); box-shadow:0 0 0 0 rgba(16,185,129,0.6);
+    animation:pulse 2s infinite;
+  }
+  .topbar .live.offline { background:#f3f4f6; color:var(--soft); }
+  .topbar .live.offline::before { background:var(--faint); animation:none; }
+  @keyframes pulse { 0%,100% { box-shadow:0 0 0 0 rgba(16,185,129,0.6); } 50% { box-shadow:0 0 0 8px rgba(16,185,129,0); } }
   .topbar .cta { padding:7px 14px; background:#141414; color:#fff; border-radius:7px;
     font-size:13px; font-weight:600; text-decoration:none; }
+  .topbar .toggle {
+    padding:7px 12px; background:#fff; color:var(--ink); border:1px solid var(--line);
+    border-radius:7px; font-size:12px; cursor:pointer; font-weight:600;
+  }
+  .topbar .toggle:hover { background:#f3f4f6; }
   main { max-width:720px; margin:40px auto; padding:0 24px 80px; }
   h1 { font-size:36px; font-weight:800; letter-spacing:-0.02em; margin:0 0 8px; }
   .meta { color:var(--faint); font-size:12px; margin-bottom:32px; border-bottom:1px solid var(--line); padding-bottom:20px; }
   .meta .mode { display:inline-block; padding:2px 8px; border-radius:4px; background:#eff6ff; color:#1e40af; font-weight:600; margin-left:8px; }
+  .meta .mode.edit { background:#fef3c7; color:#92400e; }
   #body { font-size:16px; }
   #body h1, #body h2, #body h3 { margin-top:2em; letter-spacing:-0.02em; }
   #body code { background:#f3f4f6; padding:2px 6px; border-radius:4px; font-size:90%; }
@@ -33,8 +52,24 @@
   #body a { color:var(--accent); }
   #body img { max-width:100%; border-radius:8px; }
   #body ul, #body ol { padding-left:1.6em; }
+  #editPane { display:none; padding:20px 0; }
+  #editArea {
+    width:100%; min-height:360px; padding:16px;
+    border:1px solid var(--line); border-radius:10px;
+    font:15px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    line-height:1.7; resize:vertical; background:#fafbfc;
+  }
+  #editArea:focus { outline:none; border-color:var(--accent); background:#fff; }
+  .edit-toolbar { display:flex; gap:10px; align-items:center; margin-bottom:10px; font-size:12px; color:var(--soft); }
+  .edit-toolbar .save-status { margin-left:auto; }
+  .edit-toolbar .save-status.saving { color:var(--accent); }
+  .edit-toolbar .save-status.saved { color:var(--success); }
+  .edit-toolbar .save-status.err { color:#b91c1c; }
+  .preview-wrap { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  @media (max-width: 768px) { .preview-wrap { grid-template-columns:1fr; } }
+  .preview-wrap > div { border:1px solid var(--line); border-radius:10px; padding:16px; }
+  .preview-wrap .plabel { font-size:11px; color:var(--faint); text-transform:uppercase; letter-spacing:0.06em; font-weight:700; margin-bottom:10px; }
   .empty { text-align:center; padding:80px 20px; color:var(--soft); }
-  .expired { padding:20px; background:#fef2f2; color:#991b1b; border-radius:8px; text-align:center; margin:40px 0; }
 </style>
 </head>
 <body>
@@ -42,16 +77,38 @@
   <div class="logo">j.</div>
   <div class="brand">JustANotepad</div>
   <div class="spacer"></div>
+  <span id="liveBadge" class="live offline">오프라인</span>
+  <button id="btnEdit" class="toggle" style="display:none;">편집</button>
   <a href="/" class="cta">나도 무료로 시작</a>
 </header>
 
 <main>
   <div id="loading" style="text-align:center;padding:100px 0;color:var(--soft);">노트 불러오는 중…</div>
+
   <article id="note" style="display:none;">
     <h1 id="title"></h1>
     <div class="meta" id="meta"></div>
     <div id="body"></div>
   </article>
+
+  <section id="editPane">
+    <h1 id="editTitle" style="margin-bottom:8px;"></h1>
+    <div class="edit-toolbar">
+      <span>여러 명이 동시에 편집하면 마지막 저장이 반영됩니다 (last-writer-wins).</span>
+      <span class="save-status" id="saveStatus">대기</span>
+    </div>
+    <div class="preview-wrap">
+      <div>
+        <div class="plabel">편집 (Markdown)</div>
+        <textarea id="editArea" spellcheck="false"></textarea>
+      </div>
+      <div>
+        <div class="plabel">미리보기</div>
+        <div id="livePreview"></div>
+      </div>
+    </div>
+  </section>
+
   <div id="notFound" class="empty" style="display:none;">
     <h2 style="margin:0 0 12px;">노트를 찾을 수 없습니다</h2>
     <p>이 링크가 만료되었거나 삭제됐을 수 있습니다.</p>
@@ -65,35 +122,146 @@
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
 <script>
 (async () => {
+  const $ = (id) => document.getElementById(id);
+  const show = (id) => {
+    ['loading','note','editPane','notFound'].forEach(x => $(x).style.display = 'none');
+    $(id).style.display = id === 'editPane' ? 'block' : (id === 'note' ? 'block' : 'block');
+  };
+
   const m = location.pathname.match(/\/s\/([^/?#]+)/);
   const token = m ? decodeURIComponent(m[1]) : null;
   if (!token) { show('notFound'); return; }
 
-  const sb = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, { auth: { persistSession: false } });
-  const { data, error } = await sb.from('cms_shared_notes').select('*').eq('token', token).maybeSingle();
-  if (error || !data) { show('notFound'); return; }
-  if (data.expires_at && new Date(data.expires_at).getTime() < Date.now()) { show('notFound'); return; }
+  const sb = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, {
+    auth: { persistSession: false },
+  });
 
-  // best-effort view-count increment (RLS may block if anon can't update; fine)
-  try { await sb.from('cms_shared_notes').update({ view_count: (data.view_count||0)+1 }).eq('token', token); } catch {}
+  let note = null;
+  let isEditing = false;
+  let lastServerBody = '';
+  let localDirty = false;
+  let saveTimer = null;
 
-  document.title = (data.title || '공유 노트') + ' — JustANotepad';
-  document.getElementById('title').textContent = data.title || '(제목 없음)';
-  document.getElementById('meta').innerHTML =
-    `${new Date(data.created_at).toLocaleDateString('ko-KR', { dateStyle: 'medium' })} ·
-     조회 ${(data.view_count||0)+1}회
-     <span class="mode">${data.mode === 'edit' ? '편집 가능' : '읽기 전용'}</span>`;
+  const renderReadOnly = () => {
+    $('title').textContent = note.title || '(제목 없음)';
+    $('meta').innerHTML =
+      `${new Date(note.created_at).toLocaleDateString('ko-KR', { dateStyle: 'medium' })} ·
+       조회 ${note.view_count||0}회
+       <span class="mode ${note.mode==='edit'?'edit':''}">${note.mode === 'edit' ? '편집 가능' : '읽기 전용'}</span>`;
+    const rawHtml = window.marked.parse(note.body || '');
+    $('body').innerHTML = window.DOMPurify.sanitize(rawHtml);
+    show('note');
+    if (note.mode === 'edit') { $('btnEdit').style.display = 'inline-flex'; $('btnEdit').textContent = '편집'; }
+    else                      { $('btnEdit').style.display = 'none'; }
+  };
 
-  const rawHtml = window.marked.parse(data.body || '');
-  const safe = window.DOMPurify.sanitize(rawHtml);
-  document.getElementById('body').innerHTML = safe;
+  const renderEditor = () => {
+    $('editTitle').textContent = note.title || '(제목 없음)';
+    $('editArea').value = note.body || '';
+    $('livePreview').innerHTML = window.DOMPurify.sanitize(window.marked.parse(note.body || ''));
+    show('editPane');
+    $('btnEdit').textContent = '읽기로';
+    $('saveStatus').textContent = '최신';
+    $('saveStatus').className = 'save-status saved';
+  };
 
-  show('note');
+  const updatePreview = () => {
+    $('livePreview').innerHTML = window.DOMPurify.sanitize(window.marked.parse($('editArea').value || ''));
+  };
+
+  const scheduleSave = () => {
+    localDirty = true;
+    $('saveStatus').textContent = '입력 중…';
+    $('saveStatus').className = 'save-status saving';
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(doSave, 900);
+  };
+
+  const doSave = async () => {
+    const body = $('editArea').value;
+    $('saveStatus').textContent = '저장 중…';
+    $('saveStatus').className = 'save-status saving';
+    const { error } = await sb.from('cms_shared_notes')
+      .update({ body, updated_at: new Date().toISOString() })
+      .eq('token', token);
+    if (error) {
+      $('saveStatus').textContent = '저장 실패: ' + error.message;
+      $('saveStatus').className = 'save-status err';
+      return;
+    }
+    lastServerBody = body;
+    localDirty = false;
+    $('saveStatus').textContent = '저장됨';
+    $('saveStatus').className = 'save-status saved';
+  };
+
+  const load = async () => {
+    const { data, error } = await sb.from('cms_shared_notes').select('*').eq('token', token).maybeSingle();
+    if (error || !data) { show('notFound'); return; }
+    if (data.expires_at && new Date(data.expires_at).getTime() < Date.now()) { show('notFound'); return; }
+    note = data;
+    lastServerBody = data.body || '';
+    document.title = (data.title || '공유 노트') + ' — JustANotepad';
+
+    // best-effort view-count bump
+    try { await sb.from('cms_shared_notes').update({ view_count: (data.view_count||0)+1 }).eq('token', token); } catch {}
+
+    renderReadOnly();
+
+    // Realtime subscription — works for both readonly (live updates) and edit
+    const channel = sb
+      .channel('shared:' + token)
+      .on('postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'cms_shared_notes', filter: `token=eq.${token}` },
+        (payload) => {
+          const incoming = payload.new;
+          if (!incoming) return;
+          // If the user is actively typing, don't clobber — defer replacement
+          if (isEditing && localDirty) {
+            // show a conflict hint; keep local version
+            return;
+          }
+          note = incoming;
+          lastServerBody = incoming.body || '';
+          if (isEditing) {
+            // only refresh if text actually differs
+            if ($('editArea').value !== lastServerBody) {
+              $('editArea').value = lastServerBody;
+              updatePreview();
+            }
+          } else {
+            renderReadOnly();
+          }
+        }
+      )
+      .subscribe((status) => {
+        const badge = $('liveBadge');
+        if (status === 'SUBSCRIBED') {
+          badge.textContent = 'LIVE';
+          badge.classList.remove('offline');
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          badge.textContent = '오프라인';
+          badge.classList.add('offline');
+        }
+      });
+
+    // Clean up on navigation
+    window.addEventListener('beforeunload', () => { sb.removeChannel(channel); });
+  };
+
+  $('btnEdit').addEventListener('click', () => {
+    if (!note || note.mode !== 'edit') return;
+    isEditing = !isEditing;
+    if (isEditing) renderEditor(); else renderReadOnly();
+  });
+
+  $('editArea').addEventListener('input', () => { updatePreview(); scheduleSave(); });
+  $('editArea').addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); clearTimeout(saveTimer); doSave(); }
+  });
+
+  await load();
 })();
-function show(id) {
-  document.getElementById('loading').style.display = 'none';
-  document.getElementById(id).style.display = 'block';
-}
 </script>
 </body>
 </html>
