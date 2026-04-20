@@ -1,205 +1,212 @@
 /**
- * justanotepad · Lecture / Meeting Notes (v3.0 · Control Box)
+ * justanotepad · Lecture / Meeting Notes (v4.0 · full control box)
  * --------------------------------------------------------------------------
- * 변경 (v2 → v3):
- *   - 모든 기능이 단 하나의 "컨트롤 박스" 에 집약. 탭 .page 최상단에 붙어
- *     녹음·녹화·저장폴더·AI·내보내기가 한 번에 조작 가능.
- *   - 토픽바에 버튼 2개: [강의노트] [회의노트]
- *   - 영상 녹화 추가: 카메라 + 화면 공유, 음성과 함께 단일 .webm
- *   - File System Access API 로 사용자가 지정한 폴더에 자동 저장
- *     (Chrome/Edge 계열). 미지원 브라우저는 일반 다운로드로 폴백.
- *   - 헤더·버튼 모두 flex-wrap / overflow-wrap 로 박스 밖으로 안 넘어감.
- *   - AI: Copilot 카드 + 요약 + 퀴즈 + 번역. adapter.getCopilotCards /
- *     buildSummary / translate / buildQuiz 로 hook.
- *   - 이모지 금지. 앱 심볼 라이브러리의 <svg><use href="#i-..."/></svg>
- *     만 사용. 색은 var(--accent) 등 테마 토큰만 사용.
+ * v4 개선점 (v3 → v4):
+ *   1. "수업 시작" 과 "녹음" 분리. 세션(타이머·마커)이 먼저, 녹음/카메라/화면은
+ *      독립 토글.
+ *   2. 회의 모드에 맞는 용어 (회의 시작/회의록/액션 아이템).
+ *   3. 카메라/화면 PIP 창: 드래그 가능, 숨김·복원 토글, 최소화 가능.
+ *   4. 박스 내부 탭 확장: 녹음·녹화 / 서식 / 삽입 / 미디어 / AI / 내보내기.
+ *      각 탭에 SVG 아이콘 (앱 심볼 i-mic/i-style/i-plus/i-image/i-smile/i-upload).
+ *   5. 넓은 화면에서 버튼들이 한 줄 유지, 좁은 화면에서만 wrap (media query).
+ *   6. 모든 AI 기능은 window.callAI 우선 사용 (기본 Gemini 프록시 내장).
+ *   7. 이모지 금지, 테마 변수 100% 사용, 오버플로우 완전 차단.
  *
  * 통합 (이미 app.html 에 script 태그 추가됨):
  *   <script src="/lecture-mode.js"></script>
- *
- * 전역 API:
- *   window.justanotepadLecture = {
- *     open(kind='lecture'|'meeting'),  // 박스 띄우기
- *     close(),                         // 박스 제거 (녹음 중이면 먼저 확인)
- *     toggle(kind),
- *     isRecording(), isOpen(),
- *     _state
- *   }
  * --------------------------------------------------------------------------
  */
 (() => {
   'use strict';
-  if (window.justanotepadLecture && window.justanotepadLecture.__v === 3) return;
+  if (window.justanotepadLecture && window.justanotepadLecture.__v === 4) return;
 
   // ================================================================
-  // 0) 테마·아이콘 유틸
+  // 0) 유틸
   // ================================================================
+  // 앱에 없는 아이콘은 인라인 SVG 로 정의
+  const INLINE_SVG = {
+    'i-play':  '<svg viewBox="0 0 24 24"><polygon points="6 4 20 12 6 20" fill="currentColor" stroke="none"/></svg>',
+    'i-stop':  '<svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" fill="currentColor" stroke="none"/></svg>',
+    'i-eye':   '<svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>',
+  };
   function svg(id, size = 16) {
+    if (INLINE_SVG[id]) {
+      return `<span style="display:inline-flex;align-items:center;width:${size}px;height:${size}px;flex-shrink:0;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;fill:none" aria-hidden="true">${INLINE_SVG[id].replace('<svg ', `<svg style="width:100%;height:100%" `)}</span>`;
+    }
     return `<svg style="width:${size}px;height:${size}px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0" aria-hidden="true"><use href="#${id}"/></svg>`;
   }
+  const escHtml = s => (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const pageEl = () => document.getElementById('page');
+  const adapter = () => window.justanotepadLectureAdapter || {};
+  const fmtTime = ms => {
+    const s = Math.max(0, Math.floor(ms / 1000));
+    return `${String(Math.floor(s/3600)).padStart(2,'0')}:${String(Math.floor(s%3600/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+  };
 
+  // ================================================================
+  // 1) 스타일 — CSS 변수 + 넓을땐 한 줄, 좁을 땐 wrap
+  // ================================================================
   const CSS = `
-  /* ------------ 컨트롤 박스 ------------ */
   .jnp-lec-box {
     position: relative;
-    margin: 6px 0 14px;
+    margin: 8px 0 16px;
     border: 1px solid var(--line);
     background: var(--paper);
     border-radius: 12px;
     overflow: hidden;
     max-width: 100%;
     color: var(--ink);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
     font: 13px/1.45 inherit;
   }
+
+  /* 헤더: 넓으면 한 줄, 좁으면 wrap */
   .jnp-lec-head {
     display: flex; align-items: center;
-    gap: 8px; padding: 8px 12px;
+    gap: 10px; padding: 8px 12px;
     background: var(--tab-hover);
     border-bottom: 1px solid var(--line);
-    flex-wrap: wrap;
     min-width: 0;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: thin;
   }
+  @media (max-width: 640px) { .jnp-lec-head { flex-wrap: wrap; overflow-x: visible; } }
   .jnp-lec-head .title {
     font-weight: 700; font-size: 13.5px;
     display: inline-flex; align-items: center; gap: 6px;
-    min-width: 0;                 /* flex child 오버플로우 방지 */
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    flex-shrink: 0; color: var(--ink);
   }
-  .jnp-lec-head .time {
-    font-variant-numeric: tabular-nums;
-    padding: 3px 8px; border-radius: 999px;
+  .jnp-lec-head .info {
+    display: inline-flex; align-items: center; gap: 8px;
+    flex: 1; min-width: 0; overflow: hidden;
+  }
+  .jnp-lec-head .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 9px; border-radius: 999px;
     background: var(--paper); border: 1px solid var(--line);
     font-size: 12px; color: var(--ink);
-    display: inline-flex; align-items: center; gap: 6px;
+    font-variant-numeric: tabular-nums;
     flex-shrink: 0;
   }
-  .jnp-lec-head .time .dot {
+  .jnp-lec-head .pill .dot {
     width: 8px; height: 8px; border-radius: 999px;
-    background: var(--ink-soft, #999);
+    background: var(--ink-soft, #aaa);
   }
-  .jnp-lec-head .time.on .dot {
+  .jnp-lec-head .pill.rec .dot {
     background: #e53935;
     animation: jnp-lec-pulse 1.2s infinite;
   }
   @keyframes jnp-lec-pulse {
     0%   { box-shadow: 0 0 0 0 rgba(229,57,53,.6); }
     70%  { box-shadow: 0 0 0 8px rgba(229,57,53,0); }
-    100% { box-shadow: 0 0 0 0 rgba(229,57,53,0); }
   }
-  .jnp-lec-head .spacer { flex: 1; min-width: 0; }
-  .jnp-lec-head button.close {
+  .jnp-lec-head .pill.muted { color: var(--ink-soft); }
+  .jnp-lec-head .pill .lbl {
+    max-width: 20ch;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .jnp-lec-head .close {
     background: transparent; border: 0; cursor: pointer;
     color: var(--ink-soft); padding: 4px; border-radius: 6px;
-    display: inline-flex;
+    display: inline-flex; flex-shrink: 0;
   }
-  .jnp-lec-head button.close:hover { background: var(--line); color: var(--ink); }
+  .jnp-lec-head .close:hover { background: var(--line); color: var(--ink); }
 
-  /* 탭 네비 (녹음/AI/내보내기) */
+  /* 내부 탭 네비 */
   .jnp-lec-tabs {
-    display: flex; gap: 4px;
+    display: flex; gap: 2px;
     padding: 6px 8px 0;
     border-bottom: 1px solid var(--line);
     background: var(--paper);
-    flex-wrap: wrap;
     min-width: 0;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: thin;
   }
+  @media (max-width: 640px) { .jnp-lec-tabs { flex-wrap: wrap; overflow-x: visible; } }
   .jnp-lec-tabs button {
     background: transparent; border: 0; cursor: pointer;
-    padding: 7px 12px; border-radius: 8px 8px 0 0;
+    padding: 8px 12px; border-radius: 8px 8px 0 0;
     color: var(--ink-soft); font: 500 12.5px/1 inherit;
     display: inline-flex; align-items: center; gap: 6px;
     border-bottom: 2px solid transparent;
     transform: translateY(1px);
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    white-space: nowrap; flex-shrink: 0;
   }
   .jnp-lec-tabs button:hover { color: var(--ink); background: var(--tab-hover); }
   .jnp-lec-tabs button.active {
     color: var(--ink);
     border-bottom-color: var(--accent);
     background: var(--paper);
+    font-weight: 600;
   }
 
-  .jnp-lec-body {
-    padding: 10px 12px;
-    min-width: 0;
-  }
-
-  /* 섹션 */
-  .jnp-lec-section {
-    display: none;
-    flex-direction: column;
-    gap: 10px;
-  }
+  .jnp-lec-body { padding: 12px; min-width: 0; }
+  .jnp-lec-section { display: none; flex-direction: column; gap: 12px; }
   .jnp-lec-section.active { display: flex; }
   .jnp-lec-section h5 {
-    margin: 4px 0 0; font-size: 11px; font-weight: 700;
-    color: var(--ink-soft);
-    text-transform: uppercase; letter-spacing: .06em;
+    margin: 2px 0 0; font-size: 11px; font-weight: 700;
+    color: var(--ink-soft); text-transform: uppercase; letter-spacing: .06em;
   }
 
+  /* 행 — 넓으면 한 줄, 좁으면 wrap */
   .jnp-lec-row {
-    display: flex; flex-wrap: wrap; gap: 6px;
-    align-items: center; min-width: 0;
+    display: flex; gap: 6px; align-items: center;
+    min-width: 0; flex-wrap: nowrap;
+    overflow-x: auto; scrollbar-width: thin;
+    padding-bottom: 2px;
   }
+  @media (max-width: 640px) {
+    .jnp-lec-row { flex-wrap: wrap; overflow-x: visible; }
+  }
+  .jnp-lec-row::-webkit-scrollbar { height: 4px; }
+  .jnp-lec-row::-webkit-scrollbar-thumb { background: var(--line); border-radius: 2px; }
+
   .jnp-lec-btn {
     display: inline-flex; align-items: center; gap: 6px;
-    padding: 6px 12px; border-radius: 8px; cursor: pointer;
+    padding: 7px 11px; border-radius: 8px; cursor: pointer;
     background: var(--paper); border: 1px solid var(--line);
     color: var(--ink); font: 500 12.5px/1 inherit;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    white-space: nowrap; flex-shrink: 0;
   }
   .jnp-lec-btn:hover { background: var(--tab-hover); }
   .jnp-lec-btn.primary {
     background: var(--accent); border-color: var(--accent); color: var(--ink);
-    font-weight: 600;
+    font-weight: 700;
   }
   .jnp-lec-btn.primary:hover { background: var(--accent-2); }
   .jnp-lec-btn.danger {
-    background: #e53935; border-color: #e53935; color: #fff;
+    background: #e53935; border-color: #e53935; color: #fff; font-weight: 600;
   }
   .jnp-lec-btn.danger:hover { background: #d32f2f; border-color: #d32f2f; }
-  .jnp-lec-btn.on {
-    background: var(--accent-2); border-color: var(--accent);
-  }
+  .jnp-lec-btn.on { background: var(--accent-2); border-color: var(--accent); }
   .jnp-lec-btn[disabled] { opacity: 0.45; cursor: not-allowed; }
-  .jnp-lec-btn .lbl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .jnp-lec-btn.icon-only { padding: 7px 8px; }
+  .jnp-lec-sep { width: 1px; height: 20px; background: var(--line); flex-shrink: 0; margin: 0 2px; }
 
-  .jnp-lec-folder {
+  .jnp-lec-folder-pill {
     display: inline-flex; align-items: center; gap: 6px;
-    padding: 4px 10px; background: var(--tab-hover);
+    padding: 5px 10px; background: var(--tab-hover);
     border: 1px dashed var(--line); border-radius: 8px;
     color: var(--ink-soft); font-size: 12px;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    min-width: 0;
+    min-width: 0; flex: 1; max-width: 100%;
   }
-  .jnp-lec-folder strong { color: var(--ink); font-weight: 600; }
+  .jnp-lec-folder-pill strong {
+    color: var(--ink); font-weight: 600;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
+  }
 
   /* AI 카드 */
   .jnp-lec-cards {
     display: grid; grid-template-columns: 1fr; gap: 8px;
-    min-width: 0;
   }
-  @media (min-width: 700px) {
-    .jnp-lec-cards { grid-template-columns: 1fr 1fr; }
-  }
+  @media (min-width: 760px) { .jnp-lec-cards { grid-template-columns: 1fr 1fr; } }
   .jnp-lec-card {
     border: 1px solid var(--line);
     background: var(--paper);
     border-radius: 10px;
     padding: 10px 12px;
-    min-width: 0;
     overflow-wrap: anywhere;
   }
   .jnp-lec-card .kind {
@@ -207,9 +214,9 @@
     background: var(--accent-2); color: var(--ink); font-weight: 700;
     margin-bottom: 4px;
   }
-  .jnp-lec-card .ttl { font-weight: 600; font-size: 13px; margin-bottom: 2px; overflow-wrap: anywhere; }
-  .jnp-lec-card .body { font-size: 12.5px; line-height: 1.5; overflow-wrap: anywhere; word-break: break-word; }
-  .jnp-lec-card .meta { font-size: 11px; color: var(--ink-soft); margin-top: 4px; overflow-wrap: anywhere; }
+  .jnp-lec-card .ttl { font-weight: 600; font-size: 13px; margin-bottom: 2px; }
+  .jnp-lec-card .body { font-size: 12.5px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .jnp-lec-card .meta { font-size: 11px; color: var(--ink-soft); margin-top: 4px; }
   .jnp-lec-card .row { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
   .jnp-lec-card .row button {
     flex: 1; min-width: 60px;
@@ -220,25 +227,56 @@
   .jnp-lec-card .row button.primary { background: var(--accent); border-color: var(--accent); }
 
   .jnp-lec-empty {
-    padding: 18px 8px; text-align: center;
+    padding: 20px 10px; text-align: center;
     color: var(--ink-soft); font-size: 12px;
     background: var(--tab-hover); border-radius: 8px; border: 1px dashed var(--line);
+    grid-column: 1/-1;
   }
+  .jnp-lec-empty strong { color: var(--ink); }
 
-  /* 미리보기 영상 */
-  .jnp-lec-preview {
-    max-width: 100%; max-height: 180px;
-    border-radius: 8px; background: #000;
-    margin-top: 6px;
+  /* 카메라/화면 PIP 창 */
+  .jnp-lec-pip {
+    position: fixed;
+    right: 20px; bottom: 20px;
+    width: 260px;
+    z-index: 50;
+    background: #000;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: 0 6px 22px rgba(0,0,0,0.2);
+    overflow: hidden;
+    user-select: none;
     display: none;
   }
-  .jnp-lec-preview.on { display: block; }
+  .jnp-lec-pip.on { display: block; }
+  .jnp-lec-pip.min { height: 32px !important; }
+  .jnp-lec-pip.min video { display: none; }
+  .jnp-lec-pip .pip-head {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 8px; background: #222; color: #fff;
+    font: 500 11px/1 inherit;
+    cursor: move;
+  }
+  .jnp-lec-pip .pip-head .lbl { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .jnp-lec-pip .pip-head button {
+    background: transparent; border: 0; color: #fff; cursor: pointer;
+    padding: 2px 4px; border-radius: 4px;
+    display: inline-flex;
+  }
+  .jnp-lec-pip .pip-head button:hover { background: rgba(255,255,255,.15); }
+  .jnp-lec-pip video {
+    display: block; width: 100%; max-height: 240px;
+    background: #000; object-fit: cover;
+  }
+  .jnp-lec-pip .pip-resize {
+    position: absolute; right: 0; bottom: 0;
+    width: 14px; height: 14px; cursor: nwse-resize;
+    background: linear-gradient(135deg, transparent 50%, rgba(255,255,255,.4) 50%);
+  }
 
-  /* 전사 문장 (pageEl 안에 삽입되는 것) */
+  /* 전사 문장 (pageEl 안) */
   .page .jnp-lec-line {
-    position: relative;
-    margin: 0.3em 0;
-    padding-left: 2.3em;
+    position: relative; margin: 0.3em 0; padding-left: 2.4em;
     overflow-wrap: anywhere;
   }
   .page .jnp-lec-line::before {
@@ -254,7 +292,6 @@
     padding-right: 6px; border-radius: 4px;
   }
 
-  /* Toast */
   .jnp-lec-toast {
     position: fixed; top: 56px; left: 50%;
     transform: translateX(-50%) translateY(-4px);
@@ -262,85 +299,60 @@
     padding: 8px 14px; border-radius: 999px;
     font: 500 12.5px/1.3 inherit;
     opacity: 0; transition: opacity .18s, transform .18s;
-    z-index: 60; pointer-events: none;
+    z-index: 1000; pointer-events: none;
     max-width: 90vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .jnp-lec-toast.show { opacity: 0.94; transform: translateX(-50%) translateY(0); }
   `;
   (function injectStyle() {
-    if (document.getElementById('jnp-lec-style-v3')) return;
+    if (document.getElementById('jnp-lec-style-v4')) return;
     const st = document.createElement('style');
-    st.id = 'jnp-lec-style-v3';
+    st.id = 'jnp-lec-style-v4';
     st.textContent = CSS;
     document.head.appendChild(st);
   })();
 
   // ================================================================
-  // 1) 상태
+  // 2) 라벨 (용어) 테이블 — kind 별로 단어 치환
+  // ================================================================
+  const L = {
+    lecture: {
+      title: '강의노트', startSession: '수업 시작', endSession: '수업 종료',
+      recStart: '녹음', recStop: '녹음 정지',
+      startMarker: '강의 시작', endMarker: '강의 종료',
+      summaryTitle: '강의 요약', quizTitle: '예상 시험문항', askPrompt: 'AI에 질문 (예: 지금까지 내용 한 줄 요약)',
+      summaryPrompt: '당신은 한국 학생의 강의 조수입니다. 아래 실시간 자동 필기 텍스트를 3~6개 소제목의 마크다운 요약으로 만듭니다. 근거 없는 말 금지.',
+      quizSys: '당신은 한국 학생용 문제 출제자입니다. 아래 노트를 근거로 JSON만 출력합니다. 형식: {"items":[{"q":"문제","choices":["A","B","C","D","E"],"answer":2,"explain":"해설"}]} 5문항. 근거 없는 문제 금지.',
+      actionLabel: '예상 시험문항',
+    },
+    meeting: {
+      title: '회의노트', startSession: '회의 시작', endSession: '회의 종료',
+      recStart: '녹음', recStop: '녹음 정지',
+      startMarker: '회의 시작', endMarker: '회의 종료',
+      summaryTitle: '회의록', quizTitle: '액션 아이템', askPrompt: 'AI에 질문 (예: 의사결정 사항 추출)',
+      summaryPrompt: '당신은 회의 서기입니다. 아래 실시간 발언 텍스트를 한국어 회의록으로 만듭니다. 섹션: 의제 · 논의 요약 · 의사결정 · 참석자 발언 요약. 근거 없는 말 금지.',
+      quizSys: '당신은 회의 분석가입니다. 아래 회의 내용에서 "액션 아이템"만 JSON으로 추출합니다. 형식: {"items":[{"q":"무엇을 할 것인가","choices":["담당자","기한"],"answer":0,"explain":"근거 발언"}]} 최대 10개.',
+      actionLabel: '액션 아이템',
+    },
+  };
+
+  // ================================================================
+  // 3) 상태
   // ================================================================
   const state = {
-    open: false,
-    kind: 'lecture',   // 'lecture' | 'meeting'
-    recording: false,
-    startedAt: 0,
-    mediaStream: null,     // audio+(video)
-    displayStream: null,   // screen capture (optional)
-    mixedStream: null,
-    mediaRecorder: null,
-    chunks: [],
-    speech: null,
-    interimEl: null,
-    tickHandle: null,
-    dirHandle: null,       // File System Access folder handle
-    copilotTimer: null,
-    copilotCtr: 0,
-    currentSection: 'rec', // rec|ai|export
+    __v: 4,
+    open: false, kind: 'lecture',
+    session: null,      // { startedAt, lines: [], cards: [] }
+    recording: false,   // audio MediaRecorder active
+    videoOn: false, screenOn: false, transcribeOn: true, copilotOn: true,
+    mediaStream: null, camStream: null, screenStream: null,
+    mediaRecorder: null, screenRecorder: null,
+    chunks: [], screenChunks: [],
+    speech: null, interimEl: null,
+    tickHandle: null, copilotTimer: null,
+    dirHandle: null,
     ui: {},
-    session: { lines: [], cards: [] },
   };
-
-  // 저장된 폴더 핸들을 IndexedDB에 저장/복원 (user gesture 재승인은 필요)
-  async function persistDirHandle(handle) {
-    try {
-      if (!('indexedDB' in window)) return;
-      const db = await new Promise((resolve, reject) => {
-        const req = indexedDB.open('jnp-lec-v3', 1);
-        req.onupgradeneeded = () => req.result.createObjectStore('kv');
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
-      });
-      const tx = db.transaction('kv', 'readwrite');
-      tx.objectStore('kv').put(handle, 'dirHandle');
-    } catch (e) { console.warn('[lecture] persist dirHandle', e); }
-  }
-  async function loadDirHandle() {
-    try {
-      if (!('indexedDB' in window)) return null;
-      const db = await new Promise((resolve, reject) => {
-        const req = indexedDB.open('jnp-lec-v3', 1);
-        req.onupgradeneeded = () => req.result.createObjectStore('kv');
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
-      });
-      return await new Promise((resolve) => {
-        const req = db.transaction('kv').objectStore('kv').get('dirHandle');
-        req.onsuccess = () => resolve(req.result || null);
-        req.onerror = () => resolve(null);
-      });
-    } catch { return null; }
-  }
-
-  // ================================================================
-  // 2) 공용 유틸
-  // ================================================================
-  const fmtTime = ms => {
-    const s = Math.max(0, Math.floor(ms / 1000));
-    return `${String(Math.floor(s/3600)).padStart(2,'0')}:${String(Math.floor(s%3600/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
-  };
-  const now = () => state.startedAt ? (Date.now() - state.startedAt) : 0;
-  const pageEl = () => document.getElementById('page');
-  const adapter = () => window.justanotepadLectureAdapter || {};
-  const escHtml = s => (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
   function toast(text, ms = 1800) {
     const n = document.createElement('div');
@@ -352,437 +364,504 @@
   }
 
   // ================================================================
-  // 3) 컨트롤 박스 생성
+  // 4) IDB (폴더 핸들 영속화)
+  // ================================================================
+  async function openKv() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open('jnp-lec-v4', 1);
+      req.onupgradeneeded = () => req.result.createObjectStore('kv');
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  async function kvSet(k, v) { try { const db = await openKv(); db.transaction('kv', 'readwrite').objectStore('kv').put(v, k); } catch {} }
+  async function kvGet(k) { try { const db = await openKv(); return await new Promise(r => { const req = db.transaction('kv').objectStore('kv').get(k); req.onsuccess = () => r(req.result || null); req.onerror = () => r(null); }); } catch { return null; } }
+
+  // ================================================================
+  // 5) 박스 UI 빌드
   // ================================================================
   function buildBox(kind) {
-    const isLecture = kind === 'lecture';
-    const titleText = isLecture ? '강의노트' : '회의노트';
-    const titleIcon = isLecture ? 'i-mic' : 'i-speaker';
-
+    const lang = L[kind];
+    const titleIcon = kind === 'lecture' ? 'i-mic' : 'i-speaker';
     const box = document.createElement('div');
     box.className = 'jnp-lec-box';
-    box.setAttribute('contenteditable', 'false');     // 박스 자체는 편집 대상 아님
+    box.setAttribute('contenteditable', 'false');
     box.setAttribute('data-jnp-lec-box', '1');
     box.innerHTML = `
       <div class="jnp-lec-head">
-        <div class="title">
-          ${svg(titleIcon, 16)}
-          <span class="lbl">${titleText}</span>
+        <div class="title">${svg(titleIcon, 16)}<span>${lang.title}</span></div>
+        <div class="info">
+          <span class="pill muted" data-role="status"><span class="dot"></span><span>대기</span></span>
+          <span class="pill" data-role="time"><span class="t">00:00:00</span></span>
+          <span class="jnp-lec-folder-pill" data-role="folder">
+            ${svg('i-note', 13)}
+            <span>폴더:</span>
+            <strong data-role="folder-name">미지정</strong>
+          </span>
         </div>
-        <span class="time" data-role="time">
-          <span class="dot"></span>
-          <span class="t">00:00:00</span>
-        </span>
-        <span class="spacer"></span>
-        <span class="jnp-lec-folder" data-role="folder-indicator">
-          ${svg('i-note', 14)}
-          <span class="lbl"><span data-role="folder-name">폴더 미지정</span></span>
-        </span>
-        <button class="close" data-act="close" title="닫기">${svg('i-x', 16)}</button>
+        <button class="close" data-act="close" title="박스 닫기">${svg('i-x', 16)}</button>
       </div>
-      <div class="jnp-lec-tabs">
-        <button data-sec="rec" class="active">${svg('i-mic',14)}<span class="lbl">녹음·녹화</span></button>
-        <button data-sec="ai">${svg('i-smile',14)}<span class="lbl">AI 도우미</span></button>
-        <button data-sec="export">${svg('i-clipboard',14)}<span class="lbl">내보내기</span></button>
+
+      <div class="jnp-lec-tabs" role="tablist">
+        <button data-sec="rec" class="active" title="세션·녹음·녹화">${svg('i-mic',14)}<span>녹음·녹화</span></button>
+        <button data-sec="fmt" title="서식">${svg('i-style',14)}<span>서식</span></button>
+        <button data-sec="ins" title="삽입">${svg('i-plus',14)}<span>삽입</span></button>
+        <button data-sec="med" title="미디어">${svg('i-image',14)}<span>미디어</span></button>
+        <button data-sec="ai" title="AI 도우미">${svg('i-smile',14)}<span>AI</span></button>
+        <button data-sec="out" title="내보내기">${svg('i-upload',14)}<span>내보내기</span></button>
       </div>
+
       <div class="jnp-lec-body">
-        <!-- Section: 녹음·녹화 -->
+
+        <!-- 녹음·녹화 -->
         <div class="jnp-lec-section active" data-sec="rec">
           <div class="jnp-lec-row">
-            <button class="jnp-lec-btn primary" data-act="toggle-record">
-              ${svg('i-mic', 14)}<span class="lbl">수업 시작</span>
+            <button class="jnp-lec-btn primary" data-act="session-toggle">
+              ${svg('i-play', 14)}<span data-role="session-label">${lang.startSession}</span>
             </button>
-            <button class="jnp-lec-btn" data-act="toggle-video" title="카메라 녹화 포함">
-              ${svg('i-target', 14)}<span class="lbl">카메라</span>
+            <span class="jnp-lec-sep"></span>
+            <button class="jnp-lec-btn" data-act="rec-toggle" disabled>
+              ${svg('i-mic', 14)}<span data-role="rec-label">${lang.recStart}</span>
             </button>
-            <button class="jnp-lec-btn" data-act="toggle-screen" title="화면 공유 녹화">
-              ${svg('i-table', 14)}<span class="lbl">화면</span>
-            </button>
-            <button class="jnp-lec-btn" data-act="toggle-transcribe" title="자동 필기(음성 → 텍스트)">
-              ${svg('i-quote', 14)}<span class="lbl">자동 필기</span>
-            </button>
+            <button class="jnp-lec-btn" data-act="cam-toggle" disabled>${svg('i-target',14)}<span>카메라</span></button>
+            <button class="jnp-lec-btn" data-act="screen-toggle" disabled>${svg('i-table',14)}<span>화면</span></button>
+            <button class="jnp-lec-btn" data-act="pip-toggle" disabled>${svg('i-eye',14)}<span>카메라 창</span></button>
+            <button class="jnp-lec-btn on" data-act="transcribe-toggle">${svg('i-quote',14)}<span>자동 필기</span></button>
           </div>
-          <video class="jnp-lec-preview" data-role="preview" muted></video>
           <h5>저장 위치</h5>
           <div class="jnp-lec-row">
-            <button class="jnp-lec-btn" data-act="pick-folder">
-              ${svg('i-note', 14)}<span class="lbl">폴더 선택</span>
-            </button>
-            <span class="jnp-lec-folder" data-role="folder-full">
-              <span class="lbl"><strong data-role="folder-name-full">미지정</strong> — 파일은 다운로드 폴더로</span>
+            <button class="jnp-lec-btn" data-act="pick-folder">${svg('i-note',14)}<span>폴더 선택</span></button>
+            <span class="jnp-lec-folder-pill">
+              <span>현재:</span><strong data-role="folder-name-full">미지정</strong>
+              <span style="color:var(--ink-soft);font-size:11px;">(미지정 시 다운로드 폴더로)</span>
             </span>
           </div>
         </div>
 
-        <!-- Section: AI 도우미 -->
+        <!-- 서식 -->
+        <div class="jnp-lec-section" data-sec="fmt">
+          <div class="jnp-lec-row">
+            <button class="jnp-lec-btn icon-only" data-app="bold" title="굵게"><b>B</b></button>
+            <button class="jnp-lec-btn icon-only" data-app="italic" title="기울임"><i>I</i></button>
+            <button class="jnp-lec-btn icon-only" data-app="underline" title="밑줄"><u>U</u></button>
+            <button class="jnp-lec-btn icon-only" data-app="strikeThrough" title="취소선"><s>S</s></button>
+            <span class="jnp-lec-sep"></span>
+            <button class="jnp-lec-btn icon-only" data-app-id="colorBtn" title="글자색">${svg('i-palette',14)}</button>
+            <button class="jnp-lec-btn icon-only" data-app-id="hiliteBtn" title="형광펜">${svg('i-highlight',14)}</button>
+            <span class="jnp-lec-sep"></span>
+            <button class="jnp-lec-btn icon-only" data-app-id="alignLeftBtn" title="왼쪽">${svg('i-align-left',14)}</button>
+            <button class="jnp-lec-btn icon-only" data-app-id="alignCenterBtn" title="가운데">${svg('i-align-center',14)}</button>
+            <button class="jnp-lec-btn icon-only" data-app-id="alignRightBtn" title="오른쪽">${svg('i-align-right',14)}</button>
+            <button class="jnp-lec-btn icon-only" data-app-id="alignJustifyBtn" title="양쪽">${svg('i-align-justify',14)}</button>
+            <span class="jnp-lec-sep"></span>
+            <button class="jnp-lec-btn" data-app-id="h1Btn" title="제목1">H1</button>
+            <button class="jnp-lec-btn" data-app-id="h2Btn" title="제목2">H2</button>
+            <button class="jnp-lec-btn" data-app-id="h3Btn" title="제목3">H3</button>
+            <span class="jnp-lec-sep"></span>
+            <button class="jnp-lec-btn icon-only" data-app-id="styleMenuBtn" title="서식 프리셋">${svg('i-style',14)}</button>
+            <button class="jnp-lec-btn icon-only" data-app-id="clearFmt" title="서식 지우기">${svg('i-eraser',14)}</button>
+          </div>
+        </div>
+
+        <!-- 삽입 -->
+        <div class="jnp-lec-section" data-sec="ins">
+          <div class="jnp-lec-row">
+            <button class="jnp-lec-btn" data-app="insertUnorderedList" title="글머리">${svg('i-list',14)}<span>글머리</span></button>
+            <button class="jnp-lec-btn" data-app="insertOrderedList" title="번호">${svg('i-list-ol',14)}<span>번호</span></button>
+            <button class="jnp-lec-btn" data-app-id="todoBtn" title="체크리스트">${svg('i-check',14)}<span>체크리스트</span></button>
+            <span class="jnp-lec-sep"></span>
+            <button class="jnp-lec-btn" data-app-id="tableBtn" title="표">${svg('i-table',14)}<span>표</span></button>
+            <button class="jnp-lec-btn" data-app-id="quoteBtn" title="인용">${svg('i-quote',14)}<span>인용</span></button>
+            <button class="jnp-lec-btn" data-app-id="hrBtn" title="구분선">${svg('i-hr',14)}<span>구분선</span></button>
+            <button class="jnp-lec-btn" data-app-id="codeBtn" title="코드">${svg('i-code',14)}<span>코드</span></button>
+            <span class="jnp-lec-sep"></span>
+            <button class="jnp-lec-btn" data-app-id="dateBtn" title="날짜/시간">${svg('i-clock',14)}<span>날짜</span></button>
+            <button class="jnp-lec-btn" data-app-id="dateTagBtn" title="캘린더 태그">${svg('i-cal-tag',14)}<span>태그</span></button>
+            <button class="jnp-lec-btn" data-app-id="linkCardBtn" title="링크 카드">${svg('i-share',14)}<span>링크</span></button>
+            <button class="jnp-lec-btn" data-app-id="wikiBtn" title="위키 링크">${svg('i-link',14)}<span>위키</span></button>
+            <button class="jnp-lec-btn" data-app-id="emojiBtn" title="이모지">${svg('i-smile',14)}<span>이모지</span></button>
+          </div>
+        </div>
+
+        <!-- 미디어 -->
+        <div class="jnp-lec-section" data-sec="med">
+          <div class="jnp-lec-row">
+            <button class="jnp-lec-btn" data-app-id="imgUploadBtn" title="이미지 업로드">${svg('i-image',14)}<span>이미지</span></button>
+            <button class="jnp-lec-btn" data-app-id="captureBtn" title="화면 캡처">${svg('i-camera',14)}<span>캡처</span></button>
+            <button class="jnp-lec-btn" data-app-id="sketchBtn" title="손글씨">${svg('i-brush',14)}<span>손글씨</span></button>
+            <button class="jnp-lec-btn" data-app-id="attachFileBtn" title="파일 첨부">${svg('i-paperclip',14)}<span>파일</span></button>
+            <span class="jnp-lec-sep"></span>
+            <button class="jnp-lec-btn" data-app-id="audioRecordBtn" title="짧은 음성 메모">${svg('i-record',14)}<span>음성 메모</span></button>
+            <button class="jnp-lec-btn" data-app-id="voiceBtn" title="음성 입력(받아쓰기)">${svg('i-mic',14)}<span>받아쓰기</span></button>
+            <button class="jnp-lec-btn" data-app-id="speakBtn" title="읽어주기">${svg('i-speaker',14)}<span>읽어주기</span></button>
+          </div>
+        </div>
+
+        <!-- AI -->
         <div class="jnp-lec-section" data-sec="ai">
           <div class="jnp-lec-row">
-            <button class="jnp-lec-btn" data-act="ai-copilot" title="수업 중 주기적으로 제안">
-              ${svg('i-smile', 14)}<span class="lbl">자동 제안</span>
-            </button>
-            <button class="jnp-lec-btn" data-act="ai-summary">${svg('i-clipboard',14)}<span class="lbl">지금까지 요약</span></button>
-            <button class="jnp-lec-btn" data-act="ai-quiz">${svg('i-check',14)}<span class="lbl">예상 시험문항</span></button>
-            <button class="jnp-lec-btn" data-act="ai-translate">${svg('i-code',14)}<span class="lbl">번역</span></button>
-            <button class="jnp-lec-btn" data-act="ai-ask">${svg('i-help',14)}<span class="lbl">질문</span></button>
+            <button class="jnp-lec-btn on" data-act="copilot-toggle">${svg('i-smile',14)}<span>자동 제안</span></button>
+            <button class="jnp-lec-btn" data-act="ai-summary">${svg('i-clipboard',14)}<span>${lang.summaryTitle}</span></button>
+            <button class="jnp-lec-btn" data-act="ai-quiz">${svg('i-check',14)}<span>${lang.quizTitle}</span></button>
+            <button class="jnp-lec-btn" data-act="ai-translate">${svg('i-translate',14)}<span>번역</span></button>
+            <button class="jnp-lec-btn" data-act="ai-ask">${svg('i-help',14)}<span>질문</span></button>
           </div>
           <h5>AI 제안 카드</h5>
           <div class="jnp-lec-cards" data-role="cards">
             <div class="jnp-lec-empty">
-              로그인하면 <strong>기본 AI(Gemini, 하루 50회 무료)</strong>가 자동으로 연결됩니다.<br>
-              자동 제안을 켜면 수업 중 30초마다 정의·연결·시험문항 카드가 여기에 올라옵니다.
+              로그인하면 <strong>기본 AI(Gemini, 하루 50회 무료)</strong>가 자동 연결됩니다.<br>
+              자동 제안 ON 이면 30초마다 정의·연결·${kind === 'lecture' ? '시험문항' : '액션아이템'} 카드가 올라옵니다.
             </div>
           </div>
         </div>
 
-        <!-- Section: 내보내기 -->
-        <div class="jnp-lec-section" data-sec="export">
+        <!-- 내보내기 -->
+        <div class="jnp-lec-section" data-sec="out">
           <div class="jnp-lec-row">
-            <button class="jnp-lec-btn" data-act="export-md">${svg('i-note',14)}<span class="lbl">Markdown</span></button>
-            <button class="jnp-lec-btn" data-act="export-txt">${svg('i-quote',14)}<span class="lbl">텍스트</span></button>
-            <button class="jnp-lec-btn" data-act="export-json">${svg('i-code',14)}<span class="lbl">JSON</span></button>
-            <button class="jnp-lec-btn" data-act="export-docx">${svg('i-clipboard',14)}<span class="lbl">Word (.docx)</span></button>
+            <button class="jnp-lec-btn" data-act="export-md">${svg('i-md',14)}<span>Markdown</span></button>
+            <button class="jnp-lec-btn" data-act="export-txt">${svg('i-quote',14)}<span>텍스트</span></button>
+            <button class="jnp-lec-btn" data-act="export-json">${svg('i-code',14)}<span>JSON</span></button>
+            <button class="jnp-lec-btn" data-act="export-docx">${svg('i-clipboard',14)}<span>Word</span></button>
+            <button class="jnp-lec-btn" data-app-id="exportPdfBtn">${svg('i-printer',14)}<span>PDF</span></button>
+            <button class="jnp-lec-btn" data-app-id="printBtn">${svg('i-printer',14)}<span>인쇄</span></button>
           </div>
-          <h5>세션 정보</h5>
           <div class="jnp-lec-row" data-role="stats" style="color:var(--ink-soft);font-size:12px;">
-            문장 0개 · 카드 0개 · 0:00
+            문장 0 · 카드 0 · 00:00:00
           </div>
         </div>
       </div>
     `;
 
-    // 이벤트 위임
     box.addEventListener('click', (e) => {
       const tabBtn = e.target.closest('.jnp-lec-tabs button[data-sec]');
       if (tabBtn) { switchSection(tabBtn.dataset.sec); return; }
+      const appCmd = e.target.closest('[data-app]')?.dataset.app;
+      if (appCmd) { try { document.execCommand(appCmd); pageEl()?.focus(); } catch {} return; }
+      const appId = e.target.closest('[data-app-id]')?.dataset.appId;
+      if (appId) { const b = document.getElementById(appId); b?.click(); return; }
       const act = e.target.closest('[data-act]')?.dataset.act;
-      if (!act) return;
-      handle(act);
+      if (act) handle(act);
     });
-
     return box;
   }
 
   // ================================================================
-  // 4) Open / Close / 섹션 전환
+  // 6) Open / Close / 섹션 전환
   // ================================================================
   async function open(kind = 'lecture') {
     if (state.open && state.kind === kind) { scrollToBox(); return; }
     if (state.open && state.recording) {
       if (!confirm('다른 모드로 바꾸려면 현재 녹음을 종료해야 합니다. 종료하시겠습니까?')) return;
-      await stop();
+      await stopRec();
     }
     close(true);
 
     const page = pageEl();
-    if (!page) { toast('활성 탭이 없습니다 — 먼저 새 탭을 열어 주세요'); return; }
+    if (!page) { toast('먼저 탭을 하나 열어 주세요'); return; }
 
     const box = buildBox(kind);
-    // 페이지 최상단에 삽입
     page.insertBefore(box, page.firstChild);
+
+    state.kind = kind;
+    state.open = true;
     state.ui.box = box;
-    state.ui.time = box.querySelector('[data-role="time"]');
+    state.ui.status = box.querySelector('[data-role="status"]');
+    state.ui.statusText = box.querySelector('[data-role="status"] span:last-child');
+    state.ui.statusDot = box.querySelector('[data-role="status"] .dot');
     state.ui.timeText = box.querySelector('[data-role="time"] .t');
-    state.ui.preview = box.querySelector('[data-role="preview"]');
+    state.ui.timePill = box.querySelector('[data-role="time"]');
+    state.ui.sessionLbl = box.querySelector('[data-role="session-label"]');
+    state.ui.recLbl = box.querySelector('[data-role="rec-label"]');
     state.ui.cards = box.querySelector('[data-role="cards"]');
     state.ui.folderName = box.querySelector('[data-role="folder-name"]');
     state.ui.folderNameFull = box.querySelector('[data-role="folder-name-full"]');
     state.ui.stats = box.querySelector('[data-role="stats"]');
 
-    state.kind = kind;
-    state.open = true;
-    state.currentSection = 'rec';
+    // 저장된 폴더 복원
+    try { const h = await kvGet('dirHandle'); if (h) { state.dirHandle = h; setFolderLabel(h.name); } } catch {}
 
-    // 지난 세션에 저장된 폴더 핸들이 있으면 표시만
-    try {
-      const h = await loadDirHandle();
-      if (h) { state.dirHandle = h; updateFolderLabel(h.name); }
-    } catch {}
-
-    // 앱의 저장 트리거
     try { page.dispatchEvent(new Event('input', { bubbles: true })); } catch {}
     scrollToBox();
-    toast((kind === 'lecture' ? '강의노트' : '회의노트') + ' 박스 열림');
   }
 
   function close(silent = false) {
-    const box = document.querySelector('.jnp-lec-box');
-    if (box) {
+    const b = document.querySelector('.jnp-lec-box');
+    if (b) {
       if (state.recording && !silent) {
         if (!confirm('녹음 중입니다. 종료하시겠습니까?')) return;
       }
-      stop();
-      box.remove();
+      endSession(true); stopRec(true); stopVideo(); stopScreen(); killPip();
+      b.remove();
     }
     state.ui = {};
     state.open = false;
-    const page = pageEl();
-    if (page) try { page.dispatchEvent(new Event('input', { bubbles: true })); } catch {}
   }
 
   function scrollToBox() { state.ui.box?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 
   function switchSection(sec) {
     if (!state.ui.box) return;
-    state.currentSection = sec;
     state.ui.box.querySelectorAll('.jnp-lec-tabs button').forEach(b => b.classList.toggle('active', b.dataset.sec === sec));
     state.ui.box.querySelectorAll('.jnp-lec-section').forEach(s => s.classList.toggle('active', s.dataset.sec === sec));
   }
 
-  // ================================================================
-  // 5) 액션 디스패치
-  // ================================================================
-  async function handle(act) {
-    switch (act) {
-      case 'close':           close(); break;
-      case 'toggle-record':   state.recording ? await stop() : await start(); break;
-      case 'toggle-video':    toggleFlag('video'); break;
-      case 'toggle-screen':   toggleFlag('screen'); break;
-      case 'toggle-transcribe': toggleFlag('transcribe'); break;
-      case 'pick-folder':     await pickFolder(); break;
-      case 'ai-copilot':      toggleFlag('copilot'); break;
-      case 'ai-summary':      await runAI('summary'); break;
-      case 'ai-quiz':         await runAI('quiz'); break;
-      case 'ai-translate':    await runAI('translate'); break;
-      case 'ai-ask':          await runAI('ask'); break;
-      case 'export-md':       exportAs('md'); break;
-      case 'export-txt':      exportAs('txt'); break;
-      case 'export-json':     exportAs('json'); break;
-      case 'export-docx':     exportAs('docx'); break;
-    }
-  }
-
-  // 기본 on/off 기능들 ('video'/'screen'/'transcribe'/'copilot')
-  const flags = { video: false, screen: false, transcribe: true, copilot: true };
-  function toggleFlag(name) {
-    flags[name] = !flags[name];
-    const btn = state.ui.box?.querySelector(`[data-act="toggle-${name === 'copilot' ? 'copilot' : name === 'transcribe' ? 'transcribe' : name === 'video' ? 'video' : 'screen'}"]`)
-            || state.ui.box?.querySelector(`[data-act="ai-${name}"]`);
-    if (name === 'copilot') {
-      const b = state.ui.box?.querySelector('[data-act="ai-copilot"]');
-      b?.classList.toggle('on', flags[name]);
-      if (flags[name]) startCopilot(); else stopCopilot();
-    } else {
-      const b = state.ui.box?.querySelector(`[data-act="toggle-${name}"]`);
-      b?.classList.toggle('on', flags[name]);
-    }
-    toast(
-      (name === 'video'      ? '카메라 녹화' :
-       name === 'screen'     ? '화면 녹화' :
-       name === 'transcribe' ? '자동 필기' :
-       'AI 제안') + (flags[name] ? ' ON' : ' OFF')
-    );
-  }
-
-  // ================================================================
-  // 6) 폴더 선택 (File System Access API)
-  // ================================================================
-  async function pickFolder() {
-    if (!('showDirectoryPicker' in window)) {
-      toast('이 브라우저는 폴더 선택 미지원 — 파일은 다운로드됩니다');
-      return;
-    }
-    try {
-      const handle = await window.showDirectoryPicker({ id: 'jnp-lec-dir', mode: 'readwrite' });
-      state.dirHandle = handle;
-      await persistDirHandle(handle);
-      updateFolderLabel(handle.name);
-      toast('저장 폴더: ' + handle.name);
-    } catch (e) {
-      if (e.name !== 'AbortError') console.warn(e);
-    }
-  }
-  function updateFolderLabel(name) {
-    if (state.ui.folderName) state.ui.folderName.textContent = name || '폴더 미지정';
+  function setFolderLabel(name) {
+    if (state.ui.folderName) state.ui.folderName.textContent = name || '미지정';
     if (state.ui.folderNameFull) state.ui.folderNameFull.textContent = name || '미지정';
   }
 
-  async function writeToFolder(filename, blob) {
-    if (state.dirHandle) {
-      try {
-        // 매 세션마다 권한 재확인
-        const perm = await state.dirHandle.queryPermission?.({ mode: 'readwrite' });
-        if (perm !== 'granted') {
-          const req = await state.dirHandle.requestPermission?.({ mode: 'readwrite' });
-          if (req !== 'granted') throw new Error('no permission');
-        }
-        const fh = await state.dirHandle.getFileHandle(filename, { create: true });
-        const w = await fh.createWritable();
-        await w.write(blob); await w.close();
-        toast('저장됨: ' + filename);
-        return true;
-      } catch (e) { console.warn('[writeToFolder] fallback to download', e); }
+  // ================================================================
+  // 7) Session / Rec / Video / Screen — 완전 분리
+  // ================================================================
+  function handle(act) {
+    switch (act) {
+      case 'close': close(); break;
+      case 'session-toggle': state.session ? endSession() : startSession(); break;
+      case 'rec-toggle': state.recording ? stopRec() : startRec(); break;
+      case 'cam-toggle': state.videoOn ? stopVideo() : startVideo(); break;
+      case 'screen-toggle': state.screenOn ? stopScreen() : startScreen(); break;
+      case 'pip-toggle': togglePipVisibility(); break;
+      case 'transcribe-toggle': state.transcribeOn ? stopSpeech() : startSpeech(); break;
+      case 'copilot-toggle': toggleCopilot(); break;
+      case 'pick-folder': pickFolder(); break;
+      case 'ai-summary': runAI('summary'); break;
+      case 'ai-quiz': runAI('quiz'); break;
+      case 'ai-translate': runAI('translate'); break;
+      case 'ai-ask': runAI('ask'); break;
+      case 'export-md': exportAs('md'); break;
+      case 'export-txt': exportAs('txt'); break;
+      case 'export-json': exportAs('json'); break;
+      case 'export-docx': exportAs('docx'); break;
     }
-    // 폴백: 다운로드
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = filename;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
-    toast('다운로드: ' + filename);
-    return false;
   }
 
-  // ================================================================
-  // 7) 녹음 + 녹화 + 화면공유 + 자동필기
-  // ================================================================
-  async function start() {
-    if (state.recording) return;
-
-    // 동의
-    if (!localStorage.getItem('jnpLectureConsentV3')) {
-      const ok = confirm(
-        '이 기능은 마이크' + (flags.video ? '·카메라' : '') + (flags.screen ? '·화면' : '') +
-        '를 녹화합니다.\n\n' +
-        '· 녹화 파일은 지정한 폴더(또는 다운로드 폴더)에 저장됩니다.\n' +
-        '· Web Speech API 사용 시 음성이 브라우저 제공자(Google/Apple) 서버로\n' +
-        '  잠시 전송되어 텍스트로 변환됩니다.\n' +
-        '· 타인의 음성·영상을 녹화할 땐 반드시 동의를 얻으세요.\n\n계속?'
-      );
-      if (!ok) return;
-      localStorage.setItem('jnpLectureConsentV3', '1');
-    }
-
-    // 트랙 모으기
-    const tracks = [];
-    try {
-      const audio = await navigator.mediaDevices.getUserMedia({ audio: true });
-      state.mediaStream = audio;
-      audio.getAudioTracks().forEach(t => tracks.push(t));
-    } catch (e) { toast('마이크 권한이 필요합니다'); return; }
-
-    if (flags.video) {
-      try {
-        const cam = await navigator.mediaDevices.getUserMedia({ video: true });
-        cam.getVideoTracks().forEach(t => tracks.push(t));
-        state.mediaStream.addTrack(cam.getVideoTracks()[0]);
-      } catch (e) { toast('카메라 권한 거부 — 오디오만 녹음'); flags.video = false; }
-    }
-    if (flags.screen) {
-      try {
-        const disp = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
-        state.displayStream = disp;
-        // 화면 트랙은 별도 스트림으로 두고 나중에 합치거나 별 트랙으로 녹화
-        // MediaRecorder 는 하나의 스트림만 받으므로, 여기선 화면만 따로 저장
-      } catch (e) { toast('화면 공유 거부'); flags.screen = false; }
-    }
-
-    // 미리보기 (비디오 있을 때만)
-    if (flags.video && state.ui.preview) {
-      state.ui.preview.srcObject = state.mediaStream;
-      state.ui.preview.classList.add('on');
-      state.ui.preview.play().catch(()=>{});
-    }
-
-    // MediaRecorder — 오디오 + (카메라)
-    try {
-      const rec = new MediaRecorder(state.mediaStream, { mimeType: pickMime() });
-      state.chunks = [];
-      rec.ondataavailable = (e) => { if (e.data.size > 0) state.chunks.push(e.data); };
-      rec.onstop = () => saveRecording();
-      rec.start(1000);
-      state.mediaRecorder = rec;
-    } catch (e) { console.warn('[MediaRecorder]', e); toast('녹화 엔진 시작 실패'); }
-
-    // 화면 녹화는 별도 MediaRecorder
-    if (state.displayStream) {
-      try {
-        const dRec = new MediaRecorder(state.displayStream, { mimeType: pickMime() });
-        state.displayChunks = [];
-        dRec.ondataavailable = (e) => { if (e.data.size > 0) state.displayChunks.push(e.data); };
-        dRec.onstop = () => saveRecording({ screen: true });
-        dRec.start(1000);
-        state.displayRecorder = dRec;
-        state.displayStream.getVideoTracks()[0].addEventListener('ended', () => {
-          try { dRec.state === 'recording' && dRec.stop(); } catch {}
-        });
-      } catch (e) { console.warn(e); }
-    }
-
-    // 자동 필기
-    if (flags.transcribe) startSpeech();
-
-    // 마커 삽입 (탭 본문에)
-    insertMarker('강의 시작');
-
-    state.recording = true;
-    state.startedAt = Date.now();
-    state.session = { lines: [], cards: [] };
-    state.ui.time?.classList.add('on');
-    const b = state.ui.box?.querySelector('[data-act="toggle-record"]');
-    if (b) {
-      b.classList.remove('primary'); b.classList.add('danger');
-      b.innerHTML = `${svg('i-x',14)}<span class="lbl">수업 종료</span>`;
-    }
+  // --- 세션 (타이머·마커) ---
+  function startSession() {
+    const lang = L[state.kind];
+    state.session = { startedAt: Date.now(), lines: [], cards: [] };
+    insertMarker(lang.startMarker);
     startTick();
-    if (flags.copilot) startCopilot();
-    toast('녹음 시작');
+    state.ui.status.classList.remove('muted');
+    state.ui.statusText.textContent = '세션 중';
+    state.ui.statusDot.style.background = 'var(--accent)';
+    state.ui.sessionLbl.textContent = lang.endSession;
+    state.ui.box.querySelector('[data-act="session-toggle"]').classList.replace('primary','danger');
+    state.ui.box.querySelector('[data-act="session-toggle"] svg').outerHTML = svg('i-stop', 14);
+    // 하위 버튼 활성화
+    ['rec-toggle','cam-toggle','screen-toggle'].forEach(a => state.ui.box.querySelector(`[data-act="${a}"]`).removeAttribute('disabled'));
+    if (state.transcribeOn) startSpeech();
+    if (state.copilotOn) startCopilot();
+    toast(lang.startSession);
   }
 
-  function pickMime() {
-    const list = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm', 'audio/webm;codecs=opus', 'audio/webm'];
-    for (const m of list) if (MediaRecorder.isTypeSupported?.(m)) return m;
-    return 'video/webm';
-  }
+  async function endSession(silent = false) {
+    if (!state.session) return;
+    const lang = L[state.kind];
+    // 하위 녹음들 중단
+    await stopRec(true); stopVideo(); stopScreen();
+    stopSpeech(); stopCopilot(); stopTick();
+    insertMarker(lang.endMarker);
 
-  async function stop() {
-    if (!state.recording) return;
-    state.recording = false;
-    try { state.speech?.stop(); } catch {}
-    try { state.mediaRecorder?.state === 'recording' && state.mediaRecorder.stop(); } catch {}
-    try { state.displayRecorder?.state === 'recording' && state.displayRecorder.stop(); } catch {}
-    try { state.mediaStream?.getTracks().forEach(t => t.stop()); } catch {}
-    try { state.displayStream?.getTracks().forEach(t => t.stop()); } catch {}
-    stopCopilot();
-    stopTick();
-    state.ui.time?.classList.remove('on');
-    const b = state.ui.box?.querySelector('[data-act="toggle-record"]');
-    if (b) {
-      b.classList.remove('danger'); b.classList.add('primary');
-      b.innerHTML = `${svg('i-mic',14)}<span class="lbl">수업 시작</span>`;
-    }
-    if (state.ui.preview) { state.ui.preview.srcObject = null; state.ui.preview.classList.remove('on'); }
-
-    insertMarker('강의 종료');
-    updateStats();
-
-    // 어댑터 요약이 있으면 그것을 우선, 없으면 window.callAI 로 자동 요약
-    if (adapter().buildSummary) {
-      try {
-        const res = await adapter().buildSummary({ lines: state.session.lines, cards: state.session.cards });
-        if (res?.summary) insertSummary(res.summary, 'AI 요약');
-      } catch (e) { console.warn('[buildSummary]', e); }
-    } else if (state.session.lines.length >= 3 && typeof window.callAI === 'function') {
+    // 자동 요약
+    if (state.session.lines.length >= 3 && typeof window.callAI === 'function') {
       const text = state.session.lines.map(l => l.text).join('\n');
-      const sys = '당신은 한국 학생의 강의 조수입니다. 아래 실시간 자동 필기 텍스트를 3~6개 소제목의 마크다운 요약으로 만듭니다. 근거 없는 말 금지.';
       try {
-        const out = await window.callAI(sys, text);
-        if (out) insertSummary(out, 'AI 요약');
+        const out = await window.callAI(lang.summaryPrompt, text);
+        if (out) insertSummary(out, lang.summaryTitle);
       } catch (e) { console.warn('[auto-summary]', e); }
     }
-    toast('녹음 종료 · 녹화 파일을 저장합니다');
+
+    state.session = null;
+    if (state.ui.status) {
+      state.ui.status.classList.add('muted');
+      state.ui.statusText.textContent = '대기';
+      state.ui.statusDot.style.background = 'var(--ink-soft)';
+    }
+    if (state.ui.sessionLbl) state.ui.sessionLbl.textContent = lang.startSession;
+    const sBtn = state.ui.box?.querySelector('[data-act="session-toggle"]');
+    if (sBtn) { sBtn.classList.replace('danger','primary'); const s = sBtn.querySelector('svg'); if (s) s.outerHTML = svg('i-play', 14); }
+    ['rec-toggle','cam-toggle','screen-toggle','pip-toggle'].forEach(a => state.ui.box?.querySelector(`[data-act="${a}"]`)?.setAttribute('disabled',''));
+    if (!silent) toast(lang.endSession);
   }
 
-  async function saveRecording(opt = {}) {
-    const chunks = opt.screen ? state.displayChunks : state.chunks;
-    if (!chunks || chunks.length === 0) return;
-    const blob = new Blob(chunks, { type: chunks[0].type });
-    const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    const prefix = state.kind === 'lecture' ? 'lecture' : 'meeting';
-    const suffix = opt.screen ? '-screen' : '';
-    const ext = blob.type.includes('video') ? 'webm' : 'webm';
-    const filename = `${prefix}-${ts}${suffix}.${ext}`;
-    await writeToFolder(filename, blob);
+  // --- 오디오 녹음 (세션과 별개) ---
+  async function startRec() {
+    if (!state.session) { toast('먼저 세션을 시작하세요'); return; }
+    if (state.recording) return;
+    try {
+      if (!state.mediaStream) {
+        state.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      }
+      state.chunks = [];
+      const rec = new MediaRecorder(state.mediaStream, { mimeType: pickMime() });
+      rec.ondataavailable = (e) => { if (e.data.size > 0) state.chunks.push(e.data); };
+      rec.onstop = () => saveRec({ kind: 'audio' });
+      rec.start(1000);
+      state.mediaRecorder = rec;
+      state.recording = true;
+      state.ui.timePill.classList.add('rec');
+      state.ui.recLbl.textContent = L[state.kind].recStop;
+      const rb = state.ui.box.querySelector('[data-act="rec-toggle"]');
+      rb.classList.add('on');
+      toast('녹음 시작');
+    } catch (e) { toast('마이크 권한이 필요합니다'); console.warn(e); }
+  }
+
+  async function stopRec(silent = false) {
+    if (!state.recording) return;
+    state.recording = false;
+    try { state.mediaRecorder?.state === 'recording' && state.mediaRecorder.stop(); } catch {}
+    state.ui.timePill?.classList.remove('rec');
+    if (state.ui.recLbl) state.ui.recLbl.textContent = L[state.kind].recStart;
+    state.ui.box?.querySelector('[data-act="rec-toggle"]')?.classList.remove('on');
+    if (!silent) toast('녹음 정지');
+  }
+
+  // --- 카메라 (PIP 창 포함) ---
+  async function startVideo() {
+    if (state.videoOn) return;
+    try {
+      state.camStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      state.videoOn = true;
+      state.ui.box.querySelector('[data-act="cam-toggle"]').classList.add('on');
+      state.ui.box.querySelector('[data-act="pip-toggle"]').removeAttribute('disabled');
+      openPip('camera', state.camStream);
+      toast('카메라 ON');
+    } catch (e) { toast('카메라 권한이 필요합니다'); console.warn(e); }
+  }
+  function stopVideo() {
+    if (!state.videoOn) return;
+    try { state.camStream?.getTracks().forEach(t => t.stop()); } catch {}
+    state.camStream = null; state.videoOn = false;
+    state.ui.box?.querySelector('[data-act="cam-toggle"]')?.classList.remove('on');
+    killPip('camera');
+    toast('카메라 OFF');
+  }
+
+  // --- 화면 공유 ---
+  async function startScreen() {
+    if (state.screenOn) return;
+    try {
+      state.screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+      state.screenOn = true;
+      state.ui.box.querySelector('[data-act="screen-toggle"]').classList.add('on');
+      openPip('screen', state.screenStream);
+      // 자체 녹화
+      state.screenChunks = [];
+      const rec = new MediaRecorder(state.screenStream, { mimeType: pickMime() });
+      rec.ondataavailable = (e) => { if (e.data.size > 0) state.screenChunks.push(e.data); };
+      rec.onstop = () => saveRec({ kind: 'screen' });
+      rec.start(1000);
+      state.screenRecorder = rec;
+      // 사용자가 공유 중단 시
+      state.screenStream.getVideoTracks()[0].addEventListener('ended', stopScreen);
+      toast('화면 공유 ON · 녹화 중');
+    } catch (e) { toast('화면 공유가 거부되었습니다'); console.warn(e); }
+  }
+  function stopScreen() {
+    if (!state.screenOn) return;
+    try { state.screenRecorder?.state === 'recording' && state.screenRecorder.stop(); } catch {}
+    try { state.screenStream?.getTracks().forEach(t => t.stop()); } catch {}
+    state.screenStream = null; state.screenOn = false;
+    state.ui.box?.querySelector('[data-act="screen-toggle"]')?.classList.remove('on');
+    killPip('screen');
+    toast('화면 공유 OFF');
   }
 
   // ================================================================
-  // 8) 자동 필기 (Web Speech API)
+  // 8) PIP 창 (드래그·숨김·최소화)
+  // ================================================================
+  const pipMap = {}; // { camera: el, screen: el }
+  function openPip(name, stream) {
+    if (pipMap[name]) { pipMap[name].classList.add('on'); return; }
+    const el = document.createElement('div');
+    el.className = 'jnp-lec-pip on';
+    el.style.right = (name === 'screen' ? '300px' : '20px');
+    el.innerHTML = `
+      <div class="pip-head">
+        ${svg(name === 'camera' ? 'i-target' : 'i-table', 12)}
+        <span class="lbl">${name === 'camera' ? '카메라' : '화면'}</span>
+        <button data-pip-act="min" title="최소화">${svg('i-min', 12)}</button>
+        <button data-pip-act="close" title="끄기">${svg('i-x', 12)}</button>
+      </div>
+      <video autoplay muted playsinline></video>
+      <div class="pip-resize"></div>
+    `;
+    document.body.appendChild(el);
+    const v = el.querySelector('video');
+    v.srcObject = stream;
+    v.play().catch(() => {});
+
+    // 버튼
+    el.querySelector('[data-pip-act="min"]').addEventListener('click', (e) => {
+      e.stopPropagation(); el.classList.toggle('min');
+    });
+    el.querySelector('[data-pip-act="close"]').addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (name === 'camera') stopVideo(); else stopScreen();
+    });
+
+    // 드래그
+    makeDraggable(el, el.querySelector('.pip-head'));
+    // 크기 조절
+    makeResizable(el, el.querySelector('.pip-resize'));
+
+    pipMap[name] = el;
+  }
+  function killPip(name) {
+    const rm = (n) => { pipMap[n]?.remove(); delete pipMap[n]; };
+    if (!name) { rm('camera'); rm('screen'); return; }
+    rm(name);
+  }
+  function togglePipVisibility() {
+    const anyOn = Object.values(pipMap).some(el => el?.classList.contains('on'));
+    Object.values(pipMap).forEach(el => el?.classList.toggle('on', !anyOn));
+    toast(anyOn ? '카메라 창 숨김' : '카메라 창 표시');
+  }
+  function makeDraggable(el, handle) {
+    let sx = 0, sy = 0, ox = 0, oy = 0, dragging = false;
+    handle.addEventListener('pointerdown', (e) => {
+      if (e.target.closest('button')) return;
+      dragging = true;
+      sx = e.clientX; sy = e.clientY;
+      const rect = el.getBoundingClientRect();
+      ox = rect.left; oy = rect.top;
+      el.style.right = 'auto'; el.style.bottom = 'auto';
+      el.style.left = ox + 'px'; el.style.top = oy + 'px';
+      handle.setPointerCapture(e.pointerId);
+    });
+    handle.addEventListener('pointermove', (e) => {
+      if (!dragging) return;
+      el.style.left = (ox + e.clientX - sx) + 'px';
+      el.style.top  = (oy + e.clientY - sy) + 'px';
+    });
+    handle.addEventListener('pointerup', () => { dragging = false; });
+  }
+  function makeResizable(el, handle) {
+    let sx = 0, sy = 0, sw = 0, sh = 0, dragging = false;
+    handle.addEventListener('pointerdown', (e) => {
+      dragging = true; sx = e.clientX; sy = e.clientY;
+      const rect = el.getBoundingClientRect();
+      sw = rect.width; sh = rect.height;
+      handle.setPointerCapture(e.pointerId);
+    });
+    handle.addEventListener('pointermove', (e) => {
+      if (!dragging) return;
+      el.style.width = Math.max(180, sw + (e.clientX - sx)) + 'px';
+      el.querySelector('video').style.maxHeight = Math.max(100, sh + (e.clientY - sy) - 32) + 'px';
+    });
+    handle.addEventListener('pointerup', () => { dragging = false; });
+  }
+
+  // ================================================================
+  // 9) 자동 필기 (Web Speech)
   // ================================================================
   function startSpeech() {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) { toast('자동 필기 미지원 브라우저'); return; }
+    if (state.speech) return;
     const rec = new SR();
-    rec.continuous = true;
-    rec.interimResults = true;
+    rec.continuous = true; rec.interimResults = true;
     rec.lang = navigator.language?.startsWith('en') ? 'en-US' : 'ko-KR';
     rec.onresult = (e) => {
       for (let i = e.resultIndex; i < e.results.length; i++) {
@@ -792,7 +871,7 @@
         if (r.isFinal) {
           if (state.interimEl) { state.interimEl.remove(); state.interimEl = null; }
           const p = appendLineToPage(text);
-          state.session.lines.push({ t: now(), text, el: p });
+          state.session?.lines.push({ t: (Date.now() - state.session.startedAt), text, el: p });
           updateStats();
           maybeTriggerCopilot();
         } else {
@@ -802,185 +881,143 @@
       }
     };
     rec.onerror = (e) => { if (e.error !== 'no-speech' && e.error !== 'audio-capture') console.warn('[speech]', e.error); };
-    rec.onend = () => { if (state.recording) { try { rec.start(); } catch {} } };
-    try { rec.start(); state.speech = rec; } catch (e) { console.warn(e); }
+    rec.onend = () => { if (state.transcribeOn && state.session) { try { rec.start(); } catch {} } };
+    try { rec.start(); state.speech = rec; state.transcribeOn = true;
+      state.ui.box?.querySelector('[data-act="transcribe-toggle"]')?.classList.add('on');
+    } catch (e) { console.warn(e); }
+  }
+  function stopSpeech() {
+    try { state.speech?.stop(); } catch {}
+    state.speech = null; state.transcribeOn = false;
+    state.ui.box?.querySelector('[data-act="transcribe-toggle"]')?.classList.remove('on');
   }
 
+  // ================================================================
+  // 10) 페이지 삽입 (전사/마커/요약)
+  // ================================================================
   function appendLineToPage(text, { interim = false, adopted = false } = {}) {
     const page = pageEl(); if (!page) return null;
+    const t = state.session ? (Date.now() - state.session.startedAt) : 0;
     const p = document.createElement('p');
     p.className = 'jnp-lec-line' + (interim ? ' interim' : '') + (adopted ? ' adopted' : '');
-    p.setAttribute('data-ts', fmtTime(now()).slice(-5)); // MM:SS
+    p.setAttribute('data-ts', fmtTime(t).slice(-5));
     p.textContent = text;
     page.appendChild(p);
     try { page.dispatchEvent(new Event('input', { bubbles: true })); } catch {}
     p.scrollIntoView({ block: 'end', behavior: 'smooth' });
     return p;
   }
-
-  function insertMarker(text) {
+  function insertMarker(label) {
     const page = pageEl(); if (!page) return;
     const p = document.createElement('p');
     p.className = 'jnp-lec-line';
-    p.setAttribute('data-ts', fmtTime(now()).slice(-5));
+    p.setAttribute('data-ts', fmtTime(state.session ? (Date.now() - state.session.startedAt) : 0).slice(-5));
     p.style.cssText = 'border-top:1px dashed var(--line); padding-top:6px; margin-top:14px; color:var(--ink-soft); font-size:0.85em;';
-    p.textContent = `― ${text} · ${new Date().toLocaleString('ko-KR')} ―`;
+    p.textContent = `― ${label} · ${new Date().toLocaleString('ko-KR')} ―`;
     page.appendChild(p);
     try { page.dispatchEvent(new Event('input', { bubbles: true })); } catch {}
   }
-
-  function insertSummary(md, title = '요약') {
+  function insertSummary(text, title) {
     const page = pageEl(); if (!page) return;
     const div = document.createElement('div');
     div.style.cssText = 'border:1px dashed var(--line); background:var(--tab-hover); border-radius:10px; padding:10px 14px; margin:14px 0;';
-    div.innerHTML = `<h4 style="margin:0 0 6px;font-size:0.95em">${escHtml(title)}</h4><div style="white-space:pre-wrap">${escHtml(md)}</div>`;
+    div.innerHTML = `<h4 style="margin:0 0 6px;font-size:0.95em">${escHtml(title)}</h4><div style="white-space:pre-wrap">${escHtml(text)}</div>`;
     page.appendChild(div);
     try { page.dispatchEvent(new Event('input', { bubbles: true })); } catch {}
   }
 
   // ================================================================
-  // 9) AI — 앱 내장 window.callAI 를 최우선 사용
-  //    callAI(sys, user) 는 JustANotepad 의 통합 AI 게이트웨이로,
-  //      · 로그인된 사용자면: 기본 Gemini 프록시(/api/gemini) 또는 본인이 연결한
-  //        OpenAI / Gemini / Claude 중 활성 제공자 자동 라우팅
-  //      · 반환값: 텍스트(string) 또는 null
-  //    adapter 가 별도 주입돼 있으면 그것을 먼저 시도, 없으면 callAI 로 폴백.
+  // 11) AI
   // ================================================================
-  async function aiText(system, user) {
+  async function aiText(sys, user) {
     if (typeof window.callAI === 'function') {
-      try {
-        const out = await window.callAI(system, user);
-        if (out != null) return String(out);
-      } catch (e) { console.warn('[lecture-ai] callAI failed', e); }
+      try { const out = await window.callAI(sys, user); if (out != null) return String(out); }
+      catch (e) { console.warn('[ai]', e); }
     }
     return null;
   }
-
   function tryParseJson(text) {
     if (!text) return null;
-    // JSON 코드블록(```json ... ```) 안쪽 추출 or 첫 { ... } 블록
     const m = text.match(/```json\s*([\s\S]+?)```/i) || text.match(/```\s*([\s\S]+?)```/);
     const raw = m ? m[1] : text;
     try { return JSON.parse(raw); } catch {}
-    const idx = raw.indexOf('{');
-    const last = raw.lastIndexOf('}');
-    if (idx >= 0 && last > idx) {
-      try { return JSON.parse(raw.slice(idx, last + 1)); } catch {}
-    }
+    const i = raw.indexOf('{'), j = raw.lastIndexOf('}');
+    if (i >= 0 && j > i) { try { return JSON.parse(raw.slice(i, j + 1)); } catch {} }
     return null;
   }
 
   async function runAI(kind) {
-    const lines = state.session.lines.map(l => ({ t: l.t, text: l.text }));
-    const recentTranscript = lines.slice(-30).map(l => l.text).join('\n');
+    const lang = L[state.kind];
+    const lines = state.session?.lines || [];
+    const recent = lines.slice(-30).map(l => l.text).join('\n');
 
-    // --- ASK (직접 질문) ---
     if (kind === 'ask') {
-      const q = prompt('AI 에 질문 (예: 지금까지 내용 한 줄 요약)');
+      const q = prompt(lang.askPrompt);
       if (!q) return;
-      const sys = '당신은 수업 노트 보조 AI 입니다. 아래 사용자 노트를 근거로 한국어로 간결하게 답합니다. 근거 없는 말은 만들지 않습니다.';
-      const user = `[사용자 질문]\n${q}\n\n[현재까지 노트]\n${recentTranscript || '(없음)'}`;
-      toast('AI 에 질문 중…');
-      const out = await aiText(sys, user);
-      if (out) renderCard({ kind: '답변', title: q.slice(0, 40), body: out, cta: ['노트에 삽입','지나가기'] });
+      toast('AI 질문 중…');
+      const out = await aiText('당신은 노트 보조 AI입니다. 사용자의 노트를 근거로 한국어로 간결히 답합니다. 환각 금지.', `[질문]\n${q}\n\n[노트]\n${recent || '(없음)'}`);
+      if (out) { renderCard({ kind: '답변', title: q.slice(0, 40), body: out, cta: ['노트에 삽입','지나가기'] }); switchSection('ai'); }
       else toast('AI 응답 없음 — 로그인 상태와 무료 한도를 확인하세요');
-      switchSection('ai');
       return;
     }
-
-    // --- SUMMARY ---
     if (kind === 'summary') {
-      if (adapter().buildSummary) {
-        try {
-          const res = await adapter().buildSummary({ lines, cards: state.session.cards });
-          if (res?.summary) { insertSummary(res.summary, 'AI 요약'); (res?.cards || []).forEach(renderCard); return; }
-        } catch (e) { console.warn(e); }
-      }
       if (!lines.length) { toast('아직 필기가 없습니다'); return; }
-      const sys = '당신은 한국 대학생의 강의 조수입니다. 아래 실시간 자동 필기 텍스트를 읽고 마크다운 요약을 만듭니다. 3~6개 소제목, 핵심 용어, 수식은 LaTeX. 근거 없는 말 금지.';
-      const user = `[수업 종류] ${state.kind === 'lecture' ? '강의' : '회의'}\n\n[필기]\n${recentTranscript}`;
-      toast('요약 생성 중…');
-      const out = await aiText(sys, user);
-      if (out) insertSummary(out, 'AI 요약');
-      else toast('AI 응답 없음 — 로그인 후 다시 시도하세요');
+      toast(lang.summaryTitle + ' 생성 중…');
+      const out = await aiText(lang.summaryPrompt, recent);
+      if (out) insertSummary(out, lang.summaryTitle);
+      else toast('AI 응답 없음');
       return;
     }
-
-    // --- QUIZ ---
     if (kind === 'quiz') {
       if (!lines.length) { toast('아직 필기가 없습니다'); return; }
-      const sys = '당신은 한국 학생용 문제 출제자입니다. 아래 노트를 근거로 JSON 만 출력합니다. 형식: {"items":[{"q":"문제","choices":["A","B","C","D","E"],"answer":2,"explain":"해설"}]} 5문항. 근거 없는 문제 금지.';
-      const user = `[노트]\n${recentTranscript}`;
-      toast('예상 시험문항 생성 중…');
-      const raw = await aiText(sys, user);
+      toast(lang.quizTitle + ' 생성 중…');
+      const raw = await aiText(lang.quizSys, recent);
       const parsed = tryParseJson(raw);
       if (parsed?.items?.length) {
         parsed.items.forEach((q, i) => {
-          const body = `${q.q}\n\n` + (q.choices || []).map((c, j) => `${j === q.answer ? '◉' : '○'} ${c}`).join('\n') + (q.explain ? `\n\n해설: ${q.explain}` : '');
-          renderCard({ kind: `Q${i+1}`, title: `예상 시험 문항 ${i+1}`, body, cta: ['노트에 삽입','지나가기'] });
+          const body = `${q.q}\n\n` + (q.choices || []).map((c, j) => `${state.kind === 'lecture' ? (j === q.answer ? '◉' : '○') : '·'} ${c}`).join('\n') + (q.explain ? `\n\n${state.kind === 'lecture' ? '해설' : '근거'}: ${q.explain}` : '');
+          renderCard({ kind: `${lang.actionLabel} ${i+1}`, title: q.q.slice(0, 50), body, cta: ['노트에 삽입','지나가기'] });
         });
         switchSection('ai');
-      } else if (raw) {
-        renderCard({ kind: '시험', title: '예상 시험 (텍스트)', body: raw, cta: ['노트에 삽입','지나가기'] });
-        switchSection('ai');
-      } else toast('AI 응답 없음');
+      } else if (raw) { renderCard({ kind: lang.quizTitle, title: lang.quizTitle, body: raw, cta: ['노트에 삽입','지나가기'] }); switchSection('ai'); }
+      else toast('AI 응답 없음');
       return;
     }
-
-    // --- TRANSLATE ---
     if (kind === 'translate') {
       if (!lines.length) { toast('아직 필기가 없습니다'); return; }
-      const target = prompt('번역 대상 언어 (기본 English)', 'English') || 'English';
-      const sys = `당신은 전문 번역가입니다. 한국어 원문을 ${target} 로 자연스럽게 번역합니다. 마크다운 서식 유지.`;
-      const user = recentTranscript;
+      const target = prompt('번역 대상 언어', 'English') || 'English';
       toast('번역 중…');
-      const out = await aiText(sys, user);
-      if (out) {
-        insertSummary(out, `번역 (${target})`);
-        renderCard({ kind: '번역', title: `→ ${target}`, body: out, cta: ['노트에 삽입','지나가기'] });
-        switchSection('ai');
-      } else toast('AI 응답 없음');
-      return;
+      const out = await aiText(`당신은 전문 번역가입니다. 한국어 원문을 ${target}로 자연스럽게 번역합니다.`, recent);
+      if (out) { insertSummary(out, `번역 (${target})`); renderCard({ kind: '번역', title: `→ ${target}`, body: out, cta: ['노트에 삽입','지나가기'] }); switchSection('ai'); }
+      else toast('AI 응답 없음');
     }
   }
 
-  // ================================================================
-  // 9-2) Copilot 주기 — 같은 경로(callAI) 로 실제 카드 생성
-  // ================================================================
-  function startCopilot() {
-    stopCopilot();
-    state.copilotTimer = setInterval(maybeTriggerCopilot, 30000); // 30초 간격 (무료 한도 절약)
+  function toggleCopilot() {
+    state.copilotOn = !state.copilotOn;
+    state.ui.box?.querySelector('[data-act="copilot-toggle"]')?.classList.toggle('on', state.copilotOn);
+    if (state.copilotOn && state.session) startCopilot();
+    else stopCopilot();
+    toast('자동 제안 ' + (state.copilotOn ? 'ON' : 'OFF'));
   }
+  function startCopilot() { stopCopilot(); state.copilotTimer = setInterval(maybeTriggerCopilot, 30000); }
   function stopCopilot() { if (state.copilotTimer) { clearInterval(state.copilotTimer); state.copilotTimer = null; } }
 
   async function maybeTriggerCopilot() {
-    if (!state.recording || !flags.copilot) return;
+    if (!state.session || !state.copilotOn) return;
     const recent = state.session.lines.slice(-6).map(l => l.text).join('\n');
     if (recent.length < 30 && state.session.lines.length < 3) return;
-
-    // adapter 가 있으면 adapter 사용 (별도 hook)
     if (adapter().getCopilotCards) {
-      try {
-        const cards = await adapter().getCopilotCards({ recentTranscript: recent, notes: state.session.lines }) || [];
-        cards.forEach(renderCard);
-        return;
-      } catch (e) { console.warn('[copilot adapter]', e); }
+      try { const cards = await adapter().getCopilotCards({ recentTranscript: recent, kind: state.kind }) || []; cards.forEach(renderCard); return; } catch {}
     }
-
-    // 내장 callAI 경로
-    if (typeof window.callAI !== 'function') return; // 로그인 전/미지원 환경이면 조용히 스킵
-
-    const sys = '당신은 수업 중 옆에서 도와주는 한국어 AI 조수입니다. 아래 최근 발화를 읽고, 학생에게 도움이 될 제안 카드 1~3개를 만듭니다. JSON 한 개만 출력: {"cards":[{"kind":"정의|연결|퀴즈|자료","title":"짧게","body":"한두 문장","cta":["노트에 삽입","지나가기"]}]}. 환각 금지. 최근 발화 내용에서 도출 가능한 것만.';
-    const user = `[최근 발화]\n${recent}`;
-    const raw = await aiText(sys, user);
+    if (typeof window.callAI !== 'function') return;
+    const sys = state.kind === 'lecture'
+      ? '당신은 수업 중 옆에서 도와주는 한국어 AI 조수입니다. 최근 발화를 읽고 학생에게 도움될 제안 카드 1~3개를 만듭니다. JSON: {"cards":[{"kind":"정의|연결|퀴즈|자료","title":"짧게","body":"한두 문장","cta":["노트에 삽입","지나가기"]}]}. 환각 금지.'
+      : '당신은 회의 서기 AI 입니다. 최근 발언을 읽고 의사록 작성에 유용한 제안 카드 1~3개를 만듭니다. JSON: {"cards":[{"kind":"결정|액션|의제|요약","title":"짧게","body":"한두 문장","cta":["노트에 삽입","지나가기"]}]}. 환각 금지.';
+    const raw = await aiText(sys, recent);
     const parsed = tryParseJson(raw);
-    const cards = parsed?.cards || [];
-    if (cards.length === 0 && raw) {
-      // JSON 파싱 실패 시 원문을 단일 카드로
-      renderCard({ kind: 'AI', title: '제안', body: raw.slice(0, 500), cta: ['노트에 삽입','지나가기'] });
-    } else {
-      cards.forEach(renderCard);
-    }
+    (parsed?.cards || []).forEach(renderCard);
+    if (!parsed?.cards?.length && raw) renderCard({ kind: 'AI', title: '제안', body: raw.slice(0, 500), cta: ['노트에 삽입','지나가기'] });
   }
 
   function renderCard(card) {
@@ -1004,86 +1041,115 @@
       b.addEventListener('click', () => {
         if (i === 0 && card.body) {
           const line = appendLineToPage(`${card.title ? `[${card.title}] ` : ''}${card.body}`, { adopted: true });
-          state.session.lines.push({ t: now(), text: card.body, el: line, adopted: true });
+          state.session?.lines.push({ t: (Date.now() - (state.session?.startedAt || Date.now())), text: card.body, el: line, adopted: true });
           updateStats();
         }
-        el.style.opacity = 0;
-        setTimeout(() => el.remove(), 180);
+        el.style.opacity = 0; setTimeout(() => el.remove(), 180);
       });
       row.appendChild(b);
     });
     state.ui.cards.prepend(el);
-    state.session.cards.push(card);
+    state.session?.cards.push(card);
   }
 
   // ================================================================
-  // 10) 내보내기 (기존 페이지 내용 전체 기준)
+  // 12) 녹화 파일 저장 / 내보내기
   // ================================================================
-  function collectText() {
-    const page = pageEl(); if (!page) return '';
-    return Array.from(page.querySelectorAll('.jnp-lec-line')).map(p => {
-      const ts = p.getAttribute('data-ts') || '';
-      return ts ? `[${ts}] ${p.textContent}` : p.textContent;
-    }).join('\n');
+  function pickMime() {
+    const list = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm', 'audio/webm;codecs=opus', 'audio/webm'];
+    for (const m of list) if (MediaRecorder.isTypeSupported?.(m)) return m;
+    return 'video/webm';
+  }
+  async function saveRec(opt = {}) {
+    const chunks = opt.kind === 'screen' ? state.screenChunks : state.chunks;
+    if (!chunks?.length) return;
+    const blob = new Blob(chunks, { type: chunks[0].type });
+    const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const prefix = state.kind === 'lecture' ? 'lecture' : 'meeting';
+    const name = `${prefix}-${ts}${opt.kind === 'screen' ? '-screen' : ''}.webm`;
+    await writeToFolder(name, blob);
+  }
+  async function pickFolder() {
+    if (!('showDirectoryPicker' in window)) { toast('이 브라우저는 폴더 선택 미지원 — 다운로드로 대체'); return; }
+    try {
+      const handle = await window.showDirectoryPicker({ id: 'jnp-lec-dir', mode: 'readwrite' });
+      state.dirHandle = handle; await kvSet('dirHandle', handle); setFolderLabel(handle.name);
+      toast('저장 폴더: ' + handle.name);
+    } catch (e) { if (e.name !== 'AbortError') console.warn(e); }
+  }
+  async function writeToFolder(filename, blob) {
+    if (state.dirHandle) {
+      try {
+        const perm = await state.dirHandle.queryPermission?.({ mode: 'readwrite' });
+        if (perm !== 'granted') {
+          const req = await state.dirHandle.requestPermission?.({ mode: 'readwrite' });
+          if (req !== 'granted') throw new Error('no permission');
+        }
+        const fh = await state.dirHandle.getFileHandle(filename, { create: true });
+        const w = await fh.createWritable(); await w.write(blob); await w.close();
+        toast('저장: ' + filename); return true;
+      } catch (e) { console.warn('[fs write fallback]', e); }
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    toast('다운로드: ' + filename);
+    return false;
   }
 
+  function collectLines() {
+    const page = pageEl(); if (!page) return [];
+    return Array.from(page.querySelectorAll('.jnp-lec-line')).map(p => ({ ts: p.getAttribute('data-ts') || '', text: p.textContent }));
+  }
   async function exportAs(format) {
-    const kindTitle = state.kind === 'lecture' ? '강의노트' : '회의노트';
+    const kindTitle = L[state.kind].title;
     const title = (document.getElementById('padTitle')?.value || kindTitle);
-    const text = collectText();
+    const lines = collectLines();
+    const text = lines.map(l => l.ts ? `[${l.ts}] ${l.text}` : l.text).join('\n');
     const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
     const base = `${state.kind}-${ts}`;
-
     if (format === 'md' || format === 'txt') {
-      const body = format === 'md'
-        ? `# ${title}\n\n${text}\n\n---\n저장: ${new Date().toLocaleString('ko-KR')}\n`
-        : text;
-      await writeToFolder(`${base}.${format}`, new Blob([body], { type: format === 'md' ? 'text/markdown' : 'text/plain' }));
-      return;
+      const body = format === 'md' ? `# ${title}\n\n${text}\n\n---\n${new Date().toLocaleString('ko-KR')}\n` : text;
+      await writeToFolder(`${base}.${format}`, new Blob([body], { type: format === 'md' ? 'text/markdown' : 'text/plain' })); return;
     }
     if (format === 'json') {
-      const data = { title, kind: state.kind, startedAt: state.startedAt, lines: state.session.lines.map(l => ({ t: l.t, text: l.text })), cards: state.session.cards };
-      await writeToFolder(`${base}.json`, new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
-      return;
+      const data = { title, kind: state.kind, lines, cards: state.session?.cards || [] };
+      await writeToFolder(`${base}.json`, new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })); return;
     }
     if (format === 'docx') {
-      // 경량 HTML → docx-friendly .doc (Word 호환)
-      const html = `<html><head><meta charset="utf-8"><title>${escHtml(title)}</title></head><body>
-        <h1>${escHtml(title)}</h1>
-        <pre style="font-family:inherit;white-space:pre-wrap">${escHtml(text)}</pre>
-      </body></html>`;
+      const html = `<html><head><meta charset="utf-8"><title>${escHtml(title)}</title></head><body><h1>${escHtml(title)}</h1><pre style="font-family:inherit;white-space:pre-wrap">${escHtml(text)}</pre></body></html>`;
       await writeToFolder(`${base}.doc`, new Blob([html], { type: 'application/msword' }));
-      return;
     }
   }
 
   // ================================================================
-  // 11) Tick + Stats
+  // 13) Tick + Stats
   // ================================================================
   function startTick() {
     stopTick();
     const step = () => {
-      if (!state.recording) return;
-      if (state.ui.timeText) state.ui.timeText.textContent = fmtTime(now());
+      if (!state.session) return;
+      if (state.ui.timeText) state.ui.timeText.textContent = fmtTime(Date.now() - state.session.startedAt);
       state.tickHandle = requestAnimationFrame(step);
     };
     state.tickHandle = requestAnimationFrame(step);
   }
   function stopTick() { if (state.tickHandle) cancelAnimationFrame(state.tickHandle); state.tickHandle = null; }
-
   function updateStats() {
     if (!state.ui.stats) return;
-    state.ui.stats.textContent = `문장 ${state.session.lines.length}개 · 카드 ${state.session.cards.length}개 · ${fmtTime(now())}`;
+    const elapsed = state.session ? (Date.now() - state.session.startedAt) : 0;
+    state.ui.stats.textContent = `문장 ${state.session?.lines.length || 0} · 카드 ${state.session?.cards.length || 0} · ${fmtTime(elapsed)}`;
   }
 
   // ================================================================
-  // 12) 토픽바 버튼 2개
+  // 14) 토픽바 버튼
   // ================================================================
   function injectTopbarButtons() {
     if (document.getElementById('lectureTopBtn') && document.getElementById('meetingTopBtn')) return true;
     const anchor = document.getElementById('calOpenBtn') || document.getElementById('aiBtn') || document.getElementById('palBtn');
-    if (!anchor || !anchor.parentNode) return false;
-
+    if (!anchor?.parentNode) return false;
     const make = (id, label, iconId, kind) => {
       if (document.getElementById(id)) return null;
       const b = document.createElement('button');
@@ -1091,12 +1157,11 @@
       b.className = anchor.className || 'collapsible';
       b.setAttribute('aria-label', label);
       b.setAttribute('title', label);
-      b.innerHTML = `${svg(iconId, 16)}<span class="lbl" style="margin-left:4px">${label}</span>`;
+      b.innerHTML = `${svg(iconId, 16)}<span style="margin-left:4px">${label}</span>`;
       b.style.cssText = 'display:inline-flex;align-items:center;gap:4px;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis;';
       b.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); open(kind); });
       return b;
     };
-
     const b1 = make('lectureTopBtn', '강의노트', 'i-mic', 'lecture');
     const b2 = make('meetingTopBtn', '회의노트', 'i-speaker', 'meeting');
     if (b1) anchor.parentNode.insertBefore(b1, anchor.nextSibling);
@@ -1104,44 +1169,33 @@
     return true;
   }
 
-  // ================================================================
-  // 13) Command Palette
-  // ================================================================
   function tryRegisterPalette() {
     const pal = window.justanotepadPalette;
-    if (!pal || typeof pal.register !== 'function') return false;
-    pal.register({ id: 'lecture.open',  title: '강의노트 열기', keywords: ['lecture','강의','수업','녹음'], run: () => open('lecture') });
-    pal.register({ id: 'meeting.open',  title: '회의노트 열기', keywords: ['meeting','회의','녹음'], run: () => open('meeting') });
-    pal.register({ id: 'lecture.toggle-record', title: '녹음 시작/종료', keywords: ['녹음','record'], run: () => handle('toggle-record') });
-    pal.register({ id: 'lecture.pick-folder', title: '저장 폴더 선택', keywords: ['폴더','folder','저장경로'], run: () => handle('pick-folder') });
-    pal.register({ id: 'lecture.summary', title: 'AI 요약 만들기', keywords: ['요약','summary','ai'], run: () => runAI('summary') });
+    if (!pal?.register) return false;
+    pal.register({ id: 'lecture.open', title: '강의노트 열기', keywords: ['강의','수업','lecture'], run: () => open('lecture') });
+    pal.register({ id: 'meeting.open', title: '회의노트 열기', keywords: ['회의','meeting'], run: () => open('meeting') });
+    pal.register({ id: 'lecture.pick-folder', title: '강의노트 저장 폴더 선택', keywords: ['폴더','folder'], run: () => handle('pick-folder') });
     return true;
   }
 
-  // ================================================================
-  // 14) 부팅
-  // ================================================================
   function boot() {
     injectTopbarButtons() || setTimeout(boot, 400);
     tryRegisterPalette() || setTimeout(tryRegisterPalette, 600);
   }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', boot, { once: true });
-  } else {
-    boot();
-  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
+  else boot();
 
   // ================================================================
-  // 15) 전역 API
+  // 전역 API
   // ================================================================
   window.justanotepadLecture = {
-    __v: 3,
-    open, close,
+    __v: 4, open, close,
     toggle: (k) => state.open && state.kind === k ? close() : open(k),
     isOpen: () => state.open,
     isRecording: () => state.recording,
+    isSessionActive: () => !!state.session,
     _state: state,
   };
 
-  console.info('[lecture-mode] v3.0 ready · control-box · audio+video+screen+folder+ai');
+  console.info('[lecture-mode] v4.0 ready · 6 sections · split session/rec · camera PIP · meeting terms');
 })();
