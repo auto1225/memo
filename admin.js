@@ -421,6 +421,7 @@
         const role = document.querySelector('.u-role[data-id="'+id+'"]').value;
         const plan = document.querySelector('.u-plan[data-id="'+id+'"]').value;
         const { error } = await sb.from('profiles').update({ role, plan }).eq('id', id);
+        if (!error) logActivity('update', 'profiles', id, { role, plan });
         btn.textContent = error ? '실패' : '저장됨';
         setTimeout(() => { btn.textContent = '저장'; }, 1500);
       }));
@@ -428,6 +429,7 @@
         if (!confirm(`${btn.dataset.email} 프로필을 삭제하시겠어요? (auth.users는 그대로 남습니다)`)) return;
         const { error } = await sb.from('profiles').delete().eq('id', btn.dataset.id);
         if (error) { alert(error.message); return; }
+        logActivity('delete', 'profiles', btn.dataset.id, { email: btn.dataset.email });
         await load($('userSearch').value.trim());
       }));
     };
@@ -796,8 +798,41 @@
     </div>`;
   }
 
+  // Infer appropriate input type for a column name so renderCmsListCrud
+  // produces typed inputs (checkbox / datetime-local / number / textarea)
+  // instead of treating every column as free-text.
+  function inferFieldType(name) {
+    const BOOL_NAMES = new Set(['enabled','revoked','permanent','pinned','published','active','visible','hidden','no_index']);
+    if (BOOL_NAMES.has(name) || /^(is_|has_|allow_)/.test(name)) return 'boolean';
+    if (name === 'expires_at' || /(_at|_from|_to|_date)$/.test(name)) return 'datetime';
+    if (name === 'amount' || name === 'size_bytes' || /(_count|_uses|_order|sort_order)$/.test(name)) return 'number';
+    if (name === 'body' || name === 'answer' || name === 'memo' || name === 'description') return 'textarea';
+    if (/(^email$|_email$)/.test(name)) return 'email';
+    if (name === 'url' || /_url$/.test(name)) return 'url';
+    return 'text';
+  }
+
+  function formatCellValue(val, t) {
+    if (val == null || val === '') return '';
+    if (t === 'boolean') return val ? '<span class="badge paid">예</span>' : '<span class="badge trial">아니오</span>';
+    if (t === 'datetime') { try { return fmtDate(val); } catch { return escape(String(val)); } }
+    return escape(val.toString().slice(0, 80));
+  }
+
+  function renderFieldInput(f, t) {
+    if (t === 'boolean')  return `<label style="display:inline-flex;align-items:center;gap:8px;padding:6px 0;"><input type="checkbox" id="f-${f}"> 활성 / true</label>`;
+    if (t === 'datetime') return `<input id="f-${f}" type="datetime-local">`;
+    if (t === 'number')   return `<input id="f-${f}" type="number" step="any">`;
+    if (t === 'email')    return `<input id="f-${f}" type="email">`;
+    if (t === 'url')      return `<input id="f-${f}" type="url" placeholder="https://...">`;
+    if (t === 'textarea') return `<textarea id="f-${f}" rows="6"></textarea>`;
+    return `<input id="f-${f}">`;
+  }
+
   // ---- Generic list/CRUD helper --------------------------------------
-  async function renderCmsListCrud(table, fields, labelSingular, fieldLabels) {
+  async function renderCmsListCrud(table, fields, labelSingular, fieldLabels, opts) {
+    opts = opts || {};
+    const types = fields.map(inferFieldType);
     view.innerHTML = `
       <div class="panel">
         <div class="panel-title">${labelSingular} 목록
@@ -815,7 +850,7 @@
       <div class="panel" id="editWrap" style="display:none;">
         <div class="panel-title">편집 <button class="btn" id="btnCancel">취소</button></div>
         ${fields.map((f, i) => `
-          <div class="field"><label>${fieldLabels[i]}</label>${f === 'body' || f === 'answer' ? `<textarea id="f-${f}" rows="6"></textarea>` : `<input id="f-${f}">`}</div>
+          <div class="field"><label>${fieldLabels[i]}</label>${renderFieldInput(f, types[i])}</div>
         `).join('')}
         <div style="display:flex;gap:8px;"><button class="btn primary" id="btnSave">저장</button><button class="btn danger" id="btnDel" style="display:none;">삭제</button></div>
       </div>`;
@@ -831,7 +866,7 @@
     const renderList = (filter) => {
       const q = (filter || '').toLowerCase();
       const filtered = !q ? allRows
-        : allRows.filter(r => fields.some(f => (r[f]||'').toString().toLowerCase().includes(q)));
+        : allRows.filter(r => fields.some(f => (r[f]==null?'':r[f]).toString().toLowerCase().includes(q)));
       $('listWrap').innerHTML = filtered.length ? `
         <table class="t"><thead><tr>
           <th style="width:24px;"><input type="checkbox" id="gcSelAll"></th>
@@ -840,7 +875,7 @@
         <tbody>${filtered.map(row => `
           <tr>
             <td><input type="checkbox" class="gc-sel" data-id="${row.id}" ${selectedIds.has(row.id)?'checked':''}></td>
-            ${fields.map(f => `<td>${escape((row[f]==null?'':row[f]).toString().slice(0,80))}</td>`).join('')}
+            ${fields.map((f,i) => `<td>${formatCellValue(row[f], types[i])}</td>`).join('')}
             <td><button class="btn btn-e" data-id="${row.id}">편집</button></td>
           </tr>`).join('')}</tbody></table>
       ` : '<div style="color:var(--ink-soft);padding:20px;text-align:center;">항목 없음</div>';
@@ -864,23 +899,53 @@
     };
 
     const load = async () => {
-      const { data, error } = await sb.from(table).select('*').order('created_at', { ascending: false });
+      let query = sb.from(table).select('*').order('created_at', { ascending: false });
+      if (opts.keyPrefix) query = query.like('key', opts.keyPrefix + '%');
+      const { data, error } = await query;
       if (error) { $('listWrap').innerHTML = '<div style="color:var(--danger);">'+error.message+'</div>'; return; }
       allRows = data || [];
       selectedIds.clear();
       updateBulkBar();
       renderList($('gcSearch').value.trim());
     };
+
     const openEdit = (row) => {
       current = row;
       $('editWrap').style.display = 'block';
-      fields.forEach(f => $(`f-${f}`).value = row?.[f] || '');
+      fields.forEach((f, i) => {
+        const el = $(`f-${f}`);
+        if (!el) return;
+        const val = row?.[f];
+        const t = types[i];
+        if (t === 'boolean')       el.checked = !!val;
+        else if (t === 'datetime') el.value = val ? new Date(val).toISOString().slice(0,16) : '';
+        else                        el.value = (val == null ? '' : val);
+      });
+      // Pre-fill 'key' with prefix for new rows when scoped
+      if (!row && opts.keyPrefix) {
+        const keyEl = $('f-key');
+        if (keyEl) keyEl.value = opts.keyPrefix;
+      }
       $('btnDel').style.display = row ? 'inline-flex' : 'none';
     };
+
+    const buildPayload = () => {
+      const payload = {};
+      fields.forEach((f, i) => {
+        const el = $(`f-${f}`);
+        const t = types[i];
+        if (t === 'boolean')       payload[f] = !!el.checked;
+        else if (t === 'datetime') payload[f] = el.value ? new Date(el.value).toISOString() : null;
+        else if (t === 'number')   payload[f] = el.value === '' ? null : Number(el.value);
+        else                        payload[f] = el.value;
+      });
+      return payload;
+    };
+
     $('btnNew').addEventListener('click', () => openEdit(null));
     $('btnCancel').addEventListener('click', () => $('editWrap').style.display = 'none');
     $('btnSave').addEventListener('click', async () => {
-      const payload = {}; fields.forEach(f => payload[f] = $(`f-${f}`).value);
+      const payload = buildPayload();
       const res = current
         ? await sb.from(table).update(payload).eq('id', current.id).select().single()
         : await sb.from(table).insert(payload).select().single();
@@ -917,7 +982,7 @@
     return renderCmsListCrud('cms_board',
       ['title','category','author_email','body','is_pinned','is_visible'],
       '게시글',
-      ['제목','분류','작성자 이메일','본문','상단 고정 (true/false)','공개 (true/false)']
+      ['제목','분류','작성자 이메일','본문','상단 고정','공개']
     );
   }
 
@@ -1010,10 +1075,11 @@
         provider_txn_id: $('pf-txn').value,
         memo: $('pf-memo').value,
       };
-      const q = current ? sb.from('cms_payments').update(payload).eq('id', current.id)
-                        : sb.from('cms_payments').insert(payload);
-      const { error } = await q;
-      if (error) { alert(error.message); return; }
+      const res = current
+        ? await sb.from('cms_payments').update(payload).eq('id', current.id).select().single()
+        : await sb.from('cms_payments').insert(payload).select().single();
+      if (res.error) { alert(res.error.message); return; }
+      logActivity(current ? 'update' : 'insert', 'cms_payments', res.data?.id, payload);
       $('payEd').style.display='none';
       await load();
     });
@@ -1021,6 +1087,7 @@
       if (!confirm('이 결제 기록을 삭제하시겠어요?')) return;
       const { error } = await sb.from('cms_payments').delete().eq('id', current.id);
       if (error) { alert(error.message); return; }
+      logActivity('delete', 'cms_payments', current.id, current);
       $('payEd').style.display='none';
       await load();
     });
@@ -1101,10 +1168,11 @@
         memo: $('sf-memo').value,
       };
       if (!payload.code) { alert('코드 필수'); return; }
-      const q = current ? sb.from('cms_serials').update(payload).eq('id', current.id)
-                        : sb.from('cms_serials').insert(payload);
-      const { error } = await q;
-      if (error) { alert(error.message); return; }
+      const res = current
+        ? await sb.from('cms_serials').update(payload).eq('id', current.id).select().single()
+        : await sb.from('cms_serials').insert(payload).select().single();
+      if (res.error) { alert(res.error.message); return; }
+      logActivity(current ? 'update' : 'insert', 'cms_serials', res.data?.id, payload);
       $('srEd').style.display='none';
       await load();
     });
@@ -1112,6 +1180,7 @@
       if (!confirm('이 시리얼을 영구 삭제하시겠어요?')) return;
       const { error } = await sb.from('cms_serials').delete().eq('id', current.id);
       if (error) { alert(error.message); return; }
+      logActivity('delete', 'cms_serials', current.id, current);
       $('srEd').style.display='none';
       await load();
     });
@@ -1123,7 +1192,7 @@
     return renderCmsListCrud('cms_entitlements',
       ['feature_key','label','min_plan','enabled','note'],
       '기능 제한',
-      ['기능 키 (고유)','라벨','최소 플랜 (free/trial/paid)','활성 (true/false)','메모']
+      ['기능 키 (고유)','라벨','최소 플랜 (free/trial/paid)','활성','메모']
     );
   }
 
@@ -1136,36 +1205,20 @@
     );
   }
 
-  // ---- MODULE: 헤더 & 푸터 (cms_content 중 header.* / footer.*) ---
+  // ---- MODULE: 헤더 & 푸터 (cms_content 중 footer.*) --------------
   async function renderHeaderFooter() {
-    view.innerHTML = `
-      <div class="panel">
-        <div class="panel-title">헤더 & 푸터</div>
-        <p style="color:var(--ink-soft);font-size:12px;">네비게이션은 랜딩 → 네비게이션 메뉴에서 관리. 여기는 footer.* 키 전용.</p>
-      </div>
-      <div id="hfView"></div>`;
-    const wrap = $('hfView');
-    // Reuse renderCmsContent with prefix 'footer.'
-    const tmp = view.querySelector('.panel');
-    view.innerHTML = ''; view.appendChild(tmp); view.appendChild(wrap);
-    await renderCmsContent({ prefix: 'footer.', label: '푸터', desc: '푸터 텍스트/링크/카피라이트 등' });
+    await renderCmsContent({ prefix: 'footer.', label: '헤더 & 푸터 (footer.*)',
+      desc: '푸터 텍스트/링크/카피라이트 등. 네비게이션은 "랜딩 페이지 → 네비게이션"에서 관리합니다.' });
   }
 
   // ---- MODULE: 회원가입/로그인 설정 -------------------------------
+  // Scoped view over cms_settings — only rows with key starting with 'auth.'.
   async function renderAuthSettings() {
-    view.innerHTML = `
-      <div class="panel">
-        <div class="panel-title">회원가입/로그인 설정</div>
-        <p style="color:var(--ink-soft);font-size:12px;">아래 키들을 저장하면 <code>cms_settings</code>에 들어갑니다. 프론트에서 읽어 배너/공지로 활용.</p>
-      </div>
-      <div id="asView"></div>`;
-    const tmp = view.querySelector('.panel');
-    view.innerHTML = ''; view.appendChild(tmp); view.appendChild($('asView'));
-    // Reuse settings-style list but filtered to auth.*
     return renderCmsListCrud('cms_settings',
       ['key','value','note'],
       '인증 설정',
-      ['키 (예: auth.signup_enabled)','값','메모']
+      ['키 (예: auth.signup_enabled)','값','메모'],
+      { keyPrefix: 'auth.' }
     );
   }
 
@@ -1549,6 +1602,12 @@
           ${EXPORT_TABLES.map(t => `<code style="background:#f3f4f6;padding:3px 8px;border-radius:4px;font-size:11px;">${t}</code>`).join('')}
         </div>
       </div>
+
+      <div class="panel">
+        <div class="panel-title">시스템 진단 <button class="btn" id="bkDiag">전체 점검 실행</button></div>
+        <p style="color:var(--ink-soft);font-size:12px;">모든 CMS 테이블의 존재 여부, 읽기 가능 여부, 행 수를 확인합니다.</p>
+        <div id="bkDiagResult" style="margin-top:10px;"></div>
+      </div>
     `;
     const log = (msg, cls) => {
       const color = cls === 'err' ? 'var(--danger)' : cls === 'ok' ? 'var(--success)' : 'var(--ink-soft)';
@@ -1610,6 +1669,39 @@
       log('복원 완료.', 'ok');
       logActivity('update', 'backup', 'import', { file: file.name });
     });
+
+    $('bkDiag').addEventListener('click', async () => {
+      const CHECK_TABLES = EXPORT_TABLES.concat(['profiles']);
+      $('bkDiagResult').innerHTML = '<div style="color:var(--ink-soft);">점검 중…</div>';
+      const rows = [];
+      for (const t of CHECK_TABLES) {
+        const { count, error } = await sb.from(t).select('*', { count: 'exact', head: true });
+        if (error) {
+          rows.push({ table: t, ok: false, msg: error.message, count: null });
+        } else {
+          rows.push({ table: t, ok: true, msg: 'OK', count: count ?? 0 });
+        }
+      }
+      const passed = rows.filter(r => r.ok).length;
+      $('bkDiagResult').innerHTML = `
+        <div style="margin-bottom:10px;color:var(--ink-soft);font-size:12px;">
+          ${passed} / ${rows.length} 테이블 접근 가능
+        </div>
+        <table class="t">
+          <thead><tr><th>테이블</th><th>상태</th><th>행 수</th><th>메시지</th></tr></thead>
+          <tbody>
+            ${rows.map(r => `
+              <tr>
+                <td><code>${escape(r.table)}</code></td>
+                <td>${r.ok
+                  ? '<span class="badge paid">OK</span>'
+                  : '<span class="badge" style="background:#fde0e0;color:#b91c1c;">ERROR</span>'}</td>
+                <td>${r.count == null ? '—' : r.count.toLocaleString()}</td>
+                <td style="color:var(--ink-soft);font-size:11px;">${escape(r.msg)}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>`;
+    });
   }
 
   // ---- MODULE: 전역 검색 페이지 -----------------------------------
@@ -1635,10 +1727,13 @@
   }
 
   // ---- Topbar global search (Ctrl+K) ------------------------------
+  let _globalSearchWired = false;
   function wireGlobalSearch() {
+    if (_globalSearchWired) return;
     const input = $('globalSearch');
     const results = $('globalSearchResults');
     if (!input || !results) return;
+    _globalSearchWired = true;
     let t;
 
     document.addEventListener('keydown', (e) => {
