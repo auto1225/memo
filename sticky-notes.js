@@ -360,13 +360,29 @@
   // Tauri 데스크톱: 실제 OS 창(always-on-top, frameless) 생성 → 데스크톱 어디서든 사용 가능 + 재부팅 후 복원
   // 웹/브라우저: 페이지 내 플로팅 포스트잇 (폴백)
   // Tauri 지만 새 커맨드가 없는 구버전 앱: 자동으로 웹 폴백으로 전환
+  // 포스트잇 스폰 좌표를 stagger — 같은 자리에 겹쳐쌓이지 않도록.
+  // 매번 (+28, +28) 씩 밀어준다. 화면 밖으로 가면 다시 시작 위치로.
+  let __spawnOffset = 0;
+  function nextSpawnPos() {
+    const base = {
+      x: (window.screenX || 0) + 120,
+      y: (window.screenY || 0) + 120,
+    };
+    const step = 28;
+    const n = __spawnOffset++;
+    // 8개 이상이면 리셋 (너무 멀리 가지 않게)
+    const k = n % 8;
+    return { x: base.x + k * step, y: base.y + k * step };
+  }
+
   async function create(opts = {}) {
     if (isTauri) {
       const id = opts.id || ('postit-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6));
+      const pos = (opts.x == null && opts.y == null) ? nextSpawnPos() : { x: opts.x, y: opts.y };
       const args = {
         id,
-        x: opts.x ?? (window.screenX + 120),
-        y: opts.y ?? (window.screenY + 120),
+        x: pos.x,
+        y: pos.y,
         w: opts.w ?? 280,
         h: opts.h ?? 240,
         color: opts.color || randomColor(),
