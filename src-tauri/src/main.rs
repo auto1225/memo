@@ -358,14 +358,39 @@ fn spawn_postit_window(app: &tauri::AppHandle, p: &Postit) {
         let _ = w.set_focus();
         return;
     }
+
+    // 저장된 위치/크기가 현재 화면 밖이면 clamp (잘림 방지)
+    let (clamped_x, clamped_y, clamped_w, clamped_h) = {
+        let mut w = (p.w as i32).clamp(180, 1200);
+        let mut h = (p.h as i32).clamp(120, 1000);
+        let mut x = p.x;
+        let mut y = p.y;
+        // 기본 모니터 크기로 clamp (멀티모니터의 경우 완벽하지 않지만 안전)
+        if let Ok(Some(m)) = app.primary_monitor() {
+            let size = m.size();
+            let scale = m.scale_factor();
+            let screen_w = (size.width as f64 / scale) as i32;
+            let screen_h = (size.height as f64 / scale) as i32;
+            // 포스트잇이 화면보다 크지 않도록
+            if w > screen_w - 20 { w = (screen_w - 20).max(200); }
+            if h > screen_h - 60 { h = (screen_h - 60).max(150); }
+            // 창이 화면 밖으로 잘리지 않도록
+            if x + w > screen_w { x = (screen_w - w).max(0); }
+            if y + h > screen_h { y = (screen_h - h).max(0); }
+            if x < 0 { x = 10; }
+            if y < 0 { y = 40; }
+        }
+        (x, y, w as u32, h as u32)
+    };
+
     let url = format!(
         "https://justanotepad.com/app?mode=postit&id={}",
         urlencoding_encode(&p.id)
     );
     let builder = WebviewWindowBuilder::new(app, &p.id, WebviewUrl::External(url.parse().unwrap()))
         .title("포스트잇")
-        .inner_size(p.w as f64, p.h as f64)
-        .position(p.x as f64, p.y as f64)
+        .inner_size(clamped_w as f64, clamped_h as f64)
+        .position(clamped_x as f64, clamped_y as f64)
         .resizable(true)
         .always_on_top(true)
         .decorations(false)

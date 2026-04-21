@@ -21,6 +21,7 @@
     palette: '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r="1.3" fill="currentColor"/><circle cx="17.5" cy="10.5" r="1.3" fill="currentColor"/><circle cx="8.5" cy="7.5" r="1.3" fill="currentColor"/><circle cx="6.5" cy="12.5" r="1.3" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10a3 3 0 0 0 3-3c0-1.3-.2-2 .5-2.5 1-.7 1.5-1 3.5-1A3 3 0 0 0 22 12c0-5.5-4.5-10-10-10z"/></svg>',
     marker:  '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3l7 7-9 9-7-2 2-7z"/><line x1="5" y1="20" x2="3" y2="22"/></svg>',
     check:   '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/></svg>',
+    image:   '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>',
   };
 
   const url = new URL(location.href);
@@ -134,6 +135,8 @@
         <span style="width:1px;height:16px;background:rgba(0,0,0,0.1);margin:0 2px;align-self:center;"></span>
         <button data-cmd="insertUnorderedList" title="글머리">•</button>
         <button data-act="todo" title="체크리스트" style="display:inline-flex;align-items:center;justify-content:center;">${SVGS.check}</button>
+        <span style="width:1px;height:16px;background:rgba(0,0,0,0.1);margin:0 2px;align-self:center;"></span>
+        <button data-act="image" title="이미지 삽입 (Ctrl+V 로 붙여넣기도 가능)" style="display:inline-flex;align-items:center;justify-content:center;">${SVGS.image}</button>
       </div>
 
       <div id="postit-body" contenteditable="true" data-placeholder="여기에 입력…" style="
@@ -239,6 +242,79 @@
       '<div style="display:flex;align-items:center;gap:6px;"><input type="checkbox" style="margin:0;"/><span>&nbsp;</span></div>');
   }
 
+  // ---- 이미지 삽입 ----
+  // 포스트잇은 작은 창이므로 큰 이미지는 자동으로 max 400px 로 리사이즈.
+  // 사용자가 필요하면 body.innerHTML 편집 후 크기 조정 가능.
+  function insertImageFromFile() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.multiple = false;
+    input.onchange = () => {
+      const file = input.files && input.files[0];
+      if (file) loadAndInsertImage(file);
+    };
+    input.click();
+  }
+
+  async function loadAndInsertImage(file) {
+    if (!file.type.startsWith('image/')) { alert('이미지 파일만 삽입 가능합니다'); return; }
+    try {
+      const dataUrl = await new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result);
+        r.onerror = reject;
+        r.readAsDataURL(file);
+      });
+      const resized = await resizeImage(dataUrl, 400);
+      const body = document.getElementById('postit-body');
+      if (!body) return;
+      body.focus();
+      document.execCommand('insertHTML', false,
+        `<img src="${resized}" style="max-width:100%;height:auto;border-radius:4px;display:block;margin:4px 0;" alt=""><br>`);
+      // 입력 저장 트리거
+      body.dispatchEvent(new Event('input', { bubbles: true }));
+    } catch (e) { console.warn('[postit image]', e); alert('이미지 삽입 실패: ' + (e.message || e)); }
+  }
+
+  // 큰 이미지는 canvas 로 max 너비에 맞춰 리사이즈 (용량 절약)
+  function resizeImage(dataUrl, maxWidth) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        if (img.width <= maxWidth) return resolve(dataUrl);
+        const ratio = maxWidth / img.width;
+        const c = document.createElement('canvas');
+        c.width = maxWidth;
+        c.height = Math.round(img.height * ratio);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        // JPEG 로 압축 (원본이 PNG 라도)
+        const type = dataUrl.startsWith('data:image/png') && dataUrl.length < 100_000 ? 'image/png' : 'image/jpeg';
+        resolve(c.toDataURL(type, 0.85));
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
+    });
+  }
+
+  // 클립보드 이미지 붙여넣기 (Ctrl+V)
+  function installPasteImageHandler() {
+    const body = document.getElementById('postit-body');
+    if (!body) return;
+    body.addEventListener('paste', async (e) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const it of items) {
+        if (it.type.startsWith('image/')) {
+          e.preventDefault();
+          const file = it.getAsFile();
+          if (file) await loadAndInsertImage(file);
+          return;
+        }
+      }
+    });
+  }
+
   // ---- 입력 디바운스 저장 ----
   let saveTimer = null;
   function scheduleSave(content) {
@@ -289,6 +365,7 @@
       if (cmd) { body.focus(); document.execCommand(cmd); }
       else if (pop) { showPopover(btn, pop); }
       else if (act === 'todo') { insertCheckbox(); }
+      else if (act === 'image') { insertImageFromFile(); }
       scheduleSave(body.innerHTML);
     });
 
@@ -303,6 +380,9 @@
 
     // 체크박스 클릭도 저장 트리거
     body.addEventListener('change', () => scheduleSave(body.innerHTML));
+
+    // 클립보드 이미지 붙여넣기 (Ctrl+V) 지원
+    installPasteImageHandler();
   }
 
   // ---- 부팅 ----
