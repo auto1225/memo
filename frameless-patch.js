@@ -251,6 +251,28 @@
     async function forceCloseWindow(trigger) {
       const T = window.__TAURI__ || {};
       const C = window.Capacitor;
+
+      // ── 포스트잇 보호 가드 ──
+      // 데스크톱 포스트잇이 하나라도 열려 있으면, 메인 창은 hide 만 하고
+      // 프로세스는 유지. 이렇게 해야 커스텀 X 가 invoke/event/process-exit
+      // 어떤 경로를 타도 포스트잇이 같이 죽지 않는다.
+      try {
+        let hasPostit = false;
+        try {
+          const list = await (T.core && T.core.invoke && T.core.invoke('postit_list'));
+          if (Array.isArray(list) && list.length > 0) hasPostit = true;
+        } catch {}
+        if (hasPostit) {
+          try {
+            const w = T.window && T.window.getCurrentWindow && T.window.getCurrentWindow();
+            if (w && typeof w.hide === 'function') {
+              await w.hide();
+              return [{ name: 'main-hidden-to-tray (postit-guard)', ok: true }];
+            }
+          } catch (e) { console.warn('[postit-guard] hide failed', e); }
+        }
+      } catch {}
+
       const attempts = [
         ['T.window.getCurrentWindow().close',       async () => T.window && T.window.getCurrentWindow && T.window.getCurrentWindow().close()],
         ['T.webviewWindow.getCurrentWebviewWindow().close', async () => T.webviewWindow && T.webviewWindow.getCurrentWebviewWindow && T.webviewWindow.getCurrentWebviewWindow().close()],
@@ -287,7 +309,16 @@
       fresh.dataset.jnpRebound = '1';
       btn.parentNode.replaceChild(fresh, btn);
       fresh.addEventListener('click', async () => {
-        if (!window.confirm('메모장을 닫을까요? (내용은 자동 저장됩니다)')) return;
+        // 포스트잇 있으면 단순히 "숨김" 안내 (종료 아님)
+        let hasPostit = false;
+        try {
+          const list = await (window.__TAURI__?.core?.invoke?.('postit_list'));
+          hasPostit = Array.isArray(list) && list.length > 0;
+        } catch {}
+        const msg = hasPostit
+          ? '메인 창을 트레이로 숨깁니다.\n포스트잇은 바탕화면에 그대로 유지됩니다.\n완전 종료는 시스템 트레이 아이콘 우클릭 → "종료" 를 누르세요.\n\n계속?'
+          : '메모장을 닫을까요? (내용은 자동 저장됩니다)';
+        if (!window.confirm(msg)) return;
         const T = window.__TAURI__ || {};
         const tauriKeys = Object.keys(T).sort().join(', ') || '(none)';
         const windowKeys = T.window ? Object.keys(T.window).sort().join(', ') : '(no T.window)';
