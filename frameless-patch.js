@@ -309,35 +309,71 @@
       fresh.dataset.jnpRebound = '1';
       btn.parentNode.replaceChild(fresh, btn);
       fresh.addEventListener('click', async () => {
-        // 포스트잇 있으면 단순히 "숨김" 안내 (종료 아님)
+        // X 버튼은 즉시 동작.
+        // - 포스트잇 있으면: 메인 창만 hide 하고 프로세스 유지 (포스트잇 보존)
+        // - 포스트잇 없으면: forceCloseWindow → 프로세스 종료 가능
+        //
+        // ⚠ 과거엔 window.confirm() 다이얼로그로 먼저 묻고 OK 때만 hide 했는데,
+        // Tauri v2 WebView2 에서 confirm 이 blocking 되면 아무 반응 없이
+        // "X 버튼이 안 눌린다" 는 버그처럼 보였음. 다이얼로그 제거하고 즉시 동작.
+        // 대신 트레이 알림 토스트로 사용자에게 피드백.
+        const T = window.__TAURI__ || {};
+
+        // Tauri invoke 는 network 보다 느릴 때가 있어 timeout 으로 감싼다.
+        // 1초 안에 응답 없으면 "포스트잇 없다" 로 간주 → 정상 종료 시도.
+        const withTimeout = (p, ms, fallback) => Promise.race([
+          p,
+          new Promise(r => setTimeout(() => r(fallback), ms)),
+        ]);
+
         let hasPostit = false;
         try {
-          const list = await (window.__TAURI__?.core?.invoke?.('postit_list'));
+          const list = await withTimeout(
+            (T.core && T.core.invoke) ? T.core.invoke('postit_list') : Promise.resolve(null),
+            1000,
+            null
+          );
           hasPostit = Array.isArray(list) && list.length > 0;
         } catch {}
-        const msg = hasPostit
-          ? '메인 창을 트레이로 숨깁니다.\n포스트잇은 바탕화면에 그대로 유지됩니다.\n완전 종료는 시스템 트레이 아이콘 우클릭 → "종료" 를 누르세요.\n\n계속?'
-          : '메모장을 닫을까요? (내용은 자동 저장됩니다)';
-        if (!window.confirm(msg)) return;
-        const T = window.__TAURI__ || {};
-        const tauriKeys = Object.keys(T).sort().join(', ') || '(none)';
-        const windowKeys = T.window ? Object.keys(T.window).sort().join(', ') : '(no T.window)';
-        const report = await forceCloseWindow('rebound closeBtn');
-        // If we're still running 800ms later, show the diagnostic in an
-        // alert (user can screenshot it — no F12 needed).
+
+        if (hasPostit) {
+          // 단순 hide 로 끝 — 다이얼로그 없음
+          try {
+            const w = T.window && T.window.getCurrentWindow && T.window.getCurrentWindow();
+            if (w && typeof w.hide === 'function') {
+              await w.hide();
+              // 사용자가 "뭐 일어났지?" 안 되도록 작은 알림 (Tauri notification API)
+              try {
+                const N = T.notification;
+                if (N && N.sendNotification) {
+                  N.sendNotification({
+                    title: 'JustANotepad',
+                    body: '트레이로 숨김. 포스트잇은 유지됩니다.',
+                  });
+                }
+              } catch {}
+              return;
+            }
+          } catch (e) { console.warn('[X btn] hide 실패', e); }
+          // hide 실패 → forceCloseWindow 로 fallback
+        }
+
+        // 포스트잇 없거나 hide 실패 → 정상 종료 시도
+        const report = await forceCloseWindow('X btn');
+        // 500ms 안에 앱이 없어지지 않으면 — 진단 표시
         setTimeout(() => {
           if (document.hidden) return;
+          const tauriKeys = Object.keys(T).sort().join(', ') || '(none)';
+          const windowKeys = T.window ? Object.keys(T.window).sort().join(', ') : '(no T.window)';
           const lines = report.map(r =>
             (r.ok ? '✓ ' : '✗ ') + r.name + (r.err ? '  → ' + r.err : (r.ret ? '  → ok' : ''))
           ).join('\n');
-          window.alert(
-            '창 닫기 실패. 진단:\n\n' +
+          console.warn('[X btn] 창 닫기 실패 진단:\n' +
             '__TAURI__ keys: ' + tauriKeys + '\n' +
-            '__TAURI__.window keys: ' + windowKeys + '\n\n' +
-            '시도한 경로:\n' + lines + '\n\n' +
-            '이 내용 스크린샷해서 공유해주세요. 작업 관리자로 임시 종료 바랍니다.'
-          );
-        }, 800);
+            '__TAURI__.window keys: ' + windowKeys + '\n' +
+            lines);
+          // console 에만 로그. 모달 alert 은 또 사용자 gesture 필요라 생략.
+        }, 500);
       });
     }
     rebindCloseBtn();
