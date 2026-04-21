@@ -1363,8 +1363,8 @@
       b.className = anchor.className || 'collapsible';
       b.setAttribute('aria-label', label);
       b.setAttribute('title', label);
-      b.innerHTML = `${svg(iconId, 16)}<span style="margin-left:4px">${label}</span>`;
-      b.style.cssText = 'display:inline-flex;align-items:center;gap:4px;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis;';
+      // 앱 내 다른 토픽바 버튼들과 동일한 패턴: 아이콘만, 라벨은 툴팁
+      b.innerHTML = svg(iconId, 16);
       b.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); open(kind); });
       return b;
     };

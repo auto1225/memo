@@ -81,15 +81,11 @@ impl PostitStore {
 // 진짜 완전 종료는 트레이 메뉴 "종료"로만.
 #[tauri::command]
 fn force_quit(app: tauri::AppHandle) {
-    let has_postit = app.webview_windows().iter()
-        .any(|(label, _)| label.starts_with("postit-"));
-    if has_postit {
-        if let Some(w) = app.get_webview_window("main") {
-            let _ = w.hide();
-        }
-        return;
+    // 메인 창은 항상 hide. 완전 종료는 트레이 "종료" 메뉴에서만 가능.
+    // (커스텀 X 버튼이 이 커맨드를 호출해도 포스트잇·프로세스 모두 유지)
+    if let Some(w) = app.get_webview_window("main") {
+        let _ = w.hide();
     }
-    std::process::exit(0);
 }
 
 // ────────── 포스트잇 명령 ──────────
@@ -254,19 +250,12 @@ fn main() {
                 restore_all_postits(&handle);
             });
 
-            // Listen for a Tauri event-bus exit request. 포스트잇이 있으면
-            // 메인 창만 숨기고 프로세스는 유지 (포스트잇 보호).
+            // 이벤트 버스 경로도 동일: 메인은 무조건 hide, 완전 종료는 트레이에서만.
             let quit_handle = app.handle().clone();
             app.listen_any("jnp://force-quit", move |_event| {
-                let has_postit = quit_handle.webview_windows().iter()
-                    .any(|(label, _)| label.starts_with("postit-"));
-                if has_postit {
-                    if let Some(w) = quit_handle.get_webview_window("main") {
-                        let _ = w.hide();
-                    }
-                    return;
+                if let Some(w) = quit_handle.get_webview_window("main") {
+                    let _ = w.hide();
                 }
-                std::process::exit(0);
             });
             // 시스템 트레이 메뉴
             let open_main = MenuItem::with_id(app, "open_main", "JustANotepad 열기", true, None::<&str>)?;
@@ -342,29 +331,14 @@ fn main() {
             //   3) 200ms 뒤에도 프로세스가 살아있으면 abort()로 강제 종료
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 if window.label() == "main" {
-                    let handle = window.app_handle().clone();
-                    // 포스트잇이 하나라도 살아있으면 → 프로세스는 유지, 메인 창만 숨김.
-                    // 사용자는 시스템 트레이에서 "종료"로만 완전 종료 가능.
-                    let has_postit = handle.webview_windows().iter()
-                        .any(|(label, _)| label.starts_with("postit-"));
-                    if has_postit {
-                        api.prevent_close();
-                        let _ = window.hide();
-                        return;
-                    }
-                    // 포스트잇 없으면 종전과 동일하게 프로세스 완전 종료
-                    for (_, w) in handle.webview_windows() {
-                        let _ = w.destroy();
-                    }
-                    std::thread::spawn(|| {
-                        std::thread::sleep(std::time::Duration::from_millis(200));
-                        std::process::abort();
-                    });
-                    std::process::exit(0);
+                    // 메인 창은 항상 hide 로 처리. 완전 종료는 트레이 "종료" 메뉴만.
+                    // (포스트잇 생존 보장 + 트레이 앱 표준 동작)
+                    api.prevent_close();
+                    let _ = window.hide();
+                    return;
                 }
-                // 포스트잇 창을 X 버튼으로 닫는 경우 → 창은 사라지지만 postits.json 에는 남음.
-                // 사용자가 트레이에서 "JustANotepad 열기" 하면 다음 부팅 시 복원됨.
-                // "삭제"는 포스트잇 UI의 ✕ 버튼(postit_close)으로만 가능.
+                // 포스트잇 창을 X 버튼으로 닫으면: 창은 사라지지만 postits.json 에는 남음.
+                // 앱 재시작 시 자동 복원. 완전 삭제는 포스트잇 UI의 X 버튼(postit_close).
             }
         })
         .invoke_handler(tauri::generate_handler![
