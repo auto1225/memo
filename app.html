@@ -2,6 +2,35 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8" />
+<!-- ═══════════════════════════════════════════════════════════════════════
+     Postit mode EARLY detection — must run BEFORE any other script so
+     app.html's heavy init doesn't block or error out the postit window.
+     v1.0.26 binary still opens /app?mode=postit&id=X (v1.0.27+ uses dedicated
+     /postit page). This early script makes /app?mode=postit reliably work
+     by redirecting to the dedicated page ASAP.
+     ═══════════════════════════════════════════════════════════════════════ -->
+<script>
+  (function earlyPostitDetect() {
+    try {
+      var params = new URLSearchParams(location.search);
+      if (params.get('mode') !== 'postit') return;
+      // /app?mode=postit → /postit?id=X 로 즉시 리다이렉트.
+      // /postit 에는 포스트잇 전용 최소 스크립트만 있어서 훨씬 안정적.
+      if (!/\/postit(\.html)?(\?|$)/.test(location.pathname)) {
+        var id = params.get('id') || ('p' + Date.now());
+        var color = params.get('color') || '';
+        var newUrl = '/postit?mode=postit&id=' + encodeURIComponent(id);
+        if (color) newUrl += '&color=' + encodeURIComponent(color);
+        // replace 로 history 에 남기지 않음
+        location.replace(newUrl);
+        // 리다이렉트 중 빈 화면 대신 노란색 로딩 화면 표시
+        document.documentElement.innerHTML =
+          '<head><style>html,body{margin:0;height:100%;background:#fff6a5;font-family:-apple-system,"Segoe UI","Malgun Gothic",sans-serif;}.ld{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(0,0,0,0.4);font-size:12px;}</style></head>' +
+          '<body><div class="ld">포스트잇 로딩 중…</div></body>';
+      }
+    } catch (e) { /* 무시 — 포스트잇이 아니면 이 함수가 아무것도 안 함 */ }
+  })();
+</script>
 <!-- Native wrapper detection (must run before body renders to avoid FOUC).
      Detects Tauri desktop, Capacitor Android/iOS, and standalone PWAs so
      the .pad container fills the full viewport on first paint. -->
