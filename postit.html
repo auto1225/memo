@@ -136,39 +136,42 @@
   // 첫 포스트잇은 타이밍이 맞아 고쳐지는데 두 번째부터 실패 → Tauri API
   // 준비 지연일 가능성. 여러 번 재시도 + 다양한 트리거 추가.
   window.__compositingFixAttempts = 0;
-  var compositingFixDone = false;
 
+  // hide/show 대신 size nudge 로 repaint 강제.
+  // hide/show 는 focus/always_on_top 상호작용 때문에 다른 postit 에 영향을 줌.
+  // size 1px 변경은 focus 를 건드리지 않고 DWM repaint 만 유발해서 부작용 없음.
   function compositingFixOnce() {
     var w = currentWindow();
-    if (!w) return Promise.resolve(false);
+    var T = window.__TAURI__;
+    if (!w || !T || !T.window) return Promise.resolve();
     window.__compositingFixAttempts++;
+    var LogicalSize = T.window.LogicalSize;
+    var origW = window.innerWidth, origH = window.innerHeight;
     return Promise.resolve()
       .then(function(){ return w.setShadow && w.setShadow(false); })
-      .catch(function(e){ console.warn('[postit] setShadow err', e); })
-      .then(function(){ return w.hide && w.hide(); })
-      .catch(function(e){ console.warn('[postit] hide err', e); })
-      .then(function(){ return new Promise(function(r){ setTimeout(r, 80); }); })
-      .then(function(){ return w.show && w.show(); })
-      .then(function(){ return w.setFocus && w.setFocus(); })
       .catch(function(){})
-      .then(function(){ return true; });
+      .then(function(){
+        if (!LogicalSize) return;
+        return w.setSize(new LogicalSize(origW + 1, origH));
+      })
+      .catch(function(){})
+      .then(function(){ return new Promise(function(r){ setTimeout(r, 40); }); })
+      .then(function(){
+        if (!LogicalSize) return;
+        return w.setSize(new LogicalSize(origW, origH));
+      })
+      .catch(function(){});
   }
 
-  // 여러 번 재시도 — 300ms 에 딱 한 번만. hide/show 는 focus 이벤트를 발동시키므로
-  // focus/visibility 리스너를 쓰면 무한 루프가 됨 (156회 재실행되는 것을 목격).
-  // 한 번이면 충분.
+  // 3번 시도 — 타이밍이 달라서 하나는 맞음. focus/visibility 리스너 쓰지 않음 (무한 루프).
   function scheduleCompositingFixes() {
-    setTimeout(function() {
-      if (compositingFixDone) return;
-      compositingFixOnce().then(function() { compositingFixDone = true; });
-    }, 300);
+    setTimeout(compositingFixOnce, 150);
+    setTimeout(compositingFixOnce, 800);
+    setTimeout(compositingFixOnce, 2000);
   }
 
   if (document.readyState === 'complete') scheduleCompositingFixes();
   else window.addEventListener('load', scheduleCompositingFixes, { once: true });
-
-  // NB: 절대 focus/visibility 리스너에서 compositingFixOnce 호출하지 말 것.
-  // hide()→show() 가 자체적으로 focus 이벤트를 발동시켜 무한 루프가 됨.
 
   // 색상 적용
   function applyColor(name) {
