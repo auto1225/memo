@@ -308,72 +308,35 @@
       const fresh = btn.cloneNode(true);
       fresh.dataset.jnpRebound = '1';
       btn.parentNode.replaceChild(fresh, btn);
-      fresh.addEventListener('click', async () => {
-        // X 버튼은 즉시 동작.
-        // - 포스트잇 있으면: 메인 창만 hide 하고 프로세스 유지 (포스트잇 보존)
-        // - 포스트잇 없으면: forceCloseWindow → 프로세스 종료 가능
+      fresh.addEventListener('click', () => {
+        // X 버튼은 클릭 즉시 "hide" 를 동기적으로 호출.
+        // 어떤 async/await 도 먼저 쓰지 않아서 Tauri 응답 지연으로 X 가 먹통처럼
+        // 보이는 문제를 없앰.
         //
-        // ⚠ 과거엔 window.confirm() 다이얼로그로 먼저 묻고 OK 때만 hide 했는데,
-        // Tauri v2 WebView2 에서 confirm 이 blocking 되면 아무 반응 없이
-        // "X 버튼이 안 눌린다" 는 버그처럼 보였음. 다이얼로그 제거하고 즉시 동작.
-        // 대신 트레이 알림 토스트로 사용자에게 피드백.
+        // 정책: 앱 X → 항상 hide() (프로세스 살려서 포스트잇 + 트레이 유지).
+        //      완전 종료는 트레이 아이콘 우클릭 → 종료.
+        //
+        // hide() 가 어떤 이유로 실패하면 forceCloseWindow 체인으로 fallback
+        // (여기는 await 가능 — 이미 UI 에 즉각 반응은 한 상태).
         const T = window.__TAURI__ || {};
-
-        // Tauri invoke 는 network 보다 느릴 때가 있어 timeout 으로 감싼다.
-        // 1초 안에 응답 없으면 "포스트잇 없다" 로 간주 → 정상 종료 시도.
-        const withTimeout = (p, ms, fallback) => Promise.race([
-          p,
-          new Promise(r => setTimeout(() => r(fallback), ms)),
-        ]);
-
-        let hasPostit = false;
+        let hidden = false;
         try {
-          const list = await withTimeout(
-            (T.core && T.core.invoke) ? T.core.invoke('postit_list') : Promise.resolve(null),
-            1000,
-            null
-          );
-          hasPostit = Array.isArray(list) && list.length > 0;
-        } catch {}
+          const w = T.window && T.window.getCurrentWindow && T.window.getCurrentWindow();
+          if (w && typeof w.hide === 'function') {
+            // hide() 는 Promise 반환하지만 await 안 함 — 결과 기다리지 않고 즉시 반환
+            w.hide().catch(err => console.warn('[X btn] hide 실패', err));
+            hidden = true;
+          }
+        } catch (e) { console.warn('[X btn] hide 호출 실패', e); }
 
-        if (hasPostit) {
-          // 단순 hide 로 끝 — 다이얼로그 없음
-          try {
-            const w = T.window && T.window.getCurrentWindow && T.window.getCurrentWindow();
-            if (w && typeof w.hide === 'function') {
-              await w.hide();
-              // 사용자가 "뭐 일어났지?" 안 되도록 작은 알림 (Tauri notification API)
-              try {
-                const N = T.notification;
-                if (N && N.sendNotification) {
-                  N.sendNotification({
-                    title: 'JustANotepad',
-                    body: '트레이로 숨김. 포스트잇은 유지됩니다.',
-                  });
-                }
-              } catch {}
-              return;
-            }
-          } catch (e) { console.warn('[X btn] hide 실패', e); }
-          // hide 실패 → forceCloseWindow 로 fallback
-        }
+        // hide 호출 성공하면 끝. (포스트잇은 자기들 창에서 그대로 유지)
+        if (hidden) return;
 
-        // 포스트잇 없거나 hide 실패 → 정상 종료 시도
-        const report = await forceCloseWindow('X btn');
-        // 500ms 안에 앱이 없어지지 않으면 — 진단 표시
-        setTimeout(() => {
-          if (document.hidden) return;
-          const tauriKeys = Object.keys(T).sort().join(', ') || '(none)';
-          const windowKeys = T.window ? Object.keys(T.window).sort().join(', ') : '(no T.window)';
-          const lines = report.map(r =>
-            (r.ok ? '✓ ' : '✗ ') + r.name + (r.err ? '  → ' + r.err : (r.ret ? '  → ok' : ''))
-          ).join('\n');
-          console.warn('[X btn] 창 닫기 실패 진단:\n' +
-            '__TAURI__ keys: ' + tauriKeys + '\n' +
-            '__TAURI__.window keys: ' + windowKeys + '\n' +
-            lines);
-          // console 에만 로그. 모달 alert 은 또 사용자 gesture 필요라 생략.
-        }, 500);
+        // hide 가 없으면 force close 체인 시도 (비동기)
+        (async () => {
+          try { await forceCloseWindow('X btn (no hide)'); }
+          catch (e) { console.warn('[X btn] force close 실패', e); }
+        })();
       });
     }
     rebindCloseBtn();

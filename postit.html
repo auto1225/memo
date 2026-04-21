@@ -1,94 +1,302 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>포스트잇</title>
-  <meta name="robots" content="noindex, nofollow">
-  <style>
-    /* 포스트잇 전용 최소 스타일 — 앱 스크립트 / CSS 하나도 안 로드함 */
-    html, body {
-      margin: 0; padding: 0; height: 100vh; overflow: hidden;
-      background: transparent;
-      font: 14px/1.5 -apple-system, "Segoe UI", "Malgun Gothic", "맑은 고딕", sans-serif;
-      color: rgba(0,0,0,0.85);
-    }
-    /* 스크립트 로딩 전 흰 화면 방지: 기본 노란 배경 + 로딩 표시 */
-    body { background: #fff6a5; }
-    #loading {
-      position: fixed; inset: 0;
-      display: flex; align-items: center; justify-content: center;
-      color: rgba(0,0,0,0.4); font-size: 12px;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>포스트잇</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+  /* 포스트잇 전용 최소 스타일 — self-contained, 외부 CSS 로딩 없음 */
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; height:100vh; width:100vw; overflow:hidden;
+    font: 14px/1.5 -apple-system, "Segoe UI", "Malgun Gothic", "맑은 고딕", sans-serif;
+    color: rgba(0,0,0,0.85); background: transparent; }
+  #root { position:fixed; inset:0; display:flex; flex-direction:column;
+    background: #fff6a5; border: 1px solid #f0dd55; overflow:hidden; }
+  #head { background:#fae77c; padding:4px 8px; display:flex; align-items:center;
+    gap:4px; cursor:move; user-select:none; min-height:22px; font:600 11px/1 inherit;
+    color:rgba(0,0,0,0.7); flex-shrink:0; }
+  #head .title { flex:1; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+  #head button { background:transparent; border:0; cursor:pointer; padding:4px 8px;
+    color:inherit; display:inline-flex; align-items:center; justify-content:center;
+    border-radius:3px; min-width:24px; min-height:22px; }
+  #head button:hover { background:rgba(0,0,0,0.1); }
+  #toolbar { display:flex; gap:3px; padding:4px 6px;
+    border-bottom:1px solid rgba(0,0,0,0.08); background:#fae77c;
+    flex-wrap:wrap; flex-shrink:0; }
+  #toolbar button { background:rgba(255,255,255,0.55); border:1px solid rgba(0,0,0,0.08);
+    cursor:pointer; padding:3px 7px; border-radius:4px; font:600 11px/1 inherit;
+    color:rgba(0,0,0,0.7); min-width:24px; min-height:24px;
+    display:inline-flex; align-items:center; justify-content:center; }
+  #toolbar button:hover { background:rgba(255,255,255,0.9); color:rgba(0,0,0,0.95); }
+  #body { flex:1; padding:10px 14px; outline:none; overflow:auto;
+    word-break:break-word; }
+  #body:empty::before { content:'여기에 입력…'; color:rgba(0,0,0,0.32); }
+  #foot { display:flex; align-items:center; gap:5px; padding:4px 8px;
+    border-top:1px dashed rgba(0,0,0,0.12); background:rgba(0,0,0,0.04);
+    flex-shrink:0; }
+  .sw { width:14px; height:14px; border-radius:50%; cursor:pointer;
+    border:1px solid rgba(0,0,0,0.15); flex-shrink:0; }
+  .sw:hover { transform:scale(1.15); }
+  #pop { position:fixed; z-index:100; background:#fff;
+    border:1px solid rgba(0,0,0,0.15); border-radius:6px;
+    box-shadow:0 4px 16px rgba(0,0,0,0.15); padding:6px; display:flex; gap:4px; }
+  #pop .sw { width:20px; height:20px; }
+</style>
 </head>
 <body>
-  <!-- 스크립트가 mount 되기 전 최소 표시 -->
-  <div id="loading">포스트잇 로딩 중…</div>
+<div id="root">
+  <div id="head" data-tauri-drag-region>
+    <span class="title" data-tauri-drag-region>포스트잇</span>
+    <button id="btn-z" title="맨위/일반/아래">
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="4" x2="20" y2="4"/><polyline points="6 12 12 6 18 12"/><line x1="12" y1="6" x2="12" y2="20"/></svg>
+    </button>
+    <button id="btn-min" title="최소화">
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="18" x2="19" y2="18"/></svg>
+    </button>
+    <button id="btn-close" title="삭제">
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>
+    </button>
+  </div>
+  <div id="toolbar">
+    <button data-cmd="bold" title="굵게"><b>B</b></button>
+    <button data-cmd="italic" title="기울임"><i>I</i></button>
+    <button data-cmd="underline" title="밑줄"><u>U</u></button>
+    <button data-pop="color" title="글자색">
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="13.5" cy="6.5" r="1.3" fill="currentColor"/><circle cx="17.5" cy="10.5" r="1.3" fill="currentColor"/><circle cx="8.5" cy="7.5" r="1.3" fill="currentColor"/><circle cx="6.5" cy="12.5" r="1.3" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10a3 3 0 0 0 3-3c0-1.3-.2-2 .5-2.5 1-.7 1.5-1 3.5-1A3 3 0 0 0 22 12c0-5.5-4.5-10-10-10z"/></svg>
+    </button>
+    <button data-cmd="insertUnorderedList" title="글머리">•</button>
+    <button data-act="todo" title="체크리스트">
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/></svg>
+    </button>
+    <button data-act="image" title="이미지 삽입">
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+    </button>
+  </div>
+  <div id="body" contenteditable="true"></div>
+  <div id="foot">
+    <span class="sw" data-color="yellow"   style="background:#fff6a5;"></span>
+    <span class="sw" data-color="pink"     style="background:#ffd6e0;"></span>
+    <span class="sw" data-color="mint"     style="background:#c6f0dc;"></span>
+    <span class="sw" data-color="sky"      style="background:#cfe8ff;"></span>
+    <span class="sw" data-color="lavender" style="background:#e3d6ff;"></span>
+    <span class="sw" data-color="peach"    style="background:#ffd8c0;"></span>
+  </div>
+</div>
 
-  <!-- URL 이 ?mode=postit 가 아니면 postit-desktop.js 가 종료하므로 force -->
-  <script>
-    // postit-desktop.js 는 URL 에 mode=postit 가 있어야 활성화됨.
-    // 이 페이지는 전용 페이지라 URL 에 없을 수도 있으니 강제로 주입.
+<script>
+(function() {
+  'use strict';
+
+  // URL 에서 id / color 추출. id 없으면 임시 id.
+  var params = new URLSearchParams(location.search);
+  var ID = params.get('id') || 'standalone-' + Date.now();
+  var COLOR = params.get('color') || 'yellow';
+
+  var COLORS = {
+    yellow:   { bg:'#fff6a5', border:'#f0dd55', head:'#fae77c' },
+    pink:     { bg:'#ffd6e0', border:'#f298b0', head:'#fbb8ca' },
+    mint:     { bg:'#c6f0dc', border:'#7fcaa6', head:'#a8e4c7' },
+    sky:      { bg:'#cfe8ff', border:'#7fb9e6', head:'#b5d8f5' },
+    lavender: { bg:'#e3d6ff', border:'#a98fe0', head:'#cfbdf5' },
+    peach:    { bg:'#ffd8c0', border:'#e89975', head:'#fabca0' },
+  };
+
+  var TEXT_COLORS = ['#111','#e53935','#fb8c00','#f9a825','#43a047','#1e88e5','#8e24aa'];
+
+  var root = document.getElementById('root');
+  var body = document.getElementById('body');
+  var head = document.getElementById('head');
+  var toolbar = document.getElementById('toolbar');
+  var foot = document.getElementById('foot');
+
+  // Tauri 접근 (전역 withGlobalTauri 활성화됨)
+  function invoke(cmd, args) {
     try {
-      const u = new URL(location.href);
-      if (u.searchParams.get('mode') !== 'postit') {
-        u.searchParams.set('mode', 'postit');
-        history.replaceState(null, '', u.toString());
+      if (window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke) {
+        return window.__TAURI__.core.invoke(cmd, args).catch(function(e){
+          console.warn('[postit invoke]', cmd, e); return null;
+        });
       }
-      if (!u.searchParams.get('id')) {
-        // id 없으면 임시 id 부여 (Tauri 에서는 항상 id 를 넘겨줌)
-        u.searchParams.set('id', 'standalone-' + Date.now());
-        history.replaceState(null, '', u.toString());
-      }
-    } catch (e) { console.warn('[postit.html] URL 조정 실패', e); }
-  </script>
+    } catch (e) { console.warn('[postit invoke sync]', cmd, e); }
+    return Promise.resolve(null);
+  }
+  function currentWindow() {
+    try { return window.__TAURI__ && window.__TAURI__.window && window.__TAURI__.window.getCurrentWindow && window.__TAURI__.window.getCurrentWindow(); }
+    catch (e) { return null; }
+  }
 
-  <!-- 전역 에러 감지: postit-desktop.js 로딩/실행 실패 시 사용자에게 표시 -->
-  <script>
-    window.addEventListener('error', function (ev) {
-      const root = document.getElementById('postit-root');
-      if (root) return; // UI 가 이미 뜬 상태면 무시
-      const l = document.getElementById('loading');
-      if (l) {
-        l.innerHTML =
-          '<div style="padding:20px;max-width:90%;">' +
-          '<p style="color:#c00;margin:0 0 8px;font-weight:600;">포스트잇 로딩 실패</p>' +
-          '<p style="margin:0 0 8px;font-size:11px;color:#666;word-break:break-all;">' +
-          ((ev.error && ev.error.message) || ev.message || 'unknown').replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])) +
-          '</p>' +
-          '<button onclick="location.reload()" style="padding:4px 10px;cursor:pointer;">다시 시도</button>' +
-          '</div>';
-      }
-    });
-  </script>
+  // 색상 적용
+  function applyColor(name) {
+    var c = COLORS[name] || COLORS.yellow;
+    root.style.background = c.bg;
+    root.style.borderColor = c.border;
+    head.style.background = c.head;
+    toolbar.style.background = c.head;
+    COLOR = name;
+  }
+  applyColor(COLOR);
 
-  <!-- 캐시 우회 위해 ?v= 버전 파라미터 -->
-  <script src="/postit-desktop.js?v=2"></script>
-
-  <!-- postit-desktop.js 가 root 를 만든 뒤 로딩 인디케이터 제거 -->
-  <script>
-    (function watchMount() {
-      const start = Date.now();
-      const t = setInterval(() => {
-        if (document.getElementById('postit-root')) {
-          const l = document.getElementById('loading');
-          if (l) l.remove();
-          clearInterval(t);
-        } else if (Date.now() - start > 6000) {
-          // 6초 지나도 안 뜨면 에러 표시
-          const l = document.getElementById('loading');
-          if (l && l.innerText.trim() === '포스트잇 로딩 중…') {
-            l.innerHTML =
-              '<div style="padding:20px;max-width:90%;">' +
-              '<p style="color:#c00;margin:0 0 8px;font-weight:600;">포스트잇 스크립트가 응답하지 않습니다</p>' +
-              '<button onclick="location.reload()" style="padding:4px 10px;cursor:pointer;">다시 시도</button>' +
-              '</div>';
-          }
-          clearInterval(t);
+  // 초기 콘텐츠 로드 (Rust 쪽 postit_list 에서 해당 id 찾아 content 주입)
+  invoke('postit_list').then(function(list) {
+    if (Array.isArray(list)) {
+      for (var i=0; i<list.length; i++) {
+        if (list[i].id === ID) {
+          if (list[i].color) applyColor(list[i].color);
+          if (list[i].content) body.innerHTML = list[i].content;
+          break;
         }
-      }, 200);
-    })();
-  </script>
+      }
+    }
+    if (!body.textContent.trim()) body.focus();
+  }).catch(function(){});
+
+  // ---- 드래그: pointerdown 에서 Tauri startDragging 명시 호출 ----
+  head.addEventListener('pointerdown', function(e) {
+    if (e.target.closest('button, input, [contenteditable]')) return;
+    var w = currentWindow();
+    if (w && w.startDragging) w.startDragging().catch(function(){});
+  });
+
+  // ---- 저장 (디바운스) ----
+  var saveTimer = null;
+  function scheduleSave() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(function() {
+      invoke('postit_update', { id: ID, content: body.innerHTML });
+    }, 400);
+  }
+  body.addEventListener('input', scheduleSave);
+  body.addEventListener('change', scheduleSave);
+
+  // ---- 헤더 버튼 ----
+  // X 클릭 즉시 창 닫기. confirm() 은 쓰지 않음 (Tauri 웹뷰에서 블로킹 우려).
+  // postit_close 로 Rust 쪽 저장소에서도 제거, 그 결과와 무관하게 창은 close().
+  document.getElementById('btn-close').addEventListener('click', function() {
+    invoke('postit_close', { id: ID });
+    var w = currentWindow();
+    if (w && w.close) { w.close().catch(function(){}); }
+    else { setTimeout(function(){ window.close(); }, 100); }
+  });
+  document.getElementById('btn-min').addEventListener('click', function() {
+    body.style.display = (body.style.display === 'none') ? '' : 'none';
+    toolbar.style.display = body.style.display === 'none' ? 'none' : '';
+    foot.style.display = body.style.display === 'none' ? 'none' : '';
+  });
+  var zState = 'top';
+  document.getElementById('btn-z').addEventListener('click', function() {
+    zState = zState === 'top' ? 'normal' : zState === 'normal' ? 'bottom' : 'top';
+    invoke('postit_set_z_order', { id: ID, state: zState });
+  });
+
+  // ---- 툴바 ----
+  toolbar.addEventListener('click', function(e) {
+    var btn = e.target.closest('button');
+    if (!btn) return;
+    e.stopPropagation();
+    var cmd = btn.dataset.cmd;
+    var pop = btn.dataset.pop;
+    var act = btn.dataset.act;
+    if (cmd) { body.focus(); document.execCommand(cmd); }
+    else if (pop === 'color') { showPop(btn); }
+    else if (act === 'todo') {
+      body.focus();
+      document.execCommand('insertHTML', false,
+        '<div style="display:flex;align-items:center;gap:6px;"><input type="checkbox" style="margin:0;"/><span>&nbsp;</span></div>');
+    }
+    else if (act === 'image') { pickImage(); }
+    scheduleSave();
+  });
+
+  // 글자색 팝오버
+  var popEl = null;
+  function showPop(anchor) {
+    closePop();
+    var p = document.createElement('div');
+    p.id = 'pop';
+    for (var i=0; i<TEXT_COLORS.length; i++) {
+      (function(col) {
+        var s = document.createElement('span');
+        s.className = 'sw';
+        s.style.background = col;
+        s.addEventListener('click', function() {
+          document.execCommand('foreColor', false, col);
+          body.focus();
+          closePop();
+          scheduleSave();
+        });
+        p.appendChild(s);
+      })(TEXT_COLORS[i]);
+    }
+    var r = anchor.getBoundingClientRect();
+    p.style.left = r.left + 'px';
+    p.style.top = (r.bottom + 3) + 'px';
+    document.body.appendChild(p);
+    popEl = p;
+    setTimeout(function() { document.addEventListener('click', closePop, { once:true }); }, 50);
+  }
+  function closePop() { if (popEl) popEl.remove(); popEl = null; }
+
+  // ---- 이미지 삽입 ----
+  function pickImage() {
+    var inp = document.createElement('input');
+    inp.type = 'file'; inp.accept = 'image/*';
+    inp.onchange = function() {
+      var f = inp.files && inp.files[0];
+      if (f) insertImage(f);
+    };
+    inp.click();
+  }
+  function insertImage(file) {
+    if (!file.type.startsWith('image/')) return;
+    var r = new FileReader();
+    r.onload = function() {
+      resizeImage(r.result, 400, function(resized) {
+        body.focus();
+        document.execCommand('insertHTML', false,
+          '<img src="'+resized+'" style="max-width:100%;height:auto;border-radius:4px;display:block;margin:4px 0;" /><br>');
+        scheduleSave();
+      });
+    };
+    r.readAsDataURL(file);
+  }
+  function resizeImage(dataUrl, maxW, cb) {
+    var img = new Image();
+    img.onload = function() {
+      if (img.width <= maxW) { cb(dataUrl); return; }
+      var c = document.createElement('canvas');
+      c.width = maxW;
+      c.height = Math.round(img.height * maxW / img.width);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      cb(c.toDataURL('image/jpeg', 0.85));
+    };
+    img.onerror = function() { cb(dataUrl); };
+    img.src = dataUrl;
+  }
+  // Ctrl+V 이미지 붙여넣기
+  body.addEventListener('paste', function(e) {
+    if (!e.clipboardData) return;
+    var items = e.clipboardData.items;
+    for (var i=0; i<items.length; i++) {
+      if (items[i].type.startsWith('image/')) {
+        e.preventDefault();
+        var f = items[i].getAsFile();
+        if (f) insertImage(f);
+        return;
+      }
+    }
+  });
+
+  // ---- 색상 스와치 ----
+  foot.addEventListener('click', function(e) {
+    var sw = e.target.closest('[data-color]');
+    if (!sw) return;
+    applyColor(sw.dataset.color);
+    invoke('postit_update', { id: ID, color: sw.dataset.color });
+  });
+
+  console.info('[postit] v2 ready · id=' + ID);
+})();
+</script>
 </body>
 </html>
