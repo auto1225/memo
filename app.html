@@ -10052,8 +10052,11 @@ function init() {
     lastSaveSize = data.length;
     updateStorageIndicator();
   } catch {}
-  // 시스템 폰트 자동 감지 & 로드 (권한 필요 없이 폴백 먼저)
-  loadSystemFonts(false).catch(() => {});
+  // 시스템 폰트는 사용자가 "시스템 폰트 가져오기" 버튼 눌렀을 때만 로드.
+  // 자동 호출 시 Tauri WebView2 에서 권한 다이얼로그가 모달로 떠서 Tauri 이벤트
+  // 루프를 블로킹 → postit_spawn 같은 invoke 가 전부 멈춤.
+  // 기본 폰트 목록은 이미 하드코딩돼 있어서 자동 로드 없이도 문제 없음.
+  // loadSystemFonts(false).catch(() => {});
   setTimeout(checkTodayReminders, 2000);
 }
 init();
