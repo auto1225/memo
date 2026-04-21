@@ -395,7 +395,7 @@
         toast('데스크톱 앱이 구버전이라 브라우저 내 포스트잇으로 대체합니다');
         // 아래 웹 폴백으로 떨어짐
       } else {
-        toast('바탕화면에 포스트잇 생성됨');
+        toast('바탕화면에 JustPin 생성됨');
         return args;
       }
     }
@@ -467,8 +467,8 @@
     const b = document.createElement('button');
     b.id = 'stickyTopBtn';
     b.className = anchor.className || 'collapsible';
-    b.setAttribute('aria-label', '새 포스트잇');
-    b.setAttribute('title', '새 포스트잇 (Ctrl+Alt+P)');
+    b.setAttribute('aria-label', '새 JustPin');
+    b.setAttribute('title', '새 JustPin (Ctrl+Alt+P)');
     b.innerHTML = `<svg style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M15 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9z"/><path d="M15 3v6h6"/></svg>`;
     b.addEventListener('click', (e) => {
       e.preventDefault();
@@ -488,7 +488,7 @@
       e.preventDefault();
       showContextMenu(e.clientX, e.clientY, [
         { label: '포스트잇으로 떼어내기', run: () => fromTab(tabId) },
-        { label: '새 포스트잇 (빈)', run: () => create() },
+        { label: '새 JustPin (빈)', run: () => create() },
       ]);
     });
   }
@@ -512,7 +512,7 @@
   function tryRegisterPalette() {
     const pal = window.justanotepadPalette;
     if (!pal?.register) return false;
-    pal.register({ id: 'sticky.create',   title: '새 포스트잇',              keywords:['포스트잇','postit','sticky','메모'], run: () => create() });
+    pal.register({ id: 'sticky.create',   title: '새 JustPin',              keywords:['JustPin','justpin','postit','sticky','메모','포스트잇'], run: () => create() });
     pal.register({ id: 'sticky.selection',title: '선택 텍스트를 포스트잇으로', keywords:['포스트잇','선택','copy'],          run: () => fromSelection() });
     pal.register({ id: 'sticky.toggle',   title: '포스트잇 모두 숨김/표시',     keywords:['포스트잇','toggle','전체'],         run: () => toggleAll() });
     return true;

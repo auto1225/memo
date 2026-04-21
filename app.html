@@ -26,7 +26,7 @@
         // 리다이렉트 중 빈 화면 대신 노란색 로딩 화면 표시
         document.documentElement.innerHTML =
           '<head><style>html,body{margin:0;height:100%;background:#fff6a5;font-family:-apple-system,"Segoe UI","Malgun Gothic",sans-serif;}.ld{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(0,0,0,0.4);font-size:12px;}</style></head>' +
-          '<body><div class="ld">포스트잇 로딩 중…</div></body>';
+          '<body><div class="ld">JustPin 로딩 중…</div></body>';
       }
     } catch (e) { /* 무시 — 포스트잇이 아니면 이 함수가 아무것도 안 함 */ }
   })();
@@ -10222,7 +10222,7 @@ init();
         const ok = await confirm2(
           '로그아웃',
           '세션만 종료합니다.\n\n' +
-          '• 이 기기의 로컬 메모·포스트잇: 그대로 남아있음\n' +
+          '• 이 기기의 로컬 메모·JustPin: 그대로 남아있음\n' +
           '• 클라우드 데이터: 그대로 남아있음 (다시 로그인하면 접근 가능)\n' +
           '• AI "기본 AI (무료)" 기능: 로그아웃 상태에선 사용 불가\n\n' +
           '로그아웃하시겠습니까?'

@@ -306,7 +306,7 @@ fn main() {
             // 시스템 트레이 메뉴
             let open_main = MenuItem::with_id(app, "open_main", "JustANotepad 열기", true, None::<&str>)?;
             let new_postit =
-                MenuItem::with_id(app, "new_postit", "새 포스트잇", true, None::<&str>)?;
+                MenuItem::with_id(app, "new_postit", "새 JustPin", true, None::<&str>)?;
             let close_extras =
                 MenuItem::with_id(app, "close_extras", "보조 창 모두 닫기", true, None::<&str>)?;
             let sep1 = MenuItem::with_id(app, "sep1", "---", false, None::<&str>)?;
@@ -530,7 +530,7 @@ fn run_postit_mode(
         .setup(move |app| {
             // main window 를 포스트잇으로 변환
             if let Some(w) = app.get_webview_window("main") {
-                let _ = w.set_title("포스트잇");
+                let _ = w.set_title("JustPin");
                 let _ = w.set_decorations(false);
                 let _ = w.set_always_on_top(true);
                 // 작은 크기까지 허용 — tauri.conf.json 의 main window 는 minWidth 420/500
