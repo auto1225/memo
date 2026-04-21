@@ -152,6 +152,27 @@ fn postit_close(
     store.remove(&id);
 }
 
+// z-order 토글: "top" | "normal" | "bottom" (Windows/macOS 지원, Linux는 부분적)
+#[tauri::command]
+fn postit_set_z_order(app: tauri::AppHandle, id: String, state: String) {
+    if let Some(w) = app.get_webview_window(&id) {
+        match state.as_str() {
+            "top" => {
+                let _ = w.set_always_on_bottom(false);
+                let _ = w.set_always_on_top(true);
+            }
+            "bottom" => {
+                let _ = w.set_always_on_top(false);
+                let _ = w.set_always_on_bottom(true);
+            }
+            _ => {
+                let _ = w.set_always_on_top(false);
+                let _ = w.set_always_on_bottom(false);
+            }
+        }
+    }
+}
+
 fn main() {
     tauri::Builder::default()
         // Prevent a second instance from spawning ghost windows when the
@@ -225,11 +246,11 @@ fn main() {
                         let _ = postit_spawn(handle.clone(), store, None, None, None, None, None, None, None);
                     }
                     "close_extras" => {
-                        // Close every window that isn't the main one — wipes
-                        // out orphaned postits, leftover devtools, any ghost.
+                        // 데브툴즈/고아 창만 닫음. 포스트잇은 보존 (사용자가 의도해서 연 것).
+                        // 포스트잇 창은 label 이 "postit-*" 형태. 이것만 빼고 닫음.
                         let handle = app.app_handle().clone();
                         for (label, window) in handle.webview_windows() {
-                            if label != "main" {
+                            if label != "main" && !label.starts_with("postit-") {
                                 let _ = window.close();
                             }
                         }
@@ -268,24 +289,36 @@ fn main() {
             //   1) 현재 앱이 소유한 모든 webview window를 명시적으로 destroy
             //   2) std::process::exit(0) 즉시 호출
             //   3) 200ms 뒤에도 프로세스가 살아있으면 abort()로 강제 종료
-            if let tauri::WindowEvent::CloseRequested { .. } = event {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 if window.label() == "main" {
                     let handle = window.app_handle().clone();
+                    // 포스트잇이 하나라도 살아있으면 → 프로세스는 유지, 메인 창만 숨김.
+                    // 사용자는 시스템 트레이에서 "종료"로만 완전 종료 가능.
+                    let has_postit = handle.webview_windows().iter()
+                        .any(|(label, _)| label.starts_with("postit-"));
+                    if has_postit {
+                        api.prevent_close();
+                        let _ = window.hide();
+                        return;
+                    }
+                    // 포스트잇 없으면 종전과 동일하게 프로세스 완전 종료
                     for (_, w) in handle.webview_windows() {
                         let _ = w.destroy();
                     }
-                    // Safety net: if exit(0) gets stuck, abort after 200ms.
                     std::thread::spawn(|| {
                         std::thread::sleep(std::time::Duration::from_millis(200));
                         std::process::abort();
                     });
                     std::process::exit(0);
                 }
+                // 포스트잇 창을 X 버튼으로 닫는 경우 → 창은 사라지지만 postits.json 에는 남음.
+                // 사용자가 트레이에서 "JustANotepad 열기" 하면 다음 부팅 시 복원됨.
+                // "삭제"는 포스트잇 UI의 ✕ 버튼(postit_close)으로만 가능.
             }
         })
         .invoke_handler(tauri::generate_handler![
             force_quit,
-            postit_list, postit_spawn, postit_update, postit_close
+            postit_list, postit_spawn, postit_update, postit_close, postit_set_z_order
         ])
         .run(tauri::generate_context!())
         .expect("error while running JustANotepad");
