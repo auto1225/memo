@@ -2111,6 +2111,15 @@
   <button data-tact="cellBg" title="셀 배경색"><svg class="ico"><use href="#i-palette"/></svg></button>
   <button data-tact="cellAlign" title="셀 정렬"><svg class="ico"><use href="#i-align-center"/></svg></button>
   <button data-tact="toggleHeader" title="헤더 행 토글">H</button>
+  <div class="sep"></div>
+  <span class="label">계산</span>
+  <button data-tact="calcSum"   title="열 합계 (현재 선택된 셀이 속한 열 아래에 합계 채움)">∑<br>합</button>
+  <button data-tact="calcAvg"   title="열 평균">x̄<br>평균</button>
+  <button data-tact="calcMin"   title="열 최솟값">↓<br>최소</button>
+  <button data-tact="calcMax"   title="열 최댓값">↑<br>최대</button>
+  <button data-tact="calcCount" title="열 개수 (숫자만)">#<br>개수</button>
+  <button data-tact="calcClear" title="계산 수식 제거"><svg class="ico"><use href="#i-eraser"/></svg></button>
+  <div class="sep"></div>
   <button data-tact="delTable" class="danger" title="표 전체 삭제"><svg class="ico"><use href="#i-trash"/></svg></button>
 </div>
 
@@ -4040,6 +4049,9 @@ function renderPage() {
   updateWordCount();
   if (padEl.classList.contains('show-toc')) renderTOC();
   updateSplitPane();
+  // 표 계산 엔진: 탭에 있는 모든 표에 대해 기존 계산식 재계산
+  // + '합계' 라벨 요약 행에 숫자 열 있으면 자동 sum 설정
+  try { window.JANTableCalc && window.JANTableCalc.reapplyAll(); } catch (e) {}
 }
 
 function renderSidebar() {
@@ -6880,6 +6892,19 @@ tableToolbar.querySelectorAll('[data-tact]').forEach(btn => {
       });
       activeCell = null;
       hideTableToolbar();
+    } else if (act && act.startsWith('calc')) {
+      // 엑셀식 계산 — 현재 셀이 속한 열(column)에 대해 계산하고, 합계/소계 행이
+      // 없으면 자동으로 마지막에 추가. 다른 데이터 행의 숫자가 바뀔 때마다 자동 갱신.
+      if (window.JANTableCalc && typeof window.JANTableCalc.apply === 'function') {
+        const opMap = { calcSum:'sum', calcAvg:'avg', calcMin:'min', calcMax:'max', calcCount:'count', calcClear:'clear' };
+        const op = opMap[act];
+        if (op) {
+          window.JANTableCalc.apply(table, cellIdx, op);
+          toast(op === 'clear' ? '계산식 제거됨' : '열 ' + ({sum:'합계',avg:'평균',min:'최소',max:'최대',count:'개수'}[op]) + ' 적용됨');
+        }
+      } else {
+        toast('계산 엔진 로드 중…');
+      }
     }
     scheduleSave();
   });
@@ -17782,6 +17807,8 @@ if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
 <!-- JustANotepad super-admin shortcut — only auto0104@gmail.com sees it -->
 <script src="/super-admin-link.js"></script>
 <!-- JustANotepad built-in professional templates (15종, SVG 아이콘만) — picker 가 사용 -->
+<!-- Table calc engine (엑셀식 자동 계산: 합계/평균/최소/최대/개수) -->
+<script src="/table-calc.js?v=1"></script>
 <script src="/templates-pro.js?v=2"></script>
 <!-- JustANotepad template picker (cms_templates + 내장 프로 템플릿 병합) -->
 <script src="/template-picker.js?v=3"></script>

@@ -75,6 +75,10 @@
     const name = tpl.name || '(무제)';
     window.addTab(name, html);
     if (window.toast) window.toast(`"${name}" 템플릿으로 새 탭 생성`);
+    // 표 계산 엔진에 새 표 알림 — 템플릿에 이미 있는 '합계' 행 auto-seed 트리거
+    setTimeout(() => {
+      try { window.JANTableCalc && window.JANTableCalc.reapplyAll(); } catch (e) {}
+    }, 100);
   }
 
   // Hook: when template picker fires its event, create the tab
