@@ -76,10 +76,19 @@ impl PostitStore {
 
 // Frontend → Rust command. JS calls:
 //     window.__TAURI__.core.invoke('force_quit')
-// which lands here and immediately terminates the process. Bypasses
-// every Tauri event loop / tray / close-request machinery.
+// 메인 창의 커스텀 X 버튼이 호출. 포스트잇이 살아있으면 메인 창만 숨기고
+// 프로세스 유지 (그래야 포스트잇이 같이 죽지 않음). 포스트잇 없으면 종전대로 종료.
+// 진짜 완전 종료는 트레이 메뉴 "종료"로만.
 #[tauri::command]
-fn force_quit() {
+fn force_quit(app: tauri::AppHandle) {
+    let has_postit = app.webview_windows().iter()
+        .any(|(label, _)| label.starts_with("postit-"));
+    if has_postit {
+        if let Some(w) = app.get_webview_window("main") {
+            let _ = w.hide();
+        }
+        return;
+    }
     std::process::exit(0);
 }
 
@@ -245,11 +254,18 @@ fn main() {
                 restore_all_postits(&handle);
             });
 
-            // Listen for a Tauri event-bus exit request. Events go through
-            // a different gate than commands, so this works even if the
-            // force_quit command is blocked by ACL. Frontend calls:
-            //     window.__TAURI__.event.emit('jnp://force-quit')
-            app.listen_any("jnp://force-quit", |_event| {
+            // Listen for a Tauri event-bus exit request. 포스트잇이 있으면
+            // 메인 창만 숨기고 프로세스는 유지 (포스트잇 보호).
+            let quit_handle = app.handle().clone();
+            app.listen_any("jnp://force-quit", move |_event| {
+                let has_postit = quit_handle.webview_windows().iter()
+                    .any(|(label, _)| label.starts_with("postit-"));
+                if has_postit {
+                    if let Some(w) = quit_handle.get_webview_window("main") {
+                        let _ = w.hide();
+                    }
+                    return;
+                }
                 std::process::exit(0);
             });
             // 시스템 트레이 메뉴
