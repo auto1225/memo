@@ -342,8 +342,33 @@
     await dbDel(id);
   }
 
+  // ---- Tauri 감지 ----
+  const isTauri = !!window.__TAURI__;
+  const tauriInvoke = (cmd, args) => {
+    try { return window.__TAURI__?.core?.invoke(cmd, args); } catch { return null; }
+  };
+
   // ---- 생성 ----
+  // Tauri 데스크톱: 실제 OS 창(always-on-top, frameless) 생성 → 데스크톱 어디서든 사용 가능 + 재부팅 후 복원
+  // 웹/브라우저: 페이지 내 플로팅 포스트잇 (폴백)
   function create(opts = {}) {
+    if (isTauri) {
+      const id = opts.id || ('postit-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6));
+      const args = {
+        id,
+        x: opts.x ?? (window.screenX + 120),
+        y: opts.y ?? (window.screenY + 120),
+        w: opts.w ?? 280,
+        h: opts.h ?? 240,
+        color: opts.color || randomColor(),
+        content: opts.html || (opts.text ? escHtml(opts.text).replace(/\n/g,'<br>') : ''),
+      };
+      tauriInvoke('postit_spawn', args);
+      toast('바탕화면에 포스트잇 생성됨');
+      return args;
+    }
+
+    // === 웹 폴백 (브라우저 창 내 플로팅) ===
     const now = Date.now();
     const vw = window.innerWidth, vh = window.innerHeight;
     const w = opts.w || 240;
@@ -388,8 +413,9 @@
     toast(anyVisible ? '포스트잇 모두 숨김' : '포스트잇 모두 표시');
   }
 
-  // ---- 부팅: 저장된 포스트잇 복원 ----
+  // ---- 부팅: 저장된 포스트잇 복원 (웹 전용; Tauri 는 Rust 가 복원) ----
   async function hydrate() {
+    if (isTauri) return;  // Tauri 데스크톱에선 메인 창 안에 플로팅 포스트잇을 띄우지 않음
     const list = await dbAll();
     for (const n of list) {
       render(n);
