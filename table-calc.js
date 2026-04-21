@@ -122,19 +122,17 @@
     const summaryRow = findSummaryRow(table);
     if (!summaryRow) return;
 
-    // auto-seed: 이 표가 처음 계산 엔진을 타는 경우,
-    // 숫자가 들어있는 열의 요약 셀에 data-calc="sum" 자동 주입.
-    // (이미 dataset.calc 가 있으면 덮지 않음)
-    if (!table.dataset.calcSeeded) {
-      table.dataset.calcSeeded = '1';
-      Array.from(summaryRow.cells).forEach((cell, colIdx) => {
-        if (cell.dataset.calc) return;
-        if (colIdx === 0) return; // 첫 열은 라벨
-        const nums = collectColumn(table, colIdx, summaryRow);
-        if (nums.length === 0) return; // 숫자 없으면 pass
-        cell.dataset.calc = 'sum';
-      });
-    }
+    // auto-seed: 데이터 행에 숫자가 들어있는 열의 요약 셀에 data-calc="sum" 자동 주입.
+    // (이미 dataset.calc 가 있거나 명시적으로 사용자가 비운 경우엔 덮지 않음)
+    // 매 recompute 마다 체크 — 처음 빈 표였다가 숫자가 채워지면 그때 seed 적용.
+    Array.from(summaryRow.cells).forEach((cell, colIdx) => {
+      if (cell.dataset.calc) return;                    // 이미 세팅됨
+      if (cell.dataset.calcOptOut === '1') return;      // 사용자가 명시적으로 해제
+      if (colIdx === 0) return;                         // 첫 열은 라벨
+      const nums = collectColumn(table, colIdx, summaryRow);
+      if (nums.length === 0) return;                    // 숫자 없으면 pass
+      cell.dataset.calc = 'sum';
+    });
 
     Array.from(summaryRow.cells).forEach((cell, colIdx) => {
       const op = cell.dataset.calc;
@@ -172,10 +170,12 @@
     if (op === 'clear') {
       delete cell.dataset.calc;
       delete cell.dataset.calcAuto;
+      cell.dataset.calcOptOut = '1';  // auto-seed 가 다시 sum 덮는 걸 방지
       cell.innerText = '';
       cell.style.background = '';
       return;
     }
+    delete cell.dataset.calcOptOut;
     cell.dataset.calc = op;
     recomputeTable(table);
   }
