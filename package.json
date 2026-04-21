@@ -8,6 +8,7 @@
     "release:dry": "node scripts/release.js --dry",
     "release:minor": "node scripts/release.js minor",
     "release:major": "node scripts/release.js major",
+    "release:web": "node scripts/release-web.js",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
