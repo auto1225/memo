@@ -127,7 +127,7 @@
       .page.cal-tab-mode .cp-month-grid { min-height: 100%; }
       .page.cal-tab-mode .cp-day { min-height: 96px; }
       /* Container-width hide: side panel vanishes when pad is narrower
-         than 600px and surfaces only on ☰ click */
+         than 600px and surfaces only on menu icon click */
       #calProRoot.narrow .cp-side { display: none; }
       #calProRoot.narrow .cp-side.show {
         display: flex; position: absolute; right: 0; top: 0; bottom: 0;
@@ -362,7 +362,7 @@
           <input id="cpNLText" placeholder="예: 내일 오후 3시 치과 예약">
           <div class="hint">"내일 / 모레", "3월 15일", "오후 2시 반", "다음 주 수요일" 인식</div>
         </div>
-        <button class="cp-side-toggle" id="cpSideToggle" title="사이드 패널" aria-label="사이드 패널 열기">☰</button>
+        <button class="cp-side-toggle" id="cpSideToggle" title="사이드 패널" aria-label="사이드 패널 열기"><svg style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
         <div class="cp-body">
           <div class="cp-main" id="cpMain"></div>
           <div class="cp-side" id="cpSide"></div>
@@ -1201,7 +1201,7 @@
           <input id="cpNLText" placeholder="예: 내일 오후 3시 치과 예약">
           <div class="hint">"내일 / 모레", "3월 15일", "오후 2시 반", "다음 주 수요일" 인식</div>
         </div>
-        <button class="cp-side-toggle" id="cpSideToggle" title="사이드 패널">☰</button>
+        <button class="cp-side-toggle" id="cpSideToggle" title="사이드 패널"><svg style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
         <div class="cp-body" style="flex:1;max-height:none;">
           <div class="cp-main" id="cpMain"></div>
           <div class="cp-side" id="cpSide"></div>
@@ -1259,7 +1259,7 @@
     let t = st.tabs.find(x => x.type === 'calendar' && x.wsId === st.meta.activeWs);
     if (!t) {
       const id = 't' + Date.now();
-      t = { id, wsId: st.meta.activeWs, name: '📅 캘린더', type: 'calendar', pinned: false, tag: '', html: '' };
+      t = { id, wsId: st.meta.activeWs, name: '캘린더', type: 'calendar', pinned: false, tag: '', html: '' };
       st.tabs.push(t);
     }
     st.activeId = t.id;

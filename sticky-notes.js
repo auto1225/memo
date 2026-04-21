@@ -5,7 +5,8 @@
  * 위치·내용·색상이 그대로 유지됨.
  *
  * 기능:
- *   - 📌 토픽바 버튼 → 새 포스트잇 생성
+
+ *   - [핀 아이콘] 토픽바 버튼 → 새 포스트잇 생성
  *   - 탭 우클릭 → "포스트잇으로 떼어내기" (탭 내용을 포스트잇으로 변환)
  *   - 현재 선택 텍스트를 포스트잇으로 (단축키 Ctrl+Shift+P)
  *   - 새 포스트잇 생성 단축키 Ctrl+Alt+P
@@ -196,7 +197,7 @@
     head.innerHTML = `
       <span class="ttl">${escHtml(note.title || '포스트잇')}</span>
       <button data-act="min" title="최소화">▁</button>
-      <button data-act="close" title="닫기">✕</button>
+      <button data-act="close" title="닫기"><svg style="width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;vertical-align:middle" viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg></button>
     `;
 
     const body = document.createElement('div');

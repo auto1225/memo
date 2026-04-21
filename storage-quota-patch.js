@@ -307,12 +307,16 @@
           </tbody>
         </table>
       </div>
-      <div style="margin-top:8px;padding:10px 12px;background:#f0f8ff;border:1px solid #b3d4f0;border-radius:8px;font-size:12.5px;color:#1a3a5a;">
-        💡 <b>5MB 한계가 답답하다면?</b> "디바이스 저장 모드" 한 번만 켜면 이후 모든 메모가
-        IndexedDB(수GB 가능)에 저장돼 5MB 제약이 사실상 사라집니다.
+      <div style="margin-top:8px;padding:10px 12px;background:#f0f8ff;border:1px solid #b3d4f0;border-radius:8px;font-size:12.5px;color:#1a3a5a;display:flex;align-items:flex-start;gap:6px;">
+        <svg style="width:16px;height:16px;flex-shrink:0;margin-top:1px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M9 21h6M12 3a7 7 0 0 0-4 12.7V18h8v-2.3A7 7 0 0 0 12 3z"/></svg>
+        <div><b>5MB 한계가 답답하다면?</b> "디바이스 저장 모드" 한 번만 켜면 이후 모든 메모가
+        IndexedDB(수GB 가능)에 저장돼 5MB 제약이 사실상 사라집니다.</div>
       </div>
       <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
-        <button data-act="full-idb" style="flex:1;min-width:140px;background:#1976d2;color:#fff;border:1px solid #1565c0;border-radius:8px;padding:9px;font-weight:700;cursor:pointer;">📦 디바이스 저장 모드 ON (권장)</button>
+        <button data-act="full-idb" style="flex:1;min-width:140px;background:#1976d2;color:#fff;border:1px solid #1565c0;border-radius:8px;padding:9px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;">
+          <svg style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.3 7 12 12 20.7 7"/><line x1="12" y1="22" x2="12" y2="12"/></svg>
+          디바이스 저장 모드 ON (권장)
+        </button>
         <button data-act="auto" style="flex:1;min-width:120px;background:#fae100;border:1px solid #d4bc00;border-radius:8px;padding:8px;font-weight:700;cursor:pointer;">백업·잔해 정리</button>
         <button data-act="reload" style="background:#fff;border:1px solid #ddd;border-radius:8px;padding:8px 12px;cursor:pointer;">새로고침</button>
         <button data-act="close" style="background:#fff;border:1px solid #ddd;border-radius:8px;padding:8px 12px;cursor:pointer;">닫기</button>

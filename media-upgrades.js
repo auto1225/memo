@@ -4,19 +4,19 @@
  * 기존 미디어 버튼들의 사용성 문제를 고치는 비파괴적 오버라이드 패치.
  *
  * 점검 결과 & 수정:
- *   1. 🎤 녹음 (audioRecordBtn)
+ *   1. [mic] 녹음 (audioRecordBtn)
  *      - 문제: base64 로 페이지 안에 <audio> 삽입. 5MB 초과 시 저장 실패.
  *             녹음 파일이 실제 파일로 저장 안 됨. "어디에 있는지" 모름.
  *      - 수정: MediaRecorder 직후 블롭을 jnpSaveSystem.save() 로 media/
  *             폴더(또는 다운로드)에 .m4a 로 저장. 페이지엔 링크/재생 미니 카드만.
  *
- *   2. 🔊 읽어주기 (speakBtn)
+ *   2. [speaker] 읽어주기 (speakBtn)
  *      - 문제: 선택 영역 없으면 무조건 페이지 전체를 처음부터.
  *             어디서부터 읽는지, 얼마나 남았는지 피드백 없음.
  *      - 수정: 선택 > 커서 위치부터 > 전체 순으로 범위 결정. 읽고 있는
  *             문장 하이라이트. 제어 바(재생/일시정지/속도) 상단 미니 토스트.
  *
- *   3. 🖼️ 이미지 / 📸 카메라 / 📎 첨부
+ *   3. [image] 이미지 / [camera] 카메라 / [paperclip] 첨부
  *      - 문제: base64 로 인라인 삽입 → 용량 폭증.
  *      - 수정: 500KB 넘는 이미지는 자동 리사이즈. save-system 있으면 media/
  *             폴더에 원본 저장 + 페이지엔 축소판 링크.
@@ -133,7 +133,9 @@
         `<div class="audio-embed" contenteditable="false" data-jnp-rec="1" style="border:1px solid var(--line,rgba(0,0,0,.08));border-radius:10px;padding:8px 12px;margin:6px 0;display:inline-flex;align-items:center;gap:10px;background:var(--tab-hover,#fffbe5);">` +
         `<svg style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>` +
         `<audio controls src="${reader.result}" style="vertical-align:middle;max-width:300px;"></audio>` +
-        `<div style="font-size:11px;color:var(--ink-soft,#888);line-height:1.4;">${durStr} · ${stamp}<br>📂 ${escapeHtml(pathLbl)}</div>` +
+        `<div style="font-size:11px;color:var(--ink-soft,#888);line-height:1.4;display:inline-flex;align-items:center;gap:4px;">${durStr} · ${stamp}<br>` +
+        `<svg style="width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>` +
+        ` ${escapeHtml(pathLbl)}</div>` +
         `</div>&nbsp;`;
       document.execCommand('insertHTML', false, html);
       scheduleSave();
@@ -199,19 +201,32 @@
     el.id = 'jnp-speak-control';
     el.style.cssText = 'position:fixed;top:60px;left:50%;transform:translateX(-50%);background:var(--paper,#fff);color:var(--ink,#111);border:1px solid var(--line,rgba(0,0,0,.1));border-radius:999px;padding:6px 12px;z-index:300;box-shadow:0 4px 14px rgba(0,0,0,.1);display:inline-flex;align-items:center;gap:8px;font:500 12px/1 sans-serif;';
     el.innerHTML = `
-      <span style="color:var(--ink-soft,#888);">🔊 ${sourceLabel}</span>
+      <span style="color:var(--ink-soft,#888);display:inline-flex;align-items:center;gap:4px;">
+        <svg style="width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+        ${sourceLabel}
+      </span>
       <span data-role="progress" style="font-variant-numeric:tabular-nums;">0%</span>
-      <button data-act="pause" style="border:0;background:transparent;cursor:pointer;padding:4px 6px;">⏸</button>
+      <button data-act="pause" title="일시정지/재생" style="border:0;background:transparent;cursor:pointer;padding:4px 6px;display:inline-flex;align-items:center;">
+        <svg style="width:13px;height:13px;fill:currentColor" viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg>
+      </button>
       <select data-act="rate" style="border:1px solid var(--line);border-radius:6px;padding:2px 4px;font-size:12px;">
         <option value="0.8">0.8x</option><option value="1" selected>1x</option>
         <option value="1.2">1.2x</option><option value="1.5">1.5x</option><option value="2">2x</option>
       </select>
-      <button data-act="stop" style="border:0;background:transparent;cursor:pointer;padding:4px 6px;color:#e53935;">✕</button>
+      <button data-act="stop" title="정지" style="border:0;background:transparent;cursor:pointer;padding:4px 6px;color:#e53935;display:inline-flex;align-items:center;">
+        <svg style="width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round" viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>
+      </button>
     `;
     document.body.appendChild(el);
     el.querySelector('[data-act="pause"]').onclick = () => {
-      if (speechSynthesis.paused) { speechSynthesis.resume(); el.querySelector('[data-act="pause"]').textContent = '⏸'; }
-      else { speechSynthesis.pause(); el.querySelector('[data-act="pause"]').textContent = '▶'; }
+      if (speechSynthesis.paused) {
+        speechSynthesis.resume();
+        el.querySelector('[data-act="pause"]').innerHTML = '<svg style="width:13px;height:13px;fill:currentColor" viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg>';
+      }
+      else {
+        speechSynthesis.pause();
+        el.querySelector('[data-act="pause"]').innerHTML = '<svg style="width:13px;height:13px;fill:currentColor" viewBox="0 0 24 24"><polygon points="6 4 20 12 6 20"/></svg>';
+      }
     };
     el.querySelector('[data-act="rate"]').onchange = (e) => { if (speakState?.utter) speakState.utter.rate = parseFloat(e.target.value); };
     el.querySelector('[data-act="stop"]').onclick = () => stopSpeak();

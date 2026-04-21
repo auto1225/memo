@@ -5302,7 +5302,7 @@ function renderPalette(q) {
   if (palFiltered.length === 0) {
     palResults.innerHTML = `
       <div style="padding:32px 20px; text-align:center; color:#9ca3af; font-size:13px;">
-        <div style="font-size:32px; margin-bottom:8px; opacity:.4;">🔍</div>
+        <div style="margin-bottom:8px; opacity:.4; display:flex; justify-content:center;"><svg style="width:32px;height:32px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg></div>
         <div style="font-weight:600; margin-bottom:4px; color:#6b7280;">검색 결과가 없습니다</div>
         <div style="font-size:11px;">"${escapeHtml(q || '')}"에 맞는 명령을 찾을 수 없어요.<br>다른 키워드로 검색해보세요.</div>
       </div>`;
@@ -8064,7 +8064,7 @@ function openApiKeyGuide() {
             <span style="color:#888; font-size:11.5px;">최소 $5 충전 후 API 사용 가능</span></li>
           <li style="margin-bottom:10px;"><b>"Create new secret key" 클릭</b></li>
           <li style="margin-bottom:10px;"><b>생성된 키 복사</b> (sk-… 로 시작)<br>
-            <span style="color:#D9534F; font-size:11.5px;">⚠ 이 화면을 닫으면 다시 볼 수 없으니 꼭 복사!</span></li>
+            <span style="color:#D9534F; font-size:11.5px;display:inline-flex;align-items:center;gap:4px;"><svg style="width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>이 화면을 닫으면 다시 볼 수 없으니 꼭 복사!</span></li>
           <li style="margin-bottom:10px;"><b>이 창에서 "ChatGPT" 탭 → 키 붙여넣기 → 저장</b></li>
         </ol>
         <div style="background:#F7F7F7; border-radius:6px; padding:10px 14px; font-size:11.5px; color:#666; margin-top:12px;">
@@ -15564,7 +15564,7 @@ function startCookTimer(minutes, name) {
       if (window.Notification && Notification.permission === 'granted') {
         new Notification('요리 완료', { body: name + ' 시간이 되었습니다' });
       }
-      toast('⏰ ' + name + ' 조리 시간 종료!');
+      toast(name + ' 조리 시간 종료!');
       setTimeout(() => timerEl.remove(), 10000);
       return;
     }

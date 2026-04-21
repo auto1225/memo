@@ -6,11 +6,23 @@
  * v1.1 추가:
  *   1. 드래그 수정 — pointerdown 에서 Tauri startDragging() 명시 호출
  *   2. 서식 툴바 — B, I, U, 글자색, 형광펜, 글머리, 체크리스트
- *   3. z-order 3-way 토글 — 🔝 맨위고정 / ◎ 일반 / ⬇ 바탕화면 맨아래
+ *   3. z-order 3-way 토글 — 맨위고정 / 일반 / 바탕화면 맨아래 (SVG 아이콘)
  * --------------------------------------------------------------------------
  */
 (() => {
   'use strict';
+  // ---- 인라인 SVG 헬퍼 (앱 심볼이 이 창에 없으므로 인라인 정의) ----
+  const SVGS = {
+    x:       '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>',
+    min:     '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="18" x2="19" y2="18"/></svg>',
+    zTop:    '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="4" x2="20" y2="4"/><polyline points="6 12 12 6 18 12"/><line x1="12" y1="6" x2="12" y2="20"/></svg>',
+    zNormal: '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>',
+    zBottom: '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="4" x2="12" y2="18"/><polyline points="6 12 12 18 18 12"/><line x1="4" y1="20" x2="20" y2="20"/></svg>',
+    palette: '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r="1.3" fill="currentColor"/><circle cx="17.5" cy="10.5" r="1.3" fill="currentColor"/><circle cx="8.5" cy="7.5" r="1.3" fill="currentColor"/><circle cx="6.5" cy="12.5" r="1.3" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10a3 3 0 0 0 3-3c0-1.3-.2-2 .5-2.5 1-.7 1.5-1 3.5-1A3 3 0 0 0 22 12c0-5.5-4.5-10-10-10z"/></svg>',
+    marker:  '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3l7 7-9 9-7-2 2-7z"/><line x1="5" y1="20" x2="3" y2="22"/></svg>',
+    check:   '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/></svg>',
+  };
+
   const url = new URL(location.href);
   if (url.searchParams.get('mode') !== 'postit') return;
   const id = url.searchParams.get('id');
@@ -103,9 +115,9 @@
         min-height: 22px;
       ">
         <span data-tauri-drag-region style="flex:1;">포스트잇</span>
-        <button data-act="zorder" title="화면 위치: 맨위/일반/바탕화면" style="background:transparent;border:0;cursor:pointer;padding:2px 6px;color:inherit;font:inherit;">🔝</button>
-        <button data-act="min" title="최소화" style="background:transparent;border:0;cursor:pointer;padding:2px 6px;color:inherit;font:inherit;">▁</button>
-        <button data-act="close" title="삭제" style="background:transparent;border:0;cursor:pointer;padding:2px 6px;color:inherit;font:inherit;">✕</button>
+        <button data-act="zorder" title="화면 위치: 맨위/일반/바탕화면" style="background:transparent;border:0;cursor:pointer;padding:2px 6px;color:inherit;display:inline-flex;align-items:center;">${SVGS.zTop}</button>
+        <button data-act="min" title="최소화" style="background:transparent;border:0;cursor:pointer;padding:2px 6px;color:inherit;display:inline-flex;align-items:center;">${SVGS.min}</button>
+        <button data-act="close" title="삭제" style="background:transparent;border:0;cursor:pointer;padding:2px 6px;color:inherit;display:inline-flex;align-items:center;">${SVGS.x}</button>
       </div>
 
       <div id="postit-toolbar" style="
@@ -117,11 +129,11 @@
         <button data-cmd="bold" title="굵게 (Ctrl+B)"><b>B</b></button>
         <button data-cmd="italic" title="기울임 (Ctrl+I)"><i>𝐼</i></button>
         <button data-cmd="underline" title="밑줄 (Ctrl+U)"><u>U</u></button>
-        <button data-pop="color" title="글자색">🎨</button>
-        <button data-pop="hilite" title="형광펜">🖍</button>
+        <button data-pop="color" title="글자색" style="display:inline-flex;align-items:center;justify-content:center;">${SVGS.palette}</button>
+        <button data-pop="hilite" title="형광펜" style="display:inline-flex;align-items:center;justify-content:center;">${SVGS.marker}</button>
         <span style="width:1px;height:16px;background:rgba(0,0,0,0.1);margin:0 2px;align-self:center;"></span>
         <button data-cmd="insertUnorderedList" title="글머리">•</button>
-        <button data-act="todo" title="체크리스트">☐</button>
+        <button data-act="todo" title="체크리스트" style="display:inline-flex;align-items:center;justify-content:center;">${SVGS.check}</button>
       </div>
 
       <div id="postit-body" contenteditable="true" data-placeholder="여기에 입력…" style="
@@ -209,11 +221,11 @@
   // ---- Z-order 3-way 토글 ----
   async function cycleZOrder(btn) {
     state.zMode = state.zMode === 'top' ? 'normal' : state.zMode === 'normal' ? 'bottom' : 'top';
-    const icon = state.zMode === 'top' ? '🔝' : state.zMode === 'normal' ? '◎' : '⬇';
+    const svgMap = { top: SVGS.zTop, normal: SVGS.zNormal, bottom: SVGS.zBottom };
     const title = state.zMode === 'top' ? '맨 위 고정 (다른 앱보다 위)'
                 : state.zMode === 'normal' ? '일반 (클릭해야 앞으로)'
                 : '바탕화면 (다른 앱에 가려짐)';
-    btn.textContent = icon;
+    btn.innerHTML = svgMap[state.zMode];
     btn.setAttribute('title', title);
     await invoke('postit_set_z_order', { id: state.id, state: state.zMode });
   }
