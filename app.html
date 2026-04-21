@@ -339,15 +339,30 @@
   .page b, .page strong { color:color-mix(in srgb, var(--accent) 80%, var(--ink)); }
   .page a { color:var(--accent); text-decoration:underline; }
   .page img { max-width:100%; border-radius:6px; }
-  .page blockquote { border-left:3px solid var(--accent); margin:6px 0; padding:2px 10px;
-    color:var(--ink-soft); background:color-mix(in srgb, var(--accent) 8%, transparent); }
-  .page hr { border:none; border-top:1px dashed var(--paper-edge); margin:8px 0; }
+  /* blockquote / table / pre — 페이지의 줄지 배경이 비쳐 보이지 않도록
+     불투명한 paper 색 배경을 깔아준다. 투명 색 섞기(color-mix) 로는 줄이
+     그대로 비쳐서 "서식 배경이 겹쳐" 보이는 문제가 있었음. */
+  .page blockquote { border-left:3px solid var(--accent); margin:8px 0; padding:6px 12px;
+    color:var(--ink-soft);
+    background:color-mix(in srgb, var(--accent) 8%, var(--paper));
+    border-radius:4px; }
+  .page hr { border:none; border-top:1px dashed var(--paper-edge); margin:10px 0; }
   .page .todo { display:flex; align-items:flex-start; gap:8px; }
   .page .todo input[type="checkbox"] { margin-top:6px; accent-color:var(--accent); cursor:pointer; }
   .page .todo.done > span { text-decoration:line-through; opacity:.55; }
-  .page table { border-collapse:collapse; margin:6px 0; min-width:50%; }
-  .page table td, .page table th { border:1px solid var(--paper-edge); padding:4px 8px; min-width:50px; }
-  .page table th { background:color-mix(in srgb, var(--accent) 18%, var(--paper)); }
+  /* 표 — paper 배경을 깔고 그 위에 선/셀을 그려서 줄지 배경을 가린다.
+     min-height:24px 로 빈 셀도 제대로 보이게. */
+  .page table { border-collapse:collapse; margin:8px 0; min-width:50%;
+    background:var(--paper); border-radius:4px; overflow:hidden;
+    box-shadow:0 0 0 1px var(--paper-edge); }
+  .page table td, .page table th { border:1px solid var(--paper-edge);
+    padding:6px 10px; min-width:50px; min-height:24px;
+    background:var(--paper); vertical-align:top; }
+  .page table th { background:color-mix(in srgb, var(--accent) 22%, var(--paper));
+    font-weight:600; }
+  /* 템플릿 본문에 들어가는 checkbox 묶음(div[style*=display:flex] + input[type=checkbox])
+     도 배경을 paper 로 살짝 깔아서 줄지 위에 얹히게. */
+  .page div[style*="display:flex"] > input[type="checkbox"] { accent-color:var(--accent); }
   .page pre.code { background:color-mix(in srgb, var(--ink) 90%, var(--paper));
     color:var(--paper); padding:10px 14px; border-radius:6px; font-family:'Courier New',monospace;
     font-size:13px; overflow-x:auto; margin:6px 0; white-space:pre-wrap; }
