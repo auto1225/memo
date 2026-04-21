@@ -126,6 +126,34 @@
     catch (e) { return null; }
   }
 
+  // ─────────────────────────────────────────────────────────────
+  // COMPOSITING FIX (Tauri v2 + WebView2 + Windows 11)
+  // ─────────────────────────────────────────────────────────────
+  // 증상: Rust 가 decorations(false) 로 창을 만들면 WebView2 가 렌더한
+  // 콘텐츠가 window 표면에 compositing 되지 않고 하얀 화면만 나옴.
+  // DevTools 로 확인하면 DOM 은 정상, but screenshot 은 blank.
+  //
+  // 원인: decorations=false + default shadow=true 조합의 DWM 렌더링 bug.
+  // 해결: setShadow(false) + hide→show 사이클로 강제 recomposite.
+  //
+  // 이건 Rust 쪽에서 .shadow(false) 로 한번에 해결 가능하지만 rebuild 필요.
+  // 그 동안은 JS 로 runtime workaround 적용.
+  function applyCompositingFix() {
+    var w = currentWindow();
+    if (!w) return;
+    Promise.resolve()
+      .then(function(){ return w.setShadow && w.setShadow(false); })
+      .catch(function(){})
+      .then(function(){ return w.hide && w.hide(); })
+      .catch(function(){})
+      .then(function(){ return new Promise(function(r){ setTimeout(r, 80); }); })
+      .then(function(){ return w.show && w.show(); })
+      .catch(function(){ console.warn('[postit] composite fix failed'); });
+  }
+  // 첫 paint 이후 즉시 실행 (너무 빠르면 window API 아직 준비 안됨)
+  if (document.readyState === 'complete') setTimeout(applyCompositingFix, 50);
+  else window.addEventListener('load', function(){ setTimeout(applyCompositingFix, 50); }, { once:true });
+
   // 색상 적용
   function applyColor(name) {
     var c = COLORS[name] || COLORS.yellow;

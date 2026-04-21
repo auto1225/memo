@@ -396,6 +396,10 @@ fn spawn_postit_window(app: &tauri::AppHandle, p: &Postit) {
         .resizable(true)
         .always_on_top(true)
         .decorations(false)
+        // Windows 11 + WebView2 + decorations=false 에서 default shadow=true 면
+        // DWM 이 webview 콘텐츠를 window 표면에 compositing 하지 않아 하얀 화면만
+        // 나오는 렌더링 bug 가 있음. shadow 를 끄면 정상 렌더됨.
+        .shadow(false)
         .skip_taskbar(false);
     match builder.build() {
         Ok(w) => {
