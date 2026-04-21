@@ -309,33 +309,43 @@
       fresh.dataset.jnpRebound = '1';
       btn.parentNode.replaceChild(fresh, btn);
       fresh.addEventListener('click', () => {
-        // X 버튼은 클릭 즉시 "hide" 를 동기적으로 호출.
-        // 어떤 async/await 도 먼저 쓰지 않아서 Tauri 응답 지연으로 X 가 먹통처럼
-        // 보이는 문제를 없앰.
-        //
-        // 정책: 앱 X → 항상 hide() (프로세스 살려서 포스트잇 + 트레이 유지).
-        //      완전 종료는 트레이 아이콘 우클릭 → 종료.
-        //
-        // hide() 가 어떤 이유로 실패하면 forceCloseWindow 체인으로 fallback
-        // (여기는 await 가능 — 이미 UI 에 즉각 반응은 한 상태).
+        // X 클릭 → 메인 창을 트레이로 숨김. 여러 경로를 병행해서 어느 하나는 성공하게.
+        // 1. hide() — 정상 경로
+        // 2. 150ms 후에도 보이면 → minimize() 로 대신 최소화 (보이지는 않게 됨)
+        // 3. 500ms 후에도 보이면 → plugin:window|hide invoke 직접 호출
+        // 4. 1000ms 후에도 보이면 → 실패 로그
         const T = window.__TAURI__ || {};
-        let hidden = false;
-        try {
-          const w = T.window && T.window.getCurrentWindow && T.window.getCurrentWindow();
-          if (w && typeof w.hide === 'function') {
-            // hide() 는 Promise 반환하지만 await 안 함 — 결과 기다리지 않고 즉시 반환
-            w.hide().catch(err => console.warn('[X btn] hide 실패', err));
-            hidden = true;
-          }
-        } catch (e) { console.warn('[X btn] hide 호출 실패', e); }
+        const C = T.core;
+        let w;
+        try { w = T.window && T.window.getCurrentWindow && T.window.getCurrentWindow(); }
+        catch (e) { console.warn('[X btn] getCurrentWindow 실패', e); return; }
+        if (!w) return;
 
-        // hide 호출 성공하면 끝. (포스트잇은 자기들 창에서 그대로 유지)
-        if (hidden) return;
+        // Step 1: hide() (fire and forget)
+        try { w.hide && w.hide().catch(e => console.warn('[X] hide reject', e)); }
+        catch (e) { console.warn('[X] hide throw', e); }
 
-        // hide 가 없으면 force close 체인 시도 (비동기)
+        // Step 2 & 3: 체크하고 fallback
+        const checkAndEscalate = async (delay, step) => {
+          await new Promise(r => setTimeout(r, delay));
+          try {
+            const visible = await w.isVisible();
+            if (!visible) return true; // hide 성공
+            console.warn('[X] still visible after ' + delay + 'ms, trying step ' + step);
+            if (step === 2) {
+              try { await w.minimize(); } catch (e) { console.warn('[X] minimize failed', e); }
+            } else if (step === 3 && C && C.invoke) {
+              try { await C.invoke('plugin:window|hide', { label: 'main' }); }
+              catch (e) { console.warn('[X] invoke hide failed', e); }
+            }
+          } catch (e) { console.warn('[X] check failed', e); }
+          return false;
+        };
+
         (async () => {
-          try { await forceCloseWindow('X btn (no hide)'); }
-          catch (e) { console.warn('[X btn] force close 실패', e); }
+          if (await checkAndEscalate(150, 2)) return;
+          if (await checkAndEscalate(500, 3)) return;
+          await checkAndEscalate(1000, 4);
         })();
       });
     }
