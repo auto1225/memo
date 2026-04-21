@@ -179,24 +179,27 @@
 
   // ---- 포스트잇 DOM 생성 ----
   function render(note) {
-    const c = COLORS[note.color] || COLORS.yellow;
+    // note 가 부분적이거나 깨졌을 때 기본값 보장
+    if (!note || typeof note !== 'object') note = {};
+    if (!note.color || !COLORS[note.color]) note.color = 'yellow';
+    const c = COLORS[note.color];
     const el = document.createElement('div');
     el.className = 'jnp-sticky';
-    el.style.left = note.x + 'px';
-    el.style.top = note.y + 'px';
-    el.style.width = note.w + 'px';
-    el.style.height = note.h + 'px';
+    el.style.left = (note.x ?? 120) + 'px';
+    el.style.top = (note.y ?? 120) + 'px';
+    el.style.width = (note.w ?? 240) + 'px';
+    el.style.height = (note.h ?? 200) + 'px';
     el.style.background = c.bg;
     el.style.border = '1px solid ' + c.border;
     el.style.zIndex = ++zCounter;
-    el.dataset.id = note.id;
+    el.dataset.id = note.id || uid();
 
     const head = document.createElement('div');
     head.className = 'jnp-sticky-head';
     head.style.background = c.head;
     head.innerHTML = `
       <span class="ttl">${escHtml(note.title || '포스트잇')}</span>
-      <button data-act="min" title="최소화">▁</button>
+      <button data-act="min" title="최소화"><svg style="width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;vertical-align:middle" viewBox="0 0 24 24"><line x1="5" y1="18" x2="19" y2="18"/></svg></button>
       <button data-act="close" title="닫기"><svg style="width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;vertical-align:middle" viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg></button>
     `;
 
@@ -345,14 +348,19 @@
 
   // ---- Tauri 감지 ----
   const isTauri = !!window.__TAURI__;
-  const tauriInvoke = (cmd, args) => {
-    try { return window.__TAURI__?.core?.invoke(cmd, args); } catch { return null; }
+  const tauriInvoke = async (cmd, args) => {
+    try {
+      const fn = window.__TAURI__?.core?.invoke;
+      if (typeof fn !== 'function') throw new Error('no invoke');
+      return await fn(cmd, args);
+    } catch (e) { return { __err: e }; }
   };
 
   // ---- 생성 ----
   // Tauri 데스크톱: 실제 OS 창(always-on-top, frameless) 생성 → 데스크톱 어디서든 사용 가능 + 재부팅 후 복원
   // 웹/브라우저: 페이지 내 플로팅 포스트잇 (폴백)
-  function create(opts = {}) {
+  // Tauri 지만 새 커맨드가 없는 구버전 앱: 자동으로 웹 폴백으로 전환
+  async function create(opts = {}) {
     if (isTauri) {
       const id = opts.id || ('postit-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6));
       const args = {
@@ -364,9 +372,16 @@
         color: opts.color || randomColor(),
         content: opts.html || (opts.text ? escHtml(opts.text).replace(/\n/g,'<br>') : ''),
       };
-      tauriInvoke('postit_spawn', args);
-      toast('바탕화면에 포스트잇 생성됨');
-      return args;
+      const res = await tauriInvoke('postit_spawn', args);
+      if (res && res.__err) {
+        // 데스크톱 앱 구버전 (v1.0.22 이전) — postit_spawn 커맨드 없음 → 웹 폴백
+        console.warn('[sticky] Tauri postit_spawn not available, falling back to web floating:', res.__err);
+        toast('데스크톱 앱이 구버전이라 브라우저 내 포스트잇으로 대체합니다');
+        // 아래 웹 폴백으로 떨어짐
+      } else {
+        toast('바탕화면에 포스트잇 생성됨');
+        return args;
+      }
     }
 
     // === 웹 폴백 (브라우저 창 내 플로팅) ===
