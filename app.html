@@ -3590,6 +3590,10 @@
 .cg-company-title { font-size:12px; font-weight:600; color:var(--ink-soft); margin-bottom:8px; display:flex; align-items:center; gap:6px; padding:4px 0; border-bottom:1px solid var(--paper-edge); }
 </style>
 
+<!-- Roles Pack: 30 추가 직업/역할 + 각 역할별 실무 템플릿.
+     ROLES 객체 정의(line ~12736) 이전에 반드시 로드되어야 함. -->
+<script src="/roles-pack.js?v=1"></script>
+
 <script>
 /* ============================================================
    상수 & 상태
@@ -12818,6 +12822,25 @@ const ROLE_TOOLS = {
   'meal': { name:'식단', icon:'i-table', opener: () => openMeal() },
   'timetrack': { name:'타임 트래킹', icon:'i-clock', opener: () => openTimetrack() }
 };
+
+// ─────────────────────────────────────────────────────────────────────
+// 추가 역할 팩(roles-pack.js) 주입 — window.JAN_ROLES_EXTRA 가 있으면 ROLES 에 병합.
+// 같은 slug 는 기본 ROLES 우선 (의도치 않은 덮기 방지).
+// ─────────────────────────────────────────────────────────────────────
+try {
+  if (window.JAN_ROLES_EXTRA && typeof window.JAN_ROLES_EXTRA === 'object') {
+    Object.entries(window.JAN_ROLES_EXTRA).forEach(([slug, role]) => {
+      if (!ROLES[slug]) ROLES[slug] = role;
+    });
+    // 추가 도구 병합
+    if (window.JAN_ROLES_EXTRA_TOOLS && typeof window.JAN_ROLES_EXTRA_TOOLS === 'object') {
+      Object.entries(window.JAN_ROLES_EXTRA_TOOLS).forEach(([k, v]) => {
+        if (!ROLE_TOOLS[k]) ROLE_TOOLS[k] = v;
+      });
+    }
+    console.info('[JAN Roles] 총 ' + Object.keys(ROLES).length + '개 역할 사용 가능');
+  }
+} catch (e) { console.warn('[JAN Roles] 병합 실패', e); }
 
 /* --- 역할 선택 모달 --- */
 function openRolesModal() {
