@@ -49,6 +49,16 @@
     return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'})[c]);
   }
 
+  // body 가 HTML 인지 markdown 인지 판별.
+  // 프로 템플릿 (templates-pro.js) 은 <h1>·<table> 같이 태그로 시작하는 리치 HTML.
+  // 옛날 마크다운 템플릿은 "# 제목" / "## 소제목" 으로 시작.
+  function looksLikeHtml(s) {
+    if (!s) return false;
+    const trimmed = String(s).trimStart();
+    // < 로 시작하고, 바로 뒤에 태그 이름 문자 → HTML
+    return /^<[a-zA-Z!][\w:-]*/.test(trimmed);
+  }
+
   // ---- Tab creation from template --------------------------------------
   async function createTabFromTemplate(tpl) {
     // Wait for app's addTab to exist (app.html loads after scripts at bottom — should be present)
@@ -59,7 +69,9 @@
       document.dispatchEvent(new CustomEvent('jan:create-tab-request', { detail: tpl }));
       return;
     }
-    const html = await markdownToEditorHtml(tpl.body || '');
+    const body = tpl.body || '';
+    // HTML 이면 변환 없이 그대로 삽입 → 표/체크박스/인용구 원형 유지
+    const html = looksLikeHtml(body) ? body : await markdownToEditorHtml(body);
     const name = tpl.name || '(무제)';
     window.addTab(name, html);
     if (window.toast) window.toast(`"${name}" 템플릿으로 새 탭 생성`);

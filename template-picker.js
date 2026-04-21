@@ -25,19 +25,35 @@
   const URL_ = window.SUPABASE_URL;
   const KEY  = window.SUPABASE_ANON_KEY;
 
+  // 내장 프로 템플릿 (templates-pro.js 가 먼저 로드됨)
+  const builtin = () => (Array.isArray(window.JAN_BUILTIN_TEMPLATES) ? window.JAN_BUILTIN_TEMPLATES : []);
+
   const API = {
     async list() {
-      if (!URL_ || !KEY) return [];
-      try {
-        const r = await fetch(`${URL_}/rest/v1/cms_templates?select=slug,name,category,description,body,icon,is_official&is_public=eq.true&order=is_official.desc,sort_order.asc`, {
-          headers: { apikey: KEY, Authorization: 'Bearer ' + KEY },
-        });
-        if (!r.ok) return [];
-        return await r.json();
-      } catch { return []; }
+      // 1) 내장 프로 템플릿 (항상 먼저, is_official=true)
+      const pro = builtin().map(t => ({ ...t, _source: 'builtin' }));
+      // 2) DB 템플릿 (Supabase, 있으면)
+      let remote = [];
+      if (URL_ && KEY) {
+        try {
+          const r = await fetch(`${URL_}/rest/v1/cms_templates?select=slug,name,category,description,body,icon,is_official&is_public=eq.true&order=is_official.desc,sort_order.asc`, {
+            headers: { apikey: KEY, Authorization: 'Bearer ' + KEY },
+          });
+          if (r.ok) remote = await r.json();
+        } catch {}
+        remote = (remote || []).map(t => ({ ...t, _source: 'remote' }));
+      }
+      // 같은 slug 는 내장 우선 (내장이 품질 보장)
+      const seen = new Set(pro.map(t => t.slug));
+      const merged = [...pro, ...remote.filter(t => !seen.has(t.slug))];
+      return merged;
     },
     async getBySlug(slug) {
-      if (!URL_ || !KEY || !slug) return null;
+      if (!slug) return null;
+      // 내장 먼저 확인
+      const b = (window.JAN_BUILTIN_TEMPLATE_MAP || {})[slug];
+      if (b) return b;
+      if (!URL_ || !KEY) return null;
       try {
         const r = await fetch(`${URL_}/rest/v1/cms_templates?select=*&slug=eq.${encodeURIComponent(slug)}&limit=1`, {
           headers: { apikey: KEY, Authorization: 'Bearer ' + KEY },
@@ -48,6 +64,9 @@
       } catch { return null; }
     },
     async incrementUse(slug) {
+      // 내장 템플릿은 서버 카운트 의미 없음 — skip
+      if ((window.JAN_BUILTIN_TEMPLATE_MAP || {})[slug]) return;
+      if (!URL_ || !KEY) return;
       // Best-effort — RLS may block for anon; silently fail
       try {
         const current = await API.getBySlug(slug);
