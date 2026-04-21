@@ -54,10 +54,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
+          # cache: 'npm' — 이 레포엔 package-lock.json 이 없어서 캐시 불가.
+          # 있으면 추가 가능 (npm install 후 package-lock.json 커밋).
 
       - name: Install npm deps
-        run: npm install --prefer-offline --no-audit --no-fund
+        run: npm install --no-audit --no-fund
 
       - name: Build Tauri App
         uses: tauri-apps/tauri-action@v0
