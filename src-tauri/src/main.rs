@@ -533,6 +533,9 @@ fn run_postit_mode(
                 let _ = w.set_title("포스트잇");
                 let _ = w.set_decorations(false);
                 let _ = w.set_always_on_top(true);
+                // 작은 크기까지 허용 — tauri.conf.json 의 main window 는 minWidth 420/500
+                // 이라 포스트잇으로 쓰기엔 너무 큼. 훨씬 작게 재설정.
+                let _ = w.set_min_size(Some(tauri::LogicalSize::new(120.0, 80.0)));
                 let _ = w.set_size(tauri::LogicalSize::new(postit_w as f64, postit_h as f64));
                 let _ = w.set_position(tauri::LogicalPosition::new(postit_x as f64, postit_y as f64));
 

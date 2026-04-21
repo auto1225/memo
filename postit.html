@@ -9,10 +9,11 @@
   /* 포스트잇 전용 최소 스타일 — self-contained, 외부 CSS 로딩 없음 */
   * { box-sizing: border-box; }
   html, body { margin:0; padding:0; height:100vh; width:100vw; overflow:hidden;
-    font: 14px/1.5 -apple-system, "Segoe UI", "Malgun Gothic", "맑은 고딕", sans-serif;
+    font: 13px/1.5 -apple-system, "Segoe UI", "Malgun Gothic", "맑은 고딕", sans-serif;
     color: rgba(0,0,0,0.85); background: transparent; }
   #root { position:fixed; inset:0; display:flex; flex-direction:column;
-    background: #fff6a5; border: 1px solid #f0dd55; overflow:hidden; }
+    background: #fff6a5; border: 1px solid #f0dd55; overflow:hidden;
+    min-width: 0; min-height: 0; }
   /* 헤더 세로 높이 축소 — padding 4→2, min-height 22→18 */
   #head { background:#fae77c; padding:2px 8px; display:flex; align-items:center;
     gap:4px; cursor:move; user-select:none; min-height:18px; font:600 11px/1 inherit;
@@ -324,19 +325,41 @@
   });
 
   // 글자색 팝오버
+  // 버그 픽스: 팝오버 클릭 시 body 가 blur 되면서 selection 이 사라짐 →
+  // foreColor 가 적용 안 됨. 팝오버 열릴 때 selection 을 Range 로 저장해두고,
+  // 색 클릭 시 window.getSelection() 에 다시 복원한 뒤 execCommand 호출.
   var popEl = null;
+  var savedRange = null;
+  function saveSelection() {
+    var sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      savedRange = sel.getRangeAt(0).cloneRange();
+    }
+  }
+  function restoreSelection() {
+    if (!savedRange) return;
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(savedRange);
+  }
   function showPop(anchor) {
     closePop();
+    saveSelection(); // 팝오버 띄우기 직전에 현재 selection 스냅샷
     var p = document.createElement('div');
     p.id = 'pop';
+    // 팝오버 마우스다운 시 body 가 blur 되지 않도록 preventDefault
+    p.addEventListener('mousedown', function(e) { e.preventDefault(); });
     for (var i=0; i<TEXT_COLORS.length; i++) {
       (function(col) {
         var s = document.createElement('span');
         s.className = 'sw';
         s.style.background = col;
-        s.addEventListener('click', function() {
-          document.execCommand('foreColor', false, col);
+        // mousedown 에 preventDefault 해서 포커스 유지 + selection 보존
+        s.addEventListener('mousedown', function(e) {
+          e.preventDefault();
           body.focus();
+          restoreSelection();
+          document.execCommand('foreColor', false, col);
           closePop();
           scheduleSave();
         });
