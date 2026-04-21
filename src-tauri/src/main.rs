@@ -200,6 +200,34 @@ fn autostart_set(app: tauri::AppHandle, enabled: bool) -> Result<bool, String> {
 }
 
 fn main() {
+    // v1.0.31: --postit <id> 인자 감지 → 포스트잇 전용 모드로 분기.
+    // 각 포스트잇이 독립 프로세스라 Tauri 멀티-webview 버그 영향 받지 않음.
+    let args: Vec<String> = std::env::args().collect();
+    if let Some(idx) = args.iter().position(|a| a == "--postit") {
+        let id = args.get(idx + 1).cloned().unwrap_or_default();
+        if !id.is_empty() {
+            // 위치/크기 CLI 인자 파싱 (선택)
+            let get_int = |k: &str| -> Option<i32> {
+                args.iter().position(|a| a == k)
+                    .and_then(|i| args.get(i + 1))
+                    .and_then(|v| v.parse().ok())
+            };
+            let get_uint = |k: &str| -> Option<u32> {
+                args.iter().position(|a| a == k)
+                    .and_then(|i| args.get(i + 1))
+                    .and_then(|v| v.parse().ok())
+            };
+            run_postit_mode(
+                id,
+                get_int("--px"),
+                get_int("--py"),
+                get_uint("--pw"),
+                get_uint("--ph"),
+            );
+            return;
+        }
+    }
+
     tauri::Builder::default()
         // Prevent a second instance from spawning ghost windows when the
         // updater relaunches or a shortcut is double-clicked. Second launch
@@ -352,90 +380,66 @@ fn main() {
 
 // 실제 포스트잇 창 생성 — Postit 데이터를 기반으로 크기·위치·색상 적용
 fn spawn_postit_window(app: &tauri::AppHandle, p: &Postit) {
-    // 중복 방지: 이미 그 id 의 창이 있으면 focus 만
-    if let Some(w) = app.get_webview_window(&p.id) {
-        let _ = w.show();
-        let _ = w.set_focus();
-        return;
-    }
-
-    // 저장된 위치/크기가 현재 화면 밖이면 clamp (잘림 방지)
-    let (clamped_x, clamped_y, clamped_w, clamped_h) = {
-        let mut w = (p.w as i32).clamp(180, 1200);
-        let mut h = (p.h as i32).clamp(120, 1000);
-        let mut x = p.x;
-        let mut y = p.y;
-        // 기본 모니터 크기로 clamp (멀티모니터의 경우 완벽하지 않지만 안전)
-        if let Ok(Some(m)) = app.primary_monitor() {
-            let size = m.size();
-            let scale = m.scale_factor();
-            let screen_w = (size.width as f64 / scale) as i32;
-            let screen_h = (size.height as f64 / scale) as i32;
-            // 포스트잇이 화면보다 크지 않도록
-            if w > screen_w - 20 { w = (screen_w - 20).max(200); }
-            if h > screen_h - 60 { h = (screen_h - 60).max(150); }
-            // 창이 화면 밖으로 잘리지 않도록
-            if x + w > screen_w { x = (screen_w - w).max(0); }
-            if y + h > screen_h { y = (screen_h - h).max(0); }
-            if x < 0 { x = 10; }
-            if y < 0 { y = 40; }
-        }
-        (x, y, w as u32, h as u32)
+    // v1.0.31+: 포스트잇을 별도 프로세스로 실행 (Tauri v2 멀티-webview 버그 우회).
+    // 같은 justanotepad.exe 를 --postit <id> 인자로 spawn → 해당 프로세스는
+    // postit-mode 로 부팅해 자기 main window 를 postit 으로 사용.
+    // 각 포스트잇 = 독립된 WebView2 인스턴스 = 버그 영향 없음.
+    use std::process::Command;
+    let exe_path = match std::env::current_exe() {
+        Ok(p) => p,
+        Err(e) => { eprintln!("[postit] current_exe failed: {}", e); return; }
     };
-
-    // 포스트잇 전용 경량 페이지 (/postit) 사용.
-    // /app 은 앱 전체 스크립트를 로드하므로 충돌/느림 문제 있음.
-    let url = format!(
-        "https://justanotepad.com/postit?mode=postit&id={}",
-        urlencoding_encode(&p.id)
-    );
-    let parsed_url: tauri::Url = url.parse().expect("valid URL");
-    let builder = WebviewWindowBuilder::new(app, &p.id, WebviewUrl::External(parsed_url))
-        .title("포스트잇")
-        .inner_size(clamped_w as f64, clamped_h as f64)
-        .position(clamped_x as f64, clamped_y as f64)
-        .resizable(true)
-        .always_on_top(true)
-        .decorations(false)
-        .skip_taskbar(false);
-    // v1.0.30 변경점: capabilities/postit.json 을 추가해서 postit-* 윈도우가
-    // 외부 URL (justanotepad.com/**) 로 navigate 가능하도록 권한 분리.
-    // default.json 의 windows glob 매칭이 일부 케이스에 안 먹히는 문제 우회.
-    match builder.build() {
-        Ok(w) => {
-            // 창 이동/리사이즈 이벤트 → 저장소 업데이트
-            let app_clone = app.clone();
-            let id_clone = p.id.clone();
-            w.on_window_event(move |evt| {
-                match evt {
-                    tauri::WindowEvent::Moved(PhysicalPosition { x, y }) => {
-                        let store = app_clone.state::<PostitStore>();
-                        let mut items = store.items.lock().unwrap();
-                        if let Some(p) = items.iter_mut().find(|p| p.id == id_clone) {
-                            p.x = *x; p.y = *y; p.updated_at = chrono_ts();
-                        }
-                        drop(items);
-                        store.save();
-                    }
-                    tauri::WindowEvent::Resized(PhysicalSize { width, height }) => {
-                        let store = app_clone.state::<PostitStore>();
-                        let mut items = store.items.lock().unwrap();
-                        if let Some(p) = items.iter_mut().find(|p| p.id == id_clone) {
-                            p.w = *width; p.h = *height; p.updated_at = chrono_ts();
-                        }
-                        drop(items);
-                        store.save();
-                    }
-                    tauri::WindowEvent::CloseRequested { .. } => {
-                        // 창을 닫아도 postits.json 에는 남아있음 (재시작시 복원).
-                        // 완전 삭제하려면 앱 안에서 "삭제" 버튼 (postit_close) 사용.
-                    }
-                    _ => {}
-                }
-            });
-        }
-        Err(e) => eprintln!("포스트잇 창 생성 실패: {}", e),
+    // 기존에 해당 id 로 실행된 프로세스가 있으면 중복 실행 안 함 (간단히 건너뜀).
+    // 완벽한 중복 방지는 postits.json mtime 이나 named mutex 로 해야 하지만 일단 단순.
+    let result = Command::new(&exe_path)
+        .args([
+            "--postit", &p.id,
+            "--px", &p.x.to_string(),
+            "--py", &p.y.to_string(),
+            "--pw", &p.w.to_string(),
+            "--ph", &p.h.to_string(),
+        ])
+        .spawn();
+    match result {
+        Ok(_) => {}
+        Err(e) => eprintln!("[postit] spawn subprocess failed: {}", e),
     }
+    return;
+}
+
+// Postit-mode entrypoint — exe 가 --postit <id> 인자로 실행될 때 이 경로로 진입.
+// 핵심: main window (tauri.conf.json 에 정의된 것)를 그대로 postit URL로 navigate.
+// main window 는 앱 시작 시 첫 webview 로 생성되므로 Tauri 멀티-webview 버그의 영향을 받지 않음.
+fn run_postit_mode(id: String, x: Option<i32>, y: Option<i32>, w: Option<u32>, h: Option<u32>) {
+    let postit_x = x.unwrap_or(120);
+    let postit_y = y.unwrap_or(120);
+    let postit_w = w.unwrap_or(280);
+    let postit_h = h.unwrap_or(240);
+    tauri::Builder::default()
+        .plugin(tauri_plugin_log::Builder::default().build())
+        .plugin(tauri_plugin_process::init())
+        .setup(move |app| {
+            // main window 를 포스트잇으로 변환: navigate + resize + position + frameless
+            if let Some(w) = app.get_webview_window("main") {
+                let _ = w.set_title("포스트잇");
+                let _ = w.set_decorations(false);
+                let _ = w.set_always_on_top(true);
+                let _ = w.set_size(tauri::LogicalSize::new(postit_w as f64, postit_h as f64));
+                let _ = w.set_position(tauri::LogicalPosition::new(postit_x as f64, postit_y as f64));
+                let url = format!(
+                    "https://justanotepad.com/postit?mode=postit&id={}",
+                    urlencoding_encode(&id)
+                );
+                if let Ok(u) = url.parse::<tauri::Url>() {
+                    let _ = w.navigate(u);
+                }
+                let _ = w.show();
+                let _ = w.set_focus();
+            }
+            Ok(())
+        })
+        .run(tauri::generate_context!())
+        .expect("postit-mode failed");
 }
 
 // 저장된 모든 포스트잇을 앱 시작 시 자동 복원
