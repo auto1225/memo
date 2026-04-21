@@ -56,7 +56,17 @@ impl PostitStore {
             }
         }
     }
+    // v1.0.32+: 다른 포스트잇 서브프로세스가 동시에 postits.json 을 수정할 수
+    // 있으므로, 쓰기 전에 디스크에서 최신 상태를 읽어와 병합.
+    fn refresh_from_disk(&self) {
+        if let Ok(text) = fs::read_to_string(&self.path) {
+            if let Ok(fresh) = serde_json::from_str::<Vec<Postit>>(&text) {
+                if let Ok(mut v) = self.items.lock() { *v = fresh; }
+            }
+        }
+    }
     fn upsert(&self, p: Postit) {
+        self.refresh_from_disk();
         if let Ok(mut v) = self.items.lock() {
             if let Some(i) = v.iter().position(|x| x.id == p.id) { v[i] = p; }
             else { v.push(p); }
@@ -64,12 +74,14 @@ impl PostitStore {
         self.save();
     }
     fn remove(&self, id: &str) {
+        self.refresh_from_disk();
         if let Ok(mut v) = self.items.lock() {
             v.retain(|x| x.id != id);
         }
         self.save();
     }
     fn list(&self) -> Vec<Postit> {
+        self.refresh_from_disk();
         self.items.lock().map(|v| v.clone()).unwrap_or_default()
     }
 }
@@ -206,7 +218,7 @@ fn main() {
     if let Some(idx) = args.iter().position(|a| a == "--postit") {
         let id = args.get(idx + 1).cloned().unwrap_or_default();
         if !id.is_empty() {
-            // 위치/크기 CLI 인자 파싱 (선택)
+            // 위치/크기/색상 CLI 인자 파싱 (선택)
             let get_int = |k: &str| -> Option<i32> {
                 args.iter().position(|a| a == k)
                     .and_then(|i| args.get(i + 1))
@@ -217,12 +229,18 @@ fn main() {
                     .and_then(|i| args.get(i + 1))
                     .and_then(|v| v.parse().ok())
             };
+            let get_str = |k: &str| -> Option<String> {
+                args.iter().position(|a| a == k)
+                    .and_then(|i| args.get(i + 1))
+                    .map(|s| s.clone())
+            };
             run_postit_mode(
                 id,
                 get_int("--px"),
                 get_int("--py"),
                 get_uint("--pw"),
                 get_uint("--ph"),
+                get_str("--color"),
             );
             return;
         }
@@ -378,8 +396,8 @@ fn main() {
         .expect("error while running JustANotepad");
 }
 
-// 실제 포스트잇 창 생성 — Postit 데이터를 기반으로 크기·위치·색상 적용
-fn spawn_postit_window(app: &tauri::AppHandle, p: &Postit) {
+// 실제 포스트잇 창 생성 — Postit 데이터를 기반으로 별도 프로세스를 spawn
+fn spawn_postit_window(_app: &tauri::AppHandle, p: &Postit) {
     // v1.0.31+: 포스트잇을 별도 프로세스로 실행 (Tauri v2 멀티-webview 버그 우회).
     // 같은 justanotepad.exe 를 --postit <id> 인자로 spawn → 해당 프로세스는
     // postit-mode 로 부팅해 자기 main window 를 postit 으로 사용.
@@ -389,8 +407,6 @@ fn spawn_postit_window(app: &tauri::AppHandle, p: &Postit) {
         Ok(p) => p,
         Err(e) => { eprintln!("[postit] current_exe failed: {}", e); return; }
     };
-    // 기존에 해당 id 로 실행된 프로세스가 있으면 중복 실행 안 함 (간단히 건너뜀).
-    // 완벽한 중복 방지는 postits.json mtime 이나 named mutex 로 해야 하지만 일단 단순.
     let result = Command::new(&exe_path)
         .args([
             "--postit", &p.id,
@@ -398,43 +414,162 @@ fn spawn_postit_window(app: &tauri::AppHandle, p: &Postit) {
             "--py", &p.y.to_string(),
             "--pw", &p.w.to_string(),
             "--ph", &p.h.to_string(),
+            "--color", &p.color,
         ])
         .spawn();
-    match result {
-        Ok(_) => {}
-        Err(e) => eprintln!("[postit] spawn subprocess failed: {}", e),
+    if let Err(e) = result {
+        eprintln!("[postit] spawn subprocess failed: {}", e);
     }
-    return;
+}
+
+// ────────── 포스트잇 서브프로세스의 공유 파일 조작 ──────────
+// 여러 포스트잇 프로세스가 동시에 postits.json 을 수정할 수 있으므로
+// 각 프로세스는 "자기 id 항목만" read-modify-write 하게 구현 (동시성 안전).
+
+fn postits_json_path(app: &tauri::AppHandle) -> PathBuf {
+    let dir = app.path().app_data_dir().unwrap_or_else(|_| PathBuf::from("."));
+    let _ = fs::create_dir_all(&dir);
+    dir.join("postits.json")
+}
+
+fn read_postits(path: &std::path::Path) -> Vec<Postit> {
+    fs::read_to_string(path)
+        .ok()
+        .and_then(|s| serde_json::from_str::<Vec<Postit>>(&s).ok())
+        .unwrap_or_default()
+}
+
+fn write_postits(path: &std::path::Path, items: &[Postit]) {
+    if let Ok(json) = serde_json::to_string_pretty(items) {
+        let _ = fs::write(path, json);
+    }
+}
+
+// 포스트잇 서브프로세스 전용: 자기 id 의 필드만 업데이트
+#[tauri::command]
+fn postit_self_update(
+    app: tauri::AppHandle,
+    id: String,
+    x: Option<i32>,
+    y: Option<i32>,
+    w: Option<u32>,
+    h: Option<u32>,
+    color: Option<String>,
+    content: Option<String>,
+) {
+    let path = postits_json_path(&app);
+    let mut items = read_postits(&path);
+    if let Some(p) = items.iter_mut().find(|p| p.id == id) {
+        if let Some(v) = x { p.x = v; }
+        if let Some(v) = y { p.y = v; }
+        if let Some(v) = w { p.w = v; }
+        if let Some(v) = h { p.h = v; }
+        if let Some(v) = color { p.color = v; }
+        if let Some(v) = content { p.content = v; }
+        p.updated_at = chrono_ts();
+    }
+    write_postits(&path, &items);
+}
+
+// 포스트잇 서브프로세스 전용: 자기 id 를 파일에서 제거 + 프로세스 종료
+#[tauri::command]
+fn postit_self_close(app: tauri::AppHandle, id: String) {
+    let path = postits_json_path(&app);
+    let mut items = read_postits(&path);
+    items.retain(|p| p.id != id);
+    write_postits(&path, &items);
+    // 창 닫기 후 프로세스 종료
+    if let Some(w) = app.get_webview_window("main") {
+        let _ = w.close();
+    }
+    std::thread::spawn(|| {
+        std::thread::sleep(std::time::Duration::from_millis(200));
+        std::process::exit(0);
+    });
+}
+
+// 포스트잇 서브프로세스 전용: 전체 목록 반환 (postit.html 초기화시 color/content 조회용)
+#[tauri::command]
+fn postit_self_list(app: tauri::AppHandle) -> Vec<Postit> {
+    let path = postits_json_path(&app);
+    read_postits(&path)
 }
 
 // Postit-mode entrypoint — exe 가 --postit <id> 인자로 실행될 때 이 경로로 진입.
 // 핵심: main window (tauri.conf.json 에 정의된 것)를 그대로 postit URL로 navigate.
 // main window 는 앱 시작 시 첫 webview 로 생성되므로 Tauri 멀티-webview 버그의 영향을 받지 않음.
-fn run_postit_mode(id: String, x: Option<i32>, y: Option<i32>, w: Option<u32>, h: Option<u32>) {
+fn run_postit_mode(
+    id: String,
+    x: Option<i32>,
+    y: Option<i32>,
+    w: Option<u32>,
+    h: Option<u32>,
+    color: Option<String>,
+) {
     let postit_x = x.unwrap_or(120);
     let postit_y = y.unwrap_or(120);
     let postit_w = w.unwrap_or(280);
     let postit_h = h.unwrap_or(240);
+    let postit_color = color.unwrap_or_else(|| "yellow".into());
+
+    // 화면 clamp: 저장된 좌표가 현재 모니터를 벗어나면 안쪽으로 밀어냄
+    let id_for_setup = id.clone();
+    let color_for_setup = postit_color.clone();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_log::Builder::default().build())
         .plugin(tauri_plugin_process::init())
+        .invoke_handler(tauri::generate_handler![
+            // postit.html 이 호출하는 3 가지 커맨드 — 아래 self 버전으로 연결.
+            // (메인 프로세스의 postit_update/postit_close 와 이름만 다름.
+            //  postit.html 은 같은 이름으로 invoke 하므로 aliasing wrapper 필요)
+            postit_self_list,
+            postit_self_update,
+            postit_self_close,
+        ])
         .setup(move |app| {
-            // main window 를 포스트잇으로 변환: navigate + resize + position + frameless
+            // main window 를 포스트잇으로 변환
             if let Some(w) = app.get_webview_window("main") {
                 let _ = w.set_title("포스트잇");
                 let _ = w.set_decorations(false);
                 let _ = w.set_always_on_top(true);
                 let _ = w.set_size(tauri::LogicalSize::new(postit_w as f64, postit_h as f64));
                 let _ = w.set_position(tauri::LogicalPosition::new(postit_x as f64, postit_y as f64));
+
+                // URL 에 color 도 포함 → postit.html 이 초기 렌더부터 올바른 색상 사용
                 let url = format!(
-                    "https://justanotepad.com/postit?mode=postit&id={}",
-                    urlencoding_encode(&id)
+                    "https://justanotepad.com/postit?mode=postit&id={}&color={}",
+                    urlencoding_encode(&id_for_setup),
+                    urlencoding_encode(&color_for_setup)
                 );
                 if let Ok(u) = url.parse::<tauri::Url>() {
                     let _ = w.navigate(u);
                 }
                 let _ = w.show();
                 let _ = w.set_focus();
+
+                // 창 이동/리사이즈 → postits.json 직접 업데이트
+                let id_ev = id_for_setup.clone();
+                let path_ev = postits_json_path(app.handle());
+                w.on_window_event(move |evt| {
+                    match evt {
+                        tauri::WindowEvent::Moved(PhysicalPosition { x, y }) => {
+                            let mut items = read_postits(&path_ev);
+                            if let Some(p) = items.iter_mut().find(|p| p.id == id_ev) {
+                                p.x = *x; p.y = *y; p.updated_at = chrono_ts();
+                            }
+                            write_postits(&path_ev, &items);
+                        }
+                        tauri::WindowEvent::Resized(PhysicalSize { width, height }) => {
+                            let mut items = read_postits(&path_ev);
+                            if let Some(p) = items.iter_mut().find(|p| p.id == id_ev) {
+                                p.w = *width; p.h = *height; p.updated_at = chrono_ts();
+                            }
+                            write_postits(&path_ev, &items);
+                        }
+                        _ => {}
+                    }
+                });
             }
             Ok(())
         })

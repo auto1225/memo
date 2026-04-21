@@ -184,8 +184,10 @@
   }
   applyColor(COLOR);
 
-  // 초기 콘텐츠 로드 (Rust 쪽 postit_list 에서 해당 id 찾아 content 주입)
-  invoke('postit_list').then(function(list) {
+  // 초기 콘텐츠 로드 (v1.0.31+ 서브프로세스 모델 → postit_self_list 호출).
+  // 이 창은 포스트잇 전용 서브프로세스 안에서 뜨고, Rust 쪽에 postit_self_*
+  // 커맨드가 등록되어 있음. (메인 프로세스의 postit_* 와 다른 이름)
+  invoke('postit_self_list').then(function(list) {
     if (Array.isArray(list)) {
       for (var i=0; i<list.length; i++) {
         if (list[i].id === ID) {
@@ -210,7 +212,7 @@
   function scheduleSave() {
     clearTimeout(saveTimer);
     saveTimer = setTimeout(function() {
-      invoke('postit_update', { id: ID, content: body.innerHTML });
+      invoke('postit_self_update', { id: ID, content: body.innerHTML });
     }, 400);
   }
   body.addEventListener('input', scheduleSave);
@@ -220,10 +222,9 @@
   // X 클릭 즉시 창 닫기. confirm() 은 쓰지 않음 (Tauri 웹뷰에서 블로킹 우려).
   // postit_close 로 Rust 쪽 저장소에서도 제거, 그 결과와 무관하게 창은 close().
   document.getElementById('btn-close').addEventListener('click', function() {
-    invoke('postit_close', { id: ID });
-    var w = currentWindow();
-    if (w && w.close) { w.close().catch(function(){}); }
-    else { setTimeout(function(){ window.close(); }, 100); }
+    // v1.0.31+ 서브프로세스 모델: postit_self_close 가 postits.json 에서
+    // 해당 항목 제거 + 창 닫기 + 프로세스 종료까지 처리.
+    invoke('postit_self_close', { id: ID });
   });
   document.getElementById('btn-min').addEventListener('click', function() {
     body.style.display = (body.style.display === 'none') ? '' : 'none';
@@ -233,7 +234,19 @@
   var zState = 'top';
   document.getElementById('btn-z').addEventListener('click', function() {
     zState = zState === 'top' ? 'normal' : zState === 'normal' ? 'bottom' : 'top';
-    invoke('postit_set_z_order', { id: ID, state: zState });
+    // v1.0.32+: Tauri window API 를 직접 호출 (Rust 커맨드 불필요).
+    var w = currentWindow();
+    if (!w) return;
+    if (zState === 'top') {
+      try { w.setAlwaysOnBottom && w.setAlwaysOnBottom(false); } catch(e){}
+      try { w.setAlwaysOnTop && w.setAlwaysOnTop(true); } catch(e){}
+    } else if (zState === 'bottom') {
+      try { w.setAlwaysOnTop && w.setAlwaysOnTop(false); } catch(e){}
+      try { w.setAlwaysOnBottom && w.setAlwaysOnBottom(true); } catch(e){}
+    } else {
+      try { w.setAlwaysOnTop && w.setAlwaysOnTop(false); } catch(e){}
+      try { w.setAlwaysOnBottom && w.setAlwaysOnBottom(false); } catch(e){}
+    }
   });
 
   // ---- 툴바 ----
@@ -339,7 +352,7 @@
     var sw = e.target.closest('[data-color]');
     if (!sw) return;
     applyColor(sw.dataset.color);
-    invoke('postit_update', { id: ID, color: sw.dataset.color });
+    invoke('postit_self_update', { id: ID, color: sw.dataset.color });
   });
 
   console.info('[postit] v2 ready · id=' + ID);
