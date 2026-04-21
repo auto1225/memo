@@ -68,6 +68,8 @@
       });
       if (error) throw error;
       lastSyncAt = Date.now();
+      try { localStorage.setItem('jan.sync.lastAt', String(lastSyncAt)); } catch {}
+      try { window.dispatchEvent(new CustomEvent('jan-sync-done', { detail: { at: lastSyncAt } })); } catch {}
       console.log('[Sync] 업로드 완료');
       return { ok: true };
     } catch (e) {
