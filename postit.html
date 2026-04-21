@@ -154,30 +154,21 @@
       .then(function(){ return true; });
   }
 
-  // 여러 번 재시도 — 0ms, 200ms, 600ms, 1500ms, 3000ms 에
-  // 각각 한 번씩 fix 실행. 포기하지 않고 계속 시도해서 언젠가는 맞음.
+  // 여러 번 재시도 — 300ms 에 딱 한 번만. hide/show 는 focus 이벤트를 발동시키므로
+  // focus/visibility 리스너를 쓰면 무한 루프가 됨 (156회 재실행되는 것을 목격).
+  // 한 번이면 충분.
   function scheduleCompositingFixes() {
-    [0, 200, 600, 1500, 3000].forEach(function(delay) {
-      setTimeout(function() {
-        if (compositingFixDone) return;
-        compositingFixOnce().then(function(ok) {
-          if (ok) {
-            // 첫 successful run 후에도 마지막 2번은 추가 보험으로 돌림
-            if (window.__compositingFixAttempts >= 3) compositingFixDone = true;
-          }
-        });
-      }, delay);
-    });
+    setTimeout(function() {
+      if (compositingFixDone) return;
+      compositingFixOnce().then(function() { compositingFixDone = true; });
+    }, 300);
   }
 
   if (document.readyState === 'complete') scheduleCompositingFixes();
   else window.addEventListener('load', scheduleCompositingFixes, { once: true });
 
-  // focus / visibility 변경시에도 한번 더 (알림이나 포커스 변경으로 compositing 재시도 트리거)
-  window.addEventListener('focus', function() { compositingFixOnce(); });
-  document.addEventListener('visibilitychange', function() {
-    if (!document.hidden) compositingFixOnce();
-  });
+  // NB: 절대 focus/visibility 리스너에서 compositingFixOnce 호출하지 말 것.
+  // hide()→show() 가 자체적으로 focus 이벤트를 발동시켜 무한 루프가 됨.
 
   // 색상 적용
   function applyColor(name) {
