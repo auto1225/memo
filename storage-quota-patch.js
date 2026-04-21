@@ -1,5 +1,5 @@
 /**
- * justanotepad · Storage Quota Patch (v1.4.0)
+ * justanotepad · Storage Quota Patch (v1.5.0)
  * --------------------------------------------------------------------------
  * v1.3.0 문제:
  *   state.tabs 가 ~70KB 이고 history/trash 모두 0 인데도 lockdown 다이얼로그가 떴음.
@@ -22,7 +22,7 @@
  */
 (() => {
   'use strict';
-  if (window.__storageQuotaPatch && window.__storageQuotaPatch.version === '1.4.0') return;
+  if (window.__storageQuotaPatch && window.__storageQuotaPatch.version === '1.5.0') return;
 
   const STORAGE_KEY     = 'sticky-memo-v4';
   const SAFE_BUDGET     = 4 * 1024 * 1024;
@@ -32,18 +32,23 @@
   const LOOP_THRESHOLD  = 3;
   const LOCKDOWN_MS     = 10 * 60 * 1000;
 
-  // 절대 자동 삭제하지 않을 핵심 키 (정규식 허용)
+  // 절대 자동 삭제하지 않을 핵심 키 (정확한 매칭 — backup-* 등 파생은 보호 X)
   const PROTECTED_PATTERNS = [
-    /^sticky-memo-v4/,              // 메인 state
+    /^sticky-memo-v4$/,              // 정확히 메인 state 만 (backup 키는 보호 안 함)
     /^sb-.*-auth-token$/,            // Supabase 세션
-    /^supabase\.auth\./,             // Supabase 세션
-    /^jan\.apiKeys\./,               // 사용자 AI 키 (민감)
-    /^ai-active-provider/,
-    /^jan\.theme$/,                  // 테마 설정
+    /^supabase\.auth\./,
+    /^jan\.apiKeys\./,               // 사용자 AI 키
+    /^ai-active-provider$/,
+    /^jan\.theme$/,
     /^jnpLectureConsent/,
     /^jan\.preferences\./,
   ];
   const isProtected = (k) => PROTECTED_PATTERNS.some(re => re.test(k));
+  // 이 패턴에 매칭되는 키는 "최신 N개만 유지하고 나머지 자동 삭제" 규칙 적용
+  const BACKUP_PATTERNS = [
+    { re: /^sticky-memo-v4-backup-/, keep: 2 },  // 백업은 최신 2개만
+    { re: /^jnp-sticky-trash$/,      keep: 1 },  // 포스트잇 휴지통 (용량 커지면)
+  ];
 
   let cooldownUntil = 0;
   let recovering = false;
@@ -130,13 +135,42 @@
   }
 
   // ======================================================================
+  // 백업·휴지통 키 정리: 같은 패턴 키들 중 최신 N개만 유지
+  // ======================================================================
+  function cleanOldBackups() {
+    const allKeys = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k) allKeys.push(k);
+    }
+    let freed = 0;
+    for (const rule of BACKUP_PATTERNS) {
+      const matched = allKeys.filter(k => rule.re.test(k));
+      if (matched.length <= rule.keep) continue;
+      // 최신 = 키 이름 sort desc (ISO timestamp 정렬 가능)
+      matched.sort().reverse();
+      const toRemove = matched.slice(rule.keep);
+      for (const k of toRemove) {
+        try {
+          const sz = (origGetItem.call(localStorage, k) || '').length + k.length;
+          origRemoveItem.call(localStorage, k);
+          freed += sz;
+          log('removed old backup', k, '(' + Math.round(sz/1024) + 'KB)');
+        } catch (e) { log('backup rm failed', k, e); }
+      }
+    }
+    return freed;
+  }
+
+  // ======================================================================
   // 전체 localStorage 자동 청소 — 핵심 키는 보호, 큰 보조 키부터 삭제
   // ======================================================================
   function autoCleanNonEssential() {
+    // 1) 백업 패턴부터 정리 (가장 효과적)
+    let freed = cleanOldBackups();
+    // 2) 그 외 비핵심 큰 키 (50KB+) 삭제
     const diag = diagnose();
-    let freed = 0;
     const candidates = diag.keys.filter(k => !k.protected && k.size > 50 * 1024);
-    // 큰 순서대로 삭제 시도 (상위 5개까지)
     for (const c of candidates.slice(0, 5)) {
       try {
         origRemoveItem.call(localStorage, c.key);
@@ -146,6 +180,32 @@
     }
     return freed;
   }
+
+  // ======================================================================
+  // Full IDB 모드 — state 를 IndexedDB 로 이관해 localStorage 5MB 제약 우회
+  // 한 번 활성화되면 setItem 을 가로채서 IDB 에 쓰고 localStorage 엔 포인터만.
+  // 디바이스 저장 용량(GB급)을 사용 가능 → 사실상 무제한.
+  // ======================================================================
+  let fullIdbMode = false;
+  async function enterFullIdbMode() {
+    if (!window.__idbStore?.setKV) {
+      toastOnce('IndexedDB 저장소를 찾을 수 없습니다');
+      return false;
+    }
+    try {
+      const s = getState();
+      if (s) await window.__idbStore.setKV(IDB_STATE_KEY, s);
+      const pointer = JSON.stringify({ __stateInIdb: true, key: IDB_STATE_KEY, at: Date.now() });
+      origSetItem.call(localStorage, STORAGE_KEY, pointer);
+      origSetItem.call(localStorage, 'jnp-full-idb-mode', '1');
+      fullIdbMode = true;
+      toastOnce('Full IDB 모드 ON — 디바이스 저장 용량 사용 (5MB 제약 해제)');
+      log('Full IDB mode activated');
+      return true;
+    } catch (e) { log('enterFullIdbMode failed', e); return false; }
+  }
+  // 부팅 시 mode 확인
+  try { fullIdbMode = origGetItem.call(localStorage, 'jnp-full-idb-mode') === '1'; } catch {}
 
   // ======================================================================
   // 복구 파이프라인
@@ -247,10 +307,14 @@
           </tbody>
         </table>
       </div>
-      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
-        <button data-act="auto" style="flex:1;min-width:120px;background:#fae100;border:1px solid #d4bc00;border-radius:8px;padding:8px;font-weight:700;cursor:pointer;">큰 비핵심 키 자동 정리</button>
-        <button data-act="state-to-idb" style="flex:1;min-width:120px;background:#fff;border:1px solid #ddd;border-radius:8px;padding:8px;cursor:pointer;">state 를 IndexedDB 로 이관</button>
-        <button data-act="reload" style="flex:1;min-width:90px;background:#fff;border:1px solid #ddd;border-radius:8px;padding:8px;cursor:pointer;">새로고침</button>
+      <div style="margin-top:8px;padding:10px 12px;background:#f0f8ff;border:1px solid #b3d4f0;border-radius:8px;font-size:12.5px;color:#1a3a5a;">
+        💡 <b>5MB 한계가 답답하다면?</b> "디바이스 저장 모드" 한 번만 켜면 이후 모든 메모가
+        IndexedDB(수GB 가능)에 저장돼 5MB 제약이 사실상 사라집니다.
+      </div>
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button data-act="full-idb" style="flex:1;min-width:140px;background:#1976d2;color:#fff;border:1px solid #1565c0;border-radius:8px;padding:9px;font-weight:700;cursor:pointer;">📦 디바이스 저장 모드 ON (권장)</button>
+        <button data-act="auto" style="flex:1;min-width:120px;background:#fae100;border:1px solid #d4bc00;border-radius:8px;padding:8px;font-weight:700;cursor:pointer;">백업·잔해 정리</button>
+        <button data-act="reload" style="background:#fff;border:1px solid #ddd;border-radius:8px;padding:8px 12px;cursor:pointer;">새로고침</button>
         <button data-act="close" style="background:#fff;border:1px solid #ddd;border-radius:8px;padding:8px 12px;cursor:pointer;">닫기</button>
       </div>
     `;
@@ -278,16 +342,12 @@
         window.__storageQuotaPatch.clearLockdown();
         return;
       }
-      if (act === 'state-to-idb') {
-        if (window.__idbStore?.setKV) {
-          try {
-            await window.__idbStore.setKV(IDB_STATE_KEY, getState());
-            const pointer = JSON.stringify({ __stateInIdb: true, key: IDB_STATE_KEY, at: Date.now() });
-            origSetItem.call(localStorage, STORAGE_KEY, pointer);
-            toastOnce('state 를 IndexedDB 로 옮김');
-          } catch (err) { toastOnce('이관 실패: ' + err.message); }
-        } else {
-          toastOnce('IndexedDB 저장소가 준비되지 않음');
+      if (act === 'state-to-idb' || act === 'full-idb') {
+        // state-to-idb 는 1회 이관, full-idb 는 영구 모드
+        const ok = await enterFullIdbMode();
+        if (ok && act === 'full-idb') {
+          // 추가로 남은 백업 키들 정리
+          cleanOldBackups();
         }
         back.remove(); dialogShown = false;
         window.__storageQuotaPatch.clearLockdown();
@@ -312,6 +372,22 @@
     }
     if (lockdown && key === STORAGE_KEY) return;
     if (key === STORAGE_KEY && Date.now() < cooldownUntil) return;
+
+    // Full IDB 모드: STORAGE_KEY 쓰기는 전부 IDB 로 라우팅, localStorage 엔 포인터만
+    if (fullIdbMode && key === STORAGE_KEY && typeof value === 'string') {
+      // 포인터 쓰기 자체는 localStorage 로 (30바이트)
+      if (value.startsWith('{"__stateInIdb"')) return origSetItem.call(this, key, value);
+      // 실제 state 데이터 → IDB 로
+      (async () => {
+        try {
+          let parsed = null; try { parsed = JSON.parse(value); } catch {}
+          if (parsed) await window.__idbStore.setKV(IDB_STATE_KEY, parsed);
+          const pointer = JSON.stringify({ __stateInIdb: true, key: IDB_STATE_KEY, at: Date.now() });
+          origSetItem.call(localStorage, key, pointer);
+        } catch (e) { log('full-idb setItem', e); }
+      })();
+      return;
+    }
 
     try {
       return origSetItem.call(this, key, value);
@@ -375,9 +451,12 @@
 
   // 전역 디버그
   window.__storageQuotaPatch = {
-    version: '1.4.0',
+    version: '1.5.0',
     diagnose,
     autoCleanNonEssential,
+    cleanOldBackups,
+    enterFullIdbMode,
+    isFullIdbMode: () => fullIdbMode,
     clearCooldown() { cooldownUntil = 0; lockdown = false; dialogShown = false; quotaErrorTimestamps = []; log('cleared'); },
     clearLockdown() { lockdown = false; dialogShown = false; quotaErrorTimestamps = []; log('lockdown cleared'); },
     async forceSlim() { return { saved: await hardSlimState() }; },
@@ -385,12 +464,16 @@
     isLockdown: () => lockdown,
   };
 
-  // 부팅 직후 한 번 크기 체크 (자동 정리)
+  // 부팅 직후: 백업 과다 자동 정리 + 용량 초과 시 비핵심 정리
   window.addEventListener('load', () => {
     setTimeout(() => {
+      // 1) 백업이 3개 넘으면 최신 2개만 유지 (큰 절약)
+      const freed = cleanOldBackups();
+      if (freed > 0) log('load-time backup cleanup freed', Math.round(freed/1024), 'KB');
+      // 2) 그래도 여전히 4MB 초과면 비핵심 키 청소
       const d = diagnose();
       if (d.totalBytes > SAFE_BUDGET) {
-        log('localStorage over budget on load:', d.totalKB, 'KB — auto-cleaning non-essential');
+        log('localStorage still over budget:', d.totalKB, 'KB');
         autoCleanNonEssential();
       }
     }, 2500);
