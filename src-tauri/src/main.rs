@@ -390,25 +390,19 @@ fn spawn_postit_window(app: &tauri::AppHandle, p: &Postit) {
         urlencoding_encode(&p.id)
     );
     let parsed_url: tauri::Url = url.parse().expect("valid URL");
-    let builder = WebviewWindowBuilder::new(app, &p.id, WebviewUrl::External(parsed_url.clone()))
+    let builder = WebviewWindowBuilder::new(app, &p.id, WebviewUrl::External(parsed_url))
         .title("포스트잇")
         .inner_size(clamped_w as f64, clamped_h as f64)
         .position(clamped_x as f64, clamped_y as f64)
         .resizable(true)
         .always_on_top(true)
         .decorations(false)
-        // shadow 는 default (true) 로 다시 둠. v1.0.28 에서 false 로 시도했으나
-        // about:blank 고착 문제가 안 풀렸고 오히려 첫 렌더도 blank 되는 regression.
-        // Windows DWM 의 compositing 은 JS 쪽 size-nudge 워크어라운드로 처리.
         .skip_taskbar(false);
+    // v1.0.30 변경점: capabilities/postit.json 을 추가해서 postit-* 윈도우가
+    // 외부 URL (justanotepad.com/**) 로 navigate 가능하도록 권한 분리.
+    // default.json 의 windows glob 매칭이 일부 케이스에 안 먹히는 문제 우회.
     match builder.build() {
         Ok(w) => {
-            // CRITICAL FIX (v1.0.29): WebviewWindowBuilder 가 External URL 을 지정해도
-            // 일부 케이스에서 webview 가 about:blank 에 멈춰있고 navigate 하지 않는 버그.
-            // build() 직후 명시적으로 navigate() 호출해서 URL 로드를 강제.
-            if let Err(e) = w.navigate(parsed_url) {
-                eprintln!("[postit] navigate failed: {}", e);
-            }
             // 창 이동/리사이즈 이벤트 → 저장소 업데이트
             let app_clone = app.clone();
             let id_clone = p.id.clone();

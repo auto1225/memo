@@ -1,0 +1,31 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "postit-windows",
+  "description": "Postit windows permissions — remote URL navigation",
+  "windows": ["postit-*"],
+  "remote": {
+    "urls": [
+      "https://justanotepad.com/**",
+      "https://www.justanotepad.com/**"
+    ]
+  },
+  "permissions": [
+    "core:default",
+    "core:window:default",
+    "core:webview:default",
+    "core:app:default",
+    "core:event:default",
+    "core:window:allow-show",
+    "core:window:allow-hide",
+    "core:window:allow-close",
+    "core:window:allow-destroy",
+    "core:window:allow-set-focus",
+    "core:window:allow-set-always-on-top",
+    "core:window:allow-set-position",
+    "core:window:allow-set-size",
+    "core:window:allow-start-dragging",
+    "core:window:allow-set-decorations",
+    "core:window:allow-set-shadow",
+    "core:webview:allow-webview-close"
+  ]
+}
