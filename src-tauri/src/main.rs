@@ -389,20 +389,26 @@ fn spawn_postit_window(app: &tauri::AppHandle, p: &Postit) {
         "https://justanotepad.com/postit?mode=postit&id={}",
         urlencoding_encode(&p.id)
     );
-    let builder = WebviewWindowBuilder::new(app, &p.id, WebviewUrl::External(url.parse().unwrap()))
+    let parsed_url: tauri::Url = url.parse().expect("valid URL");
+    let builder = WebviewWindowBuilder::new(app, &p.id, WebviewUrl::External(parsed_url.clone()))
         .title("포스트잇")
         .inner_size(clamped_w as f64, clamped_h as f64)
         .position(clamped_x as f64, clamped_y as f64)
         .resizable(true)
         .always_on_top(true)
         .decorations(false)
-        // Windows 11 + WebView2 + decorations=false 에서 default shadow=true 면
-        // DWM 이 webview 콘텐츠를 window 표면에 compositing 하지 않아 하얀 화면만
-        // 나오는 렌더링 bug 가 있음. shadow 를 끄면 정상 렌더됨.
-        .shadow(false)
+        // shadow 는 default (true) 로 다시 둠. v1.0.28 에서 false 로 시도했으나
+        // about:blank 고착 문제가 안 풀렸고 오히려 첫 렌더도 blank 되는 regression.
+        // Windows DWM 의 compositing 은 JS 쪽 size-nudge 워크어라운드로 처리.
         .skip_taskbar(false);
     match builder.build() {
         Ok(w) => {
+            // CRITICAL FIX (v1.0.29): WebviewWindowBuilder 가 External URL 을 지정해도
+            // 일부 케이스에서 webview 가 about:blank 에 멈춰있고 navigate 하지 않는 버그.
+            // build() 직후 명시적으로 navigate() 호출해서 URL 로드를 강제.
+            if let Err(e) = w.navigate(parsed_url) {
+                eprintln!("[postit] navigate failed: {}", e);
+            }
             // 창 이동/리사이즈 이벤트 → 저장소 업데이트
             let app_clone = app.clone();
             let id_clone = p.id.clone();
