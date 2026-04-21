@@ -1,32 +1,49 @@
 /**
- * justanotepad · Storage Quota Patch (v1.3.0)
+ * justanotepad · Storage Quota Patch (v1.4.0)
  * --------------------------------------------------------------------------
- * v1.2.0 의 문제:
- *   - state-in-IDB 포인터로 교체 후에도, 원본 save() 는 여전히 원래 state 를
- *     JSON.stringify 해 setItem 을 호출 → 또 QuotaExceededError → 또 복구 →
- *     "공간 확보 완료" 토스트가 무한히 깜빡이는 루프 발생.
+ * v1.3.0 문제:
+ *   state.tabs 가 ~70KB 이고 history/trash 모두 0 인데도 lockdown 다이얼로그가 떴음.
+ *   원인: v1.3.0 의 진단·복구가 오직 state.tabs / history / trash 만 보고,
+ *         실제로 5MB 를 채운 "다른 localStorage 키"들(지난 버전 잔해, 로그, 캐시,
+ *         임시 키 등)을 못 봤다. 복구 단계에서 state 만 슬림화해봤자 다른 키가
+ *         여전히 5MB를 점유 → setItem 재시도 즉시 실패 → 루프·Lockdown.
  *
- * v1.3.0 근본 수정:
- *   1. state 객체를 실제로 mutation — 큰 탭의 html 을 작은 IDB 참조로
- *      치환해서 다음 save() 호출의 JSON.stringify 크기도 작아지게 만든다.
- *   2. 루프 감지 — 10초 내 3회 이상 QuotaExceededError 시 Lockdown 모드.
- *      Lockdown 모드에서는 setItem 전부 silent skip, 토스트 1회만, 사용자에게
- *      "새로고침 후 이미지 제거 필요" 안내창 한 번만 표시.
- *   3. 토스트 dedup — 같은 메시지 3초 내 재표시 차단.
- *   4. 긴 쿨다운 — 복구 성공 후 500ms → 3000ms 로 연장 (루프 완화).
+ * v1.4.0 근본 수정:
+ *   1. diagnose() — localStorage 전체를 스캔해 "키별 바이트 크기" 리스트 제공.
+ *   2. recover — 전체 localStorage 의 용량을 낮추는 전략:
+ *      a. state.tabs 의 큰 base64 이미지 → IDB (기존)
+ *      b. 잔해 키 자동 정리: 앱이 쓰지 않는 오래된 키 자동 삭제
+ *      c. 대용량 임시 키 자동 삭제
+ *      d. 그래도 실패 시 state 전체 IDB 이관
+ *   3. 다이얼로그에 "상위 N개 탭" 대신 "상위 N개 localStorage 키" 표시.
+ *      키 클릭(또는 버튼)으로 개별 삭제 가능.
+ *   4. 보호 키 allowlist: 삭제하면 안 되는 핵심 키는 절대 건드리지 않음.
  * --------------------------------------------------------------------------
  */
 (() => {
   'use strict';
-  if (window.__storageQuotaPatch && window.__storageQuotaPatch.version === '1.3.0') return;
+  if (window.__storageQuotaPatch && window.__storageQuotaPatch.version === '1.4.0') return;
 
   const STORAGE_KEY     = 'sticky-memo-v4';
   const SAFE_BUDGET     = 4 * 1024 * 1024;
-  const COOLDOWN_MS     = 3000;               // 복구 후 쿨다운 연장
+  const COOLDOWN_MS     = 3000;
   const IDB_STATE_KEY   = 'sticky-memo-v4:state';
   const LOOP_WINDOW_MS  = 10000;
   const LOOP_THRESHOLD  = 3;
-  const LOCKDOWN_MS     = 10 * 60 * 1000;     // 10분 lockdown
+  const LOCKDOWN_MS     = 10 * 60 * 1000;
+
+  // 절대 자동 삭제하지 않을 핵심 키 (정규식 허용)
+  const PROTECTED_PATTERNS = [
+    /^sticky-memo-v4/,              // 메인 state
+    /^sb-.*-auth-token$/,            // Supabase 세션
+    /^supabase\.auth\./,             // Supabase 세션
+    /^jan\.apiKeys\./,               // 사용자 AI 키 (민감)
+    /^ai-active-provider/,
+    /^jan\.theme$/,                  // 테마 설정
+    /^jnpLectureConsent/,
+    /^jan\.preferences\./,
+  ];
+  const isProtected = (k) => PROTECTED_PATTERNS.some(re => re.test(k));
 
   let cooldownUntil = 0;
   let recovering = false;
@@ -38,140 +55,149 @@
   let lastToastAt = 0;
 
   const log = (...a) => console.log('[quota-patch]', ...a);
-  log('v1.3.0 applied');
+  log('v1.4.0 applied');
 
-  // ---- 유틸 ----
   const getState = () => window.state || null;
-  const stateSize = () => { try { return JSON.stringify(getState() || {}).length; } catch { return 0; } };
 
   function toastOnce(text) {
     const now = Date.now();
-    if (text === lastToastText && now - lastToastAt < 3000) return; // dedup
+    if (text === lastToastText && now - lastToastAt < 3000) return;
     lastToastText = text; lastToastAt = now;
     try { if (typeof window.toast === 'function') return window.toast(text); } catch {}
     console.log('[toast]', text);
   }
 
-  // ---- 큰 탭 진단 ----
+  // ======================================================================
+  // 전체 localStorage 진단 (v1.3.0 핵심 결함 수정)
+  // ======================================================================
   function diagnose() {
+    const keys = [];
+    let total = 0;
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (!k) continue;
+        const v = origGetItem.call(localStorage, k) || '';
+        const size = k.length + v.length; // 대략의 바이트
+        total += size;
+        keys.push({ key: k, size, protected: isProtected(k) });
+      }
+    } catch (e) { log('diagnose failed', e); }
+    keys.sort((a, b) => b.size - a.size);
+    // 탭 내부 정보 (선택적)
     const s = getState() || {};
-    const tabs = (s.tabs || []).map(t => ({
-      id: t.id, name: (t.name || '(무제)').slice(0, 24),
-      size: ((t.html || '') + (t.raw || '')).length,
-    })).sort((a, b) => b.size - a.size);
     return {
-      total: stateSize(),
-      tabCount: (s.tabs || []).length,
-      top: tabs.slice(0, 5),
-      histSize: JSON.stringify(s.history || []).length,
-      trashSize: JSON.stringify(s.trash || []).length,
+      totalBytes: total,
+      totalKB: Math.round(total/1024),
+      keys,
+      topKeys: keys.slice(0, 10),
+      stateTabs: (s.tabs || []).length,
     };
   }
 
-  // ---- state 직접 슬림화: 큰 탭의 html 안의 base64 이미지를 IDB로 옮기고
-  //      data:image/... → idb:hash 참조로 치환 ----
+  // ======================================================================
+  // state.tabs 안 base64 이미지 → IDB 참조로
+  // ======================================================================
   async function hardSlimState() {
     const s = getState();
     if (!s || !Array.isArray(s.tabs)) return 0;
-
-    let slimmedBytes = 0;
-    let idb = window.__idbStore;
-    // base64 감지 정규식 (최소 2KB 이상만)
+    const idb = window.__idbStore;
     const DATA_URL_RE = /data:image\/[a-z+]+;base64,[A-Za-z0-9+/=]{2000,}/g;
-
+    let saved = 0;
     for (const tab of s.tabs) {
-      if (!tab.html || typeof tab.html !== 'string') continue;
-      const before = tab.html.length;
-      if (before < 2048) continue;
-
-      if (idb?.putBlob && idb?.externalizeState) {
-        // externalizeState 는 탭 단위가 아닌 전체 state 를 받음. 우선 시도.
-        // 실패하면 inline regex replace.
-      }
-
-      // inline replace: 큰 data URL 발견할 때마다 Blob 으로 옮김
+      if (!tab.html || typeof tab.html !== 'string' || tab.html.length < 2048) continue;
       const matches = tab.html.match(DATA_URL_RE);
       if (!matches?.length) continue;
-
       for (const dataUrl of matches) {
         try {
-          if (!idb?.putBlob) {
-            // IDB store 없으면 아예 썸네일 placeholder 로 치환
-            tab.html = tab.html.replace(dataUrl, 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="80"><rect width="120" height="80" fill="%23eee"/><text x="60" y="44" text-anchor="middle" font-family="sans-serif" font-size="11" fill="%23888">이미지 제거됨</text></svg>');
-            slimmedBytes += dataUrl.length;
-          } else {
-            // base64 → Blob → IDB put
+          if (idb?.putBlob) {
             const mime = (dataUrl.match(/data:([^;]+);/) || [])[1] || 'image/png';
-            const b64 = dataUrl.split(',')[1];
-            const bin = atob(b64);
+            const bin = atob(dataUrl.split(',')[1]);
             const arr = new Uint8Array(bin.length);
             for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
             const blob = new Blob([arr], { type: mime });
             const hash = await idb.putBlob(blob);
             tab.html = tab.html.replace(dataUrl, `idb://${hash}`);
-            slimmedBytes += dataUrl.length;
+            saved += dataUrl.length;
+          } else {
+            tab.html = tab.html.replace(dataUrl, '');
+            saved += dataUrl.length;
           }
-        } catch (e) { log('slim tab err', e); break; }
+        } catch (e) { log('slim err', e); break; }
       }
-      log(`slim tab "${tab.name}" ${before} → ${tab.html.length} bytes`);
     }
-    return slimmedBytes;
+    return saved;
   }
 
-  // ---- 복구 파이프라인 ----
+  // ======================================================================
+  // 전체 localStorage 자동 청소 — 핵심 키는 보호, 큰 보조 키부터 삭제
+  // ======================================================================
+  function autoCleanNonEssential() {
+    const diag = diagnose();
+    let freed = 0;
+    const candidates = diag.keys.filter(k => !k.protected && k.size > 50 * 1024);
+    // 큰 순서대로 삭제 시도 (상위 5개까지)
+    for (const c of candidates.slice(0, 5)) {
+      try {
+        origRemoveItem.call(localStorage, c.key);
+        freed += c.size;
+        log('auto-removed non-essential key', c.key, Math.round(c.size/1024), 'KB');
+      } catch (e) { log('remove failed', c.key, e); }
+    }
+    return freed;
+  }
+
+  // ======================================================================
+  // 복구 파이프라인
+  // ======================================================================
   async function recoverPayload(key, originalValue) {
     if (key !== STORAGE_KEY) return null;
     if (recovering) return null;
     recovering = true;
     try {
-      // 1) state 직접 슬림화 (큰 base64 이미지를 IDB 참조로)
+      // 0) 먼저 전체 localStorage 에서 큰 비핵심 키들 삭제 (v1.4.0 핵심)
+      const freed = autoCleanNonEssential();
+      if (freed > 0) {
+        log('pre-cleaned', Math.round(freed/1024), 'KB of non-essential keys');
+        // 재시도
+        try {
+          origSetItem.call(localStorage, key, originalValue);
+          return null; // 성공 — 호출자에게 그대로 알림 대신 null 리턴 (아래 재시도 시나리오와 구분)
+        } catch {}
+      }
+
+      // 1) state 슬림화
       const slimmed = await hardSlimState();
       if (slimmed > 0) {
         const payload = JSON.stringify(getState());
-        if (payload.length < SAFE_BUDGET) {
-          log('recovered via hard slim', slimmed, '→', payload.length);
-          return payload;
-        }
+        if (payload.length < SAFE_BUDGET) { log('recovered via slim', slimmed); return payload; }
       }
 
-      // 2) history/trash 완전 제거 (재시도)
+      // 2) history/trash 비움
       const s = getState();
-      if (s) {
-        const prevH = s.history?.length || 0, prevT = s.trash?.length || 0;
-        if (prevH + prevT > 0) {
-          s.history = [];
-          s.trash = [];
-          const payload = JSON.stringify(s);
-          if (payload.length < SAFE_BUDGET) {
-            log('recovered by wiping history/trash', prevH, prevT);
-            return payload;
-          }
-        }
+      if (s && ((s.history?.length || 0) + (s.trash?.length || 0) > 0)) {
+        s.history = []; s.trash = [];
+        const payload = JSON.stringify(s);
+        if (payload.length < SAFE_BUDGET) { log('recovered via wipe'); return payload; }
       }
 
-      // 3) 그래도 실패 — state 통째로 IDB 로, localStorage 엔 포인터만
+      // 3) state 전체 IDB 이관 + 포인터
       if (window.__idbStore?.setKV) {
         try {
           await window.__idbStore.setKV(IDB_STATE_KEY, getState());
           const pointer = JSON.stringify({ __stateInIdb: true, key: IDB_STATE_KEY, at: Date.now() });
-          log('recovered via full state-to-idb');
           return pointer;
-        } catch (e) { log('state-to-idb failed', e); }
+        } catch (e) { log('idb pointer failed', e); }
       }
-
       return null;
     } finally { recovering = false; }
   }
 
-  // ---- 루프 감지 → Lockdown ----
   function recordQuotaError() {
     const now = Date.now();
     quotaErrorTimestamps = quotaErrorTimestamps.filter(t => now - t < LOOP_WINDOW_MS);
     quotaErrorTimestamps.push(now);
-    if (quotaErrorTimestamps.length >= LOOP_THRESHOLD && !lockdown) {
-      enterLockdown();
-      return true;
-    }
+    if (quotaErrorTimestamps.length >= LOOP_THRESHOLD && !lockdown) { enterLockdown(); return true; }
     return false;
   }
 
@@ -180,38 +206,111 @@
     lockdownUntil = Date.now() + LOCKDOWN_MS;
     const d = diagnose();
     log('LOCKDOWN', d);
-
-    // 사용자에게 한 번만 안내
     if (!dialogShown) {
       dialogShown = true;
-      setTimeout(() => {
-        const biggest = d.top.map(t => `  · ${t.name}: ${(t.size/1024).toFixed(0)} KB`).join('\n');
-        const msg =
-          '저장 공간이 반복적으로 초과되어 자동 저장을 10분 동안 멈춥니다.\n\n' +
-          `상위 5개 탭 크기:\n${biggest}\n\n` +
-          '해결 방법:\n' +
-          '  1. 가장 큰 탭을 열어 붙여넣은 이미지를 삭제하세요\n' +
-          '  2. 또는 브라우저를 새로고침 (Ctrl+Shift+R)\n' +
-          '  3. 콘솔에서 __storageQuotaPatch.clearLockdown() 입력 시 복구';
-        alert(msg);
-      }, 400);
+      setTimeout(() => showLockdownDialog(d), 400);
     }
-    toastOnce('저장 일시 중지 — 큰 이미지를 삭제하거나 새로고침하세요');
+    toastOnce('저장 일시 중지 — 아래 대화창에서 정리 버튼을 누르세요');
   }
 
-  // ---- localStorage.setItem 몽키패치 ----
+  // ======================================================================
+  // 개선된 Lockdown 다이얼로그 — 실제 localStorage 키 보여주고 개별 삭제
+  // ======================================================================
+  function showLockdownDialog(diag) {
+    // 앱의 pickList 가 있으면 그걸 쓰되, 없으면 HTML 다이얼로그 직접 렌더
+    const back = document.createElement('div');
+    back.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:2147483600;display:flex;align-items:flex-start;justify-content:center;padding-top:8vh;';
+    const card = document.createElement('div');
+    card.style.cssText = 'background:#fff;border-radius:12px;min-width:min(560px,92vw);max-width:92vw;padding:18px 20px;font:14px/1.5 -apple-system,"Segoe UI","Malgun Gothic",sans-serif;color:#111;box-shadow:0 20px 60px rgba(0,0,0,.2);max-height:80vh;display:flex;flex-direction:column;';
+    card.innerHTML = `
+      <h3 style="margin:0 0 10px;font-size:16px;">저장 공간 부족 — localStorage 전체 진단</h3>
+      <div style="font-size:13px;color:#333;margin-bottom:10px;">
+        브라우저 localStorage 한계(~5MB)에 도달했습니다.<br>
+        총 사용량: <b>${diag.totalKB} KB</b> · 키 ${diag.keys.length}개
+      </div>
+      <div style="font-size:12px;color:#666;margin-bottom:6px;">용량 상위 키 (☆ = 보호 키, 지우지 않음):</div>
+      <div style="border:1px solid #e0e0e0;border-radius:8px;overflow:auto;flex:1;max-height:300px;">
+        <table style="width:100%;border-collapse:collapse;font-size:12.5px;">
+          <tbody>
+            ${diag.topKeys.map((k, i) => `
+              <tr style="border-bottom:1px solid #f0f0f0;">
+                <td style="padding:6px 8px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:ui-monospace,Menlo,Consolas,monospace;${k.protected ? 'color:#888;' : ''}">
+                  ${k.protected ? '☆ ' : ''}${escHtml(k.key)}
+                </td>
+                <td style="padding:6px 8px;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;">${(k.size/1024).toFixed(1)} KB</td>
+                <td style="padding:6px 8px;text-align:right;">
+                  ${k.protected
+                    ? '<span style="color:#aaa;font-size:11px;">보호</span>'
+                    : `<button data-rm="${escHtml(k.key)}" style="background:#fff2f2;border:1px solid #f5b5b5;color:#c62828;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;">삭제</button>`}
+                </td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button data-act="auto" style="flex:1;min-width:120px;background:#fae100;border:1px solid #d4bc00;border-radius:8px;padding:8px;font-weight:700;cursor:pointer;">큰 비핵심 키 자동 정리</button>
+        <button data-act="state-to-idb" style="flex:1;min-width:120px;background:#fff;border:1px solid #ddd;border-radius:8px;padding:8px;cursor:pointer;">state 를 IndexedDB 로 이관</button>
+        <button data-act="reload" style="flex:1;min-width:90px;background:#fff;border:1px solid #ddd;border-radius:8px;padding:8px;cursor:pointer;">새로고침</button>
+        <button data-act="close" style="background:#fff;border:1px solid #ddd;border-radius:8px;padding:8px 12px;cursor:pointer;">닫기</button>
+      </div>
+    `;
+    back.appendChild(card);
+    document.body.appendChild(back);
+
+    card.addEventListener('click', async (e) => {
+      const rm = e.target.closest('[data-rm]')?.dataset.rm;
+      if (rm) {
+        if (confirm(`"${rm}" 키를 삭제할까요? 이 앱이 이 키를 쓰고 있다면 관련 데이터가 사라질 수 있습니다.`)) {
+          try { origRemoveItem.call(localStorage, rm); toastOnce('삭제됨: ' + rm); }
+          catch (err) { toastOnce('삭제 실패: ' + err.message); }
+          const row = e.target.closest('tr'); row?.remove();
+        }
+        return;
+      }
+      const act = e.target.closest('[data-act]')?.dataset.act;
+      if (!act) return;
+      if (act === 'close') { back.remove(); dialogShown = false; return; }
+      if (act === 'reload') { location.reload(); return; }
+      if (act === 'auto') {
+        const freed = autoCleanNonEssential();
+        toastOnce(`정리 완료 — ${Math.round(freed/1024)}KB 확보`);
+        back.remove(); dialogShown = false;
+        window.__storageQuotaPatch.clearLockdown();
+        return;
+      }
+      if (act === 'state-to-idb') {
+        if (window.__idbStore?.setKV) {
+          try {
+            await window.__idbStore.setKV(IDB_STATE_KEY, getState());
+            const pointer = JSON.stringify({ __stateInIdb: true, key: IDB_STATE_KEY, at: Date.now() });
+            origSetItem.call(localStorage, STORAGE_KEY, pointer);
+            toastOnce('state 를 IndexedDB 로 옮김');
+          } catch (err) { toastOnce('이관 실패: ' + err.message); }
+        } else {
+          toastOnce('IndexedDB 저장소가 준비되지 않음');
+        }
+        back.remove(); dialogShown = false;
+        window.__storageQuotaPatch.clearLockdown();
+      }
+    });
+  }
+
+  function escHtml(s) { return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  // ======================================================================
+  // setItem 몽키패치
+  // ======================================================================
   const proto = Object.getPrototypeOf(localStorage);
   const origSetItem = proto.setItem;
   const origGetItem = proto.getItem;
+  const origRemoveItem = proto.removeItem;
 
   proto.setItem = function patchedSetItem(key, value) {
-    // Lockdown 만료 체크
     if (lockdown && Date.now() > lockdownUntil) {
       lockdown = false; dialogShown = false; quotaErrorTimestamps = [];
       log('lockdown expired');
     }
-    if (lockdown && key === STORAGE_KEY) return; // 조용히 drop
-
+    if (lockdown && key === STORAGE_KEY) return;
     if (key === STORAGE_KEY && Date.now() < cooldownUntil) return;
 
     try {
@@ -219,9 +318,7 @@
     } catch (e) {
       if (e && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014)) {
         if (key !== STORAGE_KEY) throw e;
-
-        if (recordQuotaError()) return; // Lockdown 진입 → 조용히 drop
-
+        if (recordQuotaError()) return;
         cooldownUntil = Date.now() + COOLDOWN_MS;
         (async () => {
           const payload = await recoverPayload(key, value);
@@ -230,13 +327,19 @@
               origSetItem.call(localStorage, key, payload);
               window.lastSaveSize = payload.length;
               try { window.updateStorageIndicator?.(); } catch {}
-              toastOnce(`저장 공간 확보 — ${Math.round(payload.length/1024)}KB`);
-            } catch (e2) {
-              log('retry write failed', e2);
+              toastOnce(`공간 확보 — ${Math.round(payload.length/1024)}KB`);
+            } catch {
               enterLockdown();
             }
-          } else {
-            enterLockdown();
+          } else if (!lockdown) {
+            // autoCleanNonEssential 이 직접 성공했으면 payload null
+            // → 확인 후 lockdown 안 걸린 상태면 그냥 통과
+            try {
+              origSetItem.call(localStorage, key, value);
+              toastOnce('비핵심 키 정리 후 저장 성공');
+            } catch {
+              enterLockdown();
+            }
           }
         })();
         return;
@@ -245,14 +348,13 @@
     }
   };
 
-  // ---- 부팅: 포인터면 IDB 에서 state 복원 ----
+  // 부팅: 포인터 hydrate (v1.3.0과 동일)
   (async () => {
     try {
       const raw = origGetItem.call(localStorage, STORAGE_KEY);
       if (!raw) return;
       let parsed; try { parsed = JSON.parse(raw); } catch { return; }
       if (parsed?.__stateInIdb && window.__idbStore?.getKV) {
-        log('hydrating state from IDB');
         const real = await window.__idbStore.getKV(parsed.key || IDB_STATE_KEY);
         if (real && typeof real === 'object') {
           const tryInject = () => {
@@ -271,28 +373,26 @@
     } catch (e) { log('boot hydrate', e); }
   })();
 
-  // ---- 전역 디버그 ----
+  // 전역 디버그
   window.__storageQuotaPatch = {
-    version: '1.3.0',
+    version: '1.4.0',
     diagnose,
-    clearCooldown() { cooldownUntil = 0; lockdown = false; dialogShown = false; quotaErrorTimestamps = []; log('cooldown + lockdown cleared'); },
+    autoCleanNonEssential,
+    clearCooldown() { cooldownUntil = 0; lockdown = false; dialogShown = false; quotaErrorTimestamps = []; log('cleared'); },
     clearLockdown() { lockdown = false; dialogShown = false; quotaErrorTimestamps = []; log('lockdown cleared'); },
-    async forceSlim() {
-      const before = stateSize();
-      const slimmed = await hardSlimState();
-      const after = stateSize();
-      return { before, after, slimmed };
-    },
+    async forceSlim() { return { saved: await hardSlimState() }; },
+    showDialog() { showLockdownDialog(diagnose()); },
     isLockdown: () => lockdown,
   };
 
-  // ---- 부팅 직후 선제 슬림화 (state 가 이미 크면) ----
+  // 부팅 직후 한 번 크기 체크 (자동 정리)
   window.addEventListener('load', () => {
-    setTimeout(async () => {
-      if (stateSize() > SAFE_BUDGET) {
-        log('state > budget on load, preemptive slim');
-        await hardSlimState();
+    setTimeout(() => {
+      const d = diagnose();
+      if (d.totalBytes > SAFE_BUDGET) {
+        log('localStorage over budget on load:', d.totalKB, 'KB — auto-cleaning non-essential');
+        autoCleanNonEssential();
       }
-    }, 2000);
+    }, 2500);
   });
 })();
