@@ -159,6 +159,16 @@
     font-size:9px; font-weight:700; padding:0 4px; border-radius:8px; min-width:14px;
     height:14px; line-height:14px; display:none; text-align:center; pointer-events:none; }
   .topbar-badge.show { display:inline-block; }
+  /* Command palette 단축키 힌트 — 버튼 옆 작은 kbd 레이블 */
+  .pal-btn-hint { position:relative; padding-right:30px !important; }
+  .pal-btn-hint .kbd-hint {
+    position:absolute; right:4px; top:50%; transform:translateY(-50%);
+    font-size:9px; font-weight:700; letter-spacing:0.02em;
+    background:rgba(0,0,0,0.18); color:inherit;
+    padding:2px 4px; border-radius:3px; border:1px solid rgba(255,255,255,0.15);
+    line-height:1; pointer-events:none;
+  }
+  @media (max-width: 900px) { .pal-btn-hint .kbd-hint { display:none; } .pal-btn-hint { padding-right:inherit !important; } }
   .topbar-drop { position:relative; display:inline-flex; }
   .topbar-drop-menu { position:absolute; top:100%; right:0; background:white;
     border:1px solid rgba(0,0,0,0.1); border-radius:6px; box-shadow:0 4px 12px rgba(0,0,0,0.15);
@@ -1656,7 +1666,7 @@
       <input id="padTitle" value="JustANotepad" aria-label="현재 노트 제목" placeholder="노트 제목" autocomplete="off" spellcheck="false" />
     </div>
     <div class="pomo-display hidden collapsible" id="pomoDisplay" role="button" tabindex="0" aria-label="포모도로 타이머 — 클릭하여 일시정지/재개" title="포모도로 · 클릭: 일시정지/재개"><svg class="ico-sm"><use href="#i-timer"/></svg><span id="pomoMode">FOCUS</span>&nbsp;<span id="pomoTime">25:00</span></div>
-    <button id="palBtn" class="collapsible" aria-label="명령 팔레트 열기" title="명령 팔레트 (Ctrl+K)"><svg class="ico"><use href="#i-cmd"/></svg></button>
+    <button id="palBtn" class="collapsible pal-btn-hint" aria-label="명령 팔레트 열기 (Ctrl+K) — 모든 기능을 검색으로 빠르게" title="모든 기능 검색 · 명령 팔레트 (Ctrl+K)"><svg class="ico"><use href="#i-cmd"/></svg><span class="kbd-hint">⌘K</span></button>
     <button id="webBtn" class="collapsible" aria-label="웹 검색 열기" title="웹 검색 (Ctrl+Shift+F)"><svg class="ico"><use href="#i-globe"/></svg></button>
     <button id="aiBtn" class="collapsible" aria-label="AI 어시스턴트 열기" title="AI 어시스턴트 (Ctrl+Space)"><svg class="ico"><use href="#i-sparkles"/></svg></button>
     <div class="topbar-drop collapsible" id="calDropWrap" style="position:relative; display:inline-flex;">
@@ -9910,8 +9920,9 @@ function compactifyToolbar() {
       ['label', '고급 레이아웃'],
       ['sel', '#columnsBtn'], ['sel', '#dropCapBtn'],
       ['sep'],
-      ['label', '배경 & 스타일'],
-      ['sel', '#paperStyleBtn'], ['sel', '#styleMenuBtn']
+      ['label', '프리셋 스타일'],
+      ['sel', '#styleMenuBtn']
+      // paperStyle / loadFonts 는 '보기' 메뉴로 이동 (배경·뷰 관련)
     ]},
     { label: '삽입', items: [
       ['label', '블록 요소'],
@@ -9939,28 +9950,35 @@ function compactifyToolbar() {
       ['sel', '#voiceBtn'], ['sel', '#speakBtn']
     ]},
     { label: '도구', items: [
-      ['label', '편집 도구'],
-      ['sel', '#findReplaceBtn'], ['sel', '#autocorrectBtn'], ['sel', '#statsBtn'], ['sel', '#loadFontsBtn'],
+      ['label', '편집 & 검색'],
+      ['sel', '#findReplaceBtn'], ['sel', '#autocorrectBtn'], ['sel', '#statsBtn'],
       ['sep'],
-      ['label', '변환 & 학습'],
-      ['sel', '#translateBtn'], ['sel', '#wordCloudBtn'],
-      ['sel', '#flashBtn'],
+      ['label', 'AI · 변환 · 학습'],
+      ['sel', '#translateBtn'], ['sel', '#wordCloudBtn'], ['sel', '#flashBtn'],
       ['sep'],
       ['label', '생산성'],
-      ['sel', '#templateBtn'], ['sel', '#pomoBtn'],
-      ['sel', '#qrBtn'],
+      ['sel', '#templateBtn'], ['sel', '#pomoBtn'], ['sel', '#qrBtn']
+    ]},
+    { label: '보기', items: [
+      ['label', '레이아웃'],
+      ['sel', '#tocBtn'], ['sel', '#splitBtn'], ['sel', '#galleryBtn'],
       ['sep'],
-      ['label', '뷰'],
-      ['sel', '#tocBtn'], ['sel', '#splitBtn'],
-      ['sel', '#mdBtn'], ['sel', '#galleryBtn']
+      ['label', '편집 모드'],
+      ['sel', '#mdBtn'],
+      ['sep'],
+      ['label', '배경·스타일 (페이지 꾸밈)'],
+      ['sel', '#paperStyleBtn'], ['sel', '#loadFontsBtn']
     ]},
     { label: '파일', items: [
-      ['label', '내보내기 (문서)'],
-      ['sel', '#exportPdfBtn'], ['sel', '#exportDocxBtn'], ['sel', '#exportHtmlBtn'],
-      ['sel', '#exportMdBtn'],
+      ['label', '내보내기 (개별 포맷)'],
+      ['sel', '#exportPdfBtn'], ['sel', '#exportDocxBtn'],
+      ['sel', '#exportHtmlBtn'], ['sel', '#exportMdBtn'],
       ['sep'],
-      ['label', '인쇄 & 백업'],
-      ['sel', '#printBtn'], ['sel', '#exportBtn'], ['sel', '#importBtn']
+      ['label', '인쇄'],
+      ['sel', '#printBtn'],
+      ['sep'],
+      ['label', '전체 백업 · 복원'],
+      ['sel', '#exportBtn'], ['sel', '#importBtn']
     ]}
   ];
 
@@ -17825,7 +17843,11 @@ if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
 <!-- JustANotepad media upgrades (v1.0) — rec/speak/image UX fixes -->
 <script src="/media-upgrades.js?v=5"></script>
 <!-- JustANotepad postit mode (desktop) — ?mode=postit 창이면 이것만 보임 -->
+<!-- postit-desktop.js (legacy) removed in favor of /postit.html self-contained page.
+     See src-tauri spawn_postit_window subprocess model.
 <script src="/postit-desktop.js?v=5"></script>
+-->
+
 <!-- JustANotepad sticky notes (v1.0) — draggable floating postits (web fallback + Tauri bridge) -->
 <script src="/sticky-notes.js?v=6"></script>
 <!-- JustANotepad postit autostart — Tauri: OS 로그인 시 자동 시작 토글 -->
