@@ -2,10 +2,11 @@
 // 웹 앱을 네이티브 윈도우로 감싸고, 시스템 트레이 + 포스트잇 상주 기능 제공
 //
 // v1.0.21: 데스크톱 포스트잇 본격 구현
-//   - 웹에서 invoke('postit_spawn', { ... })로 새 포스트잇 OS 창 생성
-//   - 포스트잇 위치/크기/색상/내용을 앱 데이터 폴더의 postits.json 에 저장
-//   - 앱 시작 시 저장된 모든 포스트잇 자동 복원 (재부팅 후에도 그대로)
-//   - 포스트잇 창 이동/리사이즈 시 자동 저장
+// v1.0.23: OS 자동시작 — 재부팅하면 앱을 실행하지 않아도 포스트잇이 그대로
+//   - tauri-plugin-autostart 로 Windows/macOS/Linux 에 로그인 시 자동 실행 등록
+//   - 포스트잇이 1개 이상 있으면 자동시작 자동 활성화 (사용자 별도 클릭 불필요)
+//   - --autostart 인자로 실행되면 메인 창은 숨긴 채 트레이로만 기동, 포스트잇만 표시
+//   - 자동시작 토글 command (postit_autostart_get / postit_autostart_set) 노출
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
@@ -18,6 +19,7 @@ use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     Listener, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindowBuilder,
 };
+use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct Postit {
@@ -112,6 +114,11 @@ fn postit_spawn(
     };
     store.upsert(p.clone());
     spawn_postit_window(&app, &p);
+    // 포스트잇이 첫 개 생기면 자동시작 자동 활성화 (사용자 재부팅 후 그대로 보이게)
+    let mgr = app.autolaunch();
+    if mgr.is_enabled().unwrap_or(false) == false {
+        let _ = mgr.enable();
+    }
     Ok(id)
 }
 
@@ -173,6 +180,20 @@ fn postit_set_z_order(app: tauri::AppHandle, id: String, state: String) {
     }
 }
 
+// ────────── 자동시작 (OS 로그인 시 백그라운드 실행) ──────────
+#[tauri::command]
+fn autostart_get(app: tauri::AppHandle) -> bool {
+    app.autolaunch().is_enabled().unwrap_or(false)
+}
+
+#[tauri::command]
+fn autostart_set(app: tauri::AppHandle, enabled: bool) -> Result<bool, String> {
+    let mgr = app.autolaunch();
+    let res = if enabled { mgr.enable() } else { mgr.disable() };
+    res.map_err(|e| e.to_string())?;
+    Ok(mgr.is_enabled().unwrap_or(false))
+}
+
 fn main() {
     tauri::Builder::default()
         // Prevent a second instance from spawning ghost windows when the
@@ -190,10 +211,24 @@ fn main() {
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        // 자동시작: 사용자가 로그인하면 백그라운드에서 JustANotepad 실행 →
+        // 포스트잇이 저절로 복원됨. --autostart 플래그로 실행되는 것도 감지 가능.
+        .plugin(tauri_plugin_autostart::init(
+            MacosLauncher::LaunchAgent,
+            Some(vec!["--autostart"]),
+        ))
         .setup(|app| {
             // 포스트잇 저장소 초기화 + state 로 등록
             let store = PostitStore::new(app.handle());
             app.manage(store);
+
+            // 자동시작으로 실행된 경우 감지 → 메인 창 숨김 (포스트잇만 떠있게)
+            let started_by_autostart = std::env::args().any(|a| a == "--autostart");
+            if started_by_autostart {
+                if let Some(win) = app.get_webview_window("main") {
+                    let _ = win.hide();
+                }
+            }
 
             // Force frameless from the native side too — redundant with the
             // static `decorations: false` config, but bullet-proof against
@@ -318,7 +353,8 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             force_quit,
-            postit_list, postit_spawn, postit_update, postit_close, postit_set_z_order
+            postit_list, postit_spawn, postit_update, postit_close, postit_set_z_order,
+            autostart_get, autostart_set
         ])
         .run(tauri::generate_context!())
         .expect("error while running JustANotepad");
