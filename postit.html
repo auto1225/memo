@@ -129,30 +129,55 @@
   // ─────────────────────────────────────────────────────────────
   // COMPOSITING FIX (Tauri v2 + WebView2 + Windows 11)
   // ─────────────────────────────────────────────────────────────
-  // 증상: Rust 가 decorations(false) 로 창을 만들면 WebView2 가 렌더한
-  // 콘텐츠가 window 표면에 compositing 되지 않고 하얀 화면만 나옴.
-  // DevTools 로 확인하면 DOM 은 정상, but screenshot 은 blank.
+  // 증상: decorations(false) + default shadow(true) 면 WebView2 가 렌더한
+  // 콘텐츠가 window 표면에 compositing 되지 않고 하얀 화면. CDP 로 확인하면
+  // DOM 은 정상. setShadow(false) + hide→show 사이클로 강제 recomposite.
   //
-  // 원인: decorations=false + default shadow=true 조합의 DWM 렌더링 bug.
-  // 해결: setShadow(false) + hide→show 사이클로 강제 recomposite.
-  //
-  // 이건 Rust 쪽에서 .shadow(false) 로 한번에 해결 가능하지만 rebuild 필요.
-  // 그 동안은 JS 로 runtime workaround 적용.
-  function applyCompositingFix() {
+  // 첫 포스트잇은 타이밍이 맞아 고쳐지는데 두 번째부터 실패 → Tauri API
+  // 준비 지연일 가능성. 여러 번 재시도 + 다양한 트리거 추가.
+  window.__compositingFixAttempts = 0;
+  var compositingFixDone = false;
+
+  function compositingFixOnce() {
     var w = currentWindow();
-    if (!w) return;
-    Promise.resolve()
+    if (!w) return Promise.resolve(false);
+    window.__compositingFixAttempts++;
+    return Promise.resolve()
       .then(function(){ return w.setShadow && w.setShadow(false); })
-      .catch(function(){})
+      .catch(function(e){ console.warn('[postit] setShadow err', e); })
       .then(function(){ return w.hide && w.hide(); })
-      .catch(function(){})
+      .catch(function(e){ console.warn('[postit] hide err', e); })
       .then(function(){ return new Promise(function(r){ setTimeout(r, 80); }); })
       .then(function(){ return w.show && w.show(); })
-      .catch(function(){ console.warn('[postit] composite fix failed'); });
+      .then(function(){ return w.setFocus && w.setFocus(); })
+      .catch(function(){})
+      .then(function(){ return true; });
   }
-  // 첫 paint 이후 즉시 실행 (너무 빠르면 window API 아직 준비 안됨)
-  if (document.readyState === 'complete') setTimeout(applyCompositingFix, 50);
-  else window.addEventListener('load', function(){ setTimeout(applyCompositingFix, 50); }, { once:true });
+
+  // 여러 번 재시도 — 0ms, 200ms, 600ms, 1500ms, 3000ms 에
+  // 각각 한 번씩 fix 실행. 포기하지 않고 계속 시도해서 언젠가는 맞음.
+  function scheduleCompositingFixes() {
+    [0, 200, 600, 1500, 3000].forEach(function(delay) {
+      setTimeout(function() {
+        if (compositingFixDone) return;
+        compositingFixOnce().then(function(ok) {
+          if (ok) {
+            // 첫 successful run 후에도 마지막 2번은 추가 보험으로 돌림
+            if (window.__compositingFixAttempts >= 3) compositingFixDone = true;
+          }
+        });
+      }, delay);
+    });
+  }
+
+  if (document.readyState === 'complete') scheduleCompositingFixes();
+  else window.addEventListener('load', scheduleCompositingFixes, { once: true });
+
+  // focus / visibility 변경시에도 한번 더 (알림이나 포커스 변경으로 compositing 재시도 트리거)
+  window.addEventListener('focus', function() { compositingFixOnce(); });
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) compositingFixOnce();
+  });
 
   // 색상 적용
   function applyColor(name) {
