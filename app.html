@@ -4860,6 +4860,33 @@ const TEMPLATES = [
   } }
 ];
 $('templateBtn').addEventListener('click', async () => {
+  // 1순위: 프로 템플릿 피커 (15종 리치 HTML, SVG 아이콘)
+  //        window.JANTemplatePicker — templates-pro.js + template-picker.js 로드 후 사용 가능.
+  if (window.JANTemplatePicker) {
+    window.JANTemplatePicker.open({
+      onPick: async (tpl) => {
+        if (!tpl) return;
+        if (tpl.slug === '__blank') { addTab('새 메모', ''); return; }
+        const body = tpl.body || '';
+        // 리치 HTML 이면 그대로, 마크다운이면 간이 변환
+        let html;
+        if (/^\s*</.test(body)) {
+          html = body;
+        } else {
+          // Fallback — 간단한 줄바꿈 변환
+          html = body.split('\n').map(l =>
+            /^# (.+)/.test(l) ? `<h2>${l.slice(2)}</h2>` :
+            /^## (.+)/.test(l) ? `<h3>${l.slice(3)}</h3>` :
+            /^- (.+)/.test(l) ? `<ul><li>${l.slice(2)}</li></ul>` :
+            l ? `<div>${l}</div>` : '<br>'
+          ).join('');
+        }
+        addTab(tpl.name || '새 메모', html);
+      },
+    });
+    return;
+  }
+  // Fallback: 구 하드코드 템플릿 (피커 로드 실패시만 — 보통 안 탐)
   const choice = await pickIconList('템플릿 선택', TEMPLATES.map(t => ({ label:t.name, icon:t.icon, value:t.id })));
   if (!choice) return;
   const tpl = TEMPLATES.find(t => t.id === choice);
@@ -17677,10 +17704,10 @@ if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
 <script src="/pen-surface.js"></script>
 <!-- JustANotepad super-admin shortcut — only auto0104@gmail.com sees it -->
 <script src="/super-admin-link.js"></script>
-<!-- JustANotepad built-in professional templates (15종) — picker 가 사용 -->
-<script src="/templates-pro.js?v=1"></script>
+<!-- JustANotepad built-in professional templates (15종, SVG 아이콘만) — picker 가 사용 -->
+<script src="/templates-pro.js?v=2"></script>
 <!-- JustANotepad template picker (cms_templates + 내장 프로 템플릿 병합) -->
-<script src="/template-picker.js?v=2"></script>
+<script src="/template-picker.js?v=3"></script>
 <!-- JustANotepad app ↔ CMS integration (template insertion, state bridge) -->
 <script src="/app-integration.js"></script>
 <!-- JustANotepad home hub — dashboard drawer with recent activity -->

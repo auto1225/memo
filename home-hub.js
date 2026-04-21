@@ -310,7 +310,7 @@
         <h3>공지</h3>
         ${(notices.data||[]).length ? notices.data.map(n => `
           <div class="jan-hub-item" style="cursor:default;">
-            <div class="t">${n.pinned ? '📌 ' : ''}${escape(n.title)}</div>
+            <div class="t">${n.pinned ? '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:4px;"><path d="M12 17v5M7 9V5a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v4l3 5H4z"/></svg>' : ''}${escape(n.title)}</div>
             <div class="d">${fmtRel(n.created_at)}</div>
           </div>`).join('') : '<div class="jan-hub-empty">공지 없음</div>'}
       </div>

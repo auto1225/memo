@@ -295,7 +295,7 @@
     $('noticesList').innerHTML = noticesRes.data.map(n => `
       <div class="list-item" style="cursor:default;">
         <div class="i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-8v18z"/></svg></div>
-        <div class="t">${n.pinned ? '📌 ' : ''}${escape(n.title)}</div>
+        <div class="t">${n.pinned ? '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:4px;"><path d="M12 17v5M7 9V5a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v4l3 5H4z"/></svg>' : ''}${escape(n.title)}</div>
         <div class="d">${fmtDateRel(n.created_at)}</div>
       </div>`).join('');
   } else {

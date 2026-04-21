@@ -207,13 +207,22 @@
         grid.innerHTML = `<div class="jan-tpl-empty">일치하는 템플릿이 없습니다.</div>`;
         return;
       }
-      grid.innerHTML = list.map(t => `
+      // 타일 아이콘: 내장 템플릿은 SVG 스프라이트 참조 (i-*), DB 는 텍스트 이모지였어도 무시.
+      // 이모지 절대 사용 금지 규칙.
+      const tileIconFn = window.JAN_TEMPLATE_TILE_ICON || (() => '');
+      grid.innerHTML = list.map(t => {
+        const iconHtml = (t.icon && /^i-[\w-]+$/.test(t.icon))
+          ? `<div class="ic" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:6px;background:color-mix(in srgb, var(--accent, #FAE100) 20%, transparent);color:var(--ink, #111);margin-bottom:6px;">${tileIconFn(t.icon)}</div>`
+          : '';
+        return `
         <div class="jan-tpl-tile" data-slug="${escape(t.slug)}">
+          ${iconHtml}
           ${t.category ? `<div class="c">${escape(t.category)}</div>` : ''}
           <div class="n">${escape(t.name)}</div>
           ${t.description ? `<div class="d">${escape(t.description)}</div>` : ''}
           ${t.is_official ? '<div class="b">공식</div>' : ''}
-        </div>`).join('');
+        </div>`;
+      }).join('');
       grid.querySelectorAll('.jan-tpl-tile').forEach(el => el.addEventListener('click', () => {
         const slug = el.dataset.slug;
         const tpl = templates.find(t => t.slug === slug);
