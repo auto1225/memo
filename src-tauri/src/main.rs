@@ -383,8 +383,10 @@ fn spawn_postit_window(app: &tauri::AppHandle, p: &Postit) {
         (x, y, w as u32, h as u32)
     };
 
+    // 포스트잇 전용 경량 페이지 (/postit) 사용.
+    // /app 은 앱 전체 스크립트를 로드하므로 충돌/느림 문제 있음.
     let url = format!(
-        "https://justanotepad.com/app?mode=postit&id={}",
+        "https://justanotepad.com/postit?mode=postit&id={}",
         urlencoding_encode(&p.id)
     );
     let builder = WebviewWindowBuilder::new(app, &p.id, WebviewUrl::External(url.parse().unwrap()))

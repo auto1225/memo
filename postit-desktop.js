@@ -385,16 +385,81 @@
     installPasteImageHandler();
   }
 
-  // ---- 부팅 ----
-  async function boot() {
-    await loadInitial();
-    const root = buildUI();
-    const body = root.querySelector('#postit-body');
-    body.innerHTML = state.content || '';
-    wireEvents(root);
-    if (!body.textContent.trim()) body.focus();
-    console.info('[postit-desktop] v1.1 ready · id =', state.id);
+  // ---- 에러 폴백 UI: buildUI 가 실패해도 최소한 닫기 버튼은 나옴 ----
+  function renderErrorFallback(msg) {
+    try {
+      const fallback = document.createElement('div');
+      fallback.id = 'postit-root';
+      fallback.style.cssText = `
+        position: fixed; inset: 0; background: #fff6a5; border: 1px solid #f0dd55;
+        display: flex; flex-direction: column;
+        font: 12px/1.5 -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+        color: #333;
+      `;
+      fallback.innerHTML = `
+        <div data-tauri-drag-region style="background:#fae77c;padding:4px 8px;display:flex;align-items:center;gap:4px;cursor:move;">
+          <span data-tauri-drag-region style="flex:1;font-weight:600;">포스트잇 (오류)</span>
+          <button id="pfb-close" title="닫기" style="background:transparent;border:0;cursor:pointer;padding:2px 6px;">${SVGS.x}</button>
+        </div>
+        <div style="flex:1;padding:14px;overflow:auto;">
+          <p style="color:#c00;margin:0 0 8px;">포스트잇 UI 로딩 실패</p>
+          <p style="margin:0 0 8px;font-size:11px;color:#666;">${(msg||'').replace(/</g,'&lt;')}</p>
+          <p style="margin:0;font-size:11px;color:#666;">창을 닫으려면 오른쪽 위 X 버튼을 누르세요.</p>
+        </div>`;
+      document.body.appendChild(fallback);
+      document.getElementById('pfb-close')?.addEventListener('click', () => {
+        if (confirm('이 포스트잇을 닫으시겠습니까?')) {
+          // 우선 창을 닫고, 가능하면 Rust 쪽 삭제도 시도
+          invoke('postit_close', { id: state.id });
+          try { currentWindow()?.close(); } catch {}
+        }
+      });
+    } catch (e) {
+      // 정말 아무것도 안 되면 native alert
+      alert('포스트잇 오류: ' + msg);
+    }
   }
+
+  // ---- 부팅: UI 를 먼저 동기적으로 그려서 "빈 흰 박스" 상태 방지 ----
+  function boot() {
+    let root;
+    try {
+      root = buildUI();
+    } catch (e) {
+      console.error('[postit-desktop] buildUI 실패', e);
+      renderErrorFallback(e && e.message ? e.message : String(e));
+      return;
+    }
+    let body;
+    try {
+      body = root.querySelector('#postit-body');
+      wireEvents(root);
+    } catch (e) {
+      console.error('[postit-desktop] wireEvents 실패', e);
+    }
+
+    // 상태 로드는 뒤에서 background 로
+    (async () => {
+      try {
+        await loadInitial();
+        if (body && state.content) body.innerHTML = state.content;
+        applyColor(root);
+        if (body && !body.textContent.trim()) body.focus();
+      } catch (e) {
+        console.warn('[postit-desktop] loadInitial 실패 (무시)', e);
+      }
+    })();
+
+    console.info('[postit-desktop] v1.2 ready · id =', state.id);
+  }
+
+  // 전역 에러 캐치 (스크립트 다른 부분에서 에러가 나도 포스트잇은 뜨게)
+  window.addEventListener('error', (e) => {
+    // 이미 root 가 있으면 무시
+    if (document.getElementById('postit-root')) return;
+    console.error('[postit-desktop] 전역 에러', e.error || e.message);
+    renderErrorFallback(e.error && e.error.message || e.message || 'unknown error');
+  });
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
   else boot();

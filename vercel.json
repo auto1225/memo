@@ -61,6 +61,7 @@
     { "source": "/app", "destination": "/app.html" },
     { "source": "/admin", "destination": "/admin.html" },
     { "source": "/home", "destination": "/home.html" },
+    { "source": "/postit", "destination": "/postit.html" },
     { "source": "/extension-connect", "destination": "/extension-connect.html" },
     { "source": "/graph", "destination": "/graph.html" },
     { "source": "/s/:token", "destination": "/share.html" },
