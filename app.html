@@ -3607,7 +3607,19 @@ function load() {
       if (t.starred === undefined) t.starred = false;
       if (t.wsId === undefined) t.wsId = d.workspaces[0].id;
       if (t.tag === undefined) t.tag = '';
+      // 이모지 사용 금지 규칙 — 옛날 버전이 저장해둔 탭 이름 앞 이모지 제거
+      // ("📅 캘린더" → "캘린더", "🗓 4/21 일정" → "4/21 일정")
+      if (typeof t.name === 'string') {
+        const cleaned = stripEmoji(t.name);
+        if (cleaned && cleaned !== t.name) t.name = cleaned;
+      }
     });
+    // workspace 이름도 안전하게 한 번 더 정리 (v4 직접 저장된 경우 대비)
+    d.workspaces = d.workspaces.map(w =>
+      w.name && stripEmoji(w.name) !== w.name
+        ? { ...w, name: stripEmoji(w.name) || '공간' }
+        : w
+    );
     return d;
   } catch (e) { return structuredClone(defaultData); }
 }
@@ -3906,12 +3918,30 @@ function renderTabs() {
     tab.dataset.id = t.id;
     tab.draggable = !t.pinned;
     const tagClass = t.tag ? ' tag-' + t.tag : '';
+    // 이모지 정책: 탭 이름 앞에 붙은 유니코드 이모지 / variation selector 는
+    // 렌더시 제거하고, 타입별로 SVG 아이콘으로 대체 (과거 저장 상태 호환).
+    // 유지는 저장값이지만 "보이는" 이름은 깨끗하게.
+    const cleanName = String(t.name || '').replace(
+      /^[\p{Extended_Pictographic}\uFE0F\u200D\s]+/u, ''
+    );
+    // 타입별 SVG 아이콘 매핑 — 이모지 대체
+    const typeIconId = ({
+      calendar: 'i-calendar',
+      lecture:  'i-mic',
+      meeting:  'i-clipboard',
+      card:     'i-cards',
+      graph:    'i-wordcloud',
+    })[t.type];
+    const typeIconHtml = typeIconId
+      ? `<svg class="ico-sm" style="opacity:0.8;margin-right:2px;"><use href="#${typeIconId}"/></svg>`
+      : '';
     tab.innerHTML = `
       <span class="dot${tagClass}"></span>
       ${t.starred ? '<svg class="ico-sm star-icon"><use href="#i-star-fill"/></svg>' : ''}
       ${t.pinned ? '<svg class="ico-sm"><use href="#i-pin"/></svg>' : ''}
       ${t.locked ? '<svg class="ico-sm"><use href="#i-lock"/></svg>' : ''}
-      <span class="name">${escapeHtml(t.name)}</span>
+      ${typeIconHtml}
+      <span class="name">${escapeHtml(cleanName)}</span>
       ${t.pinned ? '' : '<button class="close" title="닫기"><svg class="ico-sm"><use href="#i-x"/></svg></button>'}
     `;
     tab.addEventListener('click', (e) => {
