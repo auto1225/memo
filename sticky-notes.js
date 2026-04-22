@@ -461,11 +461,15 @@
   // ---- 토픽바 버튼 ----
   function injectTopBtn() {
     if (document.getElementById('stickyTopBtn')) return true;
-    const anchor = document.getElementById('calOpenBtn') || document.getElementById('palBtn');
+    // 캘린더 split button wrapper 가 있으면 그 wrapper 전체 다음에 삽입 —
+    // wrapper 내부(calOpenBtn 다음) 에 끼어들면 split button ▾ 가 밀려남.
+    const anchor = document.getElementById('calDropWrap')
+                || document.getElementById('calOpenBtn')
+                || document.getElementById('palBtn');
     if (!anchor?.parentNode) return false;
     const b = document.createElement('button');
     b.id = 'stickyTopBtn';
-    b.className = anchor.className || 'collapsible';
+    b.className = 'collapsible';
     b.setAttribute('aria-label', '새 JustPin');
     b.setAttribute('title', '새 JustPin (Ctrl+Alt+P)');
     b.innerHTML = `<svg style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M15 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9z"/><path d="M15 3v6h6"/></svg>`;
