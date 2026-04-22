@@ -41,6 +41,18 @@
   let activeCategories = new Set(CATEGORIES.map(c => c.id));
   // Drag state for month-view rescheduling
   let dragging = null;
+  // 음력 표시 여부 — localStorage 에 저장. 기본 true (한국 사용자).
+  let showLunar = (function() {
+    try {
+      const v = localStorage.getItem('calendar-show-lunar');
+      return v === null ? true : v === 'true';
+    } catch { return true; }
+  })();
+  function setShowLunar(v) {
+    showLunar = !!v;
+    try { localStorage.setItem('calendar-show-lunar', String(showLunar)); } catch {}
+    renderAll();
+  }
 
   // ---- Utilities -------------------------------------------------------
   const $ = (sel, root) => (root||document).querySelector(sel);
@@ -351,6 +363,7 @@
           <button class="cp-add" id="cpAdd" title="상세 입력">+ 이벤트</button>
           <button class="cp-menu-btn" id="cpMenu" title="더보기">⋯</button>
           <div class="cp-menu-dropdown" id="cpMenuDrop">
+            <button id="cpToggleLunar">음력 표시 <span id="cpLunarState">${showLunar ? '켬' : '끔'}</span></button>
             <button id="cpExportIcs">ICS 파일 내보내기</button>
             <button id="cpImportIcs">ICS 파일 가져오기</button>
             <button id="cpEnableNotify">알림 권한 요청</button>
@@ -405,6 +418,11 @@
     $('#cpMenu').addEventListener('click', () => $('#cpMenuDrop').classList.toggle('show'));
     document.addEventListener('click', (e) => {
       if (!e.target.closest('#cpMenu') && !e.target.closest('#cpMenuDrop')) $('#cpMenuDrop')?.classList.remove('show');
+    });
+    $('#cpToggleLunar')?.addEventListener('click', () => {
+      setShowLunar(!showLunar);
+      const st = document.getElementById('cpLunarState');
+      if (st) st.textContent = showLunar ? '켬' : '끔';
     });
     $('#cpExportIcs').addEventListener('click', exportIcs);
     $('#cpImportIcs').addEventListener('click', () => {
@@ -546,8 +564,8 @@
         k === selectedId ? 'selected' : '',
       ].filter(Boolean).join(' ');
       const dnCls = dow === 0 ? 'sun' : dow === 6 ? 'sat' : '';
-      // Lunar date — show on every day if lookup succeeds
-      const lun = D.solarToLunar ? D.solarToLunar(dt) : null;
+      // Lunar date — show on every day if lookup succeeds AND user opted in
+      const lun = (showLunar && D.solarToLunar) ? D.solarToLunar(dt) : null;
       const lunHtml = lun
         ? `<span class="lun${lun.leap?' leap':''}" title="음력 ${lun.leap?'윤 ':''}${lun.month}월 ${lun.day}일">음 ${lun.month}.${lun.day}${lun.leap?'閏':''}</span>`
         : '';
