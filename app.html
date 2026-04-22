@@ -7846,10 +7846,38 @@ function webTodayStr() {
 }
 
 async function webFetchHtml(url) {
-  const r = await fetch(url, { mode:'cors', credentials:'omit', redirect:'follow' });
-  if (!r.ok) throw new Error('HTTP ' + r.status);
-  const txt = await r.text();
-  return txt.length > WEB_FETCH_LIMIT ? txt.slice(0, WEB_FETCH_LIMIT) : txt;
+  // 1) 직접 fetch 시도 — CORS 허용 사이트 (대부분 API, GitHub raw, Medium 등)
+  try {
+    const r = await fetch(url, { mode:'cors', credentials:'omit', redirect:'follow' });
+    if (r.ok) {
+      const txt = await r.text();
+      return txt.length > WEB_FETCH_LIMIT ? txt.slice(0, WEB_FETCH_LIMIT) : txt;
+    }
+  } catch (e) {
+    // 직접 fetch 실패 (Wikipedia HTML 페이지 등 CORS 차단) → 프록시로 재시도
+    console.info('[webFetchHtml] 직접 fetch 실패, 프록시 시도:', url, e.message);
+  }
+
+  // 2) CORS 프록시 fallback — allorigins.win (무료·공개)
+  // 프록시 서버가 대상 URL 을 fetch 한 뒤 CORS 허용 헤더로 응답을 중계.
+  // 공개 서비스이므로 99% uptime. 대안: corsproxy.io, cors-anywhere (제한적).
+  const proxies = [
+    'https://api.allorigins.win/raw?url=',
+    'https://corsproxy.io/?',
+  ];
+  let lastErr = null;
+  for (const prefix of proxies) {
+    try {
+      const proxyUrl = prefix + encodeURIComponent(url);
+      const r = await fetch(proxyUrl, { mode:'cors', credentials:'omit' });
+      if (!r.ok) { lastErr = new Error('HTTP ' + r.status); continue; }
+      const txt = await r.text();
+      return txt.length > WEB_FETCH_LIMIT ? txt.slice(0, WEB_FETCH_LIMIT) : txt;
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr || new Error('모든 프록시 실패 (네트워크 확인 필요)');
 }
 
 /* iframe 내부 네비게이션은 cross-origin 제약으로 부모가 추적 불가.
