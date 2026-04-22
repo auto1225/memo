@@ -367,7 +367,6 @@
             <button id="cpExportIcs">ICS 파일 내보내기</button>
             <button id="cpImportIcs">ICS 파일 가져오기</button>
             <button id="cpEnableNotify">알림 권한 요청</button>
-            <button id="cpTogglePin">D-day 고정 전환</button>
           </div>
         </div>
         <div class="cp-nl-input" id="cpNLInput">
@@ -1209,6 +1208,7 @@
           <button class="cp-add" id="cpAdd" title="상세 입력">+ 이벤트</button>
           <button class="cp-menu-btn" id="cpMenu" title="더보기">⋯</button>
           <div class="cp-menu-dropdown" id="cpMenuDrop">
+            <button id="cpToggleLunar">음력 표시 <span id="cpLunarState">${showLunar ? '켬' : '끔'}</span></button>
             <button id="cpExportIcs">ICS 파일 내보내기</button>
             <button id="cpImportIcs">ICS 파일 가져오기</button>
             <button id="cpEnableNotify">알림 권한 요청</button>
