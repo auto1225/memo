@@ -2252,7 +2252,11 @@
   <button data-tact="moveDown" title="표를 한 단락 아래로"><svg class="ico"><use href="#i-arrow-down"/></svg></button>
   <button data-tact="moveOut" title="카드 바깥으로 빼내기">⇱</button>
   <div class="sep"></div>
+  <span class="label">캡션</span>
   <button data-tact="caption" title="캡션 추가/편집"><svg class="ico"><use href="#i-edit"/></svg>캡션</button>
+  <button data-tact="cap-align-left" title="캡션 왼쪽 정렬 (표 너비 안)"><svg class="ico"><use href="#i-align-left"/></svg></button>
+  <button data-tact="cap-align-center" title="캡션 가운데 정렬 (표 너비 안)"><svg class="ico"><use href="#i-align-center"/></svg></button>
+  <button data-tact="cap-align-right" title="캡션 오른쪽 정렬 (표 너비 안)"><svg class="ico"><use href="#i-align-right"/></svg></button>
   <div class="sep"></div>
   <button data-tact="delTable" class="danger" title="표 전체 삭제"><svg class="ico"><use href="#i-trash"/></svg></button>
 </div>
@@ -2277,7 +2281,12 @@
   <button data-iact="move-down" title="한 단락 아래로"><svg class="ico"><use href="#i-arrow-down"/></svg></button>
   <button data-iact="move-out" title="카드 바깥으로 빼내기">⇱</button>
   <div class="sep"></div>
-  <button data-iact="caption" title="캡션 추가"><svg class="ico"><use href="#i-edit"/></svg></button>
+  <span class="label">캡션</span>
+  <button data-iact="caption" title="캡션 추가/편집"><svg class="ico"><use href="#i-edit"/></svg></button>
+  <button data-iact="cap-align-left" title="캡션 왼쪽 정렬 (이미지 너비 안)"><svg class="ico"><use href="#i-align-left"/></svg></button>
+  <button data-iact="cap-align-center" title="캡션 가운데 정렬 (이미지 너비 안)"><svg class="ico"><use href="#i-align-center"/></svg></button>
+  <button data-iact="cap-align-right" title="캡션 오른쪽 정렬 (이미지 너비 안)"><svg class="ico"><use href="#i-align-right"/></svg></button>
+  <div class="sep"></div>
   <button data-iact="link" title="링크 걸기"><svg class="ico"><use href="#i-link"/></svg></button>
   <button data-iact="ocr" title="AI로 텍스트 인식 (이미지 속 글씨 → 텍스트)"><svg class="ico"><use href="#i-sparkles"/></svg></button>
   <button data-iact="download" title="이미지 다운로드"><svg class="ico"><use href="#i-download"/></svg></button>
@@ -7149,6 +7158,15 @@ tableToolbar.querySelectorAll('[data-tact]').forEach(btn => {
       }
       cap.textContent = t;
       toast('표 캡션 추가됨 (표 너비 기준 중앙 정렬)');
+    } else if (act === 'cap-align-left' || act === 'cap-align-center' || act === 'cap-align-right') {
+      // <caption> 은 표에 자동 소속되어 표 너비 안에서 정렬됨.
+      // text-align 을 직접 설정하면 표 너비 내에서 좌/중/우로 배치.
+      const cap = table.querySelector(':scope > caption');
+      if (!cap) { toast('먼저 캡션을 추가하세요'); return; }
+      cap.classList.remove('cap-left', 'cap-right');
+      if (act === 'cap-align-left') { cap.classList.add('cap-left'); toast('표 캡션: 왼쪽 정렬 (표 너비 안)'); }
+      else if (act === 'cap-align-right') { cap.classList.add('cap-right'); toast('표 캡션: 오른쪽 정렬 (표 너비 안)'); }
+      else { toast('표 캡션: 가운데 정렬 (표 너비 안)'); }
     } else if (act === 'cellBg') {
       const c = await prompt2('셀 배경색 (예: #ffe0b2, transparent)', cell.style.backgroundColor || '#ffe0b2');
       if (c !== null) cell.style.backgroundColor = c;
@@ -7446,10 +7464,31 @@ imageToolbar.querySelectorAll('[data-iact]').forEach(btn => {
         img.style.height = 'auto';
       }
       toast(`크기: ${v === 'full' ? '100%' : v + 'px'}`);
-    } else if (act === 'align-left') { clearFloat(); img.classList.add('img-float-left'); }
-    else if (act === 'align-right') { clearFloat(); img.classList.add('img-float-right'); }
-    else if (act === 'align-center') { clearFloat(); img.classList.add('img-block-center'); }
-    else if (act === 'align-inline') { clearFloat(); img.style.display = 'inline'; img.style.verticalAlign = 'middle'; }
+    } else if (act === 'align-left') {
+      clearFloat();
+      const fig = img.closest('figure');
+      if (fig) { fig.classList.remove('fig-align-right'); fig.classList.add('fig-align-left'); }
+      else img.classList.add('img-float-left');
+    }
+    else if (act === 'align-right') {
+      clearFloat();
+      const fig = img.closest('figure');
+      if (fig) { fig.classList.remove('fig-align-left'); fig.classList.add('fig-align-right'); }
+      else img.classList.add('img-float-right');
+    }
+    else if (act === 'align-center') {
+      clearFloat();
+      const fig = img.closest('figure');
+      if (fig) { fig.classList.remove('fig-align-left', 'fig-align-right'); }
+      else img.classList.add('img-block-center');
+    }
+    else if (act === 'align-inline') {
+      clearFloat();
+      // 인라인은 캡션(figure) 과 공존 불가 — figure 있으면 해제
+      const fig = img.closest('figure');
+      if (fig) { fig.parentNode.insertBefore(img, fig); fig.remove(); }
+      img.style.display = 'inline'; img.style.verticalAlign = 'middle';
+    }
     else if (act === 'move-up') {
       // 이미지의 가장 가까운 블록 요소를 한 단계 위 단락 앞으로 이동
       const block = img.closest('figure, p, div, li, .web-clip, .web-clip-body, .web-link-card') || img.parentNode;
@@ -7507,6 +7546,17 @@ imageToolbar.querySelectorAll('[data-iact]').forEach(btn => {
       }
       cap.textContent = t;
       toast('캡션 추가됨 (이미지 너비 기준 중앙 정렬)');
+    } else if (act === 'cap-align-left' || act === 'cap-align-center' || act === 'cap-align-right') {
+      // 캡션 정렬은 "이미지 너비 안에서" 만 동작해야 함 (문서 전폭이 아니라).
+      // figure 가 display:table 이라 그 안의 figcaption(display:table-caption)의
+      // text-align 은 자동으로 img/table 실제 너비 안에서 적용된다.
+      const fig = img.closest('figure');
+      const cap = fig?.querySelector('figcaption');
+      if (!cap) { toast('먼저 캡션을 추가하세요'); return; }
+      cap.classList.remove('cap-left', 'cap-right');
+      if (act === 'cap-align-left') { cap.classList.add('cap-left'); toast('캡션: 왼쪽 정렬 (이미지 너비 안)'); }
+      else if (act === 'cap-align-right') { cap.classList.add('cap-right'); toast('캡션: 오른쪽 정렬 (이미지 너비 안)'); }
+      else { toast('캡션: 가운데 정렬 (이미지 너비 안)'); }
     } else if (act === 'link') {
       const u = await prompt2('이미지에 걸 링크 URL', img.parentNode.tagName === 'A' ? img.parentNode.href : '');
       if (u) {
