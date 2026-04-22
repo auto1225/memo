@@ -1407,6 +1407,26 @@
   .ai-tab { padding:6px 12px; font-size:12px; cursor:pointer; border-bottom:2px solid transparent; color:#666; }
   .ai-tab.active { color:var(--accent); border-bottom-color:var(--accent); font-weight:600; }
   .ai-actions { display:grid; grid-template-columns:repeat(2, 1fr); gap:6px; }
+  /* 현재 실행 중/완료된 AI 작업 버튼을 명확히 강조 */
+  .ai-actions button.active {
+    background: var(--accent) !important;
+    color: #1a1a1a !important;
+    border-color: var(--accent) !important;
+    font-weight: 600 !important;
+    box-shadow: 0 2px 8px rgba(138, 95, 209, 0.25);
+  }
+  .ai-actions button.active .ico { stroke: #1a1a1a !important; }
+  .ai-actions button.active::after {
+    content: '✓'; margin-left: auto; font-weight: 700; color: #1a1a1a;
+  }
+  /* 현재 선택 표시 바 — 결과 위에 표시 */
+  .ai-current-action {
+    display: none; background: color-mix(in srgb, var(--accent) 12%, white);
+    border-left: 3px solid var(--accent); padding: 6px 10px; margin: 8px 0;
+    border-radius: 4px; font-size: 12px; color: var(--ink);
+  }
+  .ai-current-action.show { display: block; }
+  .ai-current-action b { color: var(--accent); }
   .ai-actions button {
     padding:10px 12px; border:1px solid #e0e0e0; background:white; border-radius:8px;
     cursor:pointer; text-align:left; font-size:12.5px; color:#333;
@@ -2363,6 +2383,7 @@
         <button data-ai="flashcards"><svg class="ico"><use href="#i-cards"/></svg>플래시카드 만들기</button>
         <button data-ai="ask"><svg class="ico"><use href="#i-help"/></svg>자유 질문</button>
       </div>
+      <div class="ai-current-action" id="aiCurrentAction"><b id="aiCurrentLabel">—</b> <span id="aiCurrentState" style="color:var(--ink-soft); margin-left:6px;"></span></div>
       <div class="ai-loading" id="aiLoading">AI가 처리 중입니다<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></div>
       <div class="ai-result" id="aiResult"></div>
     </div>
@@ -8936,6 +8957,28 @@ const AI_PROMPTS = {
 };
 
 let lastAiResult = '';
+let lastAiAction = '';
+const AI_ACTION_LABELS = {
+  summarize: '요약하기', keypoints: '핵심 추출', improve: '글 다듬기',
+  continue: '이어서 쓰기', title: '제목 생성', tasks: '할 일 추출',
+  'translate-ko': '한국어로 번역', 'translate-en': '영어로 번역',
+  flashcards: '플래시카드 만들기', ask: '자유 질문',
+};
+function setAiActionUI(action, state /* 'running' | 'done' | 'error' | null */) {
+  // 모든 버튼 active 해제 후 현재만 active
+  document.querySelectorAll('#aiMain .ai-actions button').forEach(b => {
+    b.classList.toggle('active', b.dataset.ai === action);
+  });
+  const bar = $('aiCurrentAction');
+  const label = $('aiCurrentLabel');
+  const st = $('aiCurrentState');
+  if (!action) { bar.classList.remove('show'); return; }
+  label.textContent = AI_ACTION_LABELS[action] || action;
+  st.textContent = state === 'running' ? '· 처리 중…' :
+                   state === 'done' ? '· 완료 (아래 결과 확인)' :
+                   state === 'error' ? '· 오류' : '';
+  bar.classList.add('show');
+}
 async function runAiAction(action) {
   const t = currentTab();
   if (!t || t.locked) { toast('잠긴 탭은 AI에 사용할 수 없습니다'); return; }
@@ -8946,22 +8989,33 @@ async function runAiAction(action) {
 
   let system, user;
   if (action === 'ask') {
-    const q = await prompt2('AI에게 물어보기', '이 메모에 대해 궁금한 것을 물어보세요');
-    if (!q) return;
-    system = '당신은 유용한 한국어 어시스턴트입니다. 사용자의 메모를 참고하여 답변하세요.';
-    user = `[내 메모 내용]\n${text}\n\n[질문]\n${q}`;
+    const q = await prompt2('이 메모에 대해 궁금한 것을 물어보세요', '');
+    if (!q || !q.trim()) return;
+    system = '당신은 유용한 한국어 어시스턴트입니다. 사용자의 메모를 참고하여 정확하고 친절하게 답변하세요. 답은 한국어 평문으로 쓰세요.';
+    user = `[내 메모 내용]\n${text}\n\n[질문]\n${q.trim()}`;
   } else {
-    const [sys, prefix] = AI_PROMPTS[action];
+    const entry = AI_PROMPTS[action];
+    if (!Array.isArray(entry) || entry.length < 2) {
+      toast(`알 수 없는 AI 작업입니다: ${action}`);
+      return;
+    }
+    const [sys, prefix] = entry;
     system = sys;
     user = prefix + text;
   }
+  lastAiAction = action;
+  // 선택 상태 UI — 어떤 작업을 실행 중인지 명확히 표시
+  setAiActionUI(action, 'running');
   $('aiLoading').classList.add('show');
   $('aiResult').classList.remove('show');
   $('aiInsertBtn').style.display = 'none';
   $('aiReplaceBtn').style.display = 'none';
   const result = await callAI(system, user);
   $('aiLoading').classList.remove('show');
-  if (!result) return;
+  if (!result) {
+    setAiActionUI(action, 'error');
+    return;
+  }
   lastAiResult = result;
   $('aiResult').textContent = result;
   $('aiResult').classList.add('show');
@@ -8969,6 +9023,7 @@ async function runAiAction(action) {
   if (action === 'improve' || action === 'translate-ko' || action === 'translate-en') {
     $('aiReplaceBtn').style.display = 'inline-block';
   }
+  setAiActionUI(action, 'done');
 }
 
 $('aiBtn').addEventListener('click', () => {
@@ -8981,6 +9036,8 @@ $('aiBtn').addEventListener('click', () => {
   $('aiResult').classList.remove('show');
   $('aiInsertBtn').style.display = 'none';
   $('aiReplaceBtn').style.display = 'none';
+  // 이전 실행 흔적 초기화
+  try { setAiActionUI(null); } catch {}
 });
 $('aiClose').addEventListener('click', () => $('aiModal').classList.remove('open'));
 $('aiKeyBtn').addEventListener('click', openAiKeyPanel);
@@ -9139,7 +9196,30 @@ document.querySelectorAll('#aiMain .ai-actions button').forEach(btn => {
 });
 $('aiInsertBtn').addEventListener('click', () => {
   if (!lastAiResult) return;
-  insertHtmlAtCursor(`<blockquote>${escapeHtml(lastAiResult).replace(/\n/g, '<br>')}</blockquote><br>`);
+  let html;
+  if (lastAiAction === 'flashcards') {
+    // 플래시카드: Q/A 쌍을 파싱 가능한 <p> 구조로 삽입 (parseFlashcards 가 textContent 기반이라
+    // 각 Q/A 를 별도 <p> 로 감싸 줄바꿈 보존. 그래야 "플래시카드" 버튼으로 학습 가능)
+    const pairs = [];
+    const re = /Q[:：]\s*([^\n]+?)\s*[\n\r]+\s*A[:：]\s*([\s\S]+?)(?=(?:\r?\n\s*Q[:：])|$)/g;
+    let m;
+    while ((m = re.exec(lastAiResult)) !== null) {
+      pairs.push({ q: m[1].trim(), a: m[2].trim() });
+    }
+    if (pairs.length > 0) {
+      html = `<h3>플래시카드</h3>` + pairs.map(p =>
+        `<p>Q: ${escapeHtml(p.q)}</p><p>A: ${escapeHtml(p.a).replace(/\n/g, ' ')}</p><p><br></p>`
+      ).join('');
+    } else {
+      // 파싱 실패 시 평문으로라도 삽입 (줄바꿈은 <br> 가 아니라 <p> 로 — 파서 호환)
+      html = lastAiResult.split(/\n{2,}/).map(block =>
+        `<p>${escapeHtml(block).replace(/\n/g, '<br>')}</p>`
+      ).join('');
+    }
+  } else {
+    html = `<blockquote>${escapeHtml(lastAiResult).replace(/\n/g, '<br>')}</blockquote><p><br></p>`;
+  }
+  insertHtmlAtCursor(html);
   $('aiModal').classList.remove('open');
   toast('메모에 삽입됨');
 });
