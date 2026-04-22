@@ -2264,6 +2264,144 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
     </div>
   </div>
 
+  <!-- ROW 8.5: 전체 기능 카탈로그 (명령 팔레트에 전부 노출됨) -->
+  <div class="ev-row" style="display: block; padding: 80px 24px;">
+    <div style="max-width: 1100px; margin: 0 auto;">
+      <div style="text-align: center; margin-bottom: 48px;">
+        <span class="ev-tag">전체 기능</span>
+        <h3 style="font-size: clamp(28px, 3.6vw, 40px); margin-top: 16px; text-align: center;">⌘K 한 번, <br />180개+ 기능 바로 검색</h3>
+        <p style="max-width: 620px; margin: 16px auto 0; text-align: center; color: var(--text-mute);">
+          <span class="nb">Ctrl+K (macOS ⌘K)</span> 로 열리는 <span class="nb">명령 팔레트</span>에
+          앱의 모든 기능이 등록되어 있습니다.
+          메뉴를 뒤질 필요 없이 <span class="nb">키워드 한 단어</span>로 즉시 실행.
+        </p>
+      </div>
+
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px;">
+        <!-- 편집 & 서식 -->
+        <div style="background:white; border:1px solid rgba(0,0,0,0.08); border-radius:14px; padding:20px;">
+          <div style="font-size:13px; font-weight:700; color:#D97757; margin-bottom:8px;">편집 · 서식</div>
+          <div style="font-size:14px; font-weight:700; margin-bottom:10px;">문서 편집기의 기본기</div>
+          <ul style="margin:0; padding:0 0 0 16px; font-size:13px; color:var(--text-mute); line-height:1.8;">
+            <li>굵게·기울임·밑줄·취소선</li>
+            <li>제목 1/2/3, 인용, 구분선</li>
+            <li>체크리스트, 순서·불릿 목록</li>
+            <li>표, 코드블록, 수식(MathML)</li>
+            <li>대·소문자 · Title Case 변환</li>
+            <li>찾아바꾸기, 드롭캡, 다단 레이아웃</li>
+          </ul>
+        </div>
+
+        <!-- 탭 & 워크스페이스 -->
+        <div style="background:white; border:1px solid rgba(0,0,0,0.08); border-radius:14px; padding:20px;">
+          <div style="font-size:13px; font-weight:700; color:#2E5BFF; margin-bottom:8px;">정리</div>
+          <div style="font-size:14px; font-weight:700; margin-bottom:10px;">수백 개 메모도 깔끔하게</div>
+          <ul style="margin:0; padding:0 0 0 16px; font-size:13px; color:var(--text-mute); line-height:1.8;">
+            <li>워크스페이스 · 탭 · 태그 · 즐겨찾기</li>
+            <li>탭 잠금 (비밀번호 암호화)</li>
+            <li>버전 히스토리 · 휴지통 복구</li>
+            <li>분할 보기 · 목차(TOC) · 갤러리</li>
+            <li>위키 링크 <code>[[탭이름]]</code></li>
+            <li>전체 백업 (JSON 1개 파일)</li>
+          </ul>
+        </div>
+
+        <!-- AI & 음성 -->
+        <div style="background:white; border:1px solid rgba(0,0,0,0.08); border-radius:14px; padding:20px;">
+          <div style="font-size:13px; font-weight:700; color:#10B981; margin-bottom:8px;">AI · 음성</div>
+          <div style="font-size:14px; font-weight:700; margin-bottom:10px;">요약부터 회의록까지</div>
+          <ul style="margin:0; padding:0 0 0 16px; font-size:13px; color:var(--text-mute); line-height:1.8;">
+            <li>GPT · Claude · Gemini 16종</li>
+            <li>요약·번역·이어쓰기·질문 생성</li>
+            <li>회의 노트: 녹음+실시간 받아쓰기+화자분리</li>
+            <li>음성 입력 (STT) · 읽어주기 (TTS)</li>
+            <li>손글씨→텍스트 OCR</li>
+            <li>명함 AI 스캔 (OCR + SNS 찾기)</li>
+          </ul>
+        </div>
+
+        <!-- 그림 · 이미지 -->
+        <div style="background:white; border:1px solid rgba(0,0,0,0.08); border-radius:14px; padding:20px;">
+          <div style="font-size:13px; font-weight:700; color:#8B5CF6; margin-bottom:8px;">그림 · 이미지</div>
+          <div style="font-size:14px; font-weight:700; margin-bottom:10px;">내장 그래픽 스튜디오</div>
+          <ul style="margin:0; padding:0 0 0 16px; font-size:13px; color:var(--text-mute); line-height:1.8;">
+            <li>그림판 (Paint): 레이어·블렌드·필터</li>
+            <li>펜 모드: 필압 감지 스타일러스</li>
+            <li>이미지 변환기: 크기·용량·포맷</li>
+            <li>화면 캡쳐 → 메모에 바로</li>
+            <li>AI 이미지 생성</li>
+            <li>스케치·손글씨·지우개</li>
+          </ul>
+        </div>
+
+        <!-- 생산성 -->
+        <div style="background:white; border:1px solid rgba(0,0,0,0.08); border-radius:14px; padding:20px;">
+          <div style="font-size:13px; font-weight:700; color:#FFB300; margin-bottom:8px;">생산성 도구</div>
+          <div style="font-size:14px; font-weight:700; margin-bottom:10px;">집중과 계획</div>
+          <ul style="margin:0; padding:0 0 0 16px; font-size:13px; color:var(--text-mute); line-height:1.8;">
+            <li>포모도로 타이머 · 집중 모드</li>
+            <li>캘린더 Pro (월/주/일/년/할일)</li>
+            <li>ICS 내보내기 · 반복 일정 · 알림</li>
+            <li>플래시카드 학습</li>
+            <li>워드 클라우드 · 상세 통계</li>
+            <li>상용구·자동교정 (-- → —)</li>
+          </ul>
+        </div>
+
+        <!-- 내보내기 -->
+        <div style="background:white; border:1px solid rgba(0,0,0,0.08); border-radius:14px; padding:20px;">
+          <div style="font-size:13px; font-weight:700; color:#EC4899; margin-bottom:8px;">내보내기</div>
+          <div style="font-size:14px; font-weight:700; margin-bottom:10px;">어디서든 열리는 포맷</div>
+          <ul style="margin:0; padding:0 0 0 16px; font-size:13px; color:var(--text-mute); line-height:1.8;">
+            <li>PDF (A4, 인쇄 최적화)</li>
+            <li>Word (.docx)</li>
+            <li>HTML (스타일 포함 단독 파일)</li>
+            <li>Markdown (.md)</li>
+            <li>JSON 전체 백업</li>
+            <li>QR 코드 공유 · 공개 링크</li>
+          </ul>
+        </div>
+
+        <!-- 데스크톱 · 멀티윈도우 -->
+        <div style="background:white; border:1px solid rgba(0,0,0,0.08); border-radius:14px; padding:20px;">
+          <div style="font-size:13px; font-weight:700; color:#06B6D4; margin-bottom:8px;">데스크톱</div>
+          <div style="font-size:14px; font-weight:700; margin-bottom:10px;">Tauri 네이티브 앱</div>
+          <ul style="margin:0; padding:0 0 0 16px; font-size:13px; color:var(--text-mute); line-height:1.8;">
+            <li>JustPin — 떠있는 포스트잇 (Ctrl+Alt+P)</li>
+            <li>자동시작 (부팅 후 JustPin 유지)</li>
+            <li>항상 위에 고정 · 투명도 조절</li>
+            <li>4 코너 스냅</li>
+            <li>자동 업데이트 (GitHub Release)</li>
+            <li>오프라인 100%</li>
+          </ul>
+        </div>
+
+        <!-- 역할별 도구 -->
+        <div style="background:linear-gradient(135deg, #FFF3C0, #F5E6DD); border:1px solid rgba(0,0,0,0.08); border-radius:14px; padding:20px;">
+          <div style="font-size:13px; font-weight:700; color:#D97757; margin-bottom:8px;">역할별 전용 도구</div>
+          <div style="font-size:14px; font-weight:700; margin-bottom:10px;">37개 역할, 수십 개 위젯</div>
+          <ul style="margin:0; padding:0 0 0 16px; font-size:13px; color:var(--text-mute); line-height:1.8;">
+            <li>학생: 시간표 · GPA · 출결 · 조별과제</li>
+            <li>회사원: OKR · 견적서 · 프로젝트 보드</li>
+            <li>주부: 가계부 · 장보기 · 식단</li>
+            <li>의료: SOAP · 혈압·혈당 · 약 복용</li>
+            <li>창작: 포트폴리오 · 영감 · 작품 기록</li>
+            <li>투자·여행·반려동물·PM·개발자 외</li>
+          </ul>
+        </div>
+      </div>
+
+      <div style="margin-top: 40px; text-align: center;">
+        <div style="display:inline-flex; align-items:center; gap:8px; padding:12px 20px; background:rgba(0,0,0,0.05); border-radius:999px; font-size:13px; color:var(--text-mute);">
+          <kbd style="font-family:monospace; background:white; padding:3px 8px; border-radius:6px; border:1px solid rgba(0,0,0,0.1); font-weight:700; color:var(--text-main);">Ctrl</kbd>
+          +
+          <kbd style="font-family:monospace; background:white; padding:3px 8px; border-radius:6px; border:1px solid rgba(0,0,0,0.1); font-weight:700; color:var(--text-main);">K</kbd>
+          <span style="margin-left:4px;">— 앱 안에서 모든 기능 검색</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ROW 9: CTA 마무리 -->
   <div class="ev-row" style="justify-content: center; text-align: center; padding: 100px 24px; display: block;">
     <div style="max-width: 640px; margin: 0 auto; text-align: center;">

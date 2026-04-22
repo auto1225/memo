@@ -18266,6 +18266,158 @@ if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
     { ico:'i-scan', name:'명함 AI 스캔', desc:'사진을 AI로 분석해 자동 입력', run:() => { openCardsModal(); setTimeout(() => openCardEditor(null), 100); } }
   );
 }
+
+/* ============================================================
+   [v1.0.33] 명령 팔레트 전면 확장 — 모든 기능 등록
+   ------------------------------------------------------------
+   이 블록은 앱의 *모든* 기능을 명령 팔레트(Ctrl+K)로 끌어오는
+   마지막 일괄 등록 지점입니다. 중복 방지를 위해 기존 name 과
+   비교해 없는 것만 등록합니다.
+   ============================================================ */
+(function registerAllCommands() {
+  if (typeof COMMANDS === 'undefined' || !Array.isArray(COMMANDS)) return;
+
+  // 기존 이름 집합
+  const existing = new Set(COMMANDS.map(c => c && c.name).filter(Boolean));
+  const add = (cmd) => {
+    if (!cmd || !cmd.name || existing.has(cmd.name)) return;
+    existing.add(cmd.name);
+    COMMANDS.push(cmd);
+  };
+
+  // 안전 click 헬퍼 — 아이디가 없거나 disabled 인 경우 toast
+  const clickIf = (id) => () => {
+    const el = document.getElementById(id);
+    if (el) el.click();
+    else if (typeof toast === 'function') toast('이 기능을 찾을 수 없습니다: #' + id);
+  };
+
+  // ─── 파일 / 탭 ────────────────────────────────────────────
+  add({ ico:'i-plus', name:'탭 복제', desc:'현재 탭을 복사해 새 탭 열기', run:() => duplicateTab(state.activeId) });
+  add({ ico:'i-edit', name:'탭 이름 바꾸기', desc:'현재 탭 이름 변경', run:() => renameTab(state.activeId) });
+  add({ ico:'i-x', name:'현재 탭 닫기', desc:'휴지통으로 이동', hint:'Ctrl+W', run:() => closeTab(state.activeId) });
+  add({ ico:'i-download', name:'지금 저장', desc:'즉시 로컬 저장 (자동저장도 ON)', hint:'Ctrl+S', run:async () => { try { syncPageToState(); } catch {} try { await save(); toast('저장됨'); } catch {} } });
+  add({ ico:'i-folder', name:'저장 폴더 선택', desc:'파일시스템 접근 — 모든 내보내기가 이 폴더로', run:async () => { try { const h = await window.jnpSaveSystem?.pickRootFolder?.(); if (h) toast('저장 폴더: ' + (window.jnpSaveSystem?.getRootFolder?.() || '설정됨')); } catch (e) { toast('파일시스템 접근 권한이 필요합니다'); } } });
+  add({ ico:'i-folder', name:'저장 시스템 설정', desc:'자동 분류 / 폴더 / 덮어쓰기', run:() => { try { window.jnpSaveSystem?.openConfig?.(); } catch { toast('저장 시스템을 로드 중입니다'); } } });
+
+  // ─── 서식 (Format) — 인라인 스타일 ────────────────────
+  add({ ico:'i-note', name:'굵게 (Bold)', desc:'선택 텍스트를 진하게', hint:'Ctrl+B', run:() => { document.execCommand('bold'); scheduleSave(); } });
+  add({ ico:'i-note', name:'기울임 (Italic)', desc:'이탤릭', hint:'Ctrl+I', run:() => { document.execCommand('italic'); scheduleSave(); } });
+  add({ ico:'i-note', name:'밑줄 (Underline)', desc:'선택 텍스트에 밑줄', hint:'Ctrl+U', run:() => { document.execCommand('underline'); scheduleSave(); } });
+  add({ ico:'i-note', name:'취소선 (Strikethrough)', desc:'선택 텍스트에 취소선', keywords:['strike'], run:() => { document.execCommand('strikeThrough'); scheduleSave(); } });
+  add({ ico:'i-list', name:'글머리 기호 목록', desc:'• 불렛 리스트', keywords:['ul','bullet'], run:() => { document.execCommand('insertUnorderedList'); scheduleSave(); } });
+  add({ ico:'i-list-ol', name:'번호 매기기 목록', desc:'1. 2. 3. 순서 리스트', keywords:['ol','number'], run:() => { document.execCommand('insertOrderedList'); scheduleSave(); } });
+  add({ ico:'i-check', name:'체크리스트 삽입', desc:'□ 할 일 목록', run:clickIf('todoBtn') });
+  add({ ico:'i-quote', name:'인용 블록', desc:'인용문 서식', run:clickIf('quoteBtn') });
+  add({ ico:'i-hr', name:'구분선 삽입', desc:'수평선 ────────', run:clickIf('hrBtn') });
+  add({ ico:'i-h1', name:'제목 1 (H1)', desc:'가장 큰 제목', run:clickIf('h1Btn') });
+  add({ ico:'i-h2', name:'제목 2 (H2)', desc:'중간 제목', run:clickIf('h2Btn') });
+  add({ ico:'i-h3', name:'제목 3 (H3)', desc:'작은 제목', run:clickIf('h3Btn') });
+  add({ ico:'i-palette', name:'글자색 지정', desc:'글자 색상 팔레트 열기', run:clickIf('colorBtn') });
+  add({ ico:'i-highlight', name:'형광펜 하이라이트', desc:'배경색으로 강조', run:clickIf('hiliteBtn') });
+  add({ ico:'i-eraser', name:'서식 지우기', desc:'선택 영역 서식 초기화', run:clickIf('clearFmt') });
+
+  // ─── 편집 (Edit) — undo/redo, clipboard, find ─────────
+  add({ ico:'i-undo', name:'실행 취소 (Undo)', desc:'마지막 편집 취소', hint:'Ctrl+Z', run:() => { try { document.execCommand('undo'); } catch {} } });
+  add({ ico:'i-redo', name:'다시 실행 (Redo)', desc:'취소한 편집 복구', hint:'Ctrl+Y', run:() => { try { document.execCommand('redo'); } catch {} } });
+  add({ ico:'i-copy', name:'복사', desc:'선택 영역 클립보드에', hint:'Ctrl+C', run:() => { try { document.execCommand('copy'); toast('복사됨'); } catch {} } });
+  add({ ico:'i-copy', name:'잘라내기', desc:'선택 영역 잘라내기', hint:'Ctrl+X', run:() => { try { document.execCommand('cut'); } catch {} } });
+  add({ ico:'i-copy', name:'붙여넣기', desc:'클립보드 내용 삽입', hint:'Ctrl+V', run:async () => { try { const t = await navigator.clipboard.readText(); if (t) { restorePageSel && restorePageSel(); document.execCommand('insertText', false, t); } } catch { toast('클립보드 읽기 권한이 필요합니다'); } } });
+  add({ ico:'i-search', name:'현재 탭에서 찾기', desc:'Find in tab', hint:'Ctrl+F', run:() => toggleSearch(true) });
+
+  // ─── 삽입 (Insert) ────────────────────────────────────
+  add({ ico:'i-clock', name:'날짜/시간 삽입', desc:'지금 시각을 텍스트로 삽입', run:clickIf('dateBtn') });
+  add({ ico:'i-today', name:'오늘 메모 도구막대 버튼', desc:'툴바의 오늘 메모 실행', run:clickIf('todayBtn') });
+  add({ ico:'i-smile', name:'이모지 삽입', desc:'이모지 피커 열기', run:clickIf('emojiBtn') });
+  add({ ico:'i-image', name:'이미지 파일 열기', desc:'이미지 파일 선택 대화상자', run:clickIf('imgUploadBtn') });
+  add({ ico:'i-paperclip', name:'파일 첨부 (다운로드 링크)', desc:'5MB 이하 임의 파일', run:clickIf('attachFileBtn') });
+
+  // ─── 보기 (View) ─────────────────────────────────────
+  add({ ico:'i-toc', name:'목차(TOC) 패널', desc:'제목을 목록으로 열기', run:clickIf('tocBtn') });
+  add({ ico:'i-columns', name:'분할 보기 토글', desc:'두 탭을 좌우로', run:clickIf('splitBtn') });
+  add({ ico:'i-grid-view', name:'갤러리 뷰 (썸네일)', desc:'모든 탭을 카드 그리드로', run:clickIf('galleryBtn') });
+  add({ ico:'i-md', name:'마크다운 ↔ 리치 토글', desc:'현재 탭의 편집 모드 전환', run:clickIf('mdBtn') });
+
+  // ─── 창 / 레이아웃 ─────────────────────────────────
+  add({ ico:'i-pin', name:'항상 위에 고정 (Tauri)', desc:'데스크톱 앱에서만 작동', run:clickIf('pinBtn') });
+  add({ ico:'i-min', name:'창 최소화', run:clickIf('minBtn') });
+  add({ ico:'i-round-square', name:'창 최대화 / 복원', run:clickIf('maxBtn') });
+  add({ ico:'i-corner', name:'구석으로 스냅', desc:'데스크톱 화면 4개 구석 중 선택', run:clickIf('cornerSnap') });
+
+  // ─── 도구 (Tools) ─────────────────────────────────
+  add({ ico:'i-search', name:'상세 통계', desc:'글자·단어·읽기시간·구조', run:clickIf('statsBtn') });
+  add({ ico:'i-timer', name:'포모도로 타이머', desc:'25분 집중 타이머', run:clickIf('pomoBtn') });
+  add({ ico:'i-sparkles', name:'AI 계정 연결 / 키 설정', desc:'OpenAI·Gemini·Claude API 키', run:() => { try { openAiKeyPanel(); } catch { toast('AI를 먼저 열어주세요'); } } });
+  add({ ico:'i-globe', name:'웹 검색 (in-app 브라우저)', desc:'앱 안에서 검색', hint:'Ctrl+Shift+F', run:clickIf('webBtn') });
+
+  // ─── 사이드바 / 패널 ─────────────────────────────
+  add({ ico:'i-menu', name:'사이드바 열기/닫기', desc:'워크스페이스·태그 패널', run:clickIf('sideBtn') });
+  add({ ico:'i-trash', name:'휴지통 열기', desc:'삭제된 탭 복구', run:clickIf('openTrash') });
+  add({ ico:'i-history', name:'버전 히스토리', desc:'이전 버전으로 복원', run:clickIf('openHistory') });
+
+  // ─── 고급 기능 모달 열기 ──────────────────────────
+  add({ ico:'i-brush', name:'그림판 (Paint) 새로 열기', desc:'Windows 그림판 + 레이어', run:() => { try { Paint.open(); } catch { toast('그림판 로드 중…'); } } });
+  add({ ico:'i-resize', name:'이미지 변환기 새로 열기', desc:'크기·용량·포맷 변경', run:() => { try { ImageConverter.open(); } catch { toast('이미지 변환기 로드 중…'); } } });
+  add({ ico:'i-cards', name:'템플릿 피커 열기', desc:'전문 템플릿 고르기', run:clickIf('templateBtn') });
+  add({ ico:'i-users', name:'내 역할 변경', desc:'역할 선택 모달', run:() => openRolesModal() });
+  add({ ico:'i-users', name:'역할 대시보드', desc:'선택한 역할의 전용 도구 모음', run:() => openRoleDashboard() });
+
+  // ─── JustPin (sticky notes) ───────────────────────
+  add({ ico:'i-note', name:'새 JustPin (포스트잇)', desc:'화면 위에 떠있는 메모', hint:'Ctrl+Alt+P', keywords:['JustPin','postit','sticky','포스트잇'], run:() => { try { window.jnpStickyNotes?.create?.(); } catch { toast('JustPin 로드 중…'); } } });
+  add({ ico:'i-note', name:'선택을 JustPin으로', desc:'선택한 텍스트를 스티커로', hint:'Ctrl+Shift+P', keywords:['JustPin','selection'], run:() => { try { window.jnpStickyNotes?.fromSelection?.(); } catch {} } });
+  add({ ico:'i-note', name:'JustPin 전체 숨김/표시', desc:'모든 포스트잇 토글', run:() => { try { window.jnpStickyNotes?.toggleAll?.(); } catch {} } });
+  add({ ico:'i-rocket', name:'자동시작 ON (JustPin 유지)', desc:'PC 로그인 시 자동 실행 — Tauri', run:async () => { try { const res = await window.__TAURI__?.core?.invoke?.('autostart_set', { enabled: true }); toast(res ? '자동시작 ON' : '설정 실패'); } catch { toast('데스크톱 앱에서만 사용 가능'); } } });
+  add({ ico:'i-rocket', name:'자동시작 OFF', desc:'PC 로그인 시 자동 실행 안 함', run:async () => { try { await window.__TAURI__?.core?.invoke?.('autostart_set', { enabled: false }); toast('자동시작 OFF'); } catch { toast('데스크톱 앱에서만 사용 가능'); } } });
+
+  // ─── 홈 / 허브 / 공유 ─────────────────────────
+  add({ ico:'i-grid', name:'홈 허브 열기', desc:'최근 클립·공유 노트·템플릿', keywords:['hub','home','dashboard'], run:() => { const fab = document.querySelector('.jan-hub-fab'); if (fab) fab.click(); else toast('홈 허브 로드 중…'); } });
+  add({ ico:'i-share', name:'현재 메모 공유 링크', desc:'QR 공유 모달', run:clickIf('qrBtn') });
+
+  // ─── 앱 관리 ─────────────────────────────
+  add({ ico:'i-refresh', name:'앱 강제 업데이트', desc:'서비스워커 재설치 후 새로고침', keywords:['refresh','update','sw'], run:async () => { try { if (navigator.serviceWorker) { const regs = await navigator.serviceWorker.getRegistrations(); await Promise.all(regs.map(r => r.unregister())); } location.reload(true); } catch { location.reload(); } } });
+  add({ ico:'i-refresh', name:'캐시 비우고 새로고침', desc:'완전 초기화 (state 유지)', keywords:['cache','reset'], run:async () => { try { const keys = await caches.keys(); await Promise.all(keys.map(k => caches.delete(k))); } catch {} location.reload(true); } });
+  add({ ico:'i-refresh', name:'페이지 새로고침', desc:'단순 리로드', hint:'F5', run:() => location.reload() });
+
+  // ─── 도움말 ─────────────────────────────
+  add({ ico:'i-help', name:'단축키 목록', desc:'모든 Ctrl/⌘ 단축키 한 번에', keywords:['shortcut','keys','hotkey'], run:() => { try { openHelpHub(); } catch { $('helpBtn')?.click(); } } });
+  add({ ico:'i-mail', name:'피드백 보내기', desc:'버그 신고 / 기능 제안', keywords:['feedback','bug','report'], run:() => {
+    try { if (window.__janFeedback?.open) return window.__janFeedback.open();
+          const fw = document.querySelector('.jan-feedback-fab, [data-jan-feedback], #feedback-widget, .jan-fb-btn');
+          if (fw) { fw.click(); return; }
+    } catch {}
+    try { window.open('https://github.com/auto1225/memo/issues/new', '_blank'); } catch {}
+  }});
+  add({ ico:'i-info', name:'변경 로그 / 릴리즈 노트', desc:'GitHub releases', run:() => { try { window.open('https://github.com/auto1225/memo/releases', '_blank'); } catch {} } });
+
+  // ─── 테마 사이클 및 개별 테마 ────────────────────────
+  ['lavender','butter','rose','mint','noir','ocean'].forEach(t => {
+    add({ ico:'i-palette', name:'테마: ' + t, desc:'즉시 적용', run:() => { state.meta.theme = t; try { applyTheme(); save(); toast('테마: ' + t); } catch {} } });
+  });
+
+  // ─── 확장 탐색: 배경 스타일 직접 적용 ───────────
+  ['lined','grid','dot','blank','music','cornell'].forEach(s => {
+    const names = { lined:'줄노트', grid:'모눈종이', dot:'점격자', blank:'무지', music:'오선지', cornell:'코넬노트' };
+    add({ ico:'i-pages', name:'배경: ' + names[s], desc:'현재 탭에 적용', run:() => { try { applyPaperStyle(s); } catch {} } });
+  });
+
+  // ─── 역할 팩의 모든 도구(ROLE_TOOLS + EXTRA_TOOLS) ──────
+  try {
+    if (typeof ROLE_TOOLS === 'object' && ROLE_TOOLS) {
+      Object.entries(ROLE_TOOLS).forEach(([key, tool]) => {
+        if (!tool || typeof tool.opener !== 'function' || !tool.name) return;
+        add({
+          ico: tool.icon || 'i-briefcase',
+          name: '[역할] ' + tool.name,
+          desc: '역할별 도구 — ' + key,
+          keywords: [key, 'role', '역할'],
+          run: () => { try { tool.opener(); } catch(e) { console.warn(e); toast(tool.name + ' 열기 실패'); } }
+        });
+      });
+    }
+  } catch {}
+
+  console.info('[COMMANDS] 총 ' + COMMANDS.length + '개 명령 등록됨');
+})();
 </script>
 <!-- JustANotepad modal z-index stacking manager (nested modal visibility) -->
 <script src="/modal-stacker.js"></script>
