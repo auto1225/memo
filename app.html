@@ -3170,14 +3170,21 @@
 
 <!-- ========== 이미지 변환기 모달 (크기/용량/포맷) ========== -->
 <div class="modal-backdrop" id="imgCvtModal">
-  <div class="modal" style="width:min(980px,96vw); max-height:94vh; display:flex; flex-direction:column; padding:0;">
+  <div class="modal" style="width:min(980px,96vw); max-height:94vh; display:flex; flex-direction:column; padding:0; position:relative;">
     <div style="display:flex; align-items:center; gap:8px; padding:12px 16px; border-bottom:1px solid var(--paper-edge); background:linear-gradient(180deg, color-mix(in srgb, var(--accent) 10%, white), white);">
       <svg class="ico" style="stroke:var(--accent); width:20px; height:20px;"><use href="#i-resize"/></svg>
       <h3 style="margin:0; font-size:15px; color:var(--accent);">이미지 변환기</h3>
       <span style="font-size:11px; color:var(--ink-soft);">크기 · 용량 · 포맷 조정</span>
+      <span class="jnp-ic-zoom">
+        <button id="icZoomOut" title="축소 (Ctrl+-)">−</button>
+        <span class="val" id="icZoomVal">100%</span>
+        <button id="icZoomIn" title="확대 (Ctrl++)">+</button>
+        <button id="icZoomFit" title="원본 크기 (Ctrl+0)">100%</button>
+      </span>
       <span style="flex:1;"></span>
       <button id="imgCvtClose" class="ptb" style="padding:5px 8px;"><svg class="ico"><use href="#i-x"/></svg></button>
     </div>
+    <div class="jnp-ic-resize" title="크기 조절 (드래그)"></div>
 
     <div style="display:grid; grid-template-columns:340px 1fr; gap:0; flex:1; min-height:0;">
       <!-- 좌측: 미리보기 & 입력 -->
@@ -3317,6 +3324,52 @@
   #imgCvtDrop { min-height:140px !important; }
   #imgCvtPreview { max-height:140px !important; }
 }
+/* ========================================================================
+   이미지 변환기 — Non-blocking + Drag/Resize + Zoom (inline, 항상 적용)
+   이 CSS 는 외부 JS 와 무관하게 작동. #imgCvtModal.open 이면 뒤 배경 투명
+   + pointer-events 통과 → 메인앱 창 버튼(-/□/X)·크기조절 계속 작동.
+   ======================================================================== */
+#imgCvtModal.modal-backdrop.open {
+  background: transparent !important;   /* 어두운 오버레이 제거 */
+  pointer-events: none !important;      /* 백드롭 클릭 pass-through */
+  display: block !important;            /* flex 중앙정렬 대신 자유 위치 */
+}
+#imgCvtModal.modal-backdrop.open > .modal {
+  pointer-events: auto !important;      /* 본체만 조작 가능 */
+  position: fixed !important;
+  top: var(--ic-top, 60px);
+  left: var(--ic-left, calc(50% - 490px));
+  width: var(--ic-w, min(980px, 96vw)) !important;
+  height: var(--ic-h, min(720px, 90vh)) !important;
+  max-height: none !important;
+  box-shadow: 0 20px 60px rgba(0,0,0,.28), 0 0 0 1px rgba(0,0,0,.06) !important;
+}
+#imgCvtModal.modal-backdrop.open > .modal > div:first-child {
+  cursor: move;
+  user-select: none;
+}
+/* 우하단 리사이즈 핸들 */
+.jnp-ic-resize {
+  position: absolute; right: 0; bottom: 0;
+  width: 18px; height: 18px;
+  cursor: nwse-resize;
+  background:
+    linear-gradient(135deg, transparent 40%, rgba(0,0,0,.25) 40% 50%, transparent 50% 60%, rgba(0,0,0,.25) 60% 70%, transparent 70% 80%, rgba(0,0,0,.25) 80% 90%, transparent 90%);
+  z-index: 10;
+}
+.jnp-ic-resize:hover { background:
+    linear-gradient(135deg, transparent 40%, var(--accent) 40% 50%, transparent 50% 60%, var(--accent) 60% 70%, transparent 70% 80%, var(--accent) 80% 90%, transparent 90%);
+}
+/* 줌 컨트롤 */
+.jnp-ic-zoom { display:inline-flex; align-items:center; gap:4px; margin-left:6px; font-size:11px; color:var(--ink-soft); }
+.jnp-ic-zoom button {
+  padding:3px 8px; border:1px solid var(--paper-edge); background:white; border-radius:4px;
+  cursor:pointer; font-size:11px; color:var(--ink); line-height:1; min-width:22px;
+}
+.jnp-ic-zoom button:hover { background:#f3ebff; border-color:var(--accent); color:var(--accent); }
+.jnp-ic-zoom .val { min-width:44px; text-align:center; font-weight:600; }
+#imgCvtPreview { transition: transform .08s ease; transform-origin: center center; }
+#imgCvtDrop { overflow: auto !important; }
 </style>
 
 <!-- ========== 명함관리 모달 ========== -->
@@ -12673,9 +12726,9 @@ const ImageConverter = (function() {
     // 미리보기 갱신
     $('icPreviewBtn').addEventListener('click', renderPreviewEstimate);
 
-    // 다운로드 — save-system 인터셉터가 <a download> 클릭을 잡아 FSA picker 로
-    // 변환하므로 사용자가 저장 경로·파일명을 명시적으로 선택하게 됨. 루트 폴더
-    // 설정이 있으면 자동 카테고리 분류 (pictures/ 등) 도 동작.
+    // 다운로드 — 저장 경로 직접 선택 (FSA picker 네이티브 대화상자).
+    // WebView2/Chromium 에서 showSaveFilePicker 지원 → 폴더 내비게이션 + 마지막 폴더 기억.
+    // 미지원 브라우저는 자동 <a download> 폴백.
     $('icDownload').addEventListener('click', async () => {
       if (!state.srcImg) { toast('먼저 이미지를 불러오세요'); return; }
       const url = state.lastResult || await convert();
@@ -12683,16 +12736,54 @@ const ImageConverter = (function() {
       const ext = extForMime(state.format);
       const ts = new Date().toISOString().replace(/[:T]/g,'-').slice(0,19);
       const fname = 'image-' + ts + '.' + ext;
+
+      // data URL → Blob
+      const comma = url.indexOf(',');
+      const header = url.slice(0, comma);
+      const body = url.slice(comma + 1);
+      const mime = (header.match(/data:([^;,]+)/) || [])[1] || state.format;
+      let blob;
+      if (/;base64/.test(header)) {
+        const bin = atob(body);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        blob = new Blob([bytes], { type: mime });
+      } else {
+        blob = new Blob([decodeURIComponent(body)], { type: mime });
+      }
+
+      // 1) showSaveFilePicker (네이티브 "다른 이름으로 저장" 대화상자)
+      if (typeof window.showSaveFilePicker === 'function') {
+        try {
+          const startInHint = localStorage.getItem('jan.io.lastFolderHint');
+          const validHints = ['desktop','documents','downloads','music','pictures','videos'];
+          const startIn = validHints.includes(startInHint) ? startInHint : 'pictures';
+          const types = [{
+            description: state.format.split('/')[1].toUpperCase() + ' 이미지',
+            accept: { [mime]: ['.' + ext] }
+          }];
+          const handle = await window.showSaveFilePicker({
+            suggestedName: fname, startIn, types
+          });
+          const w = await handle.createWritable();
+          await w.write(blob);
+          await w.close();
+          toast(`저장됨: ${handle.name || fname} · ${formatBytes(blob.size)}`);
+          return;
+        } catch (e) {
+          if (e && (e.name === 'AbortError' || e.code === 20)) {
+            toast('저장 취소됨');
+            return;
+          }
+          console.warn('[icDownload FSA 실패 → 레거시]', e);
+        }
+      }
+      // 2) 레거시 폴백 — 브라우저 기본 다운로드 폴더
       const a = document.createElement('a');
       a.href = url;
       a.download = fname;
-      document.body.appendChild(a);
-      // save-system 이 로드돼있으면 그 쪽이 가로채서 FSA picker 뜸.
-      // 안 로드돼있으면 기본 브라우저 다운로드로 폴백.
-      a.click();
-      a.remove();
-      // 토스트는 save-system 이 결과에 따라 띄우지만, 가로채기 실패 시 대비해서도 하나 남김
-      if (!window.jnpSaveSystem) toast('다운로드됨 · ' + formatBytes(dataUrlBytes(url)));
+      document.body.appendChild(a); a.click(); a.remove();
+      toast('다운로드됨 · ' + formatBytes(dataUrlBytes(url)));
     });
 
     // 메모 삽입
@@ -12715,6 +12806,117 @@ const ImageConverter = (function() {
     });
 
     $('imgCvtClose').addEventListener('click', () => $('imgCvtModal').classList.remove('open'));
+
+    // ---- 드래그·리사이즈·줌 (인라인 구현, 외부 JS 의존성 없음) ----
+    const modalEl = $('imgCvtModal');
+    const box = modalEl && modalEl.querySelector('.modal');
+    const headerEl = box && box.firstElementChild;
+    const gripEl = box && box.querySelector('.jnp-ic-resize');
+    const previewEl = $('imgCvtPreview');
+
+    // 드래그 이동 — 헤더 잡고 끌기
+    if (headerEl && box) {
+      let dragging = false, offX = 0, offY = 0;
+      headerEl.addEventListener('mousedown', (e) => {
+        if (e.target.closest('button,input,select,a,.jnp-ic-zoom')) return;
+        dragging = true;
+        const rect = box.getBoundingClientRect();
+        offX = e.clientX - rect.left;
+        offY = e.clientY - rect.top;
+        document.body.style.userSelect = 'none';
+      });
+      window.addEventListener('mousemove', (e) => {
+        if (!dragging) return;
+        const x = Math.max(0, Math.min(window.innerWidth - 80, e.clientX - offX));
+        const y = Math.max(0, Math.min(window.innerHeight - 40, e.clientY - offY));
+        box.style.setProperty('--ic-left', x + 'px');
+        box.style.setProperty('--ic-top', y + 'px');
+      });
+      window.addEventListener('mouseup', () => {
+        if (!dragging) return;
+        dragging = false;
+        document.body.style.userSelect = '';
+        try {
+          localStorage.setItem('jan.ic.pos', JSON.stringify({
+            left: box.style.getPropertyValue('--ic-left'),
+            top: box.style.getPropertyValue('--ic-top'),
+          }));
+        } catch {}
+      });
+      try {
+        const saved = JSON.parse(localStorage.getItem('jan.ic.pos') || 'null');
+        if (saved?.left) box.style.setProperty('--ic-left', saved.left);
+        if (saved?.top) box.style.setProperty('--ic-top', saved.top);
+      } catch {}
+    }
+
+    // 리사이즈 — 우하단 핸들 드래그
+    if (gripEl && box) {
+      let resizing = false, startX = 0, startY = 0, startW = 0, startH = 0;
+      gripEl.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        resizing = true;
+        const rect = box.getBoundingClientRect();
+        startX = e.clientX; startY = e.clientY;
+        startW = rect.width; startH = rect.height;
+        document.body.style.userSelect = 'none';
+      });
+      window.addEventListener('mousemove', (e) => {
+        if (!resizing) return;
+        const w = Math.max(460, startW + (e.clientX - startX));
+        const h = Math.max(360, startH + (e.clientY - startY));
+        box.style.setProperty('--ic-w', w + 'px');
+        box.style.setProperty('--ic-h', h + 'px');
+      });
+      window.addEventListener('mouseup', () => {
+        if (!resizing) return;
+        resizing = false;
+        document.body.style.userSelect = '';
+        try {
+          localStorage.setItem('jan.ic.size', JSON.stringify({
+            w: box.style.getPropertyValue('--ic-w'),
+            h: box.style.getPropertyValue('--ic-h'),
+          }));
+        } catch {}
+      });
+      try {
+        const saved = JSON.parse(localStorage.getItem('jan.ic.size') || 'null');
+        if (saved?.w) box.style.setProperty('--ic-w', saved.w);
+        if (saved?.h) box.style.setProperty('--ic-h', saved.h);
+      } catch {}
+    }
+
+    // 미리보기 확대/축소
+    if (previewEl) {
+      let zoom = 1;
+      const valEl = $('icZoomVal');
+      const apply = () => {
+        previewEl.style.transform = `scale(${zoom})`;
+        if (valEl) valEl.textContent = Math.round(zoom * 100) + '%';
+      };
+      const setZoom = (z) => { zoom = Math.max(0.1, Math.min(8, z)); apply(); };
+      const btnIn  = $('icZoomIn');
+      const btnOut = $('icZoomOut');
+      const btnFit = $('icZoomFit');
+      if (btnIn)  btnIn.addEventListener('click',  () => setZoom(zoom * 1.25));
+      if (btnOut) btnOut.addEventListener('click', () => setZoom(zoom / 1.25));
+      if (btnFit) btnFit.addEventListener('click', () => setZoom(1));
+      const drop = $('imgCvtDrop');
+      if (drop) drop.addEventListener('wheel', (e) => {
+        if (!(e.ctrlKey || e.metaKey)) return;
+        if (previewEl.style.display === 'none') return;
+        e.preventDefault();
+        setZoom(zoom * (e.deltaY > 0 ? 1/1.1 : 1.1));
+      }, { passive: false });
+      document.addEventListener('keydown', (e) => {
+        if (!modalEl.classList.contains('open')) return;
+        if (!(e.ctrlKey || e.metaKey)) return;
+        if (e.key === '=' || e.key === '+') { e.preventDefault(); setZoom(zoom * 1.25); }
+        else if (e.key === '-') { e.preventDefault(); setZoom(zoom / 1.25); }
+        else if (e.key === '0') { e.preventDefault(); setZoom(1); }
+      });
+      apply();
+    }
   }
 
   let inited = false;
