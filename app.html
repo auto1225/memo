@@ -2396,11 +2396,11 @@
     <!-- 웹 → 노트 연구 도구 모음 (v1.0.34) -->
     <div id="webResearchBar" style="display:flex; gap:4px; margin-bottom:8px; flex-wrap:wrap; align-items:center; padding:6px 8px; background:#faf7ff; border:1px dashed #d9c8ff; border-radius:6px;">
       <span style="font-size:11px; color:#6a4cbb; font-weight:600;">웹 → 노트:</span>
-      <button class="web-tool-btn small action" id="webLinkCardBtn" title="OG 메타(제목/설명/썸네일)로 링크 카드 삽입">📎 링크 카드</button>
-      <button class="web-tool-btn small action" id="webReaderBtn" title="리더 모드로 본문만 추출해 노트에 저장 (Readability)">📖 리더 모드</button>
-      <button class="web-tool-btn small action" id="webAiSummaryBtn" title="AI로 페이지 핵심을 요약해 노트에 삽입 (AI 계정 필요)">✨ AI 요약</button>
-      <button class="web-tool-btn small action" id="webImagesBtn" title="페이지 안의 이미지를 수집해 선택적으로 삽입">🖼️ 이미지</button>
-      <button class="web-tool-btn small action" id="webTablesBtn" title="페이지 안의 표를 선택해 노트에 삽입">📊 표 추출</button>
+      <button class="web-tool-btn small action" id="webLinkCardBtn" title="OG 메타(제목/설명/썸네일)로 링크 카드 삽입"><svg class="ico" style="width:12px;height:12px;"><use href="#i-link"/></svg>링크 카드</button>
+      <button class="web-tool-btn small action" id="webReaderBtn" title="리더 모드로 본문만 추출해 노트에 저장 (Readability)"><svg class="ico" style="width:12px;height:12px;"><use href="#i-pages"/></svg>리더 모드</button>
+      <button class="web-tool-btn small action" id="webAiSummaryBtn" title="AI로 페이지 핵심을 요약해 노트에 삽입 (AI 계정 필요)"><svg class="ico" style="width:12px;height:12px;"><use href="#i-sparkles"/></svg>AI 요약</button>
+      <button class="web-tool-btn small action" id="webImagesBtn" title="페이지 안의 이미지를 수집해 선택적으로 삽입"><svg class="ico" style="width:12px;height:12px;"><use href="#i-image"/></svg>이미지</button>
+      <button class="web-tool-btn small action" id="webTablesBtn" title="페이지 안의 표를 선택해 노트에 삽입"><svg class="ico" style="width:12px;height:12px;"><use href="#i-table"/></svg>표 추출</button>
       <span style="flex:1;"></span>
       <span style="font-size:10px; color:#888;">※ 일부 사이트는 CORS 제한으로 실패할 수 있어요 (Wikipedia, MDN 등은 대체로 OK)</span>
     </div>
@@ -3849,7 +3849,7 @@ function load() {
       if (t.wsId === undefined) t.wsId = d.workspaces[0].id;
       if (t.tag === undefined) t.tag = '';
       // 이모지 사용 금지 규칙 — 옛날 버전이 저장해둔 탭 이름 앞 이모지 제거
-      // ("📅 캘린더" → "캘린더", "🗓 4/21 일정" → "4/21 일정")
+      // ("캘린더 이모지 + 캘린더" → "캘린더", "달력 이모지 + 4/21 일정" → "4/21 일정")
       if (typeof t.name === 'string') {
         const cleaned = stripEmoji(t.name);
         if (cleaned && cleaned !== t.name) t.name = cleaned;
@@ -8034,7 +8034,7 @@ async function insertAISummary() {
     : `<p>${escapeHtml(out).replace(/\n/g, '<br>')}</p>`;
   const html =
     `<div class="web-clip">` +
-      `<h2>🤖 AI 요약 · ${escapeHtml(title)}</h2>` +
+      `<h2>AI 요약 · ${escapeHtml(title)}</h2>` +
       `<p class="web-clip-meta">출처: <a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(webDomain(url))}</a> · 요약: ${webTodayStr()}</p>` +
       `<div class="web-clip-body">${bulletHtml}</div>` +
     `</div><br>`;
@@ -8133,7 +8133,7 @@ async function collectWebImages() {
         `</label>`
       ).join('') +
     `</div>`;
-  showModalHtml('🖼️ 웹 이미지 수집', gridHtml);
+  showModalHtml('웹 이미지 수집', gridHtml);
   // 이벤트 — showModalHtml 후 modalBody 안에 버튼이 들어있음
   setTimeout(() => {
     const body = $('modalBody');
@@ -8202,7 +8202,7 @@ async function extractWebTables() {
         `</label>`
       ).join('') +
     `</div>`;
-  showModalHtml('📊 웹 표 추출', listHtml);
+  showModalHtml('웹 표 추출', listHtml);
   setTimeout(() => {
     const body = $('modalBody');
     body.querySelector('#webTblInsert')?.addEventListener('click', () => {
@@ -10813,7 +10813,7 @@ init();
       $('acctPull').addEventListener('click', async () => {
         const ok = await confirm2(
           '클라우드에서 다시 받기',
-          '⚠ 주의: 이 기기의 현재 로컬 데이터가 클라우드의 마지막 저장본으로 완전히 교체됩니다.\n\n' +
+          '주의: 이 기기의 현재 로컬 데이터가 클라우드의 마지막 저장본으로 완전히 교체됩니다.\n\n' +
           '현재 로컬에만 있는 변경 사항은 사라집니다. 계속하시겠습니까?'
         );
         if (!ok) return;
