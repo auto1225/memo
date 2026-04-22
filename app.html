@@ -1659,6 +1659,7 @@
   <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></symbol>
   <symbol id="i-thumbs-up" viewBox="0 0 24 24"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H7"/></symbol>
   <symbol id="i-thumbs-down" viewBox="0 0 24 24"><path d="M17 14V2"/><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H17"/></symbol>
+  <symbol id="i-drag-handle" viewBox="0 0 24 24"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></symbol>
   <symbol id="i-arrow-up" viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></symbol>
   <symbol id="i-arrow-down" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></symbol>
   <symbol id="i-arrow-right" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></symbol>
@@ -2250,6 +2251,7 @@
   <span class="label">이동</span>
   <button data-tact="moveUp" title="표를 한 단락 위로"><svg class="ico"><use href="#i-arrow-up"/></svg></button>
   <button data-tact="moveDown" title="표를 한 단락 아래로"><svg class="ico"><use href="#i-arrow-down"/></svg></button>
+  <button id="tableDragHandle" title="드래그해서 자유롭게 이동" style="cursor:grab; touch-action:none;"><svg class="ico"><use href="#i-drag-handle"/></svg></button>
   <button data-tact="moveOut" title="카드 바깥으로 빼내기">⇱</button>
   <div class="sep"></div>
   <span class="label">캡션</span>
@@ -7541,6 +7543,32 @@ function attachResizeDragHandler(handle, img, dir) {
     document.body.style.cursor = '';
     hideIndicator();
   });
+
+  // 표 드래그 핸들 — 셀 안 편집을 지키면서도 표 전체를 드래그할 수 있게
+  // 툴바에 "grip" 버튼을 둠. 이 버튼을 눌러서 끌면 표 이동.
+  const handleBtn = document.getElementById('tableDragHandle');
+  if (handleBtn) {
+    handleBtn.addEventListener('click', e => e.preventDefault());
+    handleBtn.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      // activeCell 은 모듈 스코프 let 변수. handler 실행 시점엔 초기화 완료돼 있음.
+      let cell = null;
+      try { cell = activeCell; } catch {}
+      if (!cell) return;
+      const table = cell.closest('table');
+      if (!table) return;
+      e.preventDefault();
+      e.stopPropagation();
+      dragState = {
+        block: findBlock(table) || table,
+        startX: e.clientX,
+        startY: e.clientY,
+        active: false,
+        pointerId: e.pointerId
+      };
+      // 핸들은 4px 이상 움직이면 즉시 드래그 (셀 임계값 20 아님)
+    });
+  }
 })();
 
 imageToolbar.querySelectorAll('[data-iact]').forEach(btn => {
