@@ -6707,6 +6707,77 @@ function prompt2(title, initial) {
     input.addEventListener('keydown', kh);
   });
 }
+/* 시각적 색 선택 다이얼로그 — 보통 사용자가 rgb/hex 값을 기억할 수 없으므로
+   swatch 그리드 + 네이티브 색 선택기 + 투명(지우기) 버튼을 같이 제공. */
+function pickColor(title, initial, opts) {
+  opts = opts || {};
+  // 표준 팔레트 (연한 배경용)
+  const SWATCHES = [
+    '#FFE0B2','#FFCCBC','#FFCDD2','#F8BBD0','#E1BEE7','#D1C4E9',
+    '#C5CAE9','#BBDEFB','#B3E5FC','#B2EBF2','#B2DFDB','#C8E6C9',
+    '#DCEDC8','#F0F4C3','#FFF9C4','#FFECB3',
+    '#FFFFFF','#F5F5F5','#E0E0E0','#BDBDBD','#757575','#424242',
+    '#FF7043','#EF5350','#EC407A','#AB47BC','#7E57C2','#5C6BC0',
+    '#42A5F5','#29B6F6','#26C6DA','#26A69A','#66BB6A','#9CCC65',
+  ];
+  return new Promise(resolve => {
+    modalTitle.textContent = title || '색 선택';
+    const curColor = initial || 'transparent';
+    modalBody.innerHTML = `
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12px; color:var(--ink-soft);">현재:</span>
+          <span id="_colorPreview" style="display:inline-block; width:30px; height:30px; border-radius:50%; border:2px solid #ccc; background:${curColor};"></span>
+          <span id="_colorLabel" style="font-size:11px; color:var(--ink-soft); font-family:monospace;">${curColor}</span>
+        </div>
+        <div style="font-size:12px; color:var(--ink-soft); margin-top:4px;">팔레트에서 선택</div>
+        <div id="_swatchGrid" style="display:grid; grid-template-columns:repeat(8, 28px); gap:6px;">
+          ${SWATCHES.map(c => `<span class="_sw" data-color="${c}" title="${c}" style="width:28px; height:28px; border-radius:50%; background:${c}; border:1px solid #ccc; cursor:pointer; transition:transform .1s;"></span>`).join('')}
+        </div>
+        <div style="display:flex; align-items:center; gap:10px; margin-top:6px;">
+          <label style="font-size:12px; color:var(--ink-soft); display:flex; align-items:center; gap:6px; cursor:pointer;">
+            <span>직접 선택:</span>
+            <input type="color" id="_colorNative" value="${/^#[0-9a-fA-F]{6}$/.test(curColor) ? curColor : '#ffe0b2'}" style="width:36px; height:28px; padding:0; border:1px solid #ccc; border-radius:4px; cursor:pointer;">
+          </label>
+          <button id="_colorClear" style="margin-left:auto; padding:6px 12px; border-radius:6px; border:1px solid #ccc; background:white; cursor:pointer; font-size:12px;">
+            배경 없음 (투명)
+          </button>
+        </div>
+      </div>
+    `;
+    modal.classList.add('open');
+    const preview = modalBody.querySelector('#_colorPreview');
+    const label = modalBody.querySelector('#_colorLabel');
+    const native = modalBody.querySelector('#_colorNative');
+    let chosen = curColor;
+    function updatePreview(c) {
+      chosen = c;
+      preview.style.background = c;
+      label.textContent = c;
+    }
+    modalBody.querySelectorAll('._sw').forEach(sw => {
+      sw.addEventListener('mouseenter', () => { sw.style.transform = 'scale(1.15)'; sw.style.borderColor = 'var(--accent)'; });
+      sw.addEventListener('mouseleave', () => { sw.style.transform = ''; sw.style.borderColor = '#ccc'; });
+      sw.addEventListener('click', () => { updatePreview(sw.dataset.color); ok(); });  // 더블클릭 없이 바로 적용
+    });
+    native.addEventListener('input', () => updatePreview(native.value));
+    modalBody.querySelector('#_colorClear').addEventListener('click', () => { updatePreview('transparent'); ok(); });
+
+    const ok = () => { cleanup(); resolve(chosen); };
+    const cancel = () => { cleanup(); resolve(null); };
+    const kh = e => { if (e.key === 'Escape') cancel(); };
+    function cleanup() {
+      modal.classList.remove('open');
+      $('modalOk').removeEventListener('click', ok);
+      $('modalCancel').removeEventListener('click', cancel);
+      document.removeEventListener('keydown', kh);
+    }
+    $('modalOk').addEventListener('click', ok);
+    $('modalCancel').addEventListener('click', cancel);
+    document.addEventListener('keydown', kh);
+  });
+}
+
 function pickList(title, items, opts) {
   return new Promise(resolve => {
     modalTitle.textContent = title;
@@ -7168,7 +7239,9 @@ tableToolbar.querySelectorAll('[data-tact]').forEach(btn => {
       else if (act === 'cap-align-right') { cap.classList.add('cap-right'); toast('표 캡션: 오른쪽 정렬 (표 너비 안)'); }
       else { toast('표 캡션: 가운데 정렬 (표 너비 안)'); }
     } else if (act === 'cellBg') {
-      const c = await prompt2('셀 배경색 (예: #ffe0b2, transparent)', cell.style.backgroundColor || '#ffe0b2');
+      // 시각적 색 선택. 컬러 코드 몰라도 OK — swatch 클릭 / 팔레트 / 투명.
+      const cur = cell.style.backgroundColor || '';
+      const c = await pickColor('셀 배경색', cur);
       if (c !== null) cell.style.backgroundColor = c;
     } else if (act === 'cellAlign') {
       const next = cell.style.textAlign === 'center' ? 'right' : cell.style.textAlign === 'right' ? 'left' : 'center';
@@ -7386,27 +7459,27 @@ function attachResizeDragHandler(handle, img, dir) {
   });
   mo.observe(pageEl, { childList: true, subtree: true });
 
-  const THRESH = 4;  // px — 이 이상 움직여야 드래그 시작 (클릭과 구분)
+  // 임계값: 이 이상 움직여야 드래그 시작.
+  //   이미지/표 바깥/테두리: 4px (빠르게 반응)
+  //   표 셀(td/th) 안: 20px (텍스트 선택과 구별)
+  const THRESH_DEFAULT = 4;
+  const THRESH_IN_CELL = 20;
 
   pageEl.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return;  // 좌클릭만
-    // 사용자가 셀 편집 중이면 드래그 금지 (셀 안 텍스트 선택 보호)
-    // → 표 자체가 아닌 셀 내부를 클릭하면 드래그 비활성
     const target = e.target;
     const media = target.closest && target.closest('img, table');
     if (!media) return;
-    if (media.tagName === 'TABLE') {
-      // 표 본문(td/th) 안을 클릭했으면 편집으로 간주 — 드래그 안 함.
-      // 표의 가장자리(caption/빈 공간) 를 클릭했을 때만 드래그.
-      const inCell = target.closest('td, th');
-      if (inCell) return;
-    }
+    // 셀(td/th) 안에서 시작하면 텍스트 선택과 구분 위해 더 긴 임계값.
+    // 짧은 드래그는 셀 텍스트 선택으로, 긴 드래그는 표 이동으로 해석.
+    const inCell = (media.tagName === 'TABLE') && target.closest('td, th');
     dragState = {
       block: findBlock(media) || media,
       startX: e.clientX,
       startY: e.clientY,
       active: false,
-      pointerId: e.pointerId
+      pointerId: e.pointerId,
+      threshold: inCell ? THRESH_IN_CELL : THRESH_DEFAULT
     };
   });
 
@@ -7415,7 +7488,7 @@ function attachResizeDragHandler(handle, img, dir) {
     const dx = e.clientX - dragState.startX;
     const dy = e.clientY - dragState.startY;
     if (!dragState.active) {
-      if (Math.abs(dx) < THRESH && Math.abs(dy) < THRESH) return;
+      if (Math.abs(dx) < dragState.threshold && Math.abs(dy) < dragState.threshold) return;
       // 드래그 시작 — 오리지널 블록 반투명, 커서 변경, selection 제거
       dragState.active = true;
       dragState.block.style.opacity = '0.4';
