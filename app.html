@@ -7969,43 +7969,73 @@ function sanitizeReaderHtml(html) {
 async function insertReaderClip() {
   const url = await resolveWebTargetUrl();
   if (!url) return;
-  toast('본문 추출 중… (Readability 로드)', 1800);
+  toast('페이지 가져오는 중…', 2000);
+
+  // 1) HTML fetch — 실패 시 이유 명확히 토스트
+  let html;
   try {
-    const [Readability, html] = await Promise.all([loadReadability(), webFetchHtml(url)]);
-    const doc = webParseHtml(html, url);
-    const article = new Readability(doc).parse();
-    if (!article || !article.content) {
-      // 폴백: OG 메타만 삽입
-      const m = webExtractMeta(doc, url);
-      insertHtmlAtCursor(
-        `<div class="web-clip"><h2>${escapeHtml(m.title)}</h2>` +
-        `<p class="web-clip-meta">출처: <a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(m.siteName || webDomain(url))}</a> · 저장: ${webTodayStr()}</p>` +
-        `<div class="web-clip-body">${m.desc ? `<p>${escapeHtml(m.desc)}</p>` : '<p>(본문을 추출할 수 없어 요약만 저장합니다.)</p>'}</div></div><br>`
-      );
-      $('webModal').classList.remove('open');
-      toast('본문 추출 실패 — 메타 정보만 저장했습니다');
-      return;
-    }
-    const clean = sanitizeReaderHtml(article.content);
-    const title = article.title || webDomain(url);
-    const byline = article.byline ? `· ${escapeHtml(article.byline)} ` : '';
-    const clip =
-      `<div class="web-clip">` +
-        `<h2>${escapeHtml(title)}</h2>` +
-        `<p class="web-clip-meta">` +
-          `출처: <a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(webDomain(url))}</a> ` +
-          byline +
-          `· 저장: ${webTodayStr()}` +
-        `</p>` +
-        `<div class="web-clip-body">${clean}</div>` +
-      `</div><br>`;
-    insertHtmlAtCursor(clip);
-    $('webModal').classList.remove('open');
-    toast('페이지 본문이 메모에 저장됐습니다');
+    html = await webFetchHtml(url);
   } catch (e) {
-    console.warn('[insertReaderClip] 실패:', e);
-    toast('본문 추출 실패: ' + (e.message || 'CORS 제한') + ' — 링크 카드를 대신 사용해 보세요');
+    console.warn('[insertReaderClip fetch 실패]', e);
+    toast('fetch 실패: ' + (e.message || 'CORS 또는 네트워크 오류') + ' — Wikipedia/MDN 처럼 CORS 허용된 사이트만 작동해요', 5000);
+    return;
   }
+  const doc = webParseHtml(html, url);
+
+  // 2) Readability 로드 — 실패해도 폴백으로 계속
+  let readabilityLib = null;
+  try {
+    readabilityLib = await loadReadability();
+  } catch (e) {
+    console.warn('[insertReaderClip Readability 로드 실패]', e);
+  }
+
+  // 3) 본문 추출 — Readability 우선, 실패 시 main/article/body
+  let title = '', bodyHtml = '', byline = '';
+  if (readabilityLib) {
+    try {
+      const article = new readabilityLib(doc).parse();
+      if (article && article.content) {
+        title = article.title || '';
+        byline = article.byline || '';
+        bodyHtml = sanitizeReaderHtml(article.content);
+      }
+    } catch (e) {
+      console.warn('[insertReaderClip Readability parse 실패]', e);
+    }
+  }
+  if (!bodyHtml) {
+    // 폴백 — 구조적 본문 추출
+    const main = doc.querySelector('article, main, #content, .mw-parser-output, #mw-content-text') || doc.body;
+    if (main) {
+      // 불필요 요소 제거
+      [...main.querySelectorAll('script, style, iframe, nav, header, footer, aside, .sidebar, .infobox')].forEach(el => el.remove());
+      bodyHtml = sanitizeReaderHtml(main.innerHTML || '');
+    }
+    const m = webExtractMeta(doc, url);
+    title = title || m.title;
+    if (!bodyHtml && m.desc) bodyHtml = `<p>${escapeHtml(m.desc)}</p>`;
+  }
+  if (!bodyHtml) {
+    toast('본문을 추출할 수 없었습니다 (HTML 구조 문제)');
+    return;
+  }
+  if (!title) title = webDomain(url);
+
+  // 4) 노트에 삽입
+  const clip =
+    `<div class="web-clip">` +
+      `<h2>${escapeHtml(title)}</h2>` +
+      `<p class="web-clip-meta">` +
+        `출처: <a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(webDomain(url))}</a> ` +
+        (byline ? `· ${escapeHtml(byline)} ` : '') +
+        `· 저장: ${webTodayStr()}` +
+      `</p>` +
+      `<div class="web-clip-body">${bodyHtml}</div>` +
+    `</div><br>`;
+  insertHtmlAtCursor(clip);
+  $('webModal').classList.remove('open');
+  toast(readabilityLib ? '페이지 본문이 메모에 저장됐습니다' : '본문 저장됨 (Readability 없이 기본 추출)');
 }
 
 /* ── 3. AI 요약 ──────────────────────────────────────────── */
