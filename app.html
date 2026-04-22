@@ -7982,16 +7982,61 @@ function loadReadability() {
   return _readabilityLoaded;
 }
 function sanitizeReaderHtml(html) {
-  // 스크립트/스타일/이벤트 핸들러 제거, 상대경로는 사전 base 로 이미 해결됨
   const wrap = document.createElement('div');
   wrap.innerHTML = html;
-  wrap.querySelectorAll('script, style, iframe, object, embed, link[rel="stylesheet"]').forEach(el => el.remove());
+
+  // 1) 위험/불필요 태그 제거
+  wrap.querySelectorAll('script, style, iframe, object, embed, link[rel="stylesheet"], noscript, form, button, input, select, textarea').forEach(el => el.remove());
+
+  // 2) 사이드바/infobox/네비/참조/각주 등 본문 외 요소 (Wikipedia 포함 일반 사이트) 제거
+  const junkSelectors = [
+    '.infobox', '.sidebar', '.navbox', '.metadata',
+    '.hatnote', '.reference', '.references', '.reflist', '.cite_ref',
+    '.mw-editsection', '.mw-jump-link', '.mw-indicators',
+    '.navigation-not-searchable', '.printfooter', '.catlinks',
+    '.toc', '#toc', '.mw-empty-elt',
+    'table.infobox', 'table.navbox', 'table.sidebar', 'table.vertical-navbox',
+    'nav', 'aside', 'footer', 'header',
+    '.advertisement', '.ad', '.ads', '.banner',
+    '[role="navigation"]', '[role="complementary"]', '[role="banner"]', '[role="contentinfo"]',
+    '.noprint', '.mw-hidden', '[hidden]',
+    'sup.reference', 'sup.noprint',
+  ];
+  wrap.querySelectorAll(junkSelectors.join(', ')).forEach(el => el.remove());
+
+  // 3) 원본 사이트의 레이아웃 스타일 제거 — 노트의 기본 흐름을 깨지 않도록.
+  //    속성 인라인 style 중 width/height/float/position/margin/padding/display 는 위험.
+  //    class/id 도 웹사이트 CSS 가 없으면 무용지물이니 전부 제거.
   wrap.querySelectorAll('*').forEach(el => {
     [...el.attributes].forEach(a => {
-      if (/^on/i.test(a.name)) el.removeAttribute(a.name);
-      if (a.name === 'srcset') el.removeAttribute(a.name);
+      const n = a.name.toLowerCase();
+      if (/^on/i.test(n)) el.removeAttribute(a.name);
+      else if (n === 'srcset' || n === 'sizes') el.removeAttribute(a.name);
+      else if (n === 'style' || n === 'class' || n === 'id' ||
+               n === 'role' || n.startsWith('data-') || n.startsWith('aria-'))
+        el.removeAttribute(a.name);
+      else if (n === 'width' || n === 'height' || n === 'align' || n === 'bgcolor')
+        el.removeAttribute(a.name);
     });
   });
+
+  // 4) 빈 요소 정리 — <p></p>, <div></div>, <span></span> 등 공백만 있는 것
+  wrap.querySelectorAll('p, div, span, section, article').forEach(el => {
+    if (!el.children.length && !(el.textContent || '').trim()) el.remove();
+  });
+
+  // 5) 이미지는 최대 크기 제한 (노트 가로 폭 넘지 않도록)
+  wrap.querySelectorAll('img').forEach(img => {
+    img.setAttribute('style', 'max-width:100%; height:auto;');
+    img.removeAttribute('width');
+    img.removeAttribute('height');
+  });
+
+  // 6) 테이블 기본 스타일 (노트 흐름 유지)
+  wrap.querySelectorAll('table').forEach(t => {
+    t.setAttribute('style', 'width:100%; border-collapse:collapse; margin:8px 0;');
+  });
+
   return wrap.innerHTML;
 }
 async function insertReaderClip() {
@@ -8046,11 +8091,18 @@ async function insertReaderClip() {
     }
   }
   if (!bodyHtml) {
-    // 폴백 — 구조적 본문 추출
+    // 폴백 — 구조적 본문 추출. Wikipedia 는 article 대신 .mw-parser-output 에 본문.
     const main = doc.querySelector('article, main, #content, .mw-parser-output, #mw-content-text') || doc.body;
     if (main) {
-      // 불필요 요소 제거
-      [...main.querySelectorAll('script, style, iframe, nav, header, footer, aside, .sidebar, .infobox')].forEach(el => el.remove());
+      // 불필요 요소 즉시 제거 (sanitize 와 중복이지만 용량 절감)
+      const pre = [
+        'script', 'style', 'iframe', 'nav', 'header', 'footer', 'aside',
+        '.sidebar', '.infobox', '.navbox', '.metadata', '.hatnote',
+        '.reference', '.reflist', '.references', '.mw-editsection',
+        '.toc', '#toc', '.thumb.tright', '.thumb.tleft',  // Wikipedia float 썸네일
+        'table.infobox', 'table.sidebar', 'table.vertical-navbox', 'table.navbox'
+      ];
+      [...main.querySelectorAll(pre.join(','))].forEach(el => el.remove());
       bodyHtml = sanitizeReaderHtml(main.innerHTML || '');
     }
     const m = webExtractMeta(doc, url);
