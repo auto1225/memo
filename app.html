@@ -7820,7 +7820,7 @@ $('webInsertLink').addEventListener('click', () => {
   if (!url) { toast('먼저 페이지를 열어주세요'); return; }
   const title = $('webQuery').value.trim() || url;
   insertHtmlAtCursor(`<a href="${url}">${escapeHtml(title)}</a>&nbsp;`);
-  $('webModal').classList.remove('open');
+  try{hideWebBusy();}catch{} $('webModal').classList.remove('open');
   toast('현재 페이지 링크가 메모에 저장됐습니다');
 });
 $('webInsertExcerpt').addEventListener('click', () => insertQuoteFromSelection());
@@ -7883,23 +7883,59 @@ async function webFetchHtml(url) {
 /* iframe 내부 네비게이션은 cross-origin 제약으로 부모가 추적 불가.
    사용자에게 URL 을 prompt 로 확인받아 확실하게. 검색 결과 URL 은 기본값에서
    제외해서 사용자가 진짜 기사 URL 을 붙여넣도록 유도. */
-async function resolveWebTargetUrl() {
-  const cur = webGetCurrentUrl() || '';
+/* URL 입력창(#webQuery) 값 또는 마지막 "이동" URL 을 그대로 사용. prompt 는 UX 저해로 제거. */
+function resolveWebTargetUrl() {
   const qInput = ($('webQuery')?.value || '').trim();
-  const fallback = cur || (qInput.startsWith('http') ? qInput : '');
-  const isSearchResults = /google\.com\/search|duckduckgo\.com\/\?q=|bing\.com\/search|ko\.wikipedia\.org\/wiki\/Special:Search/.test(fallback);
-  const defaultUrl = isSearchResults ? '' : fallback;
-  const input = await prompt2(
-    '분석할 페이지 URL을 확인하세요.\n(iframe 안에서 링크 클릭으로 이동했으면 iframe 상단 주소바의 URL을 복사해서 여기 붙여넣기)',
-    defaultUrl
-  );
-  if (!input) return null;
-  const u = input.trim();
-  if (!/^https?:\/\//i.test(u)) {
-    toast('URL 은 http(s):// 로 시작해야 합니다');
-    return null;
+  const cur = webGetCurrentUrl() || '';
+  if (/^https?:\/\//i.test(qInput)) return qInput;
+  if (cur && /^https?:\/\//i.test(cur)) return cur;
+  toast('위 URL 입력창에 분석할 페이지의 http(s):// 주소를 먼저 넣어주세요', 4000);
+  try { $('webQuery')?.focus(); } catch {}
+  return null;
+}
+
+/* 웹 모달 중앙에 로딩 오버레이 표시/숨김 */
+function showWebBusy(label) {
+  const m = $('webModal');
+  if (!m) return;
+  let overlay = m.querySelector('#webBusyOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'webBusyOverlay';
+    overlay.style.cssText =
+      'position:absolute; inset:0; background:rgba(255,255,255,0.92); z-index:50; ' +
+      'display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; ' +
+      'font-size:15px; color:var(--accent); font-weight:600; backdrop-filter:blur(3px);';
+    overlay.innerHTML =
+      '<svg width="48" height="48" viewBox="0 0 24 24" style="animation:webSpin 1s linear infinite; fill:none; stroke:currentColor; stroke-width:2;">' +
+        '<circle cx="12" cy="12" r="10" opacity="0.25"/>' +
+        '<path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/>' +
+      '</svg>' +
+      '<div id="webBusyLabel">가져오는 중…</div>' +
+      '<div style="font-size:11px; color:var(--ink-soft); font-weight:400;">CORS 차단 사이트는 프록시 경유라 5~15초 걸릴 수 있어요</div>';
+    const box = m.querySelector('.modal');
+    if (box) { box.style.position = 'relative'; box.appendChild(overlay); }
+    if (!document.getElementById('webBusyStyle')) {
+      const st = document.createElement('style');
+      st.id = 'webBusyStyle';
+      st.textContent = '@keyframes webSpin { to { transform: rotate(360deg); } }';
+      document.head.appendChild(st);
+    }
   }
-  return u;
+  const lbl = overlay.querySelector('#webBusyLabel');
+  if (lbl) lbl.textContent = label || '가져오는 중…';
+  overlay.style.display = 'flex';
+}
+function hideWebBusy() {
+  const o = document.querySelector('#webBusyOverlay');
+  if (o) o.style.display = 'none';
+}
+/* 완료 공통 처리 — 모달 닫고 큰 토스트로 피드백 */
+function finishWebAction(successMsg) {
+  hideWebBusy();
+  try{hideWebBusy();}catch{} $('webModal').classList.remove('open');
+  try { scheduleSave(); } catch {}
+  toast(successMsg || '완료', 4000);
 }
 function webParseHtml(htmlText, baseUrl) {
   const doc = new DOMParser().parseFromString(htmlText, 'text/html');
@@ -7926,9 +7962,9 @@ function webExtractMeta(doc, url) {
 
 /* ── 1. 링크 카드 (OG) ──────────────────────────────────── */
 async function insertLinkCard() {
-  const url = await resolveWebTargetUrl();
+  const url = resolveWebTargetUrl();
   if (!url) return;
-  toast('링크 카드 정보 가져오는 중…', 1500);
+  showWebBusy('링크 카드 정보 가져오는 중…');
   try {
     const html = await webFetchHtml(url);
     const doc = webParseHtml(html, url);
@@ -7944,7 +7980,7 @@ async function insertLinkCard() {
         `</div>` +
       `</a>&nbsp;`;
     insertHtmlAtCursor(card);
-    $('webModal').classList.remove('open');
+    try{hideWebBusy();}catch{} $('webModal').classList.remove('open');
     toast('링크 카드가 메모에 저장됐습니다');
   } catch (e) {
     // CORS 실패 시 폴백 — 심플 링크
@@ -7959,7 +7995,7 @@ async function insertLinkCard() {
         `</div>` +
       `</a>&nbsp;`
     );
-    $('webModal').classList.remove('open');
+    try{hideWebBusy();}catch{} $('webModal').classList.remove('open');
     toast('CORS 제한 — 기본 링크 카드로 저장했어요');
   }
 }
@@ -8040,9 +8076,9 @@ function sanitizeReaderHtml(html) {
   return wrap.innerHTML;
 }
 async function insertReaderClip() {
-  const url = await resolveWebTargetUrl();
+  const url = resolveWebTargetUrl();
   if (!url) return;
-  toast('페이지 가져오는 중… (' + webDomain(url) + ')', 3000);
+  showWebBusy('본문 추출 중… (' + webDomain(url) + ')');
 
   // 1) HTML fetch — 실패 시 이유를 노트에 직접 기록 (토스트 놓쳐도 남도록)
   let html;
@@ -8062,7 +8098,7 @@ async function insertReaderClip() {
         `</div>` +
       `</div><br>`
     );
-    $('webModal').classList.remove('open');
+    try{hideWebBusy();}catch{} $('webModal').classList.remove('open');
     toast('리더 모드 실패 — 에러 상세를 노트에 기록했습니다', 5000);
     return;
   }
@@ -8110,7 +8146,7 @@ async function insertReaderClip() {
     if (!bodyHtml && m.desc) bodyHtml = `<p>${escapeHtml(m.desc)}</p>`;
   }
   if (!bodyHtml) {
-    toast('본문을 추출할 수 없었습니다 (HTML 구조 문제)');
+    hideWebBusy(); toast('본문을 추출할 수 없었습니다 (HTML 구조 문제)', 4000);
     return;
   }
   if (!title) title = webDomain(url);
@@ -8127,7 +8163,7 @@ async function insertReaderClip() {
       `<div class="web-clip-body">${bodyHtml}</div>` +
     `</div><br>`;
   insertHtmlAtCursor(clip);
-  $('webModal').classList.remove('open');
+  try{hideWebBusy();}catch{} $('webModal').classList.remove('open');
   toast(readabilityLib ? '페이지 본문이 메모에 저장됐습니다' : '본문 저장됨 (Readability 없이 기본 추출)');
 }
 
@@ -8137,9 +8173,9 @@ async function insertAISummary() {
     toast('AI 함수를 찾을 수 없습니다');
     return;
   }
-  const url = await resolveWebTargetUrl();
+  const url = resolveWebTargetUrl();
   if (!url) return;
-  toast('페이지 내용을 가져와 AI 요약 중…', 2500);
+  showWebBusy('페이지 가져와 AI 요약 중… (' + webDomain(url) + ')');
   let title = webDomain(url), body = '';
   try {
     const html = await webFetchHtml(url);
@@ -8158,11 +8194,11 @@ async function insertAISummary() {
     }
     body = body.replace(/\s+/g, ' ').trim().slice(0, 12000);
   } catch (e) {
-    toast('페이지를 가져올 수 없어요 (CORS): ' + (e.message || ''));
+    hideWebBusy(); toast('페이지를 가져올 수 없어요 (CORS): ' + (e.message || ''), 5000);
     return;
   }
   if (!body || body.length < 120) {
-    toast('본문이 너무 짧아 요약할 수 없어요');
+    hideWebBusy(); toast('본문이 너무 짧아 요약할 수 없어요', 4000);
     return;
   }
   const sys = '당신은 전문 리서치 어시스턴트입니다. 주어진 웹페이지 내용을 한국어로 자연스럽게 핵심 불릿 5개로 요약하세요. 마지막에는 원문 출처 URL을 그대로 포함하지 말고 요약만 합니다. 중요한 숫자/고유명사는 그대로 유지합니다.';
@@ -8184,7 +8220,7 @@ async function insertAISummary() {
       `<div class="web-clip-body">${bulletHtml}</div>` +
     `</div><br>`;
   insertHtmlAtCursor(html);
-  $('webModal').classList.remove('open');
+  try{hideWebBusy();}catch{} $('webModal').classList.remove('open');
   toast('AI 요약이 메모에 저장됐습니다');
 }
 
@@ -8224,15 +8260,15 @@ async function insertQuoteFromSelection() {
   insertHtmlAtCursor(
     `<blockquote class="web-quote"><p>${body}</p><footer>— ${cite}</footer></blockquote>`
   );
-  $('webModal').classList.remove('open');
+  try{hideWebBusy();}catch{} $('webModal').classList.remove('open');
   toast('인용이 메모에 저장됐습니다');
 }
 
 /* ── 5. 페이지에서 이미지 수집 ─────────────────────────── */
 async function collectWebImages() {
-  const url = await resolveWebTargetUrl();
+  const url = resolveWebTargetUrl();
   if (!url) return;
-  toast('페이지 이미지 수집 중…', 1500);
+  showWebBusy('이미지 수집 중… (' + webDomain(url) + ')');
   let images = [];
   try {
     const html = await webFetchHtml(url);
@@ -8253,7 +8289,7 @@ async function collectWebImages() {
       images.push({ src, alt, w, h });
     });
   } catch (e) {
-    toast('이미지를 가져올 수 없어요 (CORS): ' + (e.message || ''));
+    hideWebBusy(); toast('이미지를 가져올 수 없어요 (CORS): ' + (e.message || ''), 5000);
     return;
   }
   if (!images.length) { toast('이미지를 찾지 못했습니다'); return; }
@@ -8278,6 +8314,7 @@ async function collectWebImages() {
         `</label>`
       ).join('') +
     `</div>`;
+  hideWebBusy();
   showModalHtml('웹 이미지 수집', gridHtml);
   // 이벤트 — showModalHtml 후 modalBody 안에 버튼이 들어있음
   setTimeout(() => {
@@ -8297,7 +8334,7 @@ async function collectWebImages() {
       ).join('<br>');
       const attrib = `<p style="font-size:11px;color:#888;margin:4px 0;">— 출처: <a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(webDomain(url))}</a> · ${webTodayStr()}</p>`;
       insertHtmlAtCursor(htmls + '<br>' + attrib + '<br>');
-      $('webModal').classList.remove('open');
+      try{hideWebBusy();}catch{} $('webModal').classList.remove('open');
       toast(`${chosen.length}개 이미지가 메모에 저장됐습니다`);
     });
   }, 30);
@@ -8305,9 +8342,9 @@ async function collectWebImages() {
 
 /* ── 6. 페이지에서 표 추출 ─────────────────────────────── */
 async function extractWebTables() {
-  const url = await resolveWebTargetUrl();
+  const url = resolveWebTargetUrl();
   if (!url) return;
-  toast('페이지 표 수집 중…', 1500);
+  showWebBusy('표 수집 중… (' + webDomain(url) + ')');
   let tables = [];
   try {
     const html = await webFetchHtml(url);
@@ -8327,7 +8364,7 @@ async function extractWebTables() {
       tables.push({ rows, cols, html: clone.outerHTML });
     });
   } catch (e) {
-    toast('표를 가져올 수 없어요 (CORS): ' + (e.message || ''));
+    hideWebBusy(); toast('표를 가져올 수 없어요 (CORS): ' + (e.message || ''), 5000);
     return;
   }
   if (!tables.length) { toast('표를 찾지 못했습니다'); return; }
@@ -8347,6 +8384,7 @@ async function extractWebTables() {
         `</label>`
       ).join('') +
     `</div>`;
+  hideWebBusy();
   showModalHtml('웹 표 추출', listHtml);
   setTimeout(() => {
     const body = $('modalBody');
@@ -8357,7 +8395,7 @@ async function extractWebTables() {
       const attrib = `<p style="font-size:11px;color:#888;margin:4px 0;">— 출처: <a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(webDomain(url))}</a> · ${webTodayStr()}</p>`;
       const htmls = chosen.map(t => t.html).join('<br>');
       insertHtmlAtCursor(htmls + attrib + '<br>');
-      $('webModal').classList.remove('open');
+      try{hideWebBusy();}catch{} $('webModal').classList.remove('open');
       toast(`${chosen.length}개 표가 메모에 저장됐습니다`);
     });
   }, 30);
