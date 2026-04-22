@@ -184,6 +184,9 @@
     cursor:pointer; opacity:1;
     display:inline-flex; align-items:center; justify-content:center;
     transition:background .12s, transform .12s, box-shadow .12s; flex:0 0 auto; }
+  /* authBtn 은 이니셜+이름/로그인 텍스트를 담기 위해 자동 폭 — 토픽바 기본 30×30 덮어쓰기 */
+  .topbar #authBtn { width:auto; min-width:auto; padding:3px 10px 3px 4px; white-space:nowrap; gap:5px; }
+  .topbar #authBtn > * { flex-shrink:0; }
   .topbar button:hover { background:rgba(255,255,255,.22); box-shadow:0 1px 3px rgba(0,0,0,.2); }
   .topbar button:active { transform:scale(0.92); }
   /* 키보드 탐색 시 시각적 포커스 */
@@ -10890,28 +10893,24 @@ init();
   // 로그인 상태를 명확히 구분하도록 버튼 내부 표시를 바꿈:
   //   - 로그인 O : 이니셜 원형 뱃지 + 이름(이메일 앞부분) + 초록 dot
   //   - 로그인 X : 기본 사람 아이콘 + "로그인" 텍스트 + 연한 경고 색
+  // 로그인 상태 — 이니셜 원 + 이름 (한 줄, white-space:nowrap 은 CSS 에서 강제)
   function renderLoggedIn(name, email) {
     const initial = (name || email || '?').trim().charAt(0).toUpperCase() || '?';
     const displayName = name || (email ? email.split('@')[0] : '');
-    authBtn.style.cssText =
-      'display:inline-flex; align-items:center; gap:6px; padding:3px 10px 3px 3px; ' +
-      'background:transparent; border:none; border-radius:999px;';
     authBtn.innerHTML =
       `<span style="display:inline-flex; align-items:center; justify-content:center; ` +
       `width:22px; height:22px; border-radius:50%; background:rgba(255,255,255,0.25); ` +
-      `color:inherit; font-weight:600; font-size:11px;">` +
+      `color:inherit; font-weight:600; font-size:11px; line-height:1;">` +
         escapeHtml(initial) +
       `</span>` +
-      `<span style="font-size:12px; font-weight:500; color:inherit; max-width:120px; ` +
-      `overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(displayName)}</span>`;
+      `<span style="font-size:12px; font-weight:500; color:inherit; line-height:1; ` +
+      `max-width:100px; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(displayName)}</span>`;
   }
+  // 로그아웃 상태 — 사람 아이콘 + "로그인" 텍스트 (한 줄)
   function renderLoggedOut() {
-    authBtn.style.cssText =
-      'display:inline-flex; align-items:center; gap:5px; padding:4px 10px; ' +
-      'background:transparent; border:none; border-radius:999px;';
     authBtn.innerHTML =
       `<svg class="ico" style="width:14px; height:14px;"><use href="#i-users"/></svg>` +
-      `<span style="font-size:12px; font-weight:500; color:inherit;">로그인</span>`;
+      `<span style="font-size:12px; font-weight:500; color:inherit; line-height:1;">로그인</span>`;
   }
   function update() {
     if (!window.JANSync || !window.JANSync.enabled) {
