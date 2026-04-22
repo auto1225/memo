@@ -714,8 +714,26 @@
   .page table.resizable td, .page table.resizable th { resize:horizontal; overflow:auto; }
 
   /* 이미지 캡션 */
-  .page figure { margin:10px 0; text-align:center; }
-  .page figcaption { font-size:12px; color:var(--ink-soft); margin-top:4px; font-style:italic; }
+  /* figure 는 내용물 너비만 차지 (img/table 의 실제 너비). display:table 로
+     자동 shrink-to-fit. text-align 은 figure 가 속한 부모에서 처리되고,
+     figcaption 의 정렬은 figure 내부(=img/table 너비) 기준. */
+  .page figure { display:table; margin:10px auto; max-width:100%; }
+  .page figure.fig-align-left { margin:10px auto 10px 0; }
+  .page figure.fig-align-right { margin:10px 0 10px auto; }
+  .page figure > img,
+  .page figure > table { display:block; max-width:100%; margin:0 auto; }
+  .page figcaption {
+    display:table-caption; caption-side:bottom;
+    font-size:12px; color:var(--ink-soft); margin-top:4px; font-style:italic;
+    text-align:center;       /* figcaption 의 text-align 은 figure(=img/table) 너비 안에서만 */
+    padding-top:4px; line-height:1.4;
+  }
+  .page figcaption.cap-left { text-align:left; }
+  .page figcaption.cap-right { text-align:right; }
+  /* 표 자체에 붙는 <caption> — 동일 원칙 */
+  .page table > caption { caption-side:bottom; font-size:12px; color:var(--ink-soft); font-style:italic; padding:4px 0; text-align:center; }
+  .page table > caption.cap-left { text-align:left; }
+  .page table > caption.cap-right { text-align:right; }
 
   /* ===== 회의 노트 (CLOVA Note 스타일) ===== */
   .meeting-note {
@@ -2233,6 +2251,8 @@
   <button data-tact="moveUp" title="표를 한 단락 위로"><svg class="ico"><use href="#i-arrow-up"/></svg></button>
   <button data-tact="moveDown" title="표를 한 단락 아래로"><svg class="ico"><use href="#i-arrow-down"/></svg></button>
   <button data-tact="moveOut" title="카드 바깥으로 빼내기">⇱</button>
+  <div class="sep"></div>
+  <button data-tact="caption" title="캡션 추가/편집"><svg class="ico"><use href="#i-edit"/></svg>캡션</button>
   <div class="sep"></div>
   <button data-tact="delTable" class="danger" title="표 전체 삭제"><svg class="ico"><use href="#i-trash"/></svg></button>
 </div>
@@ -7110,6 +7130,25 @@ tableToolbar.querySelectorAll('[data-tact]').forEach(btn => {
       if (!card) { toast('이미 카드 바깥입니다'); return; }
       card.parentNode.insertBefore(table, card.nextSibling);
       toast('표가 카드 바깥으로 이동됐습니다');
+    } else if (act === 'caption') {
+      // 표의 캡션 — <caption> 엘리먼트 (표의 너비 안에서만 표시). 표 너비
+      // 기준 중앙 정렬. 이미 캡션 있으면 편집, 없으면 새로 삽입.
+      let cap = table.querySelector(':scope > caption');
+      const initialText = cap?.textContent || '';
+      const t = await prompt2(cap ? '표 캡션 편집' : '표 캡션 입력 (비워두면 제거)', initialText);
+      if (t === null) return;
+      if (!t.trim()) {
+        if (cap) cap.remove();
+        toast('캡션 제거됨');
+        return;
+      }
+      if (!cap) {
+        cap = document.createElement('caption');
+        // <caption> 은 <table> 의 첫 번째 자식이어야 유효
+        table.insertBefore(cap, table.firstChild);
+      }
+      cap.textContent = t;
+      toast('표 캡션 추가됨 (표 너비 기준 중앙 정렬)');
     } else if (act === 'cellBg') {
       const c = await prompt2('셀 배경색 (예: #ffe0b2, transparent)', cell.style.backgroundColor || '#ffe0b2');
       if (c !== null) cell.style.backgroundColor = c;
@@ -7435,15 +7474,39 @@ imageToolbar.querySelectorAll('[data-iact]').forEach(btn => {
       toast('카드 밖으로 이동됐습니다');
     }
     else if (act === 'caption') {
-      const t = await prompt2('캡션 입력', '');
-      if (t) {
-        const fig = document.createElement('figure');
+      // 캡션의 정의: 이미지/표의 설명 텍스트. 시각적으로 이미지/표와 하나의
+      // 단위로 묶이고, 이미지/표의 너비 안에서 정렬됨.
+      //   - figure 는 display:table 로 content-width (img 실제 너비)
+      //   - figcaption 은 그 너비 안에서만 정렬 (기본 중앙)
+      //   - 이미 캡션 있으면 텍스트만 편집, 없으면 figure 로 감싸며 추가.
+      let fig = img.closest('figure');
+      const existingCap = fig?.querySelector('figcaption');
+      const initialText = existingCap?.textContent || '';
+      const t = await prompt2(existingCap ? '캡션 편집' : '캡션 입력 (비워두면 캡션 제거)', initialText);
+      if (t === null) return;  // 취소
+      if (!t.trim()) {
+        // 빈 캡션 → 기존 캡션 제거 + figure 해제 (img 만 남기기)
+        if (existingCap) existingCap.remove();
+        if (fig && !fig.querySelector('figcaption')) {
+          // figure 해제 — img 를 figure 바깥으로 빼고 figure 제거
+          fig.parentNode.insertBefore(img, fig);
+          fig.remove();
+        }
+        toast('캡션 제거됨');
+        return;
+      }
+      if (!fig) {
+        fig = document.createElement('figure');
         img.parentNode.insertBefore(fig, img);
         fig.appendChild(img);
-        const cap = document.createElement('figcaption');
-        cap.textContent = t;
+      }
+      let cap = fig.querySelector('figcaption');
+      if (!cap) {
+        cap = document.createElement('figcaption');
         fig.appendChild(cap);
       }
+      cap.textContent = t;
+      toast('캡션 추가됨 (이미지 너비 기준 중앙 정렬)');
     } else if (act === 'link') {
       const u = await prompt2('이미지에 걸 링크 URL', img.parentNode.tagName === 'A' ? img.parentNode.href : '');
       if (u) {
