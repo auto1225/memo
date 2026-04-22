@@ -7261,6 +7261,119 @@ function attachResizeDragHandler(handle, img, dir) {
   });
 }
 
+/* ============================================================
+   이미지 / 표 드래그 이동 — 마우스 드래그로 블록 재배치
+   ============================================================
+   pageEl (contenteditable) 안의 <img> / <table> 을 드래그하면 드롭 위치의
+   가장 가까운 블록 기준 앞/뒤로 자동 이동. figure / p / div / li 로 감싸진
+   경우 그 블록 전체를 이동 (이미지만 빼내지 않음). 드래그 중 커서 위치에
+   파란색 가이드 라인 표시.
+   ============================================================ */
+(function enableBlockDragReorder() {
+  let draggedBlock = null;
+  let dropIndicator = null;
+
+  function ensureIndicator() {
+    if (dropIndicator) return dropIndicator;
+    dropIndicator = document.createElement('div');
+    dropIndicator.id = 'blockDropIndicator';
+    dropIndicator.style.cssText =
+      'position:absolute; height:3px; background:var(--accent, #8A5FD1); ' +
+      'border-radius:2px; pointer-events:none; z-index:9999; display:none; ' +
+      'box-shadow:0 0 6px var(--accent, #8A5FD1);';
+    document.body.appendChild(dropIndicator);
+    return dropIndicator;
+  }
+  function hideIndicator() { if (dropIndicator) dropIndicator.style.display = 'none'; }
+
+  function findBlock(el) {
+    if (!el) return null;
+    return el.closest('figure, p, div, li, table, blockquote, h1, h2, h3, h4, h5, h6, ul, ol, pre');
+  }
+
+  // 이미지·표에 draggable="true" 자동 부여 (페이지 로드 + 동적 추가 둘 다)
+  function makeDraggable(root) {
+    root.querySelectorAll('img, table').forEach(el => {
+      if (!el.hasAttribute('draggable')) el.setAttribute('draggable', 'true');
+    });
+  }
+  // 초기 패스
+  makeDraggable(pageEl);
+  // pageEl 내부 변경 시마다 새 이미지·표에도 적용
+  const mo = new MutationObserver(muts => {
+    muts.forEach(m => {
+      m.addedNodes && m.addedNodes.forEach(n => {
+        if (n.nodeType !== 1) return;
+        if (n.tagName === 'IMG' || n.tagName === 'TABLE') {
+          if (!n.hasAttribute('draggable')) n.setAttribute('draggable', 'true');
+        } else {
+          makeDraggable(n);
+        }
+      });
+    });
+  });
+  mo.observe(pageEl, { childList: true, subtree: true });
+
+  pageEl.addEventListener('dragstart', (e) => {
+    const media = e.target.closest && e.target.closest('img, table');
+    if (!media) return;
+    const block = findBlock(media) || media;
+    draggedBlock = block;
+    block.style.opacity = '0.4';
+    try {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', 'block-drag');
+    } catch {}
+  });
+
+  pageEl.addEventListener('dragend', () => {
+    if (draggedBlock) draggedBlock.style.opacity = '';
+    draggedBlock = null;
+    hideIndicator();
+  });
+
+  pageEl.addEventListener('dragover', (e) => {
+    if (!draggedBlock) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const target = document.elementFromPoint(e.clientX, e.clientY);
+    const targetBlock = findBlock(target);
+    if (!targetBlock || targetBlock === draggedBlock || !pageEl.contains(targetBlock)) {
+      hideIndicator();
+      return;
+    }
+    const rect = targetBlock.getBoundingClientRect();
+    const above = e.clientY < rect.top + rect.height / 2;
+    const ind = ensureIndicator();
+    ind.style.display = 'block';
+    ind.style.left = rect.left + 'px';
+    ind.style.top = (above ? rect.top - 2 : rect.bottom - 1) + window.scrollY + 'px';
+    ind.style.width = rect.width + 'px';
+  });
+
+  pageEl.addEventListener('drop', (e) => {
+    if (!draggedBlock) return;
+    e.preventDefault();
+    const target = document.elementFromPoint(e.clientX, e.clientY);
+    const targetBlock = findBlock(target);
+    if (targetBlock && targetBlock !== draggedBlock && pageEl.contains(targetBlock)) {
+      const rect = targetBlock.getBoundingClientRect();
+      const above = e.clientY < rect.top + rect.height / 2;
+      if (above) targetBlock.parentNode.insertBefore(draggedBlock, targetBlock);
+      else targetBlock.parentNode.insertBefore(draggedBlock, targetBlock.nextSibling);
+      try { scheduleSave && scheduleSave(); } catch {}
+      if (typeof toast === 'function') toast('블록이 이동됐습니다');
+    }
+    draggedBlock.style.opacity = '';
+    draggedBlock = null;
+    hideIndicator();
+  });
+
+  pageEl.addEventListener('dragleave', (e) => {
+    if (!pageEl.contains(e.relatedTarget)) hideIndicator();
+  });
+})();
+
 imageToolbar.querySelectorAll('[data-iact]').forEach(btn => {
   btn.addEventListener('mousedown', e => e.preventDefault());
   btn.addEventListener('click', async () => {
