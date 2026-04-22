@@ -7887,15 +7887,46 @@ async function webFetchHtml(url) {
 /* iframe 내부 네비게이션은 cross-origin 제약으로 부모가 추적 불가.
    사용자에게 URL 을 prompt 로 확인받아 확실하게. 검색 결과 URL 은 기본값에서
    제외해서 사용자가 진짜 기사 URL 을 붙여넣도록 유도. */
-/* URL 입력창(#webQuery) 값 또는 마지막 "이동" URL 을 그대로 사용. prompt 는 UX 저해로 제거. */
+/* URL 입력창(#webQuery) 값 또는 마지막 "이동" URL 사용.
+   검색 결과 URL 이면 — 대부분 CORS 차단이라 시도 안 하고, 대신 검색어에서
+   Wikipedia 직접 URL 을 만들어 사용자에게 제안하고 입력창에 자동 채워 넣음. */
 function resolveWebTargetUrl() {
   const qInput = ($('webQuery')?.value || '').trim();
   const cur = webGetCurrentUrl() || '';
-  if (/^https?:\/\//i.test(qInput)) return qInput;
-  if (cur && /^https?:\/\//i.test(cur)) return cur;
-  toast('위 URL 입력창에 분석할 페이지의 http(s):// 주소를 먼저 넣어주세요', 4000);
-  try { $('webQuery')?.focus(); } catch {}
-  return null;
+  const target = /^https?:\/\//i.test(qInput) ? qInput : cur;
+  if (!target) {
+    toast('위 URL 입력창에 분석할 페이지의 http(s):// 주소를 먼저 넣어주세요', 4000);
+    try { $('webQuery')?.focus(); } catch {}
+    return null;
+  }
+  // 검색 결과 URL 감지 + 자동 변환
+  const isSearchResults = /google\.com\/search|duckduckgo\.com\/\?q=|bing\.com\/search|naver\.com\/search\.naver|wikipedia\.org\/wiki\/Special:Search/i.test(target);
+  if (isSearchResults) {
+    let query = '';
+    try {
+      const u = new URL(target);
+      query = u.searchParams.get('q') || u.searchParams.get('query') ||
+              u.searchParams.get('search') || u.searchParams.get('p') || '';
+      // 구글의 중첩 URL 인코딩 ("q=https%3A..." 처럼) 케이스 — 실제 검색어 뽑기 어려우니 생략
+      if (/^https?:/i.test(query)) query = '';
+    } catch {}
+    if (query) {
+      // 한글·영문 자동 판별: 한글 포함이면 ko.wikipedia.org, 아니면 en.wikipedia.org
+      const lang = /[가-힣]/.test(query) ? 'ko' : 'en';
+      const wikiUrl = `https://${lang}.wikipedia.org/wiki/${encodeURIComponent(query.trim().replace(/\s+/g, '_'))}`;
+      const qInputEl = $('webQuery');
+      if (qInputEl) {
+        qInputEl.value = wikiUrl;
+        try { qInputEl.focus(); qInputEl.select(); } catch {}
+      }
+      toast('검색 결과 페이지는 CORS 차단이라 바로 쓸 수 없어요. 주소창을 Wikipedia 링크로 자동 변환했습니다. 다시 눌러주세요.', 7000);
+    } else {
+      toast('검색 결과 페이지는 CORS 차단. 실제 기사/문서 URL 을 주소창에 직접 넣어 주세요.', 6000);
+      try { $('webQuery')?.focus(); $('webQuery')?.select(); } catch {}
+    }
+    return null;
+  }
+  return target;
 }
 
 /* 웹 모달 중앙에 로딩 오버레이 표시/숨김 */
