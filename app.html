@@ -12863,6 +12863,14 @@ function renderRolesGrid() {
     card.addEventListener('click', () => {
       card.classList.toggle('selected');
       updateRolesSelCount();
+      // 즉시 state.userRoles 에 반영 — 적용 버튼을 못 누르고 X 로 닫아도 저장됨.
+      // (이전: 적용 버튼 클릭 시에만 저장되어 사용자가 선택 해놓고 X 누르면 사라지는 문제)
+      const selectedNow = [...document.querySelectorAll('#rolesGrid .role-card.selected')].map(c => c.dataset.role);
+      state.userRoles = selectedNow;
+      // 디바운스 저장이 아닌 즉시 저장 — 창 닫기 전 flush 보장
+      try { save(); } catch (e) { try { scheduleSave(); } catch {} }
+      try { updateRoleBadge(); } catch (e) {}
+      try { renderSidebar(); } catch (e) {}
     });
   });
 }
