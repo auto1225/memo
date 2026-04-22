@@ -160,15 +160,16 @@
     height:14px; line-height:14px; display:none; text-align:center; pointer-events:none; }
   .topbar-badge.show { display:inline-block; }
   /* Command palette 단축키 힌트 — 버튼 옆 작은 kbd 레이블 */
-  .pal-btn-hint { position:relative; padding-right:30px !important; }
+  .pal-btn-hint { position:relative; padding-right:34px !important; padding-left:8px !important; min-width:62px; }
+  .pal-btn-hint .ico { margin-right:2px; }
   .pal-btn-hint .kbd-hint {
-    position:absolute; right:4px; top:50%; transform:translateY(-50%);
+    position:absolute; right:5px; top:50%; transform:translateY(-50%);
     font-size:9px; font-weight:700; letter-spacing:0.02em;
-    background:rgba(0,0,0,0.18); color:inherit;
-    padding:2px 4px; border-radius:3px; border:1px solid rgba(255,255,255,0.15);
-    line-height:1; pointer-events:none;
+    background:rgba(0,0,0,0.22); color:inherit;
+    padding:2px 5px; border-radius:3px; border:1px solid rgba(255,255,255,0.2);
+    line-height:1; pointer-events:none; white-space:nowrap;
   }
-  @media (max-width: 900px) { .pal-btn-hint .kbd-hint { display:none; } .pal-btn-hint { padding-right:inherit !important; } }
+  @media (max-width: 900px) { .pal-btn-hint .kbd-hint { display:none; } .pal-btn-hint { padding-right:inherit !important; padding-left:inherit !important; min-width:auto; } }
   .topbar-drop { position:relative; display:inline-flex; }
   .topbar-drop-menu { position:absolute; top:100%; right:0; background:white;
     border:1px solid rgba(0,0,0,0.1); border-radius:6px; box-shadow:0 4px 12px rgba(0,0,0,0.15);
@@ -10886,21 +10887,57 @@ init();
 (function() {
   const authBtn = $('authBtn');
   if (!authBtn) return;
+  // 로그인 상태를 명확히 구분하도록 버튼 내부 표시를 바꿈:
+  //   - 로그인 O : 이니셜 원형 뱃지 + 이름(이메일 앞부분) + 초록 dot
+  //   - 로그인 X : 기본 사람 아이콘 + "로그인" 텍스트 + 연한 경고 색
+  function renderLoggedIn(name, email) {
+    const initial = (name || email || '?').trim().charAt(0).toUpperCase() || '?';
+    const displayName = name || (email ? email.split('@')[0] : '');
+    authBtn.style.display = 'inline-flex';
+    authBtn.style.alignItems = 'center';
+    authBtn.style.gap = '6px';
+    authBtn.style.padding = '4px 10px 4px 4px';
+    authBtn.style.background = 'rgba(255,255,255,0.22)';
+    authBtn.style.borderRadius = '999px';
+    authBtn.innerHTML =
+      `<span style="display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; ` +
+      `border-radius:50%; background:linear-gradient(135deg, var(--accent), #E5CD00); color:#1a1a1a; ` +
+      `font-weight:700; font-size:11px; letter-spacing:0; border:1.5px solid rgba(255,255,255,0.35); ` +
+      `box-shadow:0 0 0 2px rgba(46,160,67,0.8);">` +
+        escapeHtml(initial) +
+      `</span>` +
+      `<span style="font-size:11.5px; font-weight:600; color:inherit; max-width:120px; ` +
+      `overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(displayName)}</span>`;
+  }
+  function renderLoggedOut() {
+    authBtn.style.display = 'inline-flex';
+    authBtn.style.alignItems = 'center';
+    authBtn.style.gap = '5px';
+    authBtn.style.padding = '4px 10px';
+    authBtn.style.background = 'rgba(255,255,255,0.08)';
+    authBtn.style.borderRadius = '999px';
+    authBtn.innerHTML =
+      `<svg class="ico" style="width:14px; height:14px;"><use href="#i-users"/></svg>` +
+      `<span style="font-size:11.5px; font-weight:600; color:inherit;">로그인</span>`;
+  }
   function update() {
     if (!window.JANSync || !window.JANSync.enabled) {
       authBtn.style.display = 'none';
       return;
     }
-    authBtn.style.display = '';
     const s = window.JANSync.getSession && window.JANSync.getSession();
     if (s && s.user) {
-      authBtn.title = s.user.email + ' · 클릭하여 계정 관리';
-      authBtn.setAttribute('aria-label', `계정 관리 (${s.user.email})`);
-      authBtn.style.background = 'rgba(255,255,255,0.25)';
+      const email = s.user.email || '';
+      const name = s.user.user_metadata?.full_name
+                || s.user.user_metadata?.name
+                || (email ? email.split('@')[0] : '');
+      renderLoggedIn(name, email);
+      authBtn.title = (name ? name + ' · ' : '') + email + ' · 클릭하여 계정 관리';
+      authBtn.setAttribute('aria-label', `계정 관리 (${name || email})`);
     } else {
+      renderLoggedOut();
       authBtn.title = '클라우드 로그인 — 여러 기기 동기화';
       authBtn.setAttribute('aria-label', '클라우드 로그인');
-      authBtn.style.background = '';
     }
   }
   authBtn.addEventListener('click', async () => {
