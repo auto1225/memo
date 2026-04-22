@@ -8354,6 +8354,22 @@ async function callClaude(sys, user) {
 
 /* 기본 AI (Vercel Serverless 경유 Gemini) */
 async function callDefault(sys, user) {
+  // 세션 로드 타이밍 경합 방어 — JANSync.init() 가 아직 안 끝난 상태에서 호출된 경우
+  // ready() Promise 로 최대 3초까지 대기. 없으면 짧은 폴링으로 폴백.
+  if (!isLoggedIn() && window.JANSync?.enabled) {
+    try {
+      if (typeof window.JANSync.ready === 'function') {
+        await Promise.race([
+          window.JANSync.ready(),
+          new Promise(r => setTimeout(r, 3000))
+        ]);
+      } else {
+        for (let i = 0; i < 15 && !isLoggedIn(); i++) {
+          await new Promise(r => setTimeout(r, 200));
+        }
+      }
+    } catch {}
+  }
   if (!isLoggedIn()) {
     toast('기본 AI를 사용하려면 무료 회원가입이 필요합니다');
     const authBtn = document.getElementById('authBtn');
@@ -8541,6 +8557,14 @@ async function callAIVision(prompt, dataUrl) {
 
 // 기본 AI (로그인 사용자 전용, Supabase 인증 기반 Gemini 프록시) vision 호출
 async function callDefaultVision(prompt, dataUrl) {
+  // 세션 로드 타이밍 경합 방어 — callDefault 와 동일
+  if (!isLoggedIn() && window.JANSync?.enabled) {
+    try {
+      if (typeof window.JANSync.ready === 'function') {
+        await Promise.race([window.JANSync.ready(), new Promise(r => setTimeout(r, 3000))]);
+      }
+    } catch {}
+  }
   if (!isLoggedIn()) {
     toast('기본 AI는 로그인 후 이용 가능합니다');
     const authBtn = document.getElementById('authBtn');

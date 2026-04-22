@@ -174,6 +174,9 @@
     else console.log('[Sync]', msg);
   }
 
+  let readyResolve = null;
+  const readyPromise = new Promise(r => { readyResolve = r; });
+
   async function init() {
     await loadSDK();
     supabase = window.supabase.createClient(CONFIG.url, CONFIG.anon, {
@@ -183,6 +186,8 @@
     const { data: { session: s } } = await supabase.auth.getSession();
     session = s;
     updateUI();
+    // 세션 로드 완료 시점 — AI 호출 등이 이 시점까지 기다릴 수 있도록 노출
+    if (readyResolve) { readyResolve(!!session); readyResolve = null; }
 
     supabase.auth.onAuthStateChange(async (event, newSession) => {
       session = newSession;
@@ -215,6 +220,7 @@
   window.JANSync = {
     enabled: true,
     init,
+    ready: () => readyPromise,     // 세션 로드 완료까지 대기 (resolve: boolean hasSession)
     getSession: () => session,
     getSupabase: () => supabase,
     signInGoogle: () => supabase.auth.signInWithOAuth({
