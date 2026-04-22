@@ -5589,6 +5589,7 @@ $('dateTagBtn').addEventListener('click', async () => {
 const COMMANDS = [
   { ico:'i-today', name:'오늘 메모', desc:'오늘 날짜 일일노트 열기/생성', run:() => openTodayMemo() },
   { ico:'i-calendar', name:'캘린더 열기', desc:'메모 날짜 자동 표시', hint:'Ctrl+J', run:() => openCalendar() },
+  { ico:'i-calendar', name:'캘린더 탭으로 열기', desc:'캘린더를 별도 탭으로 — 월/주/일/년/할일 뷰', keywords:['calendar','tab','탭','달력'], run:() => { try { window.openCalendarAsTab && window.openCalendarAsTab(); } catch {} } },
   { ico:'i-plus', name:'새 탭', desc:'현재 워크스페이스에 새 탭', hint:'Ctrl+T', run:() => addTab() },
   { ico:'i-star', name:'현재 탭 즐겨찾기', desc:'별표 토글', run:() => toggleStar(state.activeId) },
   { ico:'i-sort', name:'탭 정렬', desc:'이름/수정/사용자 순', run:() => $('sortTabs').click() },
