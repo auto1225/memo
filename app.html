@@ -10893,32 +10893,25 @@ init();
   function renderLoggedIn(name, email) {
     const initial = (name || email || '?').trim().charAt(0).toUpperCase() || '?';
     const displayName = name || (email ? email.split('@')[0] : '');
-    authBtn.style.display = 'inline-flex';
-    authBtn.style.alignItems = 'center';
-    authBtn.style.gap = '6px';
-    authBtn.style.padding = '4px 10px 4px 4px';
-    authBtn.style.background = 'rgba(255,255,255,0.22)';
-    authBtn.style.borderRadius = '999px';
+    authBtn.style.cssText =
+      'display:inline-flex; align-items:center; gap:6px; padding:3px 10px 3px 3px; ' +
+      'background:transparent; border:none; border-radius:999px;';
     authBtn.innerHTML =
-      `<span style="display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; ` +
-      `border-radius:50%; background:linear-gradient(135deg, var(--accent), #E5CD00); color:#1a1a1a; ` +
-      `font-weight:700; font-size:11px; letter-spacing:0; border:1.5px solid rgba(255,255,255,0.35); ` +
-      `box-shadow:0 0 0 2px rgba(46,160,67,0.8);">` +
+      `<span style="display:inline-flex; align-items:center; justify-content:center; ` +
+      `width:22px; height:22px; border-radius:50%; background:rgba(255,255,255,0.25); ` +
+      `color:inherit; font-weight:600; font-size:11px;">` +
         escapeHtml(initial) +
       `</span>` +
-      `<span style="font-size:11.5px; font-weight:600; color:inherit; max-width:120px; ` +
+      `<span style="font-size:12px; font-weight:500; color:inherit; max-width:120px; ` +
       `overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(displayName)}</span>`;
   }
   function renderLoggedOut() {
-    authBtn.style.display = 'inline-flex';
-    authBtn.style.alignItems = 'center';
-    authBtn.style.gap = '5px';
-    authBtn.style.padding = '4px 10px';
-    authBtn.style.background = 'rgba(255,255,255,0.08)';
-    authBtn.style.borderRadius = '999px';
+    authBtn.style.cssText =
+      'display:inline-flex; align-items:center; gap:5px; padding:4px 10px; ' +
+      'background:transparent; border:none; border-radius:999px;';
     authBtn.innerHTML =
       `<svg class="ico" style="width:14px; height:14px;"><use href="#i-users"/></svg>` +
-      `<span style="font-size:11.5px; font-weight:600; color:inherit;">로그인</span>`;
+      `<span style="font-size:12px; font-weight:500; color:inherit;">로그인</span>`;
   }
   function update() {
     if (!window.JANSync || !window.JANSync.enabled) {
