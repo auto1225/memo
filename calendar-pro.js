@@ -696,6 +696,9 @@
       const key = dayIdx;
       (byDay[key] = byDay[key] || []).push({ ev, occ, start: dt, end: endT });
     });
+    // Day-column geometry — avoid fighting CSS Grid by computing pixel
+     // positions against the grid container (which is position:relative).
+     // Column 1 is the 40px hour-label; the remaining width is split evenly.
     Object.entries(byDay).forEach(([dayIdx, slots]) => {
       const placement = layoutDayColumns(slots);
       slots.forEach((s) => {
@@ -708,12 +711,14 @@
         el.className = 'cp-week-ev';
         el.dataset.eid = s.ev.id;
         const color = s.ev.color || CAT_BY_ID[s.ev.category]?.color || 'var(--accent)';
-        // Column math: each event gets 1/totalCols width, offset by col
-        const widthPct = 100 / Math.max(1, p.totalCols);
-        const leftPct = p.col * widthPct;
-        el.style.cssText = `top:${top}px;height:${height}px;background:${color};left:calc(${leftPct}% + 1px);width:calc(${widthPct}% - 2px);`;
-        el.style.gridColumn = (Number(dayIdx) + 2).toString();
-        el.style.gridRow = 'auto';
+        // Column math: 40px label column + dayIdx / days fraction of the
+        // remaining width, then sub-divide for overlapping events.
+        const colFrac = 1 / days;                       // one day's width fraction
+        const dayLeft = (Number(dayIdx)) * colFrac;     // left edge of that day column
+        const subWidth = colFrac / Math.max(1, p.totalCols);
+        const leftCalc = `calc(40px + (100% - 40px) * ${dayLeft + p.col * subWidth} + 1px)`;
+        const widthCalc = `calc((100% - 40px) * ${subWidth} - 2px)`;
+        el.style.cssText = `top:${top}px;height:${height}px;background:${color};left:${leftCalc};width:${widthCalc};`;
         el.textContent = `${String(s.start.getHours()).padStart(2,'0')}:${String(s.start.getMinutes()).padStart(2,'0')} ${s.ev.title}`;
         main.appendChild(el);
         el.addEventListener('click', (e) => { e.stopPropagation(); openEditor(s.ev); });
