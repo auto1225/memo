@@ -17,7 +17,7 @@ use std::sync::Mutex;
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    Listener, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindowBuilder,
+    Listener, Manager, PhysicalPosition, PhysicalSize,
 };
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 
@@ -139,63 +139,11 @@ fn postit_spawn(
     Ok(id)
 }
 
-#[tauri::command]
-fn postit_update(
-    store: tauri::State<PostitStore>,
-    id: String,
-    x: Option<i32>,
-    y: Option<i32>,
-    w: Option<u32>,
-    h: Option<u32>,
-    color: Option<String>,
-    content: Option<String>,
-) {
-    let mut items = store.items.lock().unwrap();
-    if let Some(p) = items.iter_mut().find(|p| p.id == id) {
-        if let Some(v) = x { p.x = v; }
-        if let Some(v) = y { p.y = v; }
-        if let Some(v) = w { p.w = v; }
-        if let Some(v) = h { p.h = v; }
-        if let Some(v) = color { p.color = v; }
-        if let Some(v) = content { p.content = v; }
-        p.updated_at = chrono_ts();
-    }
-    drop(items);
-    store.save();
-}
-
-#[tauri::command]
-fn postit_close(
-    app: tauri::AppHandle,
-    store: tauri::State<PostitStore>,
-    id: String,
-) {
-    if let Some(w) = app.get_webview_window(&id) {
-        let _ = w.close();
-    }
-    store.remove(&id);
-}
-
-// z-order 토글: "top" | "normal" | "bottom" (Windows/macOS 지원, Linux는 부분적)
-#[tauri::command]
-fn postit_set_z_order(app: tauri::AppHandle, id: String, state: String) {
-    if let Some(w) = app.get_webview_window(&id) {
-        match state.as_str() {
-            "top" => {
-                let _ = w.set_always_on_bottom(false);
-                let _ = w.set_always_on_top(true);
-            }
-            "bottom" => {
-                let _ = w.set_always_on_top(false);
-                let _ = w.set_always_on_bottom(true);
-            }
-            _ => {
-                let _ = w.set_always_on_top(false);
-                let _ = w.set_always_on_bottom(false);
-            }
-        }
-    }
-}
+// NOTE — v1.0.31+ 서브프로세스 아키텍처 전환 이후로, postit 윈도우는 별도 OS
+// 프로세스이므로 메인 프로세스에서 get_webview_window(id) 로 접근 불가능함.
+// 이전에 있던 postit_update / postit_close / postit_set_z_order 커맨드는 제거.
+// 해당 기능은 postit 자기 자신이 처리하는 postit_self_update / postit_self_close
+// (아래 `run_postit_mode()` 내부) 에서 담당.
 
 // ────────── 자동시작 (OS 로그인 시 백그라운드 실행) ──────────
 #[tauri::command]
@@ -389,7 +337,7 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             force_quit,
-            postit_list, postit_spawn, postit_update, postit_close, postit_set_z_order,
+            postit_list, postit_spawn,
             autostart_get, autostart_set
         ])
         .run(tauri::generate_context!())

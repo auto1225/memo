@@ -1,22 +1,21 @@
 /**
- * justanotepad · Sticky Notes (v1.0)
+ * justanotepad · JustPin (v1.0)
  * --------------------------------------------------------------------------
- * 화면 위에 떠있는 포스트잇 메모. 드래그로 이동·리사이즈하고 다음 방문에도
+ * 화면 위에 떠있는 JustPin 메모. 드래그로 이동·리사이즈하고 다음 방문에도
  * 위치·내용·색상이 그대로 유지됨.
  *
  * 기능:
-
- *   - [핀 아이콘] 토픽바 버튼 → 새 포스트잇 생성
- *   - 탭 우클릭 → "포스트잇으로 떼어내기" (탭 내용을 포스트잇으로 변환)
- *   - 현재 선택 텍스트를 포스트잇으로 (단축키 Ctrl+Shift+P)
- *   - 새 포스트잇 생성 단축키 Ctrl+Alt+P
+ *   - [핀 아이콘] 토픽바 버튼 → 새 JustPin 생성
+ *   - 탭 우클릭 → "JustPin으로 떼어내기" (탭 내용을 JustPin으로 변환)
+ *   - 현재 선택 텍스트를 JustPin으로 (단축키 Ctrl+Shift+P)
+ *   - 새 JustPin 생성 단축키 Ctrl+Alt+P
  *   - 드래그 이동 (헤더 부분 잡고 끌기)
  *   - 우하단 핸들로 크기 조절
  *   - 6색 팔레트 (노랑·핑크·민트·하늘·라벤더·살구)
  *   - 최소화 버튼 (헤더만 남김)
  *   - 닫기 버튼 (휴지통으로 이동, 복원 가능)
  *   - 내용 편집은 contenteditable, 입력 시 자동 저장
- *   - 포스트잇 데이터는 별도 IDB(jnp-sticky) 에 저장 — 메인 앱 state 와 분리
+ *   - JustPin 데이터는 별도 IDB(jnp-sticky) 에 저장 — 메인 앱 state 와 분리
  *
  * 전역 API:
  *   window.jnpStickyNotes = {
@@ -177,7 +176,7 @@
 
   const uid = () => 'st_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 
-  // ---- 포스트잇 DOM 생성 ----
+  // ---- JustPin DOM 생성 ----
   function render(note) {
     // note 가 부분적이거나 깨졌을 때 기본값 보장
     if (!note || typeof note !== 'object') note = {};
@@ -198,7 +197,7 @@
     head.className = 'jnp-sticky-head';
     head.style.background = c.head;
     head.innerHTML = `
-      <span class="ttl">${escHtml(note.title || '포스트잇')}</span>
+      <span class="ttl">${escHtml(note.title || 'JustPin')}</span>
       <button data-act="min" title="최소화"><svg style="width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;vertical-align:middle" viewBox="0 0 24 24"><line x1="5" y1="18" x2="19" y2="18"/></svg></button>
       <button data-act="close" title="닫기"><svg style="width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;vertical-align:middle" viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg></button>
     `;
@@ -240,7 +239,7 @@
     body.addEventListener('input', () => {
       const n = notes.get(note.id)?.data; if (!n) return;
       n.html = body.innerHTML;
-      n.title = (body.textContent || '').slice(0, 30) || '포스트잇';
+      n.title = (body.textContent || '').slice(0, 30) || 'JustPin';
       head.querySelector('.ttl').textContent = n.title;
       n.updatedAt = Date.now();
       info.textContent = new Date(n.updatedAt).toLocaleString('ko-KR', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
@@ -358,9 +357,9 @@
 
   // ---- 생성 ----
   // Tauri 데스크톱: 실제 OS 창(always-on-top, frameless) 생성 → 데스크톱 어디서든 사용 가능 + 재부팅 후 복원
-  // 웹/브라우저: 페이지 내 플로팅 포스트잇 (폴백)
+  // 웹/브라우저: 페이지 내 플로팅 JustPin (폴백)
   // Tauri 지만 새 커맨드가 없는 구버전 앱: 자동으로 웹 폴백으로 전환
-  // 포스트잇 스폰 좌표를 stagger — 같은 자리에 겹쳐쌓이지 않도록.
+  // JustPin 스폰 좌표를 stagger — 같은 자리에 겹쳐쌓이지 않도록.
   // 매번 (+28, +28) 씩 밀어준다. 화면 밖으로 가면 다시 시작 위치로.
   let __spawnOffset = 0;
   function nextSpawnPos() {
@@ -392,7 +391,7 @@
       if (res && res.__err) {
         // 데스크톱 앱 구버전 (v1.0.22 이전) — postit_spawn 커맨드 없음 → 웹 폴백
         console.warn('[sticky] Tauri postit_spawn not available, falling back to web floating:', res.__err);
-        toast('데스크톱 앱이 구버전이라 브라우저 내 포스트잇으로 대체합니다');
+        toast('데스크톱 앱이 구버전이라 브라우저 내 JustPin으로 대체합니다');
         // 아래 웹 폴백으로 떨어짐
       } else {
         toast('바탕화면에 JustPin 생성됨');
@@ -412,7 +411,7 @@
       x, y, w, h,
       color: opts.color || randomColor(),
       html: opts.html || (opts.text ? escHtml(opts.text).replace(/\n/g,'<br>') : ''),
-      title: (opts.text || '').slice(0, 30) || '포스트잇',
+      title: (opts.text || '').slice(0, 30) || 'JustPin',
       min: false, z: ++zCounter,
       createdAt: now, updatedAt: now,
     };
@@ -422,7 +421,7 @@
   }
   function randomColor() { return COLOR_NAMES[Math.floor(Math.random() * COLOR_NAMES.length)]; }
 
-  // ---- 선택 텍스트 → 포스트잇 ----
+  // ---- 선택 텍스트 → JustPin ----
   function fromSelection() {
     const sel = window.getSelection?.();
     const text = sel?.toString() || '';
@@ -430,7 +429,7 @@
     return create({ text, color: 'yellow' });
   }
 
-  // ---- 탭 → 포스트잇 (탭 html 을 그대로) ----
+  // ---- 탭 → JustPin (탭 html 을 그대로) ----
   function fromTab(tabId) {
     const s = window.state; if (!s) return null;
     const tab = s.tabs?.find(t => t.id === tabId);
@@ -442,12 +441,12 @@
   function toggleAll() {
     const anyVisible = [...notes.values()].some(e => e.el.style.display !== 'none');
     for (const e of notes.values()) e.el.style.display = anyVisible ? 'none' : '';
-    toast(anyVisible ? '포스트잇 모두 숨김' : '포스트잇 모두 표시');
+    toast(anyVisible ? 'JustPin 모두 숨김' : 'JustPin 모두 표시');
   }
 
-  // ---- 부팅: 저장된 포스트잇 복원 (웹 전용; Tauri 는 Rust 가 복원) ----
+  // ---- 부팅: 저장된 JustPin 복원 (웹 전용; Tauri 는 Rust 가 복원) ----
   async function hydrate() {
-    if (isTauri) return;  // Tauri 데스크톱에선 메인 창 안에 플로팅 포스트잇을 띄우지 않음
+    if (isTauri) return;  // Tauri 데스크톱에선 메인 창 안에 플로팅 JustPin을 띄우지 않음
     const list = await dbAll();
     for (const n of list) {
       render(n);
@@ -478,7 +477,7 @@
     return true;
   }
 
-  // ---- 탭 우클릭 메뉴: "포스트잇으로 떼어내기" ----
+  // ---- 탭 우클릭 메뉴: "JustPin으로 떼어내기" ----
   function installTabContextMenu() {
     document.addEventListener('contextmenu', (e) => {
       const tab = e.target.closest('.tab[data-id], [data-tab-id]');
@@ -487,7 +486,7 @@
       if (!tabId) return;
       e.preventDefault();
       showContextMenu(e.clientX, e.clientY, [
-        { label: '포스트잇으로 떼어내기', run: () => fromTab(tabId) },
+        { label: 'JustPin으로 떼어내기', run: () => fromTab(tabId) },
         { label: '새 JustPin (빈)', run: () => create() },
       ]);
     });
@@ -513,8 +512,8 @@
     const pal = window.justanotepadPalette;
     if (!pal?.register) return false;
     pal.register({ id: 'sticky.create',   title: '새 JustPin',              keywords:['JustPin','justpin','postit','sticky','메모','포스트잇'], run: () => create() });
-    pal.register({ id: 'sticky.selection',title: '선택 텍스트를 포스트잇으로', keywords:['포스트잇','선택','copy'],          run: () => fromSelection() });
-    pal.register({ id: 'sticky.toggle',   title: '포스트잇 모두 숨김/표시',     keywords:['포스트잇','toggle','전체'],         run: () => toggleAll() });
+    pal.register({ id: 'sticky.selection',title: '선택 텍스트를 JustPin으로', keywords:['JustPin','justpin','postit','선택','copy'],          run: () => fromSelection() });
+    pal.register({ id: 'sticky.toggle',   title: 'JustPin 모두 숨김/표시',     keywords:['JustPin','justpin','postit','toggle','전체'],         run: () => toggleAll() });
     return true;
   }
 

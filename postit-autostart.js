@@ -1,11 +1,11 @@
 /**
- * justanotepad · Postit Autostart UI (v1.0)
+ * justanotepad · JustPin Autostart UI (v1.0)
  * --------------------------------------------------------------------------
- * Tauri 환경에서 "재부팅 후 앱 없이도 포스트잇 자동 복원"을 ON/OFF 하는 UI.
+ * Tauri 환경에서 "재부팅 후 앱 없이도 JustPin 자동 복원"을 ON/OFF 하는 UI.
  *
  * 동작:
  *   1. 웹 환경이면 무시 (Tauri 전용 기능)
- *   2. 포스트잇이 생성되면 Rust 측이 자동시작을 자동 활성화.
+ *   2. JustPin이 생성되면 Rust 측이 자동시작을 자동 활성화.
  *   3. 사용자가 수동으로 토글하려면 Command Palette 에서
  *      "자동시작 켜기 / 끄기" 선택.
  *   4. 현재 상태 확인: 하단 상태바의 "자동시작: ON" 배지.
@@ -37,13 +37,13 @@
     if (!pal?.register) return false;
     pal.register({
       id: 'postit.autostart.on',
-      title: '자동시작 켜기 (재부팅해도 포스트잇 유지)',
+      title: '자동시작 켜기 (재부팅해도 JustPin 유지)',
       hint: 'PC 로그인 시 백그라운드로 자동 실행됩니다',
-      keywords: ['자동시작','autostart','포스트잇','재부팅','startup'],
+      keywords: ['자동시작','autostart','JustPin','justpin','포스트잇','재부팅','startup'],
       run: async () => {
         const ok = await setState(true);
         if (typeof window.toast === 'function') {
-          window.toast(ok ? '자동시작 ON — 이제 재부팅해도 포스트잇이 그대로 뜹니다' : '자동시작 설정 실패');
+          window.toast(ok ? '자동시작 ON — 이제 재부팅해도 JustPin이 그대로 뜹니다' : '자동시작 설정 실패');
         }
       }
     });
@@ -65,8 +65,8 @@
       run: async () => {
         const enabled = await getState();
         alert(enabled
-          ? '자동시작: ON\n\n재부팅 후 PC 로그인 시 JustANotepad 가 백그라운드에서 시작되어 포스트잇이 자동 복원됩니다.'
-          : '자동시작: OFF\n\n재부팅 후엔 JustANotepad 를 수동으로 실행해야 포스트잇이 나타납니다.'
+          ? '자동시작: ON\n\n재부팅 후 PC 로그인 시 JustANotepad 가 백그라운드에서 시작되어 JustPin이 자동 복원됩니다.'
+          : '자동시작: OFF\n\n재부팅 후엔 JustANotepad 를 수동으로 실행해야 JustPin이 나타납니다.'
         );
       }
     });

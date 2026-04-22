@@ -1,7 +1,16 @@
 /**
- * JustANotepad — Table Calc Engine (엑셀식 자동 계산)
+ * JustANotepad — Table Calc Engine (엑셀식 자동 계산) v2
  * --------------------------------------------------------------------------
  * 표 안의 숫자를 자동으로 합계/평균/최소/최대/개수 계산.
+ *
+ * v2 changes (colspan/rowspan 인식):
+ *   - 내부적으로 표를 visual grid 로 변환하여 colspan 이 섞인 요약 행도 정확히
+ *     시각 열에 맞춰 합계를 배치 (이전: DOM cells[i] 기반이라 colspan 시 엇나감).
+ *   - SUMMARY_LABEL 정규식 확장: "합계", "소계", "합계 시간", "Total Price" 등
+ *     뒤에 공백+텍스트가 붙는 형태도 허용.
+ *   - apply() 는 (cell 엘리먼트 또는 visualColIdx) 를 받도록 오버로드.
+ *     app.html 쪽에서는 사용자가 클릭한 cell 을 그대로 넘기면 자동으로 visual
+ *     col 을 계산.
  *
  * 사용 방법 (사용자):
  *   1. 표 안의 셀을 클릭 → 플로팅 툴바에 "계산" 섹션 표시
@@ -10,10 +19,10 @@
  *
  * 내부 구현:
  *   - "합계" 셀에 data-calc="sum|avg|min|max|count" 속성 삽입
- *   - 표에 data-calc-enabled="1" 마커 추가
- *   - 에디터(#page) 에 input 리스너 → 해당 셀이 속한 표가 재계산되도록
+ *   - 표에 data-calc-summary 행 표시
+ *   - 에디터(#page) 에 input 리스너 → 해당 셀이 속한 표만 재계산 (150ms debounce)
  *   - 템플릿이 <th>합계</th> 같은 요약 행을 가지고 있으면 자동 감지해서
- *     기존 설계대로 동작 (사용자가 버튼 누르지 않아도 자동 sum)
+ *     사용자가 따로 버튼 안 눌러도 숫자 열에 sum 자동 적용
  *
  * 숫자 파싱:
  *   - "1,000" (쉼표 천단위)
@@ -27,8 +36,11 @@
   'use strict';
   if (window.JANTableCalc) return;
 
-  // 요약 행으로 인식할 첫 칼럼 텍스트 패턴
-  const SUMMARY_LABEL = /^(합계|소계|총계|합|Total|Sum|Subtotal|Grand Total)$/i;
+  // 요약 행으로 인식할 첫 칼럼 텍스트 패턴.
+  // "합계", "합계 시간", "Grand Total" 같이 공백+보조어가 붙는 변형도 허용.
+  const SUMMARY_LABEL = /^(합계|소계|총계|합|Total|Sum|Subtotal|Grand Total)(\s+.+)?$/i;
+
+  // ---- 유틸 ----------------------------------------------------------------
 
   // 숫자 파싱 — 빈 문자열 / 비숫자 → NaN
   function parseNum(str) {
@@ -58,16 +70,54 @@
     return SUMMARY_LABEL.test(t);
   }
 
-  // 표에서 요약 행 찾기 — 마지막 행 중 첫 셀이 '합계'류 라벨이거나
-  // data-calc-summary 속성이 있는 행
+  // ---- Visual Grid --------------------------------------------------------
+  // 표를 2D grid 로 변환. grid[r][c] = 셀 엘리먼트 (colspan/rowspan 은 같은
+  // 엘리먼트가 여러 (r,c) 에 등장). 시각적 열 c 는 0-based, 합쳐지지 않은
+  // "만약 모든 셀이 1x1 이었다면 몇 번째 열인가" 기준.
+  function buildGrid(table) {
+    const grid = [];
+    const rows = Array.from(table.rows);
+    rows.forEach((row, r) => {
+      if (!grid[r]) grid[r] = [];
+      let c = 0;
+      Array.from(row.cells).forEach(cell => {
+        // 위에서 rowspan 으로 내려온 셀이 있으면 스킵
+        while (grid[r][c] !== undefined) c++;
+        const colspan = Math.max(1, parseInt(cell.getAttribute('colspan') || '1', 10) || 1);
+        const rowspan = Math.max(1, parseInt(cell.getAttribute('rowspan') || '1', 10) || 1);
+        for (let dr = 0; dr < rowspan; dr++) {
+          if (!grid[r + dr]) grid[r + dr] = [];
+          for (let dc = 0; dc < colspan; dc++) {
+            grid[r + dr][c + dc] = cell;
+          }
+        }
+        c += colspan;
+      });
+    });
+    return grid;
+  }
+
+  function isCellLeftEdge(grid, r, c) {
+    const cell = grid[r] && grid[r][c];
+    if (!cell) return false;
+    return (c === 0 || grid[r][c - 1] !== cell);
+  }
+  function isCellTopEdge(grid, r, c) {
+    const cell = grid[r] && grid[r][c];
+    if (!cell) return false;
+    return (r === 0 || !grid[r - 1] || grid[r - 1][c] !== cell);
+  }
+
+  // ---- 표 구조 분석 --------------------------------------------------------
+
+  // 표에서 요약 행 찾기 — data-calc-summary="1" 속성이 있는 행 우선, 없으면
+  // 마지막 행의 첫 셀이 '합계'류 라벨인 경우 자동 지정.
   function findSummaryRow(table) {
     const rows = table.rows;
     if (rows.length < 2) return null;
-    // data-calc-summary 속성이 있는 행 우선
     for (let i = rows.length - 1; i >= 0; i--) {
       if (rows[i].dataset.calcSummary === '1') return rows[i];
     }
-    // 마지막 행 첫 셀이 '합계' 인지
     const last = rows[rows.length - 1];
     if (last.cells.length > 0 && isSummaryLabelCell(last.cells[0])) {
       last.dataset.calcSummary = '1';
@@ -76,7 +126,7 @@
     return null;
   }
 
-  // 헤더 행 인덱스 목록 — 첫 행이 모두 th 면 헤더로 간주
+  // 헤더 행 인덱스 목록 — 모든 셀이 TH 인 행
   function headerRowIndices(table) {
     const rows = Array.from(table.rows);
     const out = [];
@@ -87,19 +137,21 @@
     return out;
   }
 
-  // 특정 열의 데이터 셀 숫자들 수집 (헤더·요약 행 제외)
-  function collectColumn(table, colIdx, summaryRow) {
+  // visual col 의 숫자들 수집 (헤더/요약 행 제외, 스팬 셀은 top-left 에서 1번만)
+  function collectColumnGrid(table, grid, visualCol, summaryIdx) {
     const hdr = new Set(headerRowIndices(table));
-    const summaryIdx = summaryRow ? Array.from(table.rows).indexOf(summaryRow) : -1;
     const nums = [];
-    Array.from(table.rows).forEach((r, i) => {
-      if (hdr.has(i)) return;
-      if (i === summaryIdx) return;
-      const cell = r.cells[colIdx];
-      if (!cell) return;
+    for (let r = 0; r < grid.length; r++) {
+      if (hdr.has(r)) continue;
+      if (r === summaryIdx) continue;
+      const cell = grid[r] && grid[r][visualCol];
+      if (!cell) continue;
+      // 스팬 셀 중복 집계 방지: top-left 꼭지점에서만 수집
+      if (!isCellLeftEdge(grid, r, visualCol)) continue;
+      if (!isCellTopEdge(grid, r, visualCol)) continue;
       const n = parseNum(cell.innerText || cell.textContent);
       if (!isNaN(n)) nums.push(n);
-    });
+    }
     return nums;
   }
 
@@ -115,48 +167,62 @@
     }
   }
 
-  // 해당 표에서 data-calc 가 세팅된 모든 셀을 재계산
-  // 처음 감지되는 요약 행은 자동으로 숫자 열에 sum 을 세팅 (사용자가 따로 안 눌러도 동작)
+  // 주어진 cell 의 visual col 인덱스 (top-left 기준)
+  function visualColOf(grid, rowIdx, cell) {
+    const row = grid[rowIdx] || [];
+    for (let c = 0; c < row.length; c++) {
+      if (row[c] === cell) return c;
+    }
+    return -1;
+  }
+
+  // ---- 핵심: recompute -----------------------------------------------------
   function recomputeTable(table) {
     if (!table) return;
     const summaryRow = findSummaryRow(table);
     if (!summaryRow) return;
+    const grid = buildGrid(table);
+    const summaryIdx = Array.from(table.rows).indexOf(summaryRow);
+    const summaryCols = grid[summaryIdx] || [];
+    const totalCols = summaryCols.length;
+    // 가로 전체 visual col 수 (다른 행까지 고려한 max)
+    const maxCols = Math.max(totalCols, ...grid.map(r => (r || []).length));
 
-    // auto-seed: 데이터 행에 숫자가 들어있는 열의 요약 셀에 data-calc="sum" 자동 주입.
-    // (이미 dataset.calc 가 있거나 명시적으로 사용자가 비운 경우엔 덮지 않음)
-    // 매 recompute 마다 체크 — 처음 빈 표였다가 숫자가 채워지면 그때 seed 적용.
-    Array.from(summaryRow.cells).forEach((cell, colIdx) => {
-      if (cell.dataset.calc) return;                    // 이미 세팅됨
-      if (cell.dataset.calcOptOut === '1') return;      // 사용자가 명시적으로 해제
-      if (colIdx === 0) return;                         // 첫 열은 라벨
-      const nums = collectColumn(table, colIdx, summaryRow);
-      if (nums.length === 0) return;                    // 숫자 없으면 pass
-      cell.dataset.calc = 'sum';
-    });
+    for (let c = 0; c < maxCols; c++) {
+      const cell = summaryCols[c];
+      if (!cell) continue;
+      // 스팬 셀은 left-edge 에서만 처리 (같은 셀을 2번 write 하지 않도록)
+      if (!isCellLeftEdge(grid, summaryIdx, c)) continue;
+      if (c === 0) continue;                       // 첫 visual col 은 라벨 자리
+      if (cell.dataset.calcOptOut === '1') continue;
 
-    Array.from(summaryRow.cells).forEach((cell, colIdx) => {
+      // auto-seed: dataset.calc 가 없고 해당 visual col 에 숫자가 있으면 sum 자동 적용
+      if (!cell.dataset.calc) {
+        const nums = collectColumnGrid(table, grid, c, summaryIdx);
+        if (nums.length === 0) continue;
+        cell.dataset.calc = 'sum';
+      }
+
       const op = cell.dataset.calc;
-      if (!op) return;
-      const nums = collectColumn(table, colIdx, summaryRow);
+      const nums = collectColumnGrid(table, grid, c, summaryIdx);
       const result = computeOp(nums, op);
-      // 포매팅. NaN(데이터 없음) → 빈 문자열
       cell.dataset.calcAuto = '1';
       cell.innerText = fmtNum(result);
-      // 시각적 힌트 — 계산식 있는 셀은 미묘하게 스타일링
       if (!cell.style.background) {
         cell.style.background = 'color-mix(in srgb, var(--accent, #FAE100) 30%, transparent)';
       }
-    });
+    }
   }
 
-  // 버튼 핸들러 — 클릭한 열 colIdx 에 op 적용
-  function apply(table, colIdx, op) {
+  // ---- apply() : 툴바 버튼 핸들러 ------------------------------------------
+  // target: cell 엘리먼트(권장) 또는 visual col 인덱스(숫자)
+  function apply(table, target, op) {
     if (!table) return;
     let summaryRow = findSummaryRow(table);
     if (!summaryRow) {
-      // 요약 행이 없으면 자동으로 추가
-      const lastRow = table.rows[table.rows.length - 1];
-      const colCount = Math.max(...Array.from(table.rows).map(r => r.cells.length));
+      // 요약 행 없으면 자동 생성 — visual col 수 만큼 TH 삽입
+      const gridNow = buildGrid(table);
+      const colCount = Math.max(0, ...gridNow.map(r => (r || []).length));
       summaryRow = table.insertRow(-1);
       for (let i = 0; i < colCount; i++) {
         const th = document.createElement('th');
@@ -165,23 +231,51 @@
       }
       summaryRow.dataset.calcSummary = '1';
     }
-    const cell = summaryRow.cells[colIdx];
-    if (!cell) return;
-    if (op === 'clear') {
-      delete cell.dataset.calc;
-      delete cell.dataset.calcAuto;
-      cell.dataset.calcOptOut = '1';  // auto-seed 가 다시 sum 덮는 걸 방지
-      cell.innerText = '';
-      cell.style.background = '';
+    const grid = buildGrid(table);
+    const summaryIdx = Array.from(table.rows).indexOf(summaryRow);
+    const summaryCols = grid[summaryIdx] || [];
+
+    // target 이 cell 이면 해당 셀의 visual col 을 추출, 그 visual col 에 해당하는
+    // 요약 셀을 찾음. target 이 숫자면 그대로 사용.
+    let visualCol = -1;
+    if (typeof target === 'number') {
+      visualCol = target;
+    } else if (target && target.parentElement) {
+      const row = target.parentElement;
+      const rowIdx = Array.from(table.rows).indexOf(row);
+      visualCol = visualColOf(grid, rowIdx, target);
+    }
+    if (visualCol < 0) return;
+
+    // 같은 visual col 의 요약 셀
+    let sumCell = summaryCols[visualCol];
+    if (!sumCell) {
+      // 요약 행이 방금 생성된 경우 위 grid 빌드 이후라 있을 텐데 혹시 없으면 return
       return;
     }
-    delete cell.dataset.calcOptOut;
-    cell.dataset.calc = op;
+    // 스팬 된 라벨 셀에 쓰지 않도록: 만약 visualCol 이 스팬 라벨 내부라면
+    // 그 스팬 바로 다음 visual col 로 이동 (= 첫 번째 쓸 수 있는 셀)
+    // 보통 사용자는 데이터 열의 셀을 클릭하므로, 그 열의 요약 칸이 별개로 있음.
+    if (!isCellLeftEdge(grid, summaryIdx, visualCol) || sumCell === summaryRow.cells[0]) {
+      // 이 경우는 데이터 열이 라벨과 합쳐진 비정상 케이스 — 무시
+      // 안전하게 좌측 1열에는 쓰지 않음
+      if (sumCell === summaryRow.cells[0]) return;
+    }
+
+    if (op === 'clear') {
+      delete sumCell.dataset.calc;
+      delete sumCell.dataset.calcAuto;
+      sumCell.dataset.calcOptOut = '1';
+      sumCell.innerText = '';
+      sumCell.style.background = '';
+      return;
+    }
+    delete sumCell.dataset.calcOptOut;
+    sumCell.dataset.calc = op;
     recomputeTable(table);
   }
 
-  // 에디터 전역 입력 리스너 — 표 안의 셀이 바뀌면 해당 표만 재계산
-  // (페이지 내 모든 표를 매번 계산하지 않고, event.target 이 속한 표만)
+  // ---- 입력 리스너 ---------------------------------------------------------
   let pendingTable = null;
   let pendingTimer = null;
   function scheduleRecompute(table) {
@@ -205,19 +299,15 @@
     });
   }
 
-  // 문서 로드 후 #page 에 연결. 탭 전환시 #page 는 유지되므로 1번만 연결.
   function init() {
     const page = document.getElementById('page');
     if (page) attachInputListener(page);
-    // 초기 1회: 현재 페이지의 모든 표에 대해 이미 설정된 계산식 재계산
     if (page) page.querySelectorAll('table').forEach(t => { try { recomputeTable(t); } catch{} });
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 
-  // 탭 전환 등으로 #page 내용이 바뀔 때 기존 계산식 재계산 트리거
-  // (addTab 등의 액션 후 수동 호출 가능)
   function reapplyAll() {
     const page = document.getElementById('page');
     if (!page) return;

@@ -645,9 +645,9 @@ ${sh('i-thumbs-up','동의 & 반대','무비판 수용 아닌 비평적 독서')
 ${sh('i-send','실천 액션 — 내 삶에 적용할 3가지','구체적 행동으로 번역')}
 <table style="width:100%;">
   <tr><th style="width:45%;">실천할 구체 행동</th><th style="width:15%;">언제부터</th><th style="width:15%;">성공 지표</th><th>1주일 후 체크</th></tr>
-  <tr><td></td><td></td><td></td><td>☐ 실천함  ☐ 못함</td></tr>
-  <tr><td></td><td></td><td></td><td>☐</td></tr>
-  <tr><td></td><td></td><td></td><td>☐</td></tr>
+  <tr><td></td><td></td><td></td><td><input type="checkbox"/> 실천함 &nbsp; <input type="checkbox"/> 못함</td></tr>
+  <tr><td></td><td></td><td></td><td><input type="checkbox"/></td></tr>
+  <tr><td></td><td></td><td></td><td><input type="checkbox"/></td></tr>
 </table>
 
 ${sh('i-link','연결 — 관련 도서·자료·인물')}
@@ -805,12 +805,12 @@ ${sh('i-folder','3. 입력 — 시작 전 준비물')}
 ${sh('i-list-ol','4. 절차 — 단계별 실행')}
 <table style="width:100%;">
   <tr><th style="width:5%;">#</th><th style="width:30%;">무엇을</th><th style="width:30%;">어떻게 (화면·명령·링크)</th><th style="width:15%;">예상시간</th><th>완료 기준</th></tr>
-  <tr><td>1</td><td></td><td></td><td>__분</td><td></td></tr>
-  <tr><td>2</td><td></td><td></td><td>__분</td><td></td></tr>
-  <tr><td>3</td><td></td><td></td><td>__분</td><td></td></tr>
-  <tr><td>4</td><td></td><td></td><td>__분</td><td></td></tr>
-  <tr><td>5</td><td></td><td></td><td>__분</td><td></td></tr>
-  <tr><th>합계</th><th></th><th></th><th>__분</th><th></th></tr>
+  <tr><td>1</td><td></td><td></td><td></td><td></td></tr>
+  <tr><td>2</td><td></td><td></td><td></td><td></td></tr>
+  <tr><td>3</td><td></td><td></td><td></td><td></td></tr>
+  <tr><td>4</td><td></td><td></td><td></td><td></td></tr>
+  <tr><td>5</td><td></td><td></td><td></td><td></td></tr>
+  <tr><th>합계</th><th></th><th></th><th></th><th></th></tr>
 </table>
 
 ${sh('i-warning','5. 예외 처리 & 에스컬레이션')}

@@ -6914,7 +6914,8 @@ tableToolbar.querySelectorAll('[data-tact]').forEach(btn => {
         const opMap = { calcSum:'sum', calcAvg:'avg', calcMin:'min', calcMax:'max', calcCount:'count', calcClear:'clear' };
         const op = opMap[act];
         if (op) {
-          window.JANTableCalc.apply(table, cellIdx, op);
+          // v2: cell 엘리먼트를 넘기면 colspan 이 있어도 visual col 자동 매핑
+          window.JANTableCalc.apply(table, cell, op);
           toast(op === 'clear' ? '계산식 제거됨' : '열 ' + ({sum:'합계',avg:'평균',min:'최소',max:'최대',count:'개수'}[op]) + ' 적용됨');
         }
       } else {
