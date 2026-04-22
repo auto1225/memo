@@ -2208,6 +2208,11 @@
   <button data-tact="calcCount" title="열 개수 (숫자만)">#<br>개수</button>
   <button data-tact="calcClear" title="계산 수식 제거"><svg class="ico"><use href="#i-eraser"/></svg></button>
   <div class="sep"></div>
+  <span class="label">이동</span>
+  <button data-tact="moveUp" title="표를 한 단락 위로"><svg class="ico"><use href="#i-arrow-up"/></svg></button>
+  <button data-tact="moveDown" title="표를 한 단락 아래로"><svg class="ico"><use href="#i-arrow-down"/></svg></button>
+  <button data-tact="moveOut" title="카드 바깥으로 빼내기">⇱</button>
+  <div class="sep"></div>
   <button data-tact="delTable" class="danger" title="표 전체 삭제"><svg class="ico"><use href="#i-trash"/></svg></button>
 </div>
 
@@ -2225,6 +2230,11 @@
   <button data-iact="align-center" title="가운데"><svg class="ico"><use href="#i-align-center"/></svg></button>
   <button data-iact="align-right" title="오른쪽 띄움 (텍스트 감김)"><svg class="ico"><use href="#i-align-right"/></svg></button>
   <button data-iact="align-inline" title="글자처럼 인라인">abc</button>
+  <div class="sep"></div>
+  <span class="label">이동</span>
+  <button data-iact="move-up" title="한 단락 위로"><svg class="ico"><use href="#i-arrow-up"/></svg></button>
+  <button data-iact="move-down" title="한 단락 아래로"><svg class="ico"><use href="#i-arrow-down"/></svg></button>
+  <button data-iact="move-out" title="카드 바깥으로 빼내기">⇱</button>
   <div class="sep"></div>
   <button data-iact="caption" title="캡션 추가"><svg class="ico"><use href="#i-edit"/></svg></button>
   <button data-iact="link" title="링크 걸기"><svg class="ico"><use href="#i-link"/></svg></button>
@@ -7066,6 +7076,17 @@ tableToolbar.querySelectorAll('[data-tact]').forEach(btn => {
       hideTableToolbar();
     } else if (act === 'delTable') {
       if (confirm('표 전체를 삭제할까요?')) { table.remove(); hideTableToolbar(); }
+    } else if (act === 'moveUp') {
+      const prev = table.previousElementSibling;
+      if (prev) table.parentNode.insertBefore(table, prev); else toast('맨 위 — 더 올라갈 곳 없음');
+    } else if (act === 'moveDown') {
+      const next = table.nextElementSibling;
+      if (next) table.parentNode.insertBefore(next, table); else toast('맨 아래 — 더 내려갈 곳 없음');
+    } else if (act === 'moveOut') {
+      const card = table.closest('.web-clip, .web-link-card, blockquote.web-quote');
+      if (!card) { toast('이미 카드 바깥입니다'); return; }
+      card.parentNode.insertBefore(table, card.nextSibling);
+      toast('표가 카드 바깥으로 이동됐습니다');
     } else if (act === 'cellBg') {
       const c = await prompt2('셀 배경색 (예: #ffe0b2, transparent)', cell.style.backgroundColor || '#ffe0b2');
       if (c !== null) cell.style.backgroundColor = c;
@@ -7254,6 +7275,29 @@ imageToolbar.querySelectorAll('[data-iact]').forEach(btn => {
     else if (act === 'align-right') { clearFloat(); img.classList.add('img-float-right'); }
     else if (act === 'align-center') { clearFloat(); img.classList.add('img-block-center'); }
     else if (act === 'align-inline') { clearFloat(); img.style.display = 'inline'; img.style.verticalAlign = 'middle'; }
+    else if (act === 'move-up') {
+      // 이미지의 가장 가까운 블록 요소를 한 단계 위 단락 앞으로 이동
+      const block = img.closest('figure, p, div, li, .web-clip, .web-clip-body, .web-link-card') || img.parentNode;
+      const prev = block.previousElementSibling;
+      if (prev) block.parentNode.insertBefore(block, prev);
+      else toast('맨 위 — 더 올라갈 곳 없음');
+    }
+    else if (act === 'move-down') {
+      const block = img.closest('figure, p, div, li, .web-clip, .web-clip-body, .web-link-card') || img.parentNode;
+      const next = block.nextElementSibling;
+      if (next) block.parentNode.insertBefore(next, block);
+      else toast('맨 아래 — 더 내려갈 곳 없음');
+    }
+    else if (act === 'move-out') {
+      // 카드(.web-clip / .web-link-card / .web-clip-body) 안에 있으면 카드 바깥 직후로 뺌.
+      // 그림/표를 카드 안에 박혀있지 않고 본문에 자유롭게 재배치 가능하게 하는 핵심 기능.
+      const card = img.closest('.web-clip, .web-link-card, blockquote.web-quote');
+      if (!card) { toast('이미 카드 바깥입니다'); return; }
+      // 이미지가 figure/p 안에 있으면 그 블록째 이동, 아니면 이미지 자체 이동
+      const target = img.closest('figure, p, div:not(.web-clip-body):not(.web-clip)') || img;
+      if (card.parentNode) card.parentNode.insertBefore(target, card.nextSibling);
+      toast('카드 밖으로 이동됐습니다');
+    }
     else if (act === 'caption') {
       const t = await prompt2('캡션 입력', '');
       if (t) {
@@ -7850,7 +7894,22 @@ function webTodayStr() {
 }
 
 async function webFetchHtml(url) {
-  // 1) 직접 fetch 시도 — CORS 허용 사이트 (대부분 API, GitHub raw, Medium 등)
+  // 1) Wikipedia 는 공식 REST API 로 바로 HTML 받아옴 (CORS 허용, 안정적).
+  //    /wiki/... URL 을 /api/rest_v1/page/html/... 로 변환.
+  try {
+    const wm = url.match(/^https?:\/\/([a-z]+)\.wikipedia\.org\/wiki\/([^?#]+)/i);
+    if (wm) {
+      const lang = wm[1], title = wm[2];
+      const apiUrl = `https://${lang}.wikipedia.org/api/rest_v1/page/html/${title}`;
+      const r = await fetch(apiUrl, { mode:'cors', credentials:'omit' });
+      if (r.ok) {
+        const txt = await r.text();
+        return txt.length > WEB_FETCH_LIMIT ? txt.slice(0, WEB_FETCH_LIMIT) : txt;
+      }
+    }
+  } catch (e) { console.info('[webFetchHtml] Wikipedia REST API 실패:', e.message); }
+
+  // 2) 직접 fetch 시도 — GitHub raw, Medium 등 CORS 허용 사이트
   try {
     const r = await fetch(url, { mode:'cors', credentials:'omit', redirect:'follow' });
     if (r.ok) {
@@ -7858,24 +7917,24 @@ async function webFetchHtml(url) {
       return txt.length > WEB_FETCH_LIMIT ? txt.slice(0, WEB_FETCH_LIMIT) : txt;
     }
   } catch (e) {
-    // 직접 fetch 실패 (Wikipedia HTML 페이지 등 CORS 차단) → 프록시로 재시도
     console.info('[webFetchHtml] 직접 fetch 실패, 프록시 시도:', url, e.message);
   }
 
-  // 2) CORS 프록시 fallback — allorigins.win (무료·공개)
-  // 프록시 서버가 대상 URL 을 fetch 한 뒤 CORS 허용 헤더로 응답을 중계.
-  // 공개 서비스이므로 99% uptime. 대안: corsproxy.io, cors-anywhere (제한적).
+  // 3) CORS 프록시 fallback — 여러 공개 프록시를 순차 시도 (내구성 확보)
   const proxies = [
-    'https://api.allorigins.win/raw?url=',
-    'https://corsproxy.io/?',
+    u => 'https://corsproxy.io/?' + encodeURIComponent(u),
+    u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
+    u => 'https://api.codetabs.com/v1/proxy/?quest=' + encodeURIComponent(u),
+    u => 'https://cors.eu.org/' + u,  // prefix-style
   ];
   let lastErr = null;
-  for (const prefix of proxies) {
+  for (const builder of proxies) {
     try {
-      const proxyUrl = prefix + encodeURIComponent(url);
+      const proxyUrl = builder(url);
       const r = await fetch(proxyUrl, { mode:'cors', credentials:'omit' });
-      if (!r.ok) { lastErr = new Error('HTTP ' + r.status); continue; }
+      if (!r.ok) { lastErr = new Error('HTTP ' + r.status + ' @ ' + new URL(proxyUrl).hostname); continue; }
       const txt = await r.text();
+      if (!txt || txt.length < 100) { lastErr = new Error('응답 비어있음 @ ' + new URL(proxyUrl).hostname); continue; }
       return txt.length > WEB_FETCH_LIMIT ? txt.slice(0, WEB_FETCH_LIMIT) : txt;
     } catch (e) {
       lastErr = e;
