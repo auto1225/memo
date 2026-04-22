@@ -1767,10 +1767,11 @@
     <button id="palBtn" class="collapsible pal-btn-hint" aria-label="명령 팔레트 열기 (Ctrl+K) — 모든 기능을 검색으로 빠르게" title="모든 기능 검색 · 명령 팔레트 (Ctrl+K)"><svg class="ico"><use href="#i-cmd"/></svg><span class="kbd-hint">⌘K</span></button>
     <button id="webBtn" class="collapsible" aria-label="웹 검색 열기" title="웹 검색 (Ctrl+Shift+F)"><svg class="ico"><use href="#i-globe"/></svg></button>
     <button id="aiBtn" class="collapsible" aria-label="AI 어시스턴트 열기" title="AI 어시스턴트 (Ctrl+Space)"><svg class="ico"><use href="#i-sparkles"/></svg></button>
-    <div class="topbar-drop collapsible" id="calDropWrap" style="position:relative; display:inline-flex;">
-      <button id="calOpenBtn" aria-label="캘린더 열기 (길게누르면 메뉴)" title="캘린더 (Ctrl+J) · 길게누르면 메뉴"><svg class="ico"><use href="#i-calendar"/></svg></button>
+    <div class="topbar-drop collapsible" id="calDropWrap" style="position:relative; display:inline-flex; gap:0;">
+      <button id="calOpenBtn" aria-label="캘린더 열기 (Ctrl+J)" title="캘린더 열기 (Ctrl+J)" style="border-top-right-radius:0; border-bottom-right-radius:0; border-right:none;"><svg class="ico"><use href="#i-calendar"/></svg></button>
+      <button id="calDropToggle" aria-label="캘린더 메뉴 열기" aria-haspopup="menu" title="캘린더 메뉴 (오늘 메모 · 날짜 삽입 · 태그)" style="width:16px; min-width:16px; height:30px; padding:0; border-top-left-radius:0; border-bottom-left-radius:0; border-left:1px solid rgba(255,255,255,0.2); font-size:10px; line-height:1;">▾</button>
       <div class="topbar-drop-menu" id="calDropMenu" style="display:none;">
-        <div class="tdm-item" data-act="cal">월간 캘린더 (팝업)</div>
+        <div class="tdm-item" data-act="cal">캘린더 열기</div>
         <div class="tdm-item" data-act="calTab">캘린더 탭으로 열기</div>
         <div class="tdm-item" data-act="today">오늘 메모</div>
         <div class="tdm-item" data-act="insertDate">현재 날짜/시간 삽입</div>
@@ -11395,38 +11396,22 @@ pageEl.addEventListener('input', () => {
    ============================================================ */
 (function p0_topbar() {
   const calBtn = $('calOpenBtn');
+  const calToggle = $('calDropToggle');
   const calMenu = $('calDropMenu');
-  let longPressTimer = null, longPressed = false;
-  // 일반 클릭 = 캘린더 열기 (기존 동작 유지)
-  // 우클릭 또는 길게누르기 = 드롭다운
+  // 새 UX: 캘린더 아이콘 본체 클릭 = 캘린더 바로 열기.
+  //         옆 ▾ 버튼 = 드롭다운 메뉴 (오늘 메모, 날짜 삽입 등 부가 기능).
+  //         우클릭 + 길게누르기도 하위호환으로 유지.
+  if (calToggle) {
+    calToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      toggleCalMenu();
+    });
+  }
   calBtn.addEventListener('contextmenu', (e) => {
     e.preventDefault();
     toggleCalMenu();
   });
-  calBtn.addEventListener('pointerdown', () => {
-    longPressed = false;
-    clearTimeout(longPressTimer);
-    longPressTimer = setTimeout(() => { longPressed = true; toggleCalMenu(); }, 500);
-  });
-  /* pointerup/leave에서 타이머만 정리하고, click 핸들러가 longPressed를 리셋함.
-     하지만 click 이벤트가 발생하지 않는 경우(예: 마우스가 버튼 밖으로 나갔을 때)
-     longPressed가 true로 남아 다음 클릭이 무효화될 수 있어 40ms 후 안전장치로 리셋. */
-  const softResetLongPress = () => {
-    clearTimeout(longPressTimer);
-    setTimeout(() => { longPressed = false; }, 40);
-  };
-  calBtn.addEventListener('pointerup', softResetLongPress);
-  calBtn.addEventListener('pointerleave', softResetLongPress);
-  calBtn.addEventListener('pointercancel', softResetLongPress);
-  calBtn.addEventListener('pointermove', (e) => {
-    // 움직임이 크면 취소 (스크롤/드래그 방지)
-    if (Math.abs(e.movementX) > 3 || Math.abs(e.movementY) > 3) clearTimeout(longPressTimer);
-  });
-  // 클릭 시 longPress 플래그 확인 (longPress면 openCalendar 호출 막기)
-  const origClick = calBtn.onclick;
-  calBtn.addEventListener('click', (e) => {
-    if (longPressed) { e.stopPropagation(); e.preventDefault(); longPressed = false; }
-  }, true);
   function toggleCalMenu() {
     const open = calMenu.style.display !== 'none';
     closeAllTopbarMenus();
