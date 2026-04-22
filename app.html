@@ -2507,8 +2507,43 @@
 </div>
 
 <!-- ========== 그림판 (Paint) 모달 ========== -->
+<style>
+/* 그림판 — Non-blocking + Drag/Resize (인라인, 항상 적용, 외부 JS 의존성 없음) */
+#paintModal.modal-backdrop.open {
+  background: transparent !important;
+  pointer-events: none !important;
+  display: block !important;
+}
+#paintModal.modal-backdrop.open > .modal {
+  pointer-events: auto !important;
+  position: fixed !important;
+  top: var(--paint-top, 40px);
+  left: var(--paint-left, calc(50% - 600px));
+  width: var(--paint-w, min(1200px, 98vw)) !important;
+  height: var(--paint-h, min(800px, 94vh)) !important;
+  max-height: none !important;
+  box-shadow: 0 20px 60px rgba(0,0,0,.28), 0 0 0 1px rgba(0,0,0,.06) !important;
+  resize: none;
+}
+#paintModal.modal-backdrop.open > .modal > #paintHeader {
+  cursor: move;
+  user-select: none;
+}
+#paintModal .jnp-paint-resize {
+  position: absolute; right: 0; bottom: 0;
+  width: 20px; height: 20px;
+  cursor: nwse-resize;
+  background:
+    linear-gradient(135deg, transparent 42%, rgba(0,0,0,.3) 42% 52%, transparent 52% 62%, rgba(0,0,0,.3) 62% 72%, transparent 72% 82%, rgba(0,0,0,.3) 82% 92%, transparent 92%);
+  z-index: 100;
+}
+#paintModal .jnp-paint-resize:hover { background:
+  linear-gradient(135deg, transparent 42%, var(--accent) 42% 52%, transparent 52% 62%, var(--accent) 62% 72%, transparent 72% 82%, var(--accent) 82% 92%, transparent 92%);
+}
+</style>
 <div class="modal-backdrop" id="paintModal">
-  <div class="modal" style="width:min(1200px,98vw); height:min(800px,94vh); display:flex; flex-direction:column; padding:0; gap:0;">
+  <div class="modal" style="width:min(1200px,98vw); height:min(800px,94vh); display:flex; flex-direction:column; padding:0; gap:0; position:relative;">
+    <div class="jnp-paint-resize" title="창 크기 조절 (드래그)"></div>
     <!-- 헤더 -->
     <div id="paintHeader" style="display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid var(--paper-edge); background:linear-gradient(180deg, color-mix(in srgb, var(--accent) 10%, white), color-mix(in srgb, var(--accent) 5%, white)); white-space:nowrap;">
       <svg class="ico" style="stroke:var(--accent); width:22px; height:22px; flex-shrink:0;"><use href="#i-brush"/></svg>
@@ -12046,14 +12081,43 @@ const Paint = (function() {
         document.body.appendChild(a); a.click(); a.remove();
       }
     });
-    // 빠른 저장 (변환기 거치지 않고 바로 PNG)
+    // 빠른 저장 — FSA picker 로 네이티브 "다른 이름으로 저장" 대화상자 띄움
+    // (폴더 내비게이션 + 파일명 편집 + 마지막 폴더 기억)
     const quickSave = $('paintQuickSave');
-    if (quickSave) quickSave.addEventListener('click', () => {
+    if (quickSave) quickSave.addEventListener('click', async () => {
       const url = compositeToDataURL('image/png');
-      const a = document.createElement('a');
-      a.href = url;
       const fn = ($('paintFileName').textContent || 'paint').replace(/\.[^.]+$/, '');
-      a.download = fn + '.png';
+      const fname = fn + '.png';
+
+      // data:URL → Blob
+      const comma = url.indexOf(',');
+      const bin = atob(url.slice(comma + 1));
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      const blob = new Blob([bytes], { type: 'image/png' });
+
+      if (typeof window.showSaveFilePicker === 'function') {
+        try {
+          const startInHint = localStorage.getItem('jan.io.lastFolderHint');
+          const validHints = ['desktop','documents','downloads','music','pictures','videos'];
+          const startIn = validHints.includes(startInHint) ? startInHint : 'pictures';
+          const handle = await window.showSaveFilePicker({
+            suggestedName: fname,
+            startIn,
+            types: [{ description:'PNG 이미지', accept:{'image/png':['.png']} }]
+          });
+          const w = await handle.createWritable();
+          await w.write(blob); await w.close();
+          toast(`저장됨: ${handle.name || fname}`);
+          return;
+        } catch (e) {
+          if (e && (e.name === 'AbortError' || e.code === 20)) { toast('저장 취소됨'); return; }
+          console.warn('[paintQuickSave FSA → 레거시]', e);
+        }
+      }
+      // 레거시 폴백
+      const a = document.createElement('a');
+      a.href = url; a.download = fname;
       document.body.appendChild(a); a.click(); a.remove();
       toast('빠른 PNG 저장 완료');
     });
@@ -12071,6 +12135,83 @@ const Paint = (function() {
       }
     });
     $('paintClose').addEventListener('click', () => { $('paintModal').classList.remove('open'); state.onClose = null; });
+
+    // ---- 그림판 창 드래그·리사이즈 (인라인 구현) ----
+    const _paintModal = $('paintModal');
+    const _paintBox = _paintModal && _paintModal.querySelector('.modal');
+    const _paintHeader = $('paintHeader');
+    const _paintGrip = _paintBox && _paintBox.querySelector('.jnp-paint-resize');
+
+    if (_paintHeader && _paintBox) {
+      let dragging = false, offX = 0, offY = 0;
+      _paintHeader.addEventListener('mousedown', (e) => {
+        if (e.target.closest('button,input,select,a')) return;
+        dragging = true;
+        const rect = _paintBox.getBoundingClientRect();
+        offX = e.clientX - rect.left;
+        offY = e.clientY - rect.top;
+        document.body.style.userSelect = 'none';
+      });
+      window.addEventListener('mousemove', (e) => {
+        if (!dragging) return;
+        const x = Math.max(0, Math.min(window.innerWidth - 100, e.clientX - offX));
+        const y = Math.max(0, Math.min(window.innerHeight - 40, e.clientY - offY));
+        _paintBox.style.setProperty('--paint-left', x + 'px');
+        _paintBox.style.setProperty('--paint-top', y + 'px');
+      });
+      window.addEventListener('mouseup', () => {
+        if (!dragging) return;
+        dragging = false;
+        document.body.style.userSelect = '';
+        try {
+          localStorage.setItem('jan.paint.pos', JSON.stringify({
+            left: _paintBox.style.getPropertyValue('--paint-left'),
+            top: _paintBox.style.getPropertyValue('--paint-top'),
+          }));
+        } catch {}
+      });
+      try {
+        const saved = JSON.parse(localStorage.getItem('jan.paint.pos') || 'null');
+        if (saved?.left) _paintBox.style.setProperty('--paint-left', saved.left);
+        if (saved?.top) _paintBox.style.setProperty('--paint-top', saved.top);
+      } catch {}
+    }
+
+    if (_paintGrip && _paintBox) {
+      let resizing = false, startX = 0, startY = 0, startW = 0, startH = 0;
+      _paintGrip.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        resizing = true;
+        const rect = _paintBox.getBoundingClientRect();
+        startX = e.clientX; startY = e.clientY;
+        startW = rect.width; startH = rect.height;
+        document.body.style.userSelect = 'none';
+      });
+      window.addEventListener('mousemove', (e) => {
+        if (!resizing) return;
+        const w = Math.max(640, startW + (e.clientX - startX));
+        const h = Math.max(480, startH + (e.clientY - startY));
+        _paintBox.style.setProperty('--paint-w', w + 'px');
+        _paintBox.style.setProperty('--paint-h', h + 'px');
+      });
+      window.addEventListener('mouseup', () => {
+        if (!resizing) return;
+        resizing = false;
+        document.body.style.userSelect = '';
+        try {
+          localStorage.setItem('jan.paint.size', JSON.stringify({
+            w: _paintBox.style.getPropertyValue('--paint-w'),
+            h: _paintBox.style.getPropertyValue('--paint-h'),
+          }));
+        } catch {}
+      });
+      try {
+        const saved = JSON.parse(localStorage.getItem('jan.paint.size') || 'null');
+        if (saved?.w) _paintBox.style.setProperty('--paint-w', saved.w);
+        if (saved?.h) _paintBox.style.setProperty('--paint-h', saved.h);
+      } catch {}
+    }
+
     // 이미지 변환
     $('pt-resize-btn').addEventListener('click', async () => {
       const w = +(await prompt2('새 너비 (px)', state.width) || state.width);
