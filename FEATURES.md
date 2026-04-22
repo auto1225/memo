@@ -1,8 +1,8 @@
 # JustANotepad — Features Catalog
 
 최종 업데이트: 2026-04-22
-버전: **v1.0.33**
-총 명령 팔레트 등록 수: **약 180+ 개** (기본 100개 + 이번 확장 65개 + 역할 도구 19개)
+버전: **v1.0.34**
+총 명령 팔레트 등록 수: **약 190+ 개** (기본 100개 + v1.0.33 확장 65개 + v1.0.34 웹 연구 7개 + 역할 도구 19개)
 
 > 이 문서는 `app.html` 에 내장된 모든 기능을 카테고리별로 정리합니다.
 > 모든 기능은 `Ctrl+K` (macOS: `⌘K`) **명령 팔레트**에서 검색해 바로 실행할 수 있습니다.
@@ -249,6 +249,77 @@
 
 - **홈 허브 열기** — 최근 클립 · 공유 노트 · 템플릿 드로어
 - **템플릿 피커 열기** — 내장 프로 템플릿 + CMS 템플릿 병합
+
+## 21. 웹 연구 — 인앱 브라우저에서 노트로 이식 (v1.0.34)
+
+인앱 웹 브라우저(`Ctrl+Shift+F`)가 단순 검색기를 넘어 **웹의 내용을 노트로
+이식하는 연구 도구**로 확장됐습니다. cross-origin iframe 의 DOM 제약을 우회하기 위해
+현재 URL을 `fetch('…', {mode:'cors', credentials:'omit'})` 로 직접 가져와
+HTML을 파싱합니다. 응답 상한 500KB(OOM 방지).
+
+### 21.1 링크 카드 삽입 📎 `webLinkCardBtn`
+- OG 메타(og:title / og:description / og:image) + 도메인으로 예쁜 카드 생성
+- CSS 클래스: `.web-link-card` (+ `.lc-title` / `.lc-desc` / `.lc-domain`)
+- CORS 실패 시 폴백: 제목만 있는 기본 카드로 저장
+
+### 21.2 리더 모드 📖 `webReaderBtn`
+- Mozilla Readability (CDN lazy-load: `@mozilla/readability@0.5.0/Readability.js`) 사용
+- 본문만 추출 → 제목·출처·저장일 메타 + 정제된 HTML(`<script>`/`<iframe>`/이벤트 핸들러 제거)
+- CSS 클래스: `.web-clip` / `.web-clip-meta` / `.web-clip-body`
+- 추출 실패 시 폴백: OG 설명이라도 저장
+
+### 21.3 AI 요약 ✨ `webAiSummaryBtn`
+- 현재 페이지 → (Readability 있으면 그걸로, 없으면 `<main>`/`<article>` text) 본문 텍스트 추출
+- 12 000자로 잘라 `callAI(sys, userText)` 호출
+- 시스템 프롬프트: **"한국어 핵심 불릿 5개 요약"**
+- 응답은 자동으로 `<ul><li>` 로 렌더링 (불릿이 아니면 문단으로)
+- `callAI` 미정의 또는 AI 계정 미연결 시 안전하게 토스트
+
+### 21.4 선택 인용 💬 `webInsertExcerpt` (업그레이드)
+- 기존 버튼의 핸들러가 새 `insertQuoteFromSelection()` 을 호출하도록 변경
+- 우선순위: (1) iframe.contentWindow.getSelection() → (2) `navigator.clipboard.readText()`
+- 출처 URL + 페이지 제목(fetch 로 재조회) + 저장일 자동 첨부
+- CSS: `blockquote.web-quote` (+ `<footer>` 안 메타)
+
+### 21.5 이미지 수집 🖼️ `webImagesBtn`
+- 페이지 `<img>` + `data-src` / `data-original` 속성도 함께 수집
+- 절대 URL 변환, 30px 미만 아이콘 제외, 최대 120개
+- 썸네일 그리드 모달 → 체크박스 선택 → **"메모에 삽입"** 누르면 `<img>` 로 일괄 삽입
+- CSS 클래스: `.web-thumb-grid` (+ `<label>` + checkbox 표시)
+- 원본 URL은 `data-src` 에 보존, `referrerpolicy="no-referrer"` 로 핫링크 제한 회피
+- 출처 링크 자동 첨부
+
+### 21.6 표 추출 📊 `webTablesBtn`
+- 페이지 `<table>` 목록 → 각 표 미리보기(행/열 수) + 체크박스 선택
+- 선택한 표를 노트에 삽입 — 스크립트·이벤트 핸들러·style·class 정리됨
+- **기존 `table-calc.js` 자동 작동** (엑셀식 합계/평균/최소/최대/개수)
+- CSS: `.web-table-picker` (+ `.tp-item` / `.tp-meta`)
+
+### 21.7 작업 버튼 배치
+
+웹 모달의 두 번째 행에 **웹 → 노트** 연구 도구 바가 추가됐습니다
+(`#webResearchBar`, 파스텔 배경 + 점선 테두리로 시각 분리):
+
+```
+[📎 링크 카드] [📖 리더 모드] [✨ AI 요약] [🖼️ 이미지] [📊 표 추출]
+```
+
+기존 `[링크 저장]` / `[선택 인용]` 버튼은 위 행에 그대로 유지 (호환성).
+
+### 21.8 명령 팔레트 등록
+
+`registerAllCommands()` IIFE 안에 추가(총 7개):
+- `웹 브라우저 열기`
+- `지금 페이지를 노트에 저장` (리더 모드)
+- `링크 카드 삽입`
+- `AI 로 웹페이지 요약`
+- `웹에서 이미지 수집`
+- `웹에서 표 추출`
+- `웹 선택 인용 (출처 자동)`
+
+### 21.9 의도적으로 skip한 기능
+
+- **"페이지 전체 스크린샷"** — cross-origin iframe 은 `html2canvas` / `canvas.drawImage()` 로 캡쳐할 수 없고, OS API 접근이 필요해 Tauri 데스크톱 환경에서만 진정한 스크린샷이 가능합니다. 웹 버전에서는 기존 `captureScreen()` (`getDisplayMedia`) — 사용자가 창/탭을 선택하는 OS 네이티브 캡쳐 — 를 대신 사용하세요.
 
 ---
 

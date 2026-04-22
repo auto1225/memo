@@ -1446,6 +1446,72 @@
   .web-tool-btn.small.action { background:#e8f5e9; border-color:#81c784; color:#2e7d32; font-weight:600; }
   .web-tool-btn.small.action:hover { background:#c8e6c9; }
 
+  /* ===== 웹 연구 도구: 노트 삽입 스타일 (v1.0.34) ===== */
+  .web-link-card {
+    display:flex; gap:12px; align-items:stretch; text-decoration:none; color:inherit;
+    border:1px solid var(--paper-edge, #e2d8f0); border-radius:10px;
+    padding:12px; margin:10px 0; background:linear-gradient(180deg, #fafaff, #f3eefd);
+    box-shadow:0 1px 2px rgba(70,40,130,.06); transition:box-shadow .15s, transform .15s;
+    max-width:640px;
+  }
+  .web-link-card:hover { box-shadow:0 3px 8px rgba(70,40,130,.12); transform:translateY(-1px); }
+  .web-link-card img {
+    width:120px; height:80px; object-fit:cover; border-radius:6px; flex-shrink:0;
+    background:#eee;
+  }
+  .web-link-card .lc-body { display:flex; flex-direction:column; gap:4px; min-width:0; flex:1; }
+  .web-link-card .lc-title { font-weight:700; font-size:14px; color:#332255;
+    overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+  .web-link-card .lc-desc { font-size:12px; color:#666; line-height:1.45;
+    overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+  .web-link-card .lc-domain { font-size:11px; color:#8a6fbf; margin-top:auto; font-family:monospace; }
+
+  .web-clip {
+    border-left:4px solid var(--accent, #8a6fbf); background:#fbf8ff;
+    border-radius:6px; padding:12px 14px; margin:14px 0; max-width:760px;
+  }
+  .web-clip h2 { margin:0 0 4px; font-size:17px; color:#2a1e45; }
+  .web-clip .web-clip-meta { font-size:11px; color:#7a6a9c; margin:0 0 10px; }
+  .web-clip .web-clip-meta a { color:#6a4cbb; text-decoration:none; }
+  .web-clip .web-clip-body { font-size:13px; line-height:1.7; color:#2b2738; }
+  .web-clip .web-clip-body img { max-width:100%; height:auto; border-radius:6px; margin:6px 0; }
+  .web-clip .web-clip-body h1,
+  .web-clip .web-clip-body h2,
+  .web-clip .web-clip-body h3 { color:#3a2a5a; margin:12px 0 6px; }
+
+  blockquote.web-quote {
+    margin:10px 0; padding:10px 14px; border-left:4px solid #8a6fbf;
+    background:#f7f2ff; border-radius:4px; color:#2d2340; font-style:normal;
+  }
+  blockquote.web-quote p { margin:0 0 6px; line-height:1.6; }
+  blockquote.web-quote footer { font-size:11px; color:#6a5a8f; font-style:italic; }
+  blockquote.web-quote footer a { color:#6a4cbb; text-decoration:none; }
+
+  .web-thumb-grid {
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(120px, 1fr));
+    gap:8px; max-height:60vh; overflow:auto; padding:6px; background:#faf7ff; border-radius:6px;
+  }
+  .web-thumb-grid label {
+    position:relative; cursor:pointer; border:2px solid transparent; border-radius:6px;
+    overflow:hidden; background:#fff; display:block;
+  }
+  .web-thumb-grid label:has(input:checked) { border-color:var(--accent, #8a6fbf); }
+  .web-thumb-grid img { width:100%; height:100px; object-fit:cover; display:block; background:#eee; }
+  .web-thumb-grid input[type="checkbox"] {
+    position:absolute; top:6px; right:6px; width:18px; height:18px; accent-color:#8a6fbf;
+  }
+  .web-thumb-grid .thumb-info { font-size:10px; color:#555; padding:3px 6px; background:#fff;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .web-table-picker { display:flex; flex-direction:column; gap:10px; max-height:60vh; overflow:auto; }
+  .web-table-picker .tp-item { border:2px solid #e0d6f0; border-radius:6px; padding:8px; background:#fff;
+    cursor:pointer; transition:border-color .15s; }
+  .web-table-picker .tp-item:has(input:checked) { border-color:var(--accent, #8a6fbf); background:#faf5ff; }
+  .web-table-picker .tp-item table { border-collapse:collapse; font-size:11px; width:100%; }
+  .web-table-picker .tp-item table td,
+  .web-table-picker .tp-item table th { border:1px solid #ddd; padding:2px 6px; }
+  .web-table-picker .tp-meta { font-size:11px; color:#6a4cbb; margin-bottom:4px; font-weight:600;
+    display:flex; align-items:center; gap:8px; }
+
   /* ===== 워드 클라우드 ===== */
   .word-cloud { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; padding:16px; }
   .word-cloud span { cursor:pointer; color:var(--accent); transition:transform .15s; }
@@ -2325,7 +2391,18 @@
       <button class="web-tool-btn small" data-engine="so">StackOverflow</button>
       <span style="flex:1;"></span>
       <button class="web-tool-btn small action" id="webInsertLink" title="현재 페이지 URL을 메모에 링크로 삽입"><svg class="ico" style="width:12px;height:12px;"><use href="#i-link"/></svg>링크 저장</button>
-      <button class="web-tool-btn small action" id="webInsertExcerpt" title="iframe에서 선택한 텍스트를 메모에 인용 삽입"><svg class="ico" style="width:12px;height:12px;"><use href="#i-copy"/></svg>선택 텍스트 저장</button>
+      <button class="web-tool-btn small action" id="webInsertExcerpt" title="iframe에서 선택한 텍스트(또는 클립보드)를 출처와 함께 인용 삽입"><svg class="ico" style="width:12px;height:12px;"><use href="#i-copy"/></svg>선택 인용</button>
+    </div>
+    <!-- 웹 → 노트 연구 도구 모음 (v1.0.34) -->
+    <div id="webResearchBar" style="display:flex; gap:4px; margin-bottom:8px; flex-wrap:wrap; align-items:center; padding:6px 8px; background:#faf7ff; border:1px dashed #d9c8ff; border-radius:6px;">
+      <span style="font-size:11px; color:#6a4cbb; font-weight:600;">웹 → 노트:</span>
+      <button class="web-tool-btn small action" id="webLinkCardBtn" title="OG 메타(제목/설명/썸네일)로 링크 카드 삽입">📎 링크 카드</button>
+      <button class="web-tool-btn small action" id="webReaderBtn" title="리더 모드로 본문만 추출해 노트에 저장 (Readability)">📖 리더 모드</button>
+      <button class="web-tool-btn small action" id="webAiSummaryBtn" title="AI로 페이지 핵심을 요약해 노트에 삽입 (AI 계정 필요)">✨ AI 요약</button>
+      <button class="web-tool-btn small action" id="webImagesBtn" title="페이지 안의 이미지를 수집해 선택적으로 삽입">🖼️ 이미지</button>
+      <button class="web-tool-btn small action" id="webTablesBtn" title="페이지 안의 표를 선택해 노트에 삽입">📊 표 추출</button>
+      <span style="flex:1;"></span>
+      <span style="font-size:10px; color:#888;">※ 일부 사이트는 CORS 제한으로 실패할 수 있어요 (Wikipedia, MDN 등은 대체로 OK)</span>
     </div>
     <div style="flex:1; position:relative; border:1px solid #ddd; border-radius:6px; overflow:hidden; background:#fafafa;">
       <iframe id="webFrame" referrerpolicy="no-referrer"
@@ -7746,19 +7823,407 @@ $('webInsertLink').addEventListener('click', () => {
   $('webModal').classList.remove('open');
   toast('현재 페이지 링크가 메모에 저장됐습니다');
 });
-$('webInsertExcerpt').addEventListener('click', () => {
+$('webInsertExcerpt').addEventListener('click', () => insertQuoteFromSelection());
+
+/* ============================================================
+   [v1.0.34] 웹 → 노트 이식 연구 도구
+   ------------------------------------------------------------
+   cross-origin iframe 은 DOM 접근 불가 → URL 을 직접 fetch 해서
+   HTML 파싱 → 메타/본문/이미지/표를 추출해 노트에 삽입한다.
+   ============================================================ */
+const WEB_FETCH_LIMIT = 500000; // 500KB 상한 (OOM 방지)
+
+function webGetCurrentUrl() {
+  const u = webHistory[webHistoryIdx] || ($('webCurrentUrl')?.textContent || '').trim();
+  if (!u || u === '(없음)' || u === 'about:blank') return null;
+  return u;
+}
+function webDomain(url) { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; } }
+function webAbsUrl(href, base) { try { return new URL(href, base).href; } catch { return href; } }
+function webTodayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+async function webFetchHtml(url) {
+  const r = await fetch(url, { mode:'cors', credentials:'omit', redirect:'follow' });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const txt = await r.text();
+  return txt.length > WEB_FETCH_LIMIT ? txt.slice(0, WEB_FETCH_LIMIT) : txt;
+}
+function webParseHtml(htmlText, baseUrl) {
+  const doc = new DOMParser().parseFromString(htmlText, 'text/html');
+  // <base> 조정 — 상대 경로가 올바르게 풀리도록
   try {
-    const sel = webFrame.contentWindow.getSelection();
-    const text = sel ? sel.toString() : '';
-    if (!text) { toast('iframe 안에서 텍스트를 선택한 뒤 눌러주세요'); return; }
-    const url = webHistory[webHistoryIdx] || '';
-    insertHtmlAtCursor(`<blockquote>${escapeHtml(text).replace(/\n/g, '<br>')}<br><span style="font-size:.85em; opacity:.7;">— ${escapeHtml(url)}</span></blockquote><br>`);
+    if (!doc.querySelector('base')) {
+      const b = doc.createElement('base'); b.href = baseUrl; doc.head.insertBefore(b, doc.head.firstChild);
+    }
+  } catch {}
+  return doc;
+}
+function webExtractMeta(doc, url) {
+  const q = s => doc.querySelector(s);
+  const get = (sel, attr='content') => q(sel)?.getAttribute(attr) || '';
+  const title = get('meta[property="og:title"]') || get('meta[name="twitter:title"]') ||
+                (q('title')?.textContent || '').trim() || webDomain(url);
+  const desc = get('meta[property="og:description"]') || get('meta[name="description"]') ||
+               get('meta[name="twitter:description"]') || '';
+  let image = get('meta[property="og:image"]') || get('meta[name="twitter:image"]') || '';
+  if (image) image = webAbsUrl(image, url);
+  const siteName = get('meta[property="og:site_name"]') || webDomain(url);
+  return { title: title.trim(), desc: desc.trim(), image, siteName, url };
+}
+
+/* ── 1. 링크 카드 (OG) ──────────────────────────────────── */
+async function insertLinkCard() {
+  const url = webGetCurrentUrl();
+  if (!url) { toast('먼저 페이지를 열어주세요'); return; }
+  toast('링크 카드 정보 가져오는 중…', 1500);
+  try {
+    const html = await webFetchHtml(url);
+    const doc = webParseHtml(html, url);
+    const m = webExtractMeta(doc, url);
+    const img = m.image ? `<img src="${escapeHtml(m.image)}" alt="">` : '';
+    const card =
+      `<a href="${escapeHtml(url)}" class="web-link-card" target="_blank" rel="noopener">` +
+        img +
+        `<div class="lc-body">` +
+          `<div class="lc-title">${escapeHtml(m.title)}</div>` +
+          (m.desc ? `<div class="lc-desc">${escapeHtml(m.desc)}</div>` : '') +
+          `<div class="lc-domain">${escapeHtml(m.siteName || webDomain(url))}</div>` +
+        `</div>` +
+      `</a>&nbsp;`;
+    insertHtmlAtCursor(card);
     $('webModal').classList.remove('open');
-    toast('선택한 텍스트가 메모에 저장됐습니다');
+    toast('링크 카드가 메모에 저장됐습니다');
   } catch (e) {
-    toast('크로스도메인 제한으로 선택 텍스트를 읽을 수 없어요. 대신 "링크 저장"을 사용하세요.');
+    // CORS 실패 시 폴백 — 심플 링크
+    console.warn('[insertLinkCard] fetch 실패:', e);
+    const title = $('webQuery').value.trim() || url;
+    insertHtmlAtCursor(
+      `<a href="${escapeHtml(url)}" class="web-link-card" target="_blank" rel="noopener">` +
+        `<div class="lc-body">` +
+          `<div class="lc-title">${escapeHtml(title)}</div>` +
+          `<div class="lc-desc" style="color:#aaa;">(CORS 제한으로 메타 정보를 가져올 수 없었습니다)</div>` +
+          `<div class="lc-domain">${escapeHtml(webDomain(url))}</div>` +
+        `</div>` +
+      `</a>&nbsp;`
+    );
+    $('webModal').classList.remove('open');
+    toast('CORS 제한 — 기본 링크 카드로 저장했어요');
   }
-});
+}
+
+/* ── 2. 리더 모드 (Readability) ────────────────────────── */
+let _readabilityLoaded = null;
+function loadReadability() {
+  if (_readabilityLoaded) return _readabilityLoaded;
+  _readabilityLoaded = new Promise((resolve, reject) => {
+    if (typeof window.Readability === 'function') return resolve(window.Readability);
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/@mozilla/readability@0.5.0/Readability.js';
+    s.onload = () => {
+      if (typeof window.Readability === 'function') resolve(window.Readability);
+      else reject(new Error('Readability 로드됐지만 글로벌이 없음'));
+    };
+    s.onerror = () => reject(new Error('Readability CDN 로드 실패'));
+    document.head.appendChild(s);
+  });
+  return _readabilityLoaded;
+}
+function sanitizeReaderHtml(html) {
+  // 스크립트/스타일/이벤트 핸들러 제거, 상대경로는 사전 base 로 이미 해결됨
+  const wrap = document.createElement('div');
+  wrap.innerHTML = html;
+  wrap.querySelectorAll('script, style, iframe, object, embed, link[rel="stylesheet"]').forEach(el => el.remove());
+  wrap.querySelectorAll('*').forEach(el => {
+    [...el.attributes].forEach(a => {
+      if (/^on/i.test(a.name)) el.removeAttribute(a.name);
+      if (a.name === 'srcset') el.removeAttribute(a.name);
+    });
+  });
+  return wrap.innerHTML;
+}
+async function insertReaderClip() {
+  const url = webGetCurrentUrl();
+  if (!url) { toast('먼저 페이지를 열어주세요'); return; }
+  toast('본문 추출 중… (Readability 로드)', 1800);
+  try {
+    const [Readability, html] = await Promise.all([loadReadability(), webFetchHtml(url)]);
+    const doc = webParseHtml(html, url);
+    const article = new Readability(doc).parse();
+    if (!article || !article.content) {
+      // 폴백: OG 메타만 삽입
+      const m = webExtractMeta(doc, url);
+      insertHtmlAtCursor(
+        `<div class="web-clip"><h2>${escapeHtml(m.title)}</h2>` +
+        `<p class="web-clip-meta">출처: <a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(m.siteName || webDomain(url))}</a> · 저장: ${webTodayStr()}</p>` +
+        `<div class="web-clip-body">${m.desc ? `<p>${escapeHtml(m.desc)}</p>` : '<p>(본문을 추출할 수 없어 요약만 저장합니다.)</p>'}</div></div><br>`
+      );
+      $('webModal').classList.remove('open');
+      toast('본문 추출 실패 — 메타 정보만 저장했습니다');
+      return;
+    }
+    const clean = sanitizeReaderHtml(article.content);
+    const title = article.title || webDomain(url);
+    const byline = article.byline ? `· ${escapeHtml(article.byline)} ` : '';
+    const clip =
+      `<div class="web-clip">` +
+        `<h2>${escapeHtml(title)}</h2>` +
+        `<p class="web-clip-meta">` +
+          `출처: <a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(webDomain(url))}</a> ` +
+          byline +
+          `· 저장: ${webTodayStr()}` +
+        `</p>` +
+        `<div class="web-clip-body">${clean}</div>` +
+      `</div><br>`;
+    insertHtmlAtCursor(clip);
+    $('webModal').classList.remove('open');
+    toast('페이지 본문이 메모에 저장됐습니다');
+  } catch (e) {
+    console.warn('[insertReaderClip] 실패:', e);
+    toast('본문 추출 실패: ' + (e.message || 'CORS 제한') + ' — 링크 카드를 대신 사용해 보세요');
+  }
+}
+
+/* ── 3. AI 요약 ──────────────────────────────────────────── */
+async function insertAISummary() {
+  const url = webGetCurrentUrl();
+  if (!url) { toast('먼저 페이지를 열어주세요'); return; }
+  if (typeof callAI !== 'function') {
+    toast('AI 함수를 찾을 수 없습니다');
+    return;
+  }
+  toast('페이지 내용을 가져와 AI 요약 중…', 2500);
+  let title = webDomain(url), body = '';
+  try {
+    const html = await webFetchHtml(url);
+    const doc = webParseHtml(html, url);
+    try {
+      if (typeof window.Readability === 'function') {
+        const art = new window.Readability(doc).parse();
+        if (art?.textContent) { body = art.textContent; title = art.title || title; }
+      }
+    } catch {}
+    if (!body) {
+      // 폴백: 본문 추정 — main/article/body 순서
+      const main = doc.querySelector('main, article') || doc.body;
+      body = (main?.innerText || main?.textContent || '').trim();
+      title = webExtractMeta(doc, url).title || title;
+    }
+    body = body.replace(/\s+/g, ' ').trim().slice(0, 12000);
+  } catch (e) {
+    toast('페이지를 가져올 수 없어요 (CORS): ' + (e.message || ''));
+    return;
+  }
+  if (!body || body.length < 120) {
+    toast('본문이 너무 짧아 요약할 수 없어요');
+    return;
+  }
+  const sys = '당신은 전문 리서치 어시스턴트입니다. 주어진 웹페이지 내용을 한국어로 자연스럽게 핵심 불릿 5개로 요약하세요. 마지막에는 원문 출처 URL을 그대로 포함하지 말고 요약만 합니다. 중요한 숫자/고유명사는 그대로 유지합니다.';
+  const userText = `페이지 제목: ${title}\n원본 URL: ${url}\n\n본문:\n${body}`;
+  const out = await callAI(sys, userText);
+  if (!out) { /* callAI 가 이미 토스트 */ return; }
+  // 불릿 포맷팅: 라인별로 '-' 또는 '•' 로 시작하는 걸 <li> 로
+  const lines = out.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const bullets = lines
+    .filter(l => /^[-•*]/.test(l) || /^\d+[\.\)]/.test(l))
+    .map(l => l.replace(/^[-•*]\s*/, '').replace(/^\d+[\.\)]\s*/, ''));
+  const bulletHtml = bullets.length
+    ? `<ul>${bullets.map(b => `<li>${escapeHtml(b)}</li>`).join('')}</ul>`
+    : `<p>${escapeHtml(out).replace(/\n/g, '<br>')}</p>`;
+  const html =
+    `<div class="web-clip">` +
+      `<h2>🤖 AI 요약 · ${escapeHtml(title)}</h2>` +
+      `<p class="web-clip-meta">출처: <a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(webDomain(url))}</a> · 요약: ${webTodayStr()}</p>` +
+      `<div class="web-clip-body">${bulletHtml}</div>` +
+    `</div><br>`;
+  insertHtmlAtCursor(html);
+  $('webModal').classList.remove('open');
+  toast('AI 요약이 메모에 저장됐습니다');
+}
+
+/* ── 4. 선택 인용 (강화) ─────────────────────────────────── */
+async function insertQuoteFromSelection() {
+  const url = webGetCurrentUrl() || '';
+  let text = '';
+  // same-origin iframe 인 경우 selection 시도
+  try {
+    const sel = webFrame.contentWindow?.getSelection?.();
+    text = sel ? sel.toString() : '';
+  } catch {}
+  // 실패 시 클립보드
+  if (!text) {
+    try { text = await navigator.clipboard.readText(); } catch {}
+  }
+  if (!text) {
+    toast('iframe 에서 텍스트를 선택해 Ctrl+C 로 복사한 뒤 눌러주세요');
+    return;
+  }
+  text = text.trim();
+  // 제목 얻기 시도 — 1) iframe.contentDocument, 2) 페이지 fetch 로 title
+  let pageTitle = '';
+  try { pageTitle = webFrame.contentDocument?.title || ''; } catch {}
+  if (!pageTitle && url) {
+    try {
+      const html = await webFetchHtml(url);
+      const m = webExtractMeta(webParseHtml(html, url), url);
+      pageTitle = m.title;
+    } catch {}
+  }
+  if (!pageTitle) pageTitle = webDomain(url) || '(출처 없음)';
+  const body = escapeHtml(text).replace(/\n/g, '<br>');
+  const cite = url
+    ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(pageTitle)}</a> · ${webTodayStr()}`
+    : `${escapeHtml(pageTitle)} · ${webTodayStr()}`;
+  insertHtmlAtCursor(
+    `<blockquote class="web-quote"><p>${body}</p><footer>— ${cite}</footer></blockquote>`
+  );
+  $('webModal').classList.remove('open');
+  toast('인용이 메모에 저장됐습니다');
+}
+
+/* ── 5. 페이지에서 이미지 수집 ─────────────────────────── */
+async function collectWebImages() {
+  const url = webGetCurrentUrl();
+  if (!url) { toast('먼저 페이지를 열어주세요'); return; }
+  toast('페이지 이미지 수집 중…', 1500);
+  let images = [];
+  try {
+    const html = await webFetchHtml(url);
+    const doc = webParseHtml(html, url);
+    const seen = new Set();
+    doc.querySelectorAll('img').forEach(img => {
+      let src = img.getAttribute('src') || img.getAttribute('data-src') || img.getAttribute('data-original') || '';
+      if (!src) return;
+      src = webAbsUrl(src, url);
+      if (!/^https?:/.test(src)) return;
+      if (seen.has(src)) return;
+      seen.add(src);
+      const w = parseInt(img.getAttribute('width'), 10) || 0;
+      const h = parseInt(img.getAttribute('height'), 10) || 0;
+      // 너무 작은 아이콘류 스킵 (30px 미만)
+      if ((w > 0 && w < 30) || (h > 0 && h < 30)) return;
+      const alt = img.getAttribute('alt') || '';
+      images.push({ src, alt, w, h });
+    });
+  } catch (e) {
+    toast('이미지를 가져올 수 없어요 (CORS): ' + (e.message || ''));
+    return;
+  }
+  if (!images.length) { toast('이미지를 찾지 못했습니다'); return; }
+  // 최대 120개로 제한
+  images = images.slice(0, 120);
+  const gridHtml =
+    `<p style="margin:0 0 8px; font-size:12px; color:#555;">` +
+      `${images.length}개 이미지 발견 — 원하는 이미지를 체크하고 아래 "메모에 삽입" 버튼을 누르세요.` +
+    `</p>` +
+    `<div style="display:flex; gap:6px; margin-bottom:8px;">` +
+      `<button id="webImgSelAll" class="web-tool-btn small">모두 선택</button>` +
+      `<button id="webImgSelNone" class="web-tool-btn small">선택 해제</button>` +
+      `<span style="flex:1;"></span>` +
+      `<button id="webImgInsert" class="web-tool-btn small action">메모에 삽입</button>` +
+    `</div>` +
+    `<div class="web-thumb-grid">` +
+      images.map((im, i) =>
+        `<label data-idx="${i}">` +
+          `<input type="checkbox" value="${i}">` +
+          `<img src="${escapeHtml(im.src)}" loading="lazy" alt="${escapeHtml(im.alt)}" referrerpolicy="no-referrer" onerror="this.style.opacity=.3;this.alt='로드실패';">` +
+          `<div class="thumb-info">${escapeHtml(im.alt || webDomain(im.src))}</div>` +
+        `</label>`
+      ).join('') +
+    `</div>`;
+  showModalHtml('🖼️ 웹 이미지 수집', gridHtml);
+  // 이벤트 — showModalHtml 후 modalBody 안에 버튼이 들어있음
+  setTimeout(() => {
+    const body = $('modalBody');
+    body.querySelector('#webImgSelAll')?.addEventListener('click', () => {
+      body.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
+    });
+    body.querySelector('#webImgSelNone')?.addEventListener('click', () => {
+      body.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+    });
+    body.querySelector('#webImgInsert')?.addEventListener('click', () => {
+      const chosen = [...body.querySelectorAll('input[type="checkbox"]:checked')].map(cb => images[parseInt(cb.value, 10)]).filter(Boolean);
+      if (!chosen.length) { toast('하나 이상 선택하세요'); return; }
+      $('modal').classList.remove('open');
+      const htmls = chosen.map(im =>
+        `<img src="${escapeHtml(im.src)}" data-src="${escapeHtml(im.src)}" alt="${escapeHtml(im.alt)}" style="max-width:100%;border-radius:6px;margin:4px 0;" referrerpolicy="no-referrer">`
+      ).join('<br>');
+      const attrib = `<p style="font-size:11px;color:#888;margin:4px 0;">— 출처: <a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(webDomain(url))}</a> · ${webTodayStr()}</p>`;
+      insertHtmlAtCursor(htmls + '<br>' + attrib + '<br>');
+      $('webModal').classList.remove('open');
+      toast(`${chosen.length}개 이미지가 메모에 저장됐습니다`);
+    });
+  }, 30);
+}
+
+/* ── 6. 페이지에서 표 추출 ─────────────────────────────── */
+async function extractWebTables() {
+  const url = webGetCurrentUrl();
+  if (!url) { toast('먼저 페이지를 열어주세요'); return; }
+  toast('페이지 표 수집 중…', 1500);
+  let tables = [];
+  try {
+    const html = await webFetchHtml(url);
+    const doc = webParseHtml(html, url);
+    doc.querySelectorAll('table').forEach(tbl => {
+      const rows = tbl.querySelectorAll('tr').length;
+      const cols = tbl.querySelector('tr')?.querySelectorAll('td, th').length || 0;
+      if (rows < 2 || cols < 1) return;
+      // 스크립트/이벤트 핸들러 제거
+      const clone = tbl.cloneNode(true);
+      clone.querySelectorAll('script').forEach(e => e.remove());
+      clone.querySelectorAll('*').forEach(el => {
+        [...el.attributes].forEach(a => {
+          if (/^on/i.test(a.name) || a.name === 'style' || a.name === 'class' || a.name === 'id') el.removeAttribute(a.name);
+        });
+      });
+      tables.push({ rows, cols, html: clone.outerHTML });
+    });
+  } catch (e) {
+    toast('표를 가져올 수 없어요 (CORS): ' + (e.message || ''));
+    return;
+  }
+  if (!tables.length) { toast('표를 찾지 못했습니다'); return; }
+  const listHtml =
+    `<p style="margin:0 0 8px; font-size:12px; color:#555;">${tables.length}개의 표 발견 — 삽입할 표를 체크하세요.</p>` +
+    `<div style="display:flex; gap:6px; margin-bottom:8px;">` +
+      `<button id="webTblInsert" class="web-tool-btn small action">선택한 표 삽입</button>` +
+    `</div>` +
+    `<div class="web-table-picker">` +
+      tables.map((t, i) =>
+        `<label class="tp-item">` +
+          `<div class="tp-meta">` +
+            `<input type="checkbox" value="${i}">` +
+            `<span>표 #${i+1} · ${t.rows}행 × ${t.cols}열</span>` +
+          `</div>` +
+          `<div style="max-height:180px; overflow:auto;">${t.html}</div>` +
+        `</label>`
+      ).join('') +
+    `</div>`;
+  showModalHtml('📊 웹 표 추출', listHtml);
+  setTimeout(() => {
+    const body = $('modalBody');
+    body.querySelector('#webTblInsert')?.addEventListener('click', () => {
+      const chosen = [...body.querySelectorAll('input[type="checkbox"]:checked')].map(cb => tables[parseInt(cb.value, 10)]).filter(Boolean);
+      if (!chosen.length) { toast('하나 이상 선택하세요'); return; }
+      $('modal').classList.remove('open');
+      const attrib = `<p style="font-size:11px;color:#888;margin:4px 0;">— 출처: <a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(webDomain(url))}</a> · ${webTodayStr()}</p>`;
+      const htmls = chosen.map(t => t.html).join('<br>');
+      insertHtmlAtCursor(htmls + attrib + '<br>');
+      $('webModal').classList.remove('open');
+      toast(`${chosen.length}개 표가 메모에 저장됐습니다`);
+    });
+  }, 30);
+}
+
+/* ── 버튼 바인딩 ──────────────────────────────────────── */
+$('webLinkCardBtn')?.addEventListener('click', insertLinkCard);
+$('webReaderBtn')?.addEventListener('click', insertReaderClip);
+$('webAiSummaryBtn')?.addEventListener('click', insertAISummary);
+$('webImagesBtn')?.addEventListener('click', collectWebImages);
+$('webTablesBtn')?.addEventListener('click', extractWebTables);
 
 /* ============================================================
     멀티 AI 어시스턴트 (ChatGPT / Gemini / Claude)
@@ -18349,6 +18814,14 @@ if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
   add({ ico:'i-timer', name:'포모도로 타이머', desc:'25분 집중 타이머', run:clickIf('pomoBtn') });
   add({ ico:'i-sparkles', name:'AI 계정 연결 / 키 설정', desc:'OpenAI·Gemini·Claude API 키', run:() => { try { openAiKeyPanel(); } catch { toast('AI를 먼저 열어주세요'); } } });
   add({ ico:'i-globe', name:'웹 검색 (in-app 브라우저)', desc:'앱 안에서 검색', hint:'Ctrl+Shift+F', run:clickIf('webBtn') });
+  add({ ico:'i-globe', name:'웹 브라우저 열기', desc:'in-app 인앱 브라우저 열기', keywords:['web','browser','인앱'], run:clickIf('webBtn') });
+  // ─── 웹 연구 도구 (v1.0.34) ────────────────────────────
+  add({ ico:'i-download', name:'지금 페이지를 노트에 저장', desc:'리더 모드(Readability)로 본문만 추출', keywords:['reader','clip','web','readability','클립'], run:() => { try { $('webBtn').click(); setTimeout(() => insertReaderClip(), 80); } catch { toast('웹 브라우저를 먼저 열어주세요'); } } });
+  add({ ico:'i-link', name:'링크 카드 삽입', desc:'OG 메타(제목/설명/썸네일)로 링크 카드', keywords:['og','card','link','링크카드'], run:() => { try { $('webBtn').click(); setTimeout(() => insertLinkCard(), 80); } catch {} } });
+  add({ ico:'i-sparkles', name:'AI 로 웹페이지 요약', desc:'현재 페이지 본문을 AI가 5개 불릿으로 요약', keywords:['ai','summary','summarize','요약'], run:() => { try { $('webBtn').click(); setTimeout(() => insertAISummary(), 80); } catch {} } });
+  add({ ico:'i-image', name:'웹에서 이미지 수집', desc:'페이지 안의 모든 이미지를 골라 메모에 삽입', keywords:['image','images','collect','웹이미지'], run:() => { try { $('webBtn').click(); setTimeout(() => collectWebImages(), 80); } catch {} } });
+  add({ ico:'i-grid', name:'웹에서 표 추출', desc:'페이지 안의 표를 선택해 노트에 삽입', keywords:['table','extract','표','웹표'], run:() => { try { $('webBtn').click(); setTimeout(() => extractWebTables(), 80); } catch {} } });
+  add({ ico:'i-quote', name:'웹 선택 인용 (출처 자동)', desc:'선택/클립보드 텍스트를 출처와 함께 인용 블록으로', keywords:['quote','cite','인용','blockquote'], run:() => { try { insertQuoteFromSelection(); } catch {} } });
 
   // ─── 사이드바 / 패널 ─────────────────────────────
   add({ ico:'i-menu', name:'사이드바 열기/닫기', desc:'워크스페이스·태그 패널', run:clickIf('sideBtn') });
