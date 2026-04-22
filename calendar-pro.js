@@ -1270,14 +1270,23 @@
   };
 
   // ---- Public entry --------------------------------------------------
+  // 사용자 요청 — 단순 모달과 탭 캘린더의 UI 를 하나로 통일.
+  // openCalendar() 는 이제 탭 캘린더로 바로 열림 (월/주/일/년/할일 뷰,
+  // 이벤트 CRUD, 검색, 필터, 통계 모두 동일). openCalendarAsTab 이 정의된
+  // 이후 시점에 호출되므로 한 번 기다렸다가 프록시 설정.
   const oldOpen = window.openCalendar;
   window.openCalendar = function() {
     injectCSS();
     if (!ensureStateHooks()) {
-      // Fallback to legacy if state not ready
       if (oldOpen) return oldOpen();
       return;
     }
+    // 탭 캘린더가 준비됐으면 그것으로 — 모달과 동일한 풍부한 UI
+    if (typeof window.openCalendarAsTab === 'function') {
+      return window.openCalendarAsTab();
+    }
+    // 그 외 (로드 초기 등) 모달 버전으로 폴백 — 단, 이제 mount() 가 풍부한
+    // UI 를 모달 안에 넣어주므로 이전 단순 뷰가 아닌 동일한 뷰.
     cursor = new Date();
     view = 'month';
     mount();
