@@ -1765,7 +1765,7 @@
     <button id="searchToggle" class="collapsible" aria-label="검색 열기" title="검색 (Ctrl+F)"><svg class="ico"><use href="#i-search"/></svg></button>
     <button id="focusBtn" class="collapsible" aria-label="집중 모드 전환" title="집중 모드"><svg class="ico"><use href="#i-target"/></svg></button>
     <button id="helpBtn" class="collapsible" aria-label="도움말 열기" title="도움말"><svg class="ico"><use href="#i-help"/></svg></button>
-    <button id="authBtn" class="collapsible" aria-label="로그인" title="로그인" style="display:none;"><svg class="ico"><use href="#i-users"/></svg></button>
+    <button id="authBtn" class="collapsible" aria-label="로그인" title="로그인"><svg class="ico" style="width:14px;height:14px;"><use href="#i-users"/></svg><span style="font-size:12px;font-weight:500;">로그인</span></button>
 
     <!-- Overflow menu for narrow widths (≤ 760px) — hidden by CSS at wide widths. -->
     <div class="topbar-overflow" id="topbarOverflow">
@@ -10913,8 +10913,10 @@ init();
       `<span style="font-size:12px; font-weight:500; color:inherit; line-height:1;">로그인</span>`;
   }
   function update() {
+    // JANSync 미활성이어도 버튼은 표시 — 클릭 시 안내 토스트
     if (!window.JANSync || !window.JANSync.enabled) {
-      authBtn.style.display = 'none';
+      renderLoggedOut();
+      authBtn.title = '로그인 — 클라우드 설정 대기 중';
       return;
     }
     const s = window.JANSync.getSession && window.JANSync.getSession();
@@ -10933,7 +10935,10 @@ init();
     }
   }
   authBtn.addEventListener('click', async () => {
-    if (!window.JANSync || !window.JANSync.enabled) return;
+    if (!window.JANSync || !window.JANSync.enabled) {
+      toast('클라우드 로그인이 초기화되지 않았습니다. 네트워크를 확인하고 잠시 후 다시 시도해 주세요.', 4000);
+      return;
+    }
     const s = window.JANSync.getSession && window.JANSync.getSession();
     if (s && s.user) {
       showAccountModal(s);
