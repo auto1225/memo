@@ -7969,15 +7969,28 @@ function sanitizeReaderHtml(html) {
 async function insertReaderClip() {
   const url = await resolveWebTargetUrl();
   if (!url) return;
-  toast('페이지 가져오는 중…', 2000);
+  toast('페이지 가져오는 중… (' + webDomain(url) + ')', 3000);
 
-  // 1) HTML fetch — 실패 시 이유 명확히 토스트
+  // 1) HTML fetch — 실패 시 이유를 노트에 직접 기록 (토스트 놓쳐도 남도록)
   let html;
   try {
     html = await webFetchHtml(url);
   } catch (e) {
     console.warn('[insertReaderClip fetch 실패]', e);
-    toast('fetch 실패: ' + (e.message || 'CORS 또는 네트워크 오류') + ' — Wikipedia/MDN 처럼 CORS 허용된 사이트만 작동해요', 5000);
+    const msg = e && e.message ? e.message : '알 수 없는 오류';
+    insertHtmlAtCursor(
+      `<div class="web-clip" style="border-color:#e57373; background:#fff5f5;">` +
+        `<h2 style="color:#c62828;">리더 모드 실패 — fetch 오류</h2>` +
+        `<p class="web-clip-meta">URL: <a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(url)}</a></p>` +
+        `<div class="web-clip-body">` +
+          `<p><b>원인:</b> ${escapeHtml(msg)}</p>` +
+          `<p>이 사이트가 CORS 를 차단하고 있습니다. Wikipedia, MDN, GitHub, 위키피디아, 네이버 블로그 등은 대부분 작동합니다. 네이버 뉴스, 구글 검색 결과, 유튜브 등은 차단됨.</p>` +
+          `<p><b>대안:</b> 링크 카드(메타만) 또는 AI 요약(본문 텍스트만 필요) 은 같은 문제에 다르게 반응할 수 있어요.</p>` +
+        `</div>` +
+      `</div><br>`
+    );
+    $('webModal').classList.remove('open');
+    toast('리더 모드 실패 — 에러 상세를 노트에 기록했습니다', 5000);
     return;
   }
   const doc = webParseHtml(html, url);
