@@ -10971,13 +10971,16 @@ const Paint = (function() {
     stack.style.width = state.width + 'px';
     stack.style.height = state.height + 'px';
     // 레이어 순서대로 쌓기
+    // FIX: mixBlendMode 복원 누락으로 resize/rotate/crop 등 DOM 재구축 시 블렌드가 'normal' 로
+    //      리셋되던 P0 버그 해결.
     state.layers.forEach((l, i) => {
       l.canvas.style.position = 'absolute';
       l.canvas.style.top = '0';
       l.canvas.style.left = '0';
       l.canvas.style.pointerEvents = 'none';
       l.canvas.style.display = l.visible ? '' : 'none';
-      l.canvas.style.opacity = l.opacity;
+      l.canvas.style.opacity = (l.opacity != null ? l.opacity : 1);
+      l.canvas.style.mixBlendMode = (l.blend && l.blend !== 'source-over') ? l.blend : 'normal';
       l.canvas.style.width = state.width + 'px';
       l.canvas.style.height = state.height + 'px';
       stack.insertBefore(l.canvas, $('pt-interactive'));
@@ -11051,10 +11054,20 @@ const Paint = (function() {
     });
     setupCanvasDOM();
     renderLayerList();
-    // 블렌드 select 동기화
+    // FIX: blend select 뿐 아니라 opacity 슬라이더까지 활성 레이어와 동기화 (undo/redo 후에도 패널 일관)
+    syncLayerPanel();
+  }
+
+  function syncLayerPanel() {
+    const l = state.layers[state.activeLayer];
+    if (!l) return;
     const bs = $('pt-layer-blend');
-    if (bs && state.layers[state.activeLayer]) {
-      bs.value = state.layers[state.activeLayer].blend || 'source-over';
+    if (bs) bs.value = l.blend || 'source-over';
+    const op = $('pt-layer-opacity');
+    if (op) {
+      op.value = Math.round((l.opacity != null ? l.opacity : 1) * 100);
+      const ov = $('pt-layer-opacity-val');
+      if (ov) ov.textContent = op.value + '%';
     }
   }
 
@@ -11219,15 +11232,19 @@ const Paint = (function() {
   }
 
   function compositeToDataURL(type = 'image/png') {
+    // FIX: blend 모드를 반영해 export — 저장/삽입/AI 입력에서 블렌드가 무시되던 P0 버그 수정
+    // 테스트: 레이어 2개 생성 → 2번째를 multiply 모드로 → 저장 시 블렌딩된 이미지가 나와야 함
     const c = document.createElement('canvas');
     c.width = state.width; c.height = state.height;
     const ctx = c.getContext('2d');
     state.layers.forEach(l => {
       if (!l.visible) return;
-      ctx.globalAlpha = l.opacity;
+      ctx.globalAlpha = (l.opacity != null ? l.opacity : 1);
+      ctx.globalCompositeOperation = l.blend || 'source-over';
       ctx.drawImage(l.canvas, 0, 0);
     });
     ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
     return c.toDataURL(type);
   }
 
@@ -11290,6 +11307,8 @@ const Paint = (function() {
       ctx.moveTo(x2, y2);
       ctx.lineTo(x2 - headLen * Math.cos(angle + Math.PI/6), y2 - headLen * Math.sin(angle + Math.PI/6));
       ctx.stroke();
+      // FIX: 이전 early-return 으로 globalAlpha 가 state.alpha 로 남아있어 이후 다른 그리기까지 번지던 버그 (P1)
+      ctx.globalAlpha = 1;
       return;
     } else if (shape === 'star') {
       const cx = x1+w/2, cy = y1+h/2;
@@ -11376,6 +11395,8 @@ const Paint = (function() {
   function bindPointer() {
     const iv = getInteractive();
     iv.addEventListener('pointerdown', (e) => {
+      // FIX: 스페이스+드래그 팬 모드에서는 그림이 그려지지 않고 팬 스크롤만 동작해야 함 (P0)
+      if (state.panMode) { return; }
       iv.setPointerCapture(e.pointerId);
       state.button = e.button;
       state.isDrawing = true;
@@ -11530,17 +11551,20 @@ const Paint = (function() {
     ctx.globalAlpha = 1;
   }
 
-  function insertText(x, y) {
-    const text = prompt('입력할 텍스트:');
+  async function insertText(x, y) {
+    // FIX: native prompt() → prompt2() 로 교체. 그림판 비차단 모달과 호환되도록 함. (P1)
+    const text = await prompt2('입력할 텍스트', '');
     if (!text) return;
-    const size = prompt('글자 크기 (pt):', '20');
-    const fontSize = Math.max(8, Math.min(200, parseInt(size) || 20));
+    const sizeStr = await prompt2('글자 크기 (pt)', '20');
+    const fontSize = Math.max(8, Math.min(200, parseInt(sizeStr) || 20));
     pushUndo();
     const ctx = getActiveCtx();
     ctx.font = `${fontSize}px sans-serif`;
     ctx.fillStyle = state.color1;
+    ctx.globalAlpha = state.alpha != null ? state.alpha : 1;
     ctx.textBaseline = 'top';
     ctx.fillText(text, x, y);
+    ctx.globalAlpha = 1;
   }
 
   /* ---- 이미지 변환 ---- */
@@ -11604,16 +11628,21 @@ const Paint = (function() {
 
   function removeBackground() {
     // 가장자리 픽셀의 평균 색을 배경으로 보고 제거 (간단한 chroma key)
+    // FIX: 이전엔 y=0 윗변만 샘플링하던 P1 버그 — 상/하/좌/우 네 변 모두 샘플링하도록 개선.
     pushUndo();
     const ctx = getActiveCtx();
-    const img = ctx.getImageData(0, 0, state.width, state.height);
+    const W = state.width, H = state.height;
+    const img = ctx.getImageData(0, 0, W, H);
     const d = img.data;
-    // 가장자리 색 샘플링
     const samples = [];
-    const step = 10;
-    for (let x = 0; x < state.width; x += step) {
-      samples.push([d[(0*state.width+x)*4], d[(0*state.width+x)*4+1], d[(0*state.width+x)*4+2]]);
-    }
+    const step = Math.max(1, Math.floor(Math.min(W, H) / 40));
+    const pushSample = (x, y) => {
+      const i = (y * W + x) * 4;
+      samples.push([d[i], d[i+1], d[i+2]]);
+    };
+    for (let x = 0; x < W; x += step) { pushSample(x, 0); pushSample(x, H - 1); }
+    for (let y = 0; y < H; y += step) { pushSample(0, y); pushSample(W - 1, y); }
+    if (!samples.length) { toast('배경 샘플링 실패'); return; }
     let ar=0, ag=0, ab=0;
     samples.forEach(s => { ar+=s[0]; ag+=s[1]; ab+=s[2]; });
     ar/=samples.length; ag/=samples.length; ab/=samples.length;
@@ -11778,7 +11807,10 @@ const Paint = (function() {
     ictx.lineWidth = 1;
     ictx.strokeRect(minX, minY, maxX-minX+1, maxY-minY+1);
     ictx.setLineDash([]);
-    toast(`${Object.values(mask).filter(v=>v).length}픽셀 선택됨`);
+    // FIX: Object.values(Uint8Array) 는 대용량에서 매우 느리고 일부 환경에서 0 반환 가능 (P2).
+    let selCount = 0;
+    for (let k = 0; k < mask.length; k++) if (mask[k]) selCount++;
+    toast(`${selCount}픽셀 선택됨`);
   }
 
   /* ---- 복사/붙여넣기 ---- */
@@ -11903,15 +11935,17 @@ const Paint = (function() {
 
   /* ---- AI 이미지 생성 ---- */
   async function generateAIImage() {
-    const prompt = await prompt2('AI 이미지 설명', '(예: 해변에서 노을을 바라보는 고양이, 수채화 스타일)');
-    if (!prompt) return;
+    // FIX: callAI 가 미정의일 때 ReferenceError 로 죽던 P1 버그 — 안전하게 확인.
+    const promptText = await prompt2('AI 이미지 설명', '(예: 해변에서 노을을 바라보는 고양이, 수채화 스타일)');
+    if (!promptText) return;
     const prov = typeof getActiveProvider === 'function' ? getActiveProvider() : null;
     if (!prov) { toast('AI 계정 연결 후 사용하세요'); return; }
+    if (typeof callAI !== 'function') { toast('AI 호출 함수가 준비되지 않았습니다'); return; }
     toast('AI 이미지 생성 중…');
     // 간단한 방식: AI에게 SVG 코드 생성 요청 → canvas에 렌더
     try {
       const sys = '당신은 SVG 일러스트레이터입니다. 사용자 요청에 맞춰 800x600 크기의 SVG 이미지 코드를 생성하세요. `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">`로 시작하고 `</svg>`로 끝내세요. 중간 설명 없이 SVG 코드만 반환. 간결하지만 아름답게.';
-      const result = await callAI(sys, '다음 장면을 SVG로 그려주세요: ' + prompt);
+      const result = await callAI(sys, '다음 장면을 SVG로 그려주세요: ' + promptText);
       if (!result) { toast('AI 응답 실패'); return; }
       const svgMatch = result.match(/<svg[\s\S]*<\/svg>/i);
       if (!svgMatch) { toast('SVG 파싱 실패'); return; }
@@ -11922,7 +11956,7 @@ const Paint = (function() {
       const img = new Image();
       img.onload = () => {
         pushUndo();
-        const l = newLayer('AI 생성: ' + prompt.slice(0, 20));
+        const l = newLayer('AI 생성: ' + promptText.slice(0, 20));
         l.canvas.getContext('2d').drawImage(img, 0, 0, state.width, state.height);
         state.layers.push(l);
         state.activeLayer = state.layers.length - 1;
@@ -11988,6 +12022,9 @@ const Paint = (function() {
     state.width = s.w; state.height = s.h;
     state.selection = null;
     setupCanvasDOM();
+    // FIX: crop 후 점선 marquee 가 interactive canvas 에 남던 잔상 버그 제거
+    clearInteractive();
+    toast('선택 영역으로 자르기 완료');
   }
 
   /* ---- 바인딩 ---- */
@@ -12024,10 +12061,19 @@ const Paint = (function() {
     $('pt-zoom-out').addEventListener('click', () => { state.zoom = Math.max(0.1, state.zoom / 1.25); applyZoom(); });
     $('pt-zoom-100').addEventListener('click', () => { state.zoom = 1; applyZoom(); });
     $('pt-zoom-fit').addEventListener('click', () => {
+      // FIX: scroll 컨테이너 크기가 0 이거나 state.width/height 가 이상할 때 NaN/0 으로
+      //      zoom 이 붕괴되던 P0 버그 방어.
       const scroll = $('pt-canvas-scroll');
-      const sx = (scroll.clientWidth - 40) / state.width;
-      const sy = (scroll.clientHeight - 40) / state.height;
-      state.zoom = Math.max(0.1, Math.min(sx, sy));
+      const cw = scroll.clientWidth - 40;
+      const ch = scroll.clientHeight - 40;
+      if (!state.width || !state.height || cw <= 0 || ch <= 0) {
+        state.zoom = 1; applyZoom(); return;
+      }
+      const sx = cw / state.width;
+      const sy = ch / state.height;
+      let z = Math.min(sx, sy);
+      if (!isFinite(z) || z <= 0) z = 1;
+      state.zoom = Math.max(0.1, Math.min(8, z));
       applyZoom();
     });
     // 레이어
@@ -12036,7 +12082,7 @@ const Paint = (function() {
       const l = newLayer('레이어 ' + (state.layers.length + 1));
       state.layers.push(l);
       state.activeLayer = state.layers.length - 1;
-      setupCanvasDOM(); renderLayerList();
+      setupCanvasDOM(); renderLayerList(); syncLayerPanel();
     });
     $('pt-layer-dup').addEventListener('click', () => {
       pushUndo();
@@ -12052,14 +12098,15 @@ const Paint = (function() {
       l.canvas.style.opacity = l.opacity;
       state.layers.splice(state.activeLayer + 1, 0, l);
       state.activeLayer++;
-      setupCanvasDOM(); renderLayerList();
+      setupCanvasDOM(); renderLayerList(); syncLayerPanel();
     });
     $('pt-layer-del').addEventListener('click', () => {
       if (state.layers.length <= 1) { toast('마지막 레이어는 삭제 불가'); return; }
       pushUndo();
       state.layers.splice(state.activeLayer, 1);
       if (state.activeLayer >= state.layers.length) state.activeLayer = state.layers.length - 1;
-      setupCanvasDOM(); renderLayerList();
+      // FIX: 레이어 삭제 후 투명도/블렌드 슬라이더가 이전 레이어 값을 그대로 보여주던 P1 버그
+      setupCanvasDOM(); renderLayerList(); syncLayerPanel();
     });
     // 파일
     $('paintNew').addEventListener('click', async () => {
@@ -12247,22 +12294,9 @@ const Paint = (function() {
       }, 50);
     });
     $('pt-crop-btn').addEventListener('click', cropToSelection);
-    $('pt-filter-btn').addEventListener('click', () => {
-      showModalHtml('필터', `<div style="display:flex; flex-direction:column; gap:5px; padding:5px 0;">
-        ${['invert:반전색','grayscale:흑백','sepia:세피아','bright:밝게','contrast:대비증가'].map(f => {
-          const [k,l] = f.split(':');
-          return `<button class="pt-fil-opt" data-f="${k}" style="padding:8px; background:#eee; border:none; border-radius:4px; cursor:pointer;">${l}</button>`;
-        }).join('')}
-      </div>`);
-      setTimeout(() => {
-        document.querySelectorAll('.pt-fil-opt').forEach(b => {
-          b.addEventListener('click', () => {
-            $('modal').classList.remove('open');
-            applyFilter(b.dataset.f);
-          });
-        });
-      }, 50);
-    });
+    // FIX: 이전에 $('pt-filter-btn') 에 click 리스너가 2번 등록되어 있어, 첫 번째(기본 필터 5종)와
+    //      두 번째(기본+고급)의 모달이 동일 요소에 겹쳐 쓰면서 `pt-fil-opt` 클릭이 applyFilter(undefined)
+    //      로 흘러가는 P0 버그. 첫 번째 등록을 제거.
     $('pt-bg-remove').addEventListener('click', removeBackground);
     // 신규 UI: 블렌드 모드, 병합/평탄화, 대칭, 격자, AI, 복사/붙여넣기
     const blendSel = $('pt-layer-blend');
@@ -12347,31 +12381,33 @@ const Paint = (function() {
     }, { passive: false });
 
     // 스페이스+드래그 팬
-    let panMode = false, panStart = null;
+    // FIX: bindPointer 의 iv pointerdown 이 scrollEl 핸들러보다 먼저 실행되어 panMode 에서도 그림이
+    //      그려지던 P0 버그 → state.panMode 로 승격해 iv 핸들러가 인지할 수 있게 함.
+    let panStart = null;
     document.addEventListener('keydown', (e) => {
       if (!$('paintModal').classList.contains('open')) return;
-      if (e.key === ' ' && !e.repeat && e.target.tagName !== 'INPUT') {
+      if (e.key === ' ' && !e.repeat && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA' && !e.target.isContentEditable) {
         e.preventDefault();
-        panMode = true;
+        state.panMode = true;
         getInteractive().style.cursor = 'grab';
       }
     });
     document.addEventListener('keyup', (e) => {
-      if (e.key === ' ') { panMode = false; getInteractive().style.cursor = ''; panStart = null; }
+      if (e.key === ' ') { state.panMode = false; getInteractive().style.cursor = ''; panStart = null; }
     });
     const scrollEl = $('pt-canvas-scroll');
     scrollEl.addEventListener('pointerdown', (e) => {
-      if (!panMode) return;
+      if (!state.panMode) return;
       e.preventDefault();
       panStart = { x: e.clientX, y: e.clientY, sl: scrollEl.scrollLeft, st: scrollEl.scrollTop };
       getInteractive().style.cursor = 'grabbing';
     });
     scrollEl.addEventListener('pointermove', (e) => {
-      if (!panMode || !panStart) return;
+      if (!state.panMode || !panStart) return;
       scrollEl.scrollLeft = panStart.sl - (e.clientX - panStart.x);
       scrollEl.scrollTop = panStart.st - (e.clientY - panStart.y);
     });
-    scrollEl.addEventListener('pointerup', () => { panStart = null; if (panMode) getInteractive().style.cursor = 'grab'; });
+    scrollEl.addEventListener('pointerup', () => { panStart = null; if (state.panMode) getInteractive().style.cursor = 'grab'; });
 
     // 클립보드 이미지 붙여넣기 (시스템)
     $('paintModal').addEventListener('paste', async (e) => {
@@ -12429,7 +12465,18 @@ const Paint = (function() {
         newCanvas();
       }
       setTool(state.tool || 'pencil');
-      setTimeout(() => $('pt-zoom-fit').click(), 150);
+      // FIX: 이전에 open 할 때마다 대칭/격자 버튼 active 상태와 state 가 미동기되어 토글이 "반대로" 되던 P2
+      const symBtn2 = $('pt-sym-toggle');
+      if (symBtn2) symBtn2.classList.toggle('active', !!state.symmetry && state.symmetry !== 'none');
+      const gridBtn2 = $('pt-grid-toggle');
+      if (gridBtn2) gridBtn2.classList.toggle('active', !!state.gridOn);
+      // 레이어 패널 동기화 (blend/opacity)
+      syncLayerPanel();
+      // FIX: 모달 transition 중 clientWidth/Height 가 0 이라 fit 이 0.1× 로 붕괴되던 P0
+      //      RAF 두 번 + fallback setTimeout 로 레이아웃 완료를 기다림.
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        try { $('pt-zoom-fit').click(); } catch {}
+      }));
     },
     close() { $('paintModal').classList.remove('open'); state.onClose = null; },
     getState() { return state; }
