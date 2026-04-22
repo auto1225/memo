@@ -1354,22 +1354,27 @@
   // ================================================================
   function injectTopbarButtons() {
     if (document.getElementById('lectureTopBtn') && document.getElementById('meetingTopBtn')) return true;
-    const anchor = document.getElementById('calOpenBtn') || document.getElementById('aiBtn') || document.getElementById('palBtn');
+    // 캘린더 버튼이 있으면 그 전체 래퍼(calDropWrap) 다음에 삽입 — split button
+    // ▾ 가 강의/회의 버튼에 밀려 엉뚱한 위치로 가지 않도록 래퍼 바깥에 추가.
+    const calWrap = document.getElementById('calDropWrap');
+    const calBtn = document.getElementById('calOpenBtn');
+    const anchor = calWrap || calBtn || document.getElementById('aiBtn') || document.getElementById('palBtn');
     if (!anchor?.parentNode) return false;
     const make = (id, label, iconId, kind) => {
       if (document.getElementById(id)) return null;
       const b = document.createElement('button');
       b.id = id;
-      b.className = anchor.className || 'collapsible';
+      // anchor 가 div(calDropWrap) 일 수 있으니 기본 class 'collapsible' 로
+      b.className = 'collapsible';
       b.setAttribute('aria-label', label);
       b.setAttribute('title', label);
-      // 앱 내 다른 토픽바 버튼들과 동일한 패턴: 아이콘만, 라벨은 툴팁
       b.innerHTML = svg(iconId, 16);
       b.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); open(kind); });
       return b;
     };
     const b1 = make('lectureTopBtn', '강의노트', 'i-mic', 'lecture');
     const b2 = make('meetingTopBtn', '회의노트', 'i-speaker', 'meeting');
+    // anchor 바로 다음에 삽입 (anchor 가 calDropWrap 이면 그 래퍼 뒤에 — ▾ 는 래퍼 안에 유지)
     if (b1) anchor.parentNode.insertBefore(b1, anchor.nextSibling);
     if (b2) anchor.parentNode.insertBefore(b2, b1 ? b1.nextSibling : anchor.nextSibling);
     return true;
