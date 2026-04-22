@@ -12519,9 +12519,38 @@ const ImageConverter = (function() {
 
   // UI 바인딩
   function bindUI() {
+    // 파일 픽커 — FSA 지원 시 네이티브 대화상자(마지막 폴더 기억),
+    // 아니면 <input type="file"> 폴백.
+    async function pickImageFile() {
+      if (window.jnpIO && window.jnpIO.supportsFSA) {
+        try {
+          const res = await window.jnpIO.loadFile(
+            [{ description:'이미지', accept:{'image/*':['.png','.jpg','.jpeg','.webp','.gif','.bmp']} }],
+            false
+          );
+          if (res && res.blob) {
+            // Blob 은 File이 아닐 수 있으므로 fileName 따로 넘김
+            const file = res.blob instanceof File
+              ? res.blob
+              : new File([res.blob], res.name || 'image', { type: res.blob.type });
+            await loadFromFile(file);
+          }
+          return;
+        } catch (e) {
+          if (e && e.name === 'AbortError') return;
+          console.warn('[imgCvt FSA pick 실패 → <input>]', e);
+        }
+      }
+      $('imgCvtFileInput').click();
+    }
+
     // 드래그&드롭
     const drop = $('imgCvtDrop');
-    drop.addEventListener('click', () => $('imgCvtFileInput').click());
+    drop.addEventListener('click', (e) => {
+      // 프리뷰 이미지 직접 클릭은 줌 핸들링이 가져감 — 드롭 빈 영역 클릭만 픽커
+      if (e.target && e.target.id === 'imgCvtPreview') return;
+      pickImageFile();
+    });
     drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.style.borderColor = 'var(--accent)'; });
     drop.addEventListener('dragleave', () => { drop.style.borderColor = 'var(--paper-edge)'; });
     drop.addEventListener('drop', async (e) => {
@@ -12533,7 +12562,7 @@ const ImageConverter = (function() {
       const f = e.target.files[0]; if (f) await loadFromFile(f);
       e.target.value = '';
     });
-    $('imgCvtPickBtn').addEventListener('click', () => $('imgCvtFileInput').click());
+    $('imgCvtPickBtn').addEventListener('click', pickImageFile);
     // 붙여넣기 — 모달 열렸을 때 document 레벨에서 감지 (포커스 불필요)
     document.addEventListener('paste', async (e) => {
       if (!$('imgCvtModal').classList.contains('open')) return;
@@ -12644,18 +12673,26 @@ const ImageConverter = (function() {
     // 미리보기 갱신
     $('icPreviewBtn').addEventListener('click', renderPreviewEstimate);
 
-    // 다운로드
+    // 다운로드 — save-system 인터셉터가 <a download> 클릭을 잡아 FSA picker 로
+    // 변환하므로 사용자가 저장 경로·파일명을 명시적으로 선택하게 됨. 루트 폴더
+    // 설정이 있으면 자동 카테고리 분류 (pictures/ 등) 도 동작.
     $('icDownload').addEventListener('click', async () => {
       if (!state.srcImg) { toast('먼저 이미지를 불러오세요'); return; }
       const url = state.lastResult || await convert();
       if (!url) { toast('변환 실패'); return; }
-      const a = document.createElement('a');
-      a.href = url;
       const ext = extForMime(state.format);
       const ts = new Date().toISOString().replace(/[:T]/g,'-').slice(0,19);
-      a.download = 'image-' + ts + '.' + ext;
-      document.body.appendChild(a); a.click(); a.remove();
-      toast('다운로드됨 · ' + formatBytes(dataUrlBytes(url)));
+      const fname = 'image-' + ts + '.' + ext;
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fname;
+      document.body.appendChild(a);
+      // save-system 이 로드돼있으면 그 쪽이 가로채서 FSA picker 뜸.
+      // 안 로드돼있으면 기본 브라우저 다운로드로 폴백.
+      a.click();
+      a.remove();
+      // 토스트는 save-system 이 결과에 따라 띄우지만, 가로채기 실패 시 대비해서도 하나 남김
+      if (!window.jnpSaveSystem) toast('다운로드됨 · ' + formatBytes(dataUrlBytes(url)));
     });
 
     // 메모 삽입
@@ -17871,8 +17908,12 @@ if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
 <script src="/sw-refresh.js?v=5"></script>
 <!-- JustANotepad storage quota patch (v1.3.0) — stops dialog loop + hard-slim state -->
 <script src="/storage-quota-patch.js?v=5"></script>
-<!-- JustANotepad unified save system (v1.0) — global folder + auto-categorization -->
-<script src="/save-system.js?v=5"></script>
+<!-- JustANotepad unified file I/O helper (FSA wrapper) — used by other scripts too -->
+<script src="/jan-fileio.js?v=1"></script>
+<!-- JustANotepad unified save system (v1.1) — global folder + FSA fallback + auto-categorization -->
+<script src="/save-system.js?v=6"></script>
+<!-- JustANotepad image converter UX upgrades (v1.0) — non-blocking panel + zoom -->
+<script src="/img-converter-upgrades.js?v=1"></script>
 <!-- JustANotepad media upgrades (v1.0) — rec/speak/image UX fixes -->
 <script src="/media-upgrades.js?v=5"></script>
 <!-- JustANotepad postit mode (desktop) — ?mode=postit 창이면 이것만 보임 -->

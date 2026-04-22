@@ -267,7 +267,36 @@
     }
   }
 
-  function downloadFallback(filename, blob) {
+  // 폴더 미지정 상태의 폴백 — 가능하면 네이티브 "다른 이름으로 저장" 대화상자
+  // 로 띄워서 사용자가 저장 경로·파일명을 직접 선택할 수 있게 함. 지원 안 될
+  // 때만 기본 다운로드 폴더로 떨어뜨림.
+  async function downloadFallback(filename, blob) {
+    // 1) File System Access API — WebView2/Chromium 지원
+    if (typeof window.showSaveFilePicker === 'function') {
+      try {
+        const ext = (filename.split('.').pop() || '').toLowerCase();
+        const mime = blob.type || mimeForExt(ext) || 'application/octet-stream';
+        const types = filterForExt(ext, mime);
+        const handle = await window.showSaveFilePicker({
+          suggestedName: filename,
+          startIn: getStartInHint(),
+          types,
+        });
+        const w = await handle.createWritable();
+        await w.write(blob);
+        await w.close();
+        toast(`저장됨: ${handle.name || filename}`);
+        return { success: true, picker: true, path: handle.name || filename };
+      } catch (e) {
+        if (e && (e.name === 'AbortError' || e.code === 20)) {
+          toast('저장 취소됨');
+          return { success: false, cancelled: true };
+        }
+        console.warn('[save-system downloadFallback FSA 실패 → 레거시]', e);
+      }
+    }
+
+    // 2) 레거시 <a download>
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url; a.download = filename; a.setAttribute('data-jnp-bypass', '1');
@@ -275,6 +304,43 @@
     setTimeout(() => URL.revokeObjectURL(url), 3000);
     toast(`다운로드: ${filename}`);
     return { success: true, downloaded: true, path: filename };
+  }
+
+  // 확장자/MIME 헬퍼 ---------------------------------------------------------
+  function getStartInHint() {
+    try {
+      const h = localStorage.getItem('jan.io.lastFolderHint');
+      if (['desktop','documents','downloads','music','pictures','videos'].includes(h)) return h;
+    } catch {}
+    return 'documents';
+  }
+  function mimeForExt(ext) {
+    const m = {
+      png:'image/png', jpg:'image/jpeg', jpeg:'image/jpeg', webp:'image/webp', bmp:'image/bmp', gif:'image/gif', svg:'image/svg+xml',
+      txt:'text/plain', md:'text/markdown', html:'text/html', json:'application/json',
+      pdf:'application/pdf', docx:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      doc:'application/msword', xlsx:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      pptx:'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      mp4:'video/mp4', webm:'video/webm', mp3:'audio/mpeg', m4a:'audio/mp4', wav:'audio/wav',
+      zip:'application/zip', srt:'application/x-subrip',
+    };
+    return m[ext] || '';
+  }
+  function filterForExt(ext, mime) {
+    const nameMap = {
+      png:'PNG 이미지', jpg:'JPEG 이미지', jpeg:'JPEG 이미지', webp:'WebP 이미지',
+      bmp:'BMP 이미지', gif:'GIF 이미지', svg:'SVG',
+      txt:'텍스트', md:'Markdown', html:'HTML', json:'JSON',
+      pdf:'PDF', docx:'Word 문서', doc:'Word 97-2003', xlsx:'Excel', pptx:'PowerPoint',
+      mp4:'MP4 영상', webm:'WebM 영상', mp3:'MP3 오디오', m4a:'M4A 오디오', wav:'WAV 오디오',
+      zip:'압축 파일', srt:'자막'
+    };
+    if (!ext) return [{ description:'파일', accept:{ '*/*':['*'] } }];
+    const dotExt = '.' + ext;
+    return [{
+      description: nameMap[ext] || ext.toUpperCase(),
+      accept: { [mime || 'application/octet-stream']: [dotExt] }
+    }];
   }
 
   async function ensurePermission() {
@@ -371,18 +437,24 @@
       const dl = this.getAttribute('download');
       const href = this.href || this.getAttribute('href') || '';
       if (!dl || !(href.startsWith('blob:') || href.startsWith('data:'))) return origClick.apply(this, arguments);
-      // dirHandle 없으면 원래 동작 (브라우저 기본 다운로드)
-      if (!dirHandle) return origClick.apply(this, arguments);
 
-      // 가로채서 우리 save() 로
+      // 가로채서 처리:
+      //  - dirHandle 있으면: save() 로 (자동 카테고리 분류 + 확인 모달)
+      //  - dirHandle 없으면: downloadFallback() 으로 (FSA picker → 사용자가 폴더/파일명 선택)
+      const self = this;
+      const selfArgs = arguments;
       (async () => {
         try {
           const r = await fetch(href);
           const blob = await r.blob();
-          await save(dl, blob, { ask: !askSkip });
+          if (dirHandle) {
+            await save(dl, blob, { ask: !askSkip });
+          } else {
+            await downloadFallback(dl, blob);
+          }
         } catch (e) {
           console.warn('[intercept]', e);
-          origClick.apply(this, arguments);
+          origClick.apply(self, selfArgs);
         }
       })();
     };
