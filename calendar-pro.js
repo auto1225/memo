@@ -201,7 +201,7 @@
       .cp-day .more { font-size:9px; color:var(--ink-soft); }
 
       /* Week/Day view */
-      .cp-week-wrap { display:grid; grid-template-columns:40px repeat(7, 1fr); overflow:auto; }
+      .cp-week-wrap { display:grid; grid-template-columns:40px repeat(7, 1fr); overflow:auto; position:relative; }
       .cp-week-wrap.day-view { grid-template-columns:40px 1fr; }
       .cp-timeline-head { position:sticky; top:0; background:#fff; z-index:5; border-bottom:1px solid var(--paper-edge);
         padding:6px 4px; text-align:center; font-size:11px; font-weight:700; }
