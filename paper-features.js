@@ -3194,9 +3194,20 @@
     if (!page.classList.contains('jan-paged')) {
       const existingSheets = wrap.querySelector('.jan-page-sheets');
       if (existingSheets) existingSheets.remove();
+      const innerSheets = page.querySelector(':scope > .jan-page-sheets');
+      if (innerSheets) innerSheets.remove();
       const existingLabels = page.querySelector(':scope > .jan-page-labels');
       if (existingLabels) existingLabels.remove();
       page.style.removeProperty('min-height');
+      /* v23: 인라인 배경 스타일 정리 — 기본 paperStyle 복원 */
+      page.style.removeProperty('background-image');
+      page.style.removeProperty('background-color');
+      page.style.removeProperty('background-size');
+      page.style.removeProperty('background-repeat');
+      page.style.removeProperty('background-attachment');
+      page.style.removeProperty('background-position');
+      page.style.removeProperty('box-shadow');
+      page.style.removeProperty('border');
       /* 콘텐츠 블록의 이전 페이지 shift margin 복원 */
       Array.from(page.children).forEach(c => {
         if (c.dataset && c.dataset.janPgShift) {
@@ -3226,6 +3237,27 @@
     /* min-height = N × (pageH + gap) */
     const totalH = nPages * pageHpx + (nPages - 1) * SHEET_GAP;
     page.style.minHeight = totalH + 'px';
+
+    /* v23-fix: 인라인 !important 로 ruled/grid/dot/staff 같은 paper-style 배경 강제 오버라이드.
+       setProperty 의 3번째 인자 'important' 는 CSS !important 와 같은 레벨이지만 inline style 은
+       specificity 가 가장 높음 (1-0-0-0) 으로 인라인이 이김. */
+    const padTopPx = parseFloat(computed.paddingTop) || 0;
+    const padLeftPx = parseFloat(computed.paddingLeft) || 0;
+    const bgImg = 'repeating-linear-gradient(' +
+      'to bottom,' +
+      '#fff 0,' +
+      '#fff ' + pageHpx + 'px,' +
+      'transparent ' + pageHpx + 'px,' +
+      'transparent ' + cycle + 'px' +
+      ')';
+    page.style.setProperty('background-image', bgImg, 'important');
+    page.style.setProperty('background-color', 'transparent', 'important');
+    page.style.setProperty('background-size', '100% ' + cycle + 'px', 'important');
+    page.style.setProperty('background-repeat', 'repeat-y', 'important');
+    page.style.setProperty('background-attachment', 'local', 'important');
+    page.style.setProperty('background-position', '0 -' + padTopPx + 'px', 'important');
+    page.style.setProperty('box-shadow', '0 2px 6px rgba(0,0,0,0.05), 0 12px 28px rgba(0,0,0,0.10)', 'important');
+    page.style.setProperty('border', 'none', 'important');
 
     /* v23: sheets 오버레이 제거 — .page 자체에 repeating gradient 로 페이지 영역 렌더.
        Page N 라벨만 absolute 오버레이로 유지. */
