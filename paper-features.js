@@ -3287,14 +3287,17 @@
      ============================================================ */
   let _autoSplitPending = false;
   let _isComposingSplit = false;
+  /* v33: 디바운스 축소 (350ms → 80ms) + requestAnimationFrame 으로 layout 후 실행 */
   function scheduleAutoSplit() {
     if (_autoSplitPending) return;
     _autoSplitPending = true;
     setTimeout(() => {
-      _autoSplitPending = false;
-      if (_isComposingSplit) return;  /* IME 중엔 건드리지 않음 */
-      try { autoSplitOverflowingPages(); } catch (e) { console.warn('[JANPaper] autoSplit 실패', e); }
-    }, 350);
+      requestAnimationFrame(() => {
+        _autoSplitPending = false;
+        if (_isComposingSplit) return;
+        try { autoSplitOverflowingPages(); } catch (e) { console.warn('[JANPaper] autoSplit 실패', e); }
+      });
+    }, 80);
   }
   function autoSplitOverflowingPages() {
     const page = getPageEl();
@@ -3302,6 +3305,13 @@
     const computed = getComputedStyle(page);
     const pageHmm = parseFloat(computed.getPropertyValue('--page-h')) || 297;
     const pageHpx = mmToPx(pageHmm);
+
+    /* v33: selection 저장 — DOM 조작 후 커서 유지 */
+    const sel = window.getSelection();
+    let savedRange = null;
+    if (sel && sel.rangeCount > 0) {
+      savedRange = sel.getRangeAt(0).cloneRange();
+    }
 
     /* 반복 처리 — 각 페이지 검사, overflow 시 다음 페이지로 이동 */
     let maxIter = 30;  /* 무한 루프 방지 */
@@ -3368,6 +3378,18 @@
 
     /* 빈 페이지 (마지막 제외) 제거 + 여유 있는 페이지에 다음 페이지 콘텐츠 당기기 (선택적, 보수적) */
     consolidateDocPages(page, pageHpx);
+
+    /* v33: 저장된 selection 복원 — DOM 조작으로 sel 이 이탈했으면 재적용 */
+    if (savedRange) {
+      try {
+        const sel2 = window.getSelection();
+        /* Range 가 여전히 유효한지 (startContainer 가 DOM 에 있는지) 확인 */
+        if (savedRange.startContainer && page.contains(savedRange.startContainer)) {
+          sel2.removeAllRanges();
+          sel2.addRange(savedRange);
+        }
+      } catch {}
+    }
   }
 
   /* 페이지들 사이 콘텐츠 밸런싱: 이전 페이지에 여유 있으면 다음 페이지 첫 블록 당김 */
@@ -3404,7 +3426,8 @@
   }
 
   /* 편집 이벤트 리스너 — scheduleAutoSplit 트리거.
-     init() 내 setupSheetsObserver 와 병행. */
+     v33: ResizeObserver 로 .jan-doc-page 높이 변화를 직접 감지 → 더 빠른 반응. */
+  let _resizeObserver = null;
   function setupAutoSplitObserver() {
     const page = getPageEl();
     if (!page || page._autoSplitBound) return;
@@ -3418,6 +3441,30 @@
       if (!page.classList.contains('jan-paged')) return;
       scheduleAutoSplit();
     });
+    /* v33: ResizeObserver — 각 .jan-doc-page 높이 변화 직접 관찰 */
+    if (typeof ResizeObserver !== 'undefined') {
+      _resizeObserver = new ResizeObserver(() => {
+        if (!page.classList.contains('jan-paged')) return;
+        scheduleAutoSplit();
+      });
+      /* 기존/신규 .jan-doc-page 에 옵저버 연결 */
+      const mutObs = new MutationObserver(() => {
+        page.querySelectorAll(':scope > .jan-doc-page').forEach(dp => {
+          if (!dp._resizeObserved) {
+            dp._resizeObserved = true;
+            try { _resizeObserver.observe(dp); } catch {}
+          }
+        });
+      });
+      mutObs.observe(page, { childList: true });
+      /* 초기 연결 */
+      page.querySelectorAll(':scope > .jan-doc-page').forEach(dp => {
+        if (!dp._resizeObserved) {
+          dp._resizeObserved = true;
+          _resizeObserver.observe(dp);
+        }
+      });
+    }
     /* 초기 1회 */
     setTimeout(() => {
       if (page.classList.contains('jan-paged')) scheduleAutoSplit();
