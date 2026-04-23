@@ -3329,6 +3329,9 @@
     const computed = getComputedStyle(page);
     const pageHmm = parseFloat(computed.getPropertyValue('--page-h')) || 297;
     const pageHpx = mmToPx(pageHmm);
+    /* v35-fix: 디버그 — 윈도우 전역에 flag 로 켜면 console log */
+    const DEBUG = !!window.JAN_DEBUG_AUTOSPLIT;
+    if (DEBUG) console.log('[autoSplit] run, pageH=' + Math.round(pageHpx) + 'px');
 
     /* v33: selection 저장 — DOM 조작 후 커서 유지 */
     const sel = window.getSelection();
@@ -3337,9 +3340,11 @@
       savedRange = sel.getRangeAt(0).cloneRange();
     }
 
-    /* 반복 처리 — 각 페이지 검사, overflow 시 다음 페이지로 이동.
-       v33: padding-bottom 도 고려해서 훨씬 일찍 split (content 가 bottom margin 까지 침범하면 OUT) */
-    let maxIter = 30;  /* 무한 루프 방지 */
+    /* v35-fix: 단순하고 공격적인 알고리즘.
+       각 .jan-doc-page 의 scrollHeight > offsetHeight + 2 이면 overflow.
+       또는 offsetHeight > pageHpx * 1.02 이면 overflow.
+       overflow 시 마지막 자식부터 다음 페이지로 이동, 페이지 높이 정상화까지 반복. */
+    let maxIter = 50;
     let modified = true;
     while (modified && maxIter-- > 0) {
       modified = false;
@@ -3347,37 +3352,32 @@
       for (let i = 0; i < docPages.length; i++) {
         const dp = docPages[i];
         const dpHeight = dp.offsetHeight;
-        /* v33: bottom padding 읽어서 허용 영역 계산 */
         const dpComputed = getComputedStyle(dp);
         const padBottom = parseFloat(dpComputed.paddingBottom) || 0;
-        /* 콘텐츠가 margin area 침범하면 split — pageH - padBottom 을 한계로 */
         const safeBottomInPage = pageHpx - padBottom;
-        /* 짧은 페이지는 skip */
-        if (dpHeight <= safeBottomInPage + 2) continue;
+
+        /* 페이지가 pageH + 몇 px 이하면 skip */
+        if (dpHeight <= pageHpx + 4) continue;
 
         const dpRect = dp.getBoundingClientRect();
         const allowBottom = dpRect.top + safeBottomInPage;
 
-        /* 자식 중에 overflow 시작점 찾기 */
         const children = Array.from(dp.children).filter(c =>
           c.nodeType === Node.ELEMENT_NODE
         );
+        if (children.length < 2) continue;  /* 블록 1개만 있으면 split 불가 */
+
         let overflowIdx = -1;
         for (let j = 0; j < children.length; j++) {
           const cRect = children[j].getBoundingClientRect();
-          /* 블록 끝이 허용 영역을 넘음 OR 블록 시작이 margin 영역에 있으면 overflow */
-          if (cRect.bottom > allowBottom + 1 || cRect.top > allowBottom) {
-            /* 한 페이지보다 큰 블록은 이동 불가 */
-            if (cRect.height > pageHpx * 0.95) {
-              overflowIdx = (j === 0) ? -1 : j;
-              if (overflowIdx === -1) break;
-            } else {
-              overflowIdx = j;
-            }
+          if (cRect.top > allowBottom - 2 || cRect.bottom > allowBottom + 2) {
+            /* v35-fix: 95% 제한 제거 — 거대 블록도 이동 (그냥 그 페이지에서 조금 넘어도 괜찮음) */
+            overflowIdx = j > 0 ? j : -1;  /* 첫 번째 블록은 이동 불가 (더 이상 split 할 게 없음) */
             break;
           }
         }
         if (overflowIdx < 0) continue;
+        if (DEBUG) console.log('[autoSplit] page', i, 'overflow at child', overflowIdx, 'of', children.length);
 
         /* 다음 페이지 확보 */
         let nextDp = dp.nextElementSibling;
