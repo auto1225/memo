@@ -246,6 +246,7 @@
 
     canvasEl = document.createElement('canvas');
     canvasEl.className = 'jan-hw-canvas';
+    canvasEl.tabIndex = 0;   // 포커스 받을 수 있도록
     overlayEl.appendChild(canvasEl);
 
     // 상단 툴바
@@ -346,6 +347,8 @@
     canvasEl.addEventListener('pointerup', onPointerUp);
     canvasEl.addEventListener('pointercancel', onPointerUp);
     canvasEl.addEventListener('pointerleave', onPointerUp);
+    // Canvas 자체에도 keydown — 캔버스에 포커스가 있을 때 최우선 처리
+    canvasEl.addEventListener('keydown', onKeyDown);
 
     refreshToolbar();
   }
@@ -839,11 +842,11 @@
     S.current = null;
     overlayEl.classList.add('open');
     resizeCanvas();
+    // canvas 에 포커스 — ESC 등 키보드 이벤트가 다른 앱 모듈보다 먼저 도달하도록
+    try { canvasEl.focus(); } catch {}
     window.addEventListener('resize', resizeCanvas);
-    // document + window 모두 capture 단계에 등록 — 앱 전역에 있는 다른 keydown 리스너보다 먼저 동작
-    document.addEventListener('keydown', onKeyDown, true);
-    window.addEventListener('keydown', onKeyDown, true);
-    // 기존 pen-surface Alt+P 리스너가 openPaint 를 호출하지 않도록 — 우리가 capture 단계에서 가로챔
+    // keydown 리스너는 초기 boot 에 document 에 이미 등록했으므로 여기서 재등록 안 함
+    // (다른 앱 리스너보다 먼저 실행되기 위함)
   }
   function close() {
     if (!S.open) return;
@@ -851,8 +854,6 @@
     Sfx.stop();
     overlayEl.classList.remove('open');
     window.removeEventListener('resize', resizeCanvas);
-    document.removeEventListener('keydown', onKeyDown, true);
-    window.removeEventListener('keydown', onKeyDown, true);
     S.strokes = [];
     S.redo = [];
     S.current = null;
@@ -971,6 +972,10 @@
     interceptAltP();
     registerPaletteCommands();
     enhanceInsertedSvgs();
+    // keydown (ESC, Ctrl+Z, Ctrl+Y) 를 document 에 capture 로 상시 등록 — open 때만 실제 동작
+    // 여기서 미리 등록해 두면 후속으로 등록되는 앱 리스너보다 우선권 확보
+    document.addEventListener('keydown', onKeyDown, true);
+    window.addEventListener('keydown', onKeyDown, true);
   }
 
   if (document.readyState === 'loading') {
