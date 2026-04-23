@@ -862,6 +862,8 @@
 
   function onKeyDown(e) {
     if (!S.open) return;
+    // DEBUG: 사용자가 문제 추적할 수 있도록 window 에 마지막 키 이벤트 저장
+    try { window.__hwLastKey = { key: e.key, t: Date.now(), phase: e.eventPhase, target: (e.target && e.target.tagName) || '?' }; } catch {}
     if (e.key === 'Escape') {
       e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
       close(); return;
