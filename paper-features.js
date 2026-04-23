@@ -791,6 +791,21 @@
     }
   }
 
+  /* 완성된 Science 포맷 물리학 논문 샘플 3페이지를 현재 노트 끝에 삽입 */
+  function loadPaperSample() {
+    var tpl = window.JANPaperTemplate && window.JANPaperTemplate.physicsScience;
+    if (!tpl) { notify('논문 템플릿이 로드되지 않았습니다'); return; }
+    if (!window.confirm('현재 노트에 Science 포맷 물리학 논문 샘플 3페이지를 삽입합니다. 기존 내용은 유지됩니다. 계속하시겠습니까?')) return;
+    var page = document.getElementById('page');
+    if (!page) { notify('편집 영역을 찾을 수 없습니다'); return; }
+    page.insertAdjacentHTML('beforeend', '<hr>' + tpl);
+    try { refreshNumbering(); } catch (e) {}
+    try { renumberFootnotes(); } catch (e) {}
+    try { renumberCitations(); } catch (e) {}
+    try { if (typeof window.scheduleSave === 'function') window.scheduleSave(); } catch (e) {}
+    notify('논문 샘플 삽입 완료');
+  }
+
   /* 논문 요소 서브메뉴 (툴바 버튼 클릭 시 작은 드롭다운) */
   function openPaperMenu(ev) {
     const old = document.getElementById('jan-paper-menu');
@@ -806,6 +821,7 @@
     menu.style.top = (rect.bottom + 4) + 'px';
     menu.style.left = Math.max(4, Math.min(rect.left, window.innerWidth - 220)) + 'px';
     const items = [
+      { label: '논문 샘플 불러오기 (Science 포맷)', act: 'load-sample' },
       { label: '각주 삽입', act: 'footnote' },
       { label: '인용 삽입', act: 'cite' },
       { label: '참고문헌 항목 추가', act: 'bib-add' },
@@ -825,7 +841,8 @@
       row.addEventListener('mouseleave', () => { row.style.background = 'transparent'; });
       row.addEventListener('click', () => {
         menu.remove();
-        if (it.act === 'footnote') insertFootnote();
+        if (it.act === 'load-sample') loadPaperSample();
+        else if (it.act === 'footnote') insertFootnote();
         else if (it.act === 'cite') insertCitation();
         else if (it.act === 'bib-add') addBibEntry();
         else if (it.act === 'bib-open') openBibManager();
@@ -870,6 +887,7 @@
     renumberCitations,
     insertPageBreak,
     refreshNumbering,
-    openPaperMenu
+    openPaperMenu,
+    loadPaperSample
   };
 })();
