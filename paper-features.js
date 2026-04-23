@@ -1280,6 +1280,27 @@
     const page = getPageEl();
     if (!page) { notify('페이지를 찾을 수 없습니다'); return; }
     restorePageSel();
+    /* v31: 페이지 크기 활성 상태면 새 .jan-doc-page 로 split */
+    if (page.classList.contains('jan-paged')) {
+      if (splitAtCursorToNewDocPage()) return;
+      /* 실패하면 폴백: 새 빈 .jan-doc-page 를 마지막에 추가 */
+      const newPage = document.createElement('div');
+      newPage.className = 'jan-doc-page';
+      newPage.innerHTML = '<p><br></p>';
+      page.appendChild(newPage);
+      /* 커서 이동 */
+      const sel = window.getSelection();
+      const range = document.createRange();
+      range.setStart(newPage, 0);
+      range.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(range);
+      newPage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      scheduleSave();
+      notify('새 페이지 추가됨');
+      return;
+    }
+    /* 기본: 페이지 크기 미설정 시 hr 스타일 구분선 */
     const html =
       '<div class="jan-page-break" contenteditable="false">— 페이지 구분 —</div>' +
       '<p><br></p>';
@@ -3174,25 +3195,24 @@
     return parseFloat(mmValue) * 96 / 25.4;
   }
 
-  /* v29: auto-pagination 포기. 단순 CSS 만 적용.
-     - .page.jan-paged = white 카드 (CSS 에서 설정)
-     - 사용자는 Ctrl+Enter 또는 메뉴 "페이지 구분 삽입" 으로 수동 break
-     - overlay/rebalance 없음 → 타이핑 완전 정상 */
+  /* v31: 논문식 .jan-doc-page wrapper 방식.
+     - 페이지 크기 설정 시: 기존 콘텐츠를 하나의 .jan-doc-page 로 wrap
+     - 페이지 구분 삽입 시: 커서 이후 콘텐츠를 새 .jan-doc-page 로 split
+     - 페이지 크기 해제 시: 모든 .jan-doc-page wrapper 제거, 콘텐츠를 .page 로 flatten
+     - 오버레이/observer/rebalance 모두 없음 → 타이핑 완전 정상 */
   let _sheetsUpdatePending = false;
   function updatePageSheets() {
-    /* v29: noop — 복잡한 overlay 로직 모두 제거. CSS 만으로 시각화 */
     const page = getPageEl();
     if (!page) return;
     const wrap = page.parentElement;
     if (!wrap) return;
-    /* 기존 오버레이 / margin 조정 잔재 제거 (이전 버전에서 남은 것들) */
+    /* 이전 버전 잔재 제거 */
     const outerSheets = wrap.querySelector(':scope > .jan-page-sheets');
     if (outerSheets) outerSheets.remove();
     const innerSheets = page.querySelector(':scope > .jan-page-sheets');
     if (innerSheets) innerSheets.remove();
     const existingLabels = page.querySelector(':scope > .jan-page-labels');
     if (existingLabels) existingLabels.remove();
-    /* 콘텐츠 블록의 이전 shift margin 복원 */
     Array.from(page.children).forEach(c => {
       if (c.dataset && c.dataset.janPgShift) {
         c.style.marginTop = c.dataset.janPgOrigMt || '';
@@ -3200,10 +3220,110 @@
         delete c.dataset.janPgOrigMt;
       }
     });
-    /* 인라인 배경 강제 override 도 정리 */
     ['background-image','background-color','background-size','background-repeat',
      'background-attachment','background-position','box-shadow','border','min-height'
     ].forEach(prop => page.style.removeProperty(prop));
+
+    /* v31: jan-paged 상태라면 자식을 .jan-doc-page 로 래핑 */
+    if (page.classList.contains('jan-paged')) {
+      wrapContentInDocPages(page);
+    } else {
+      unwrapDocPages(page);
+    }
+  }
+
+  /* 콘텐츠 하위를 .jan-doc-page 로 래핑 (이미 래핑돼 있으면 skip) */
+  function wrapContentInDocPages(page) {
+    /* 이미 최상위 자식들이 모두 .jan-doc-page 이면 skip */
+    const children = Array.from(page.childNodes).filter(n =>
+      n.nodeType === Node.ELEMENT_NODE || (n.nodeType === Node.TEXT_NODE && n.textContent.trim())
+    );
+    const allWrapped = children.length > 0 && children.every(n =>
+      n.nodeType === Node.ELEMENT_NODE && n.classList && n.classList.contains('jan-doc-page')
+    );
+    if (allWrapped) return;
+    /* 래핑 전 스냅샷 (undo) */
+    try { pushPaperUndo('page-wrap'); } catch {}
+    /* 새 .jan-doc-page 만들고 기존 자식 전부 이동 */
+    const wrapDiv = document.createElement('div');
+    wrapDiv.className = 'jan-doc-page';
+    /* 기존 자식 모두 옮김 (jan-doc-page 가 이미 있으면 그대로 보존) */
+    while (page.firstChild) {
+      const c = page.firstChild;
+      if (c.nodeType === Node.ELEMENT_NODE && c.classList && c.classList.contains('jan-doc-page')) {
+        /* 이미 래핑된 페이지는 단독으로 이동 — 내부 page 리스트에 추가 */
+        page.removeChild(c);
+        page.appendChild(c);
+        break;
+      } else {
+        wrapDiv.appendChild(c);
+      }
+    }
+    /* 빈 페이지 방지: 기본 <p><br></p> 삽입 */
+    if (!wrapDiv.innerHTML.trim()) {
+      wrapDiv.innerHTML = '<p><br></p>';
+    }
+    page.insertBefore(wrapDiv, page.firstChild);
+  }
+
+  /* .jan-doc-page 래퍼 제거 — 모든 자식 콘텐츠를 .page 최상위로 flatten */
+  function unwrapDocPages(page) {
+    const docPages = Array.from(page.querySelectorAll(':scope > .jan-doc-page'));
+    if (docPages.length === 0) return;
+    try { pushPaperUndo('page-unwrap'); } catch {}
+    docPages.forEach(dp => {
+      while (dp.firstChild) page.insertBefore(dp.firstChild, dp);
+      /* 페이지 사이 구분선 삽입 (선택) */
+      dp.remove();
+    });
+  }
+
+  /* 사용자가 페이지 구분 요청 시 — 커서 이후 콘텐츠를 새 .jan-doc-page 로 split */
+  function splitAtCursorToNewDocPage() {
+    const page = getPageEl();
+    if (!page || !page.classList.contains('jan-paged')) {
+      return false;
+    }
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return false;
+    const range = sel.getRangeAt(0);
+    /* 현재 커서가 있는 .jan-doc-page 찾기 */
+    let cur = range.startContainer;
+    while (cur && cur !== page) {
+      if (cur.nodeType === Node.ELEMENT_NODE && cur.classList && cur.classList.contains('jan-doc-page')) {
+        break;
+      }
+      cur = cur.parentNode;
+    }
+    if (!cur || cur === page) return false;  /* 페이지 밖 */
+
+    try { pushPaperUndo('page-break'); } catch {}
+
+    /* 커서 이후 콘텐츠를 새 페이지로 이동 */
+    const newPage = document.createElement('div');
+    newPage.className = 'jan-doc-page';
+    /* Range 를 잘라서 뒷부분 추출 */
+    const postRange = range.cloneRange();
+    postRange.setEnd(cur, cur.childNodes.length);
+    const frag = postRange.extractContents();
+    if (frag.childNodes.length > 0) {
+      newPage.appendChild(frag);
+    } else {
+      newPage.innerHTML = '<p><br></p>';
+    }
+    /* 현재 페이지 다음에 삽입 */
+    cur.parentNode.insertBefore(newPage, cur.nextSibling);
+    /* 커서를 새 페이지 시작점으로 이동 */
+    const newRange = document.createRange();
+    newRange.setStart(newPage, 0);
+    newRange.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(newRange);
+    /* 새 페이지 스크롤 */
+    newPage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    scheduleSave();
+    notify('새 페이지로 구분됨');
+    return true;
   }
 
   function _doUpdatePageSheets() {
