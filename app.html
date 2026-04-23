@@ -92,6 +92,13 @@
 <meta name="twitter:description" content="it was supposed to be just a notepad." />
 <!-- 클라우드 동기화 (선택적) -->
 <script src="/config.js" onerror="console.log('[Config] config.js 없음 — 오프라인 전용');"></script>
+<!-- BYOC Storage Adapter 체계 — sync.js 보다 먼저 로딩되어야 함 -->
+<script src="/storage-adapter.js"></script>
+<script src="/adapters/local-folder.js"></script>
+<script src="/adapters/dropbox.js"></script>
+<script src="/adapters/gdrive.js"></script>
+<script src="/adapters/onedrive.js"></script>
+<script src="/adapters/supabase-legacy.js"></script>
 <script src="/sync.js" defer></script>
 <!-- 로컬 IndexedDB blob 저장소 — 이미지/첨부를 localStorage에서 분리해 디바이스 용량만큼 사용
      100% on-device, 네트워크 통신 없음, 외부 서버 접근 없음. -->
