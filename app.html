@@ -5890,12 +5890,16 @@ const COMMANDS = [
   { ico:'i-clipboard', name:'참고문헌 영역 열기', desc:'논문 — 참고문헌 섹션으로 스크롤', keywords:['bibliography','참고문헌'], run:() => window.JANPaper && window.JANPaper.openBibManager() },
   { ico:'i-pages', name:'페이지 구분 삽입', desc:'논문 — 인쇄 시 새 페이지로 분할', keywords:['page','break','페이지','구분','논문'], run:() => window.JANPaper && window.JANPaper.insertPageBreak() },
   { ico:'i-refresh', name:'논문 번호 재정렬', desc:'각주·인용·그림·표 번호 다시 계산', keywords:['renumber','재정렬','논문'], run:() => { if (!window.JANPaper) return; window.JANPaper.renumberFootnotes(); window.JANPaper.renumberCitations(); window.JANPaper.refreshNumbering(); if (typeof toast === 'function') toast('재정렬 완료'); } },
+  /* 논문 변환/삽입/샘플 로드 되돌리기 — paper-features.js v8 의 자체 스냅샷 스택 사용 */
+  { id:'paper.undo', ico:'i-refresh', name:'논문 변환 되돌리기 (최근 작업)', desc:'가장 최근의 논문 변환/삽입/샘플 로드를 복원', keywords:['paper','undo','revert','restore','논문','되돌리기','복원','취소'], run:() => { if (window.JANPaper && typeof window.JANPaper.paperUndo === 'function') window.JANPaper.paperUndo(); else if (typeof toast === 'function') toast('되돌리기 기능이 로드되지 않았습니다'); } },
   /* 바이오 논문 (CAR-T ALL) 나머지 부분 이어 붙이기 — bio-paper-rest-data.js */
   { id:'paper.bio-append', ico:'i-book', name:'바이오 논문 나머지 추가', desc:'CAR-T ALL 논문 2.3 ~ Conclusion + Refs 를 현재 노트 끝에 삽입', keywords:['paper','bio','CAR-T','ALL','논문','바이오','암','append','이어쓰기'], run: async () => {
       const html = window.JANBioPaperRest;
       if (!html) { if (typeof toast === 'function') toast('바이오 논문 데이터 로드 실패 (bio-paper-rest-data.js)'); return; }
       const page = document.getElementById('page');
       if (!page) { if (typeof toast === 'function') toast('편집 영역을 찾을 수 없습니다'); return; }
+      /* 삽입 직전 스냅샷 — 되돌리기 지원 (paper-features.js v8) */
+      try { if (window.JANPaper && typeof window.JANPaper.pushPaperUndo === 'function') window.JANPaper.pushPaperUndo('bio-append'); } catch (e) {}
       page.insertAdjacentHTML('beforeend', '<hr>' + html);
       // 논문 번호 재정렬 (각주·인용·그림·표)
       try { if (window.JANPaper && window.JANPaper.refreshNumbering) window.JANPaper.refreshNumbering(); } catch {}
@@ -5931,6 +5935,8 @@ const COMMANDS = [
       } catch (e) { console.warn('[bio] 후처리 실패', e); }
       try { if (typeof scheduleSave === 'function') scheduleSave(); } catch {}
       if (typeof toast === 'function') toast('바이오 논문 나머지 삽입 완료');
+      /* 되돌리기 토스트 (paper-features.js v8) */
+      try { if (window.JANPaper && typeof window.JANPaper.showUndoToast === 'function') window.JANPaper.showUndoToast('바이오 논문 나머지 삽입 완료'); } catch (e) {}
   } }
 ];
 const palette = $('palette'), palInput = $('palInput'), palResults = $('palResults');
@@ -20265,7 +20271,7 @@ if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
 <!-- JustANotepad AI 다이어그램 생성 (구성도/순서도/인포그래픽) — Mermaid + AI -->
 <script src="/ai-diagrams.js?v=9"></script>
 <!-- JustANotepad 논문 작성 기능 (각주·인용·번호·페이지 구분) -->
-<script src="/paper-features.js?v=7"></script>
+<script src="/paper-features.js?v=8"></script>
 <!-- JustANotepad 논문 샘플 템플릿 데이터 (Science 포맷 물리학 논문 3페이지) -->
 <script src="/paper-template-data.js?v=3"></script>
 <!-- JustANotepad CAR-T ALL 바이오 논문 나머지 본문 (2.3 ~ Conclusion + Refs) -->

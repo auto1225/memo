@@ -1,5 +1,5 @@
 /* ============================================================
-   paper-features.js — 논문 작성 기능 팩 (v7)
+   paper-features.js — 논문 작성 기능 팩 (v8)
    ------------------------------------------------------------
    JustANotepad 에 논문 작성에 필요한 4개 기능을 추가:
 
@@ -61,6 +61,109 @@
   function restorePageSel() {
     try { if (typeof window.restorePageSel === 'function') window.restorePageSel(); } catch {}
   }
+
+  /* ---------- 되돌리기 스택 (자체 스냅샷) ----------
+     convertToSciencePaper · loadPaperSample · bio-append 같이
+     page.innerHTML 을 통째로 바꾸는 파괴적 연산 직전에 push.
+     Ctrl+Z (최근 30초 이내) 또는 paper.undo 명령으로 복원. */
+  const _paperUndoStack = [];
+  let _lastOpTimestamp = 0;
+  const PAPER_UNDO_MAX = 8;
+  const PAPER_UNDO_WINDOW_MS = 30000;
+
+  function pushPaperUndo(label) {
+    try {
+      const page = getPageEl();
+      if (!page) return;
+      _paperUndoStack.push({
+        html: page.innerHTML,
+        label: label || 'paper-op',
+        ts: Date.now()
+      });
+      // 스택 크기 제한
+      while (_paperUndoStack.length > PAPER_UNDO_MAX) _paperUndoStack.shift();
+      _lastOpTimestamp = Date.now();
+    } catch (e) { console.warn('[JANPaper] pushPaperUndo 실패', e); }
+  }
+
+  function paperUndo() {
+    const page = getPageEl();
+    if (!page) { notify('편집 영역을 찾을 수 없습니다'); return false; }
+    if (!_paperUndoStack.length) {
+      notify('되돌릴 변환 작업이 없습니다');
+      return false;
+    }
+    const snap = _paperUndoStack.pop();
+    try {
+      page.innerHTML = snap.html;
+      // 되돌린 후 번호·렌더 재적용
+      try { refreshNumbering(); } catch (e) {}
+      try { renumberFootnotes(); } catch (e) {}
+      try { renumberCitations(); } catch (e) {}
+      try {
+        if (typeof renderAllPaperFigures === 'function') {
+          // 비동기지만 기다리지 않아도 괜찮음 (점진 렌더)
+          renderAllPaperFigures(page).catch(() => {});
+        }
+      } catch (e) {}
+      try { if (typeof window.scheduleSave === 'function') window.scheduleSave(); } catch (e) {}
+      notify('변환 전으로 복원됨 (' + (snap.label || 'paper') + ')');
+      return true;
+    } catch (e) {
+      console.warn('[JANPaper] paperUndo 실패', e);
+      notify('복원 실패');
+      return false;
+    }
+  }
+
+  function showUndoToast(msg) {
+    try {
+      const old = document.getElementById('jan-paper-undo-toast');
+      if (old) old.remove();
+      const el = document.createElement('div');
+      el.id = 'jan-paper-undo-toast';
+      el.style.cssText =
+        'position:fixed; bottom:20px; left:50%; transform:translateX(-50%); ' +
+        'background:#333; color:#fff; padding:10px 16px; border-radius:8px; ' +
+        'display:flex; gap:12px; align-items:center; z-index:99999; ' +
+        'font-size:13px; box-shadow:0 4px 16px rgba(0,0,0,0.25);';
+      const span = document.createElement('span');
+      span.textContent = msg;
+      const undoBtn = document.createElement('button');
+      undoBtn.type = 'button';
+      undoBtn.textContent = '되돌리기';
+      undoBtn.style.cssText =
+        'background:#B23A4C; color:#fff; border:0; padding:4px 10px; ' +
+        'border-radius:4px; cursor:pointer; font-weight:600; font-family:inherit; font-size:12px;';
+      undoBtn.addEventListener('click', () => { paperUndo(); el.remove(); });
+      const closeBtn = document.createElement('button');
+      closeBtn.type = 'button';
+      closeBtn.setAttribute('aria-label', '닫기');
+      closeBtn.textContent = '×';
+      closeBtn.style.cssText =
+        'background:none; border:0; color:#ccc; cursor:pointer; font-size:18px; line-height:1; padding:0 2px;';
+      closeBtn.addEventListener('click', () => el.remove());
+      el.appendChild(span);
+      el.appendChild(undoBtn);
+      el.appendChild(closeBtn);
+      document.body.appendChild(el);
+      setTimeout(() => { if (el.isConnected) el.remove(); }, 8000);
+    } catch (e) { console.warn('[JANPaper] showUndoToast 실패', e); }
+  }
+
+  /* 전역 Ctrl+Z 후킹 — 최근 30초 이내 논문 변환이 있었다면
+     Ctrl+Z 가 그것을 되돌린다. 이후부터는 브라우저 기본 undo 위임. */
+  (function installPaperUndoHotkey() {
+    document.addEventListener('keydown', function (ev) {
+      if (!((ev.ctrlKey || ev.metaKey) && !ev.shiftKey && !ev.altKey)) return;
+      if (ev.key !== 'z' && ev.key !== 'Z') return;
+      if (!_paperUndoStack.length) return;
+      if (Date.now() - _lastOpTimestamp > PAPER_UNDO_WINDOW_MS) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      paperUndo();
+    }, true);
+  })();
 
   /* ---------- 1. 전역 CSS 주입 (한 번만) ---------- */
   (function injectCss() {
@@ -956,6 +1059,8 @@
     if (!window.confirm('현재 노트에 Science 포맷 물리학 논문 샘플 3페이지를 삽입합니다. 기존 내용은 유지됩니다. 계속하시겠습니까?')) return;
     var page = document.getElementById('page');
     if (!page) { notify('편집 영역을 찾을 수 없습니다'); return; }
+    /* 삽입 직전 스냅샷 — 되돌리기 지원 */
+    pushPaperUndo('load-sample');
     page.insertAdjacentHTML('beforeend', '<hr>' + tpl);
     try { refreshNumbering(); } catch (e) {}
     try { renumberFootnotes(); } catch (e) {}
@@ -967,6 +1072,7 @@
     // 첫 사용자 대상 온보딩 배너 (localStorage 로 1회만)
     try { showPaperOnboardingBanner(); } catch (e) { console.warn('[JANPaper] 온보딩 배너 실패', e); }
     notify('논문 샘플 삽입 완료');
+    showUndoToast('논문 샘플 삽입 완료');
   }
 
   /* ============================================================
@@ -981,10 +1087,44 @@
   async function convertToSciencePaper() {
     const page = getPageEl();
     if (!page) { notify('편집 영역을 찾을 수 없습니다'); return; }
+
+    /* ---- 0. 멱등성 보장 — 이미 .jan-paper 가 있으면 재변환 여부 확인 ----
+       사용자가 실수로 두 번 실행 시 래퍼가 중첩되어 레이아웃이 붕괴되는 것을 방지.
+       OK → 기존 래퍼를 풀어(flatten) 원본 노드를 되살린 뒤 재변환.
+       Cancel → 중단. */
+    const existingPaper = page.querySelector('.jan-paper');
+    if (existingPaper) {
+      const goAgain = window.confirm(
+        '이미 논문 포맷으로 변환돼 있습니다.\n' +
+        '평문으로 풀고 다시 변환하시겠습니까?\n\n' +
+        '(원본 구조 복원은 어렵습니다. 취소를 누르면 현재 상태를 유지합니다.)'
+      );
+      if (!goAgain) return;
+      // 스냅샷 push (현재 래핑된 상태)
+      pushPaperUndo('convert-reflatten');
+      // 래퍼를 풀어 본문 노드들을 fragment 로 수집 후 page 로 되돌림
+      const frag = document.createDocumentFragment();
+      existingPaper.querySelectorAll(':scope > .jan-page').forEach(pg => {
+        // 헤더/푸터/TOC 제거
+        pg.querySelectorAll('.jan-header, .jan-footer, .jan-toc').forEach(el => el.remove());
+        // 2단 컬럼·참고문헌 컨테이너 내부를 꺼냄
+        pg.querySelectorAll('.jan-two-col').forEach(container => {
+          while (container.firstChild) frag.appendChild(container.firstChild);
+          container.remove();
+        });
+        // 나머지 자식 (cover, abstract, bibliography 등)
+        while (pg.firstChild) frag.appendChild(pg.firstChild);
+      });
+      existingPaper.replaceWith(frag);
+    }
+
     const confirmMsg =
       '현재 노트 전체를 Science 최종본 3페이지 레이아웃으로 변환합니다. ' +
-      '되돌릴 수 없습니다. 계속하시겠습니까?';
+      'Ctrl+Z (30초 이내) 또는 "논문 변환 되돌리기" 명령으로 복원할 수 있습니다. 계속하시겠습니까?';
     if (!window.confirm(confirmMsg)) return;
+
+    /* 변환 직전 스냅샷 — 되돌리기 지원 */
+    pushPaperUndo('convert');
 
     /* ---- 1. 원본 노드 수집 (빈 공백·br 제외) ---- */
     const raw = Array.from(page.childNodes);
@@ -1390,6 +1530,7 @@
     try { if (typeof window.scheduleSave === 'function') window.scheduleSave(); } catch (e) {}
 
     notify('Science 최종본 3페이지 레이아웃으로 변환 완료');
+    showUndoToast('Science 3페이지 변환 완료');
   }
 
   /* 논문 기능 도움말 모달 — 사용법 요약표 */
@@ -1566,6 +1707,11 @@
     convertToSciencePaper,
     renderAllPaperFigures,
     openPaperHelp,
-    showPaperOnboardingBanner
+    showPaperOnboardingBanner,
+    /* v8 — 되돌리기 지원 */
+    paperUndo,
+    pushPaperUndo,
+    showUndoToast,
+    _paperUndoStack
   };
 })();
