@@ -1,5 +1,9 @@
 /* ============================================================
-   paper-features.js — 논문 작성 기능 팩 (v8)
+   paper-features.js — 논문 작성 기능 팩 (v10)
+   v10: 원자 기능 8종 (atoms.*) + convertToSciencePaper 템플릿 마법사
+        로 재레이블. CSS 보강: jan-two-col, jan-authors, jan-affil,
+        jan-corresponding, jan-abstract, jan-keywords, jan-toc, jan-ack
+   v9 : (이전 릴리스)
    ------------------------------------------------------------
    JustANotepad 에 논문 작성에 필요한 4개 기능을 추가:
 
@@ -467,6 +471,141 @@
           margin: 0;
         }
       }
+
+      /* ===== v10: 원자 기능용 스타일 ===== */
+      /* 2단 레이아웃 — 수동 래퍼 */
+      .page .jan-two-col {
+        column-count: 2;
+        column-gap: 7mm;
+        column-rule: 1px solid rgba(0,0,0,0.06);
+      }
+      .page .jan-two-col > * { break-inside: avoid-column; }
+
+      /* 저자 · 소속 · 교신 */
+      .page .jan-authors {
+        text-align: center;
+        font-size: 14px;
+        font-weight: 600;
+        margin: 6px 0 2px;
+        line-height: 1.5;
+      }
+      .page .jan-authors sup {
+        font-weight: 400;
+        color: #555;
+        font-size: 0.75em;
+      }
+      .page .jan-affil {
+        text-align: center;
+        font-size: 11.5px;
+        color: #555;
+        font-style: italic;
+        margin: 0 0 4px;
+        line-height: 1.45;
+      }
+      .page .jan-corresponding {
+        text-align: center;
+        font-size: 11.5px;
+        color: #666;
+        margin: 0 0 10px;
+      }
+      .page .jan-corresponding code {
+        background: #f3f4f6;
+        padding: 1px 5px;
+        border-radius: 3px;
+        font-family: ui-monospace, SFMono-Regular, monospace;
+        font-size: 0.95em;
+      }
+
+      /* Abstract 박스 */
+      .page .jan-abstract {
+        background: #f7f8fa;
+        border-left: 3px solid #1a4b8c;
+        padding: 10px 14px;
+        margin: 10px 0;
+        font-size: 12.5px;
+        line-height: 1.6;
+        color: #222;
+      }
+      .page .jan-abstract strong {
+        display: inline-block;
+        color: #1a4b8c;
+        font-weight: 700;
+        font-size: 11px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        margin-right: 6px;
+      }
+      .page .jan-abstract > p { margin: 4px 0 0; }
+
+      /* Keywords */
+      .page .jan-keywords {
+        font-size: 12px;
+        color: #333;
+        margin: 6px 0 10px;
+        line-height: 1.55;
+      }
+      .page .jan-keywords strong {
+        color: #1a4b8c;
+        font-weight: 700;
+        margin-right: 4px;
+      }
+
+      /* TOC (목차) */
+      .page .jan-toc {
+        background: #fafbfc;
+        border: 1px solid rgba(0,0,0,0.08);
+        border-radius: 6px;
+        padding: 10px 14px;
+        margin: 10px 0 14px;
+        font-size: 12px;
+        line-height: 1.65;
+      }
+      .page .jan-toc > h4 {
+        font-weight: 700;
+        font-size: 11px;
+        letter-spacing: 0.1em;
+        color: #1a4b8c;
+        margin: 0 0 4px;
+        text-transform: uppercase;
+      }
+      .page .jan-toc ol {
+        list-style: none;
+        padding-left: 0;
+        margin: 0;
+        counter-reset: toc-item;
+      }
+      .page .jan-toc li {
+        counter-increment: toc-item;
+        margin: 1px 0;
+      }
+      .page .jan-toc li > a {
+        color: #1f4fa8;
+        text-decoration: none;
+      }
+      .page .jan-toc li > a:hover { text-decoration: underline; }
+      .page .jan-toc li.jan-toc-l3 { padding-left: 14px; }
+      .page .jan-toc li.jan-toc-l4 { padding-left: 28px; }
+
+      /* Acknowledgments 박스 */
+      .page .jan-ack {
+        background: #fffaf2;
+        border-left: 3px solid #d97757;
+        padding: 10px 14px;
+        margin: 14px 0;
+        font-size: 12.5px;
+        line-height: 1.6;
+        color: #333;
+      }
+      .page .jan-ack strong {
+        display: inline-block;
+        color: #b4582f;
+        font-weight: 700;
+        font-size: 11px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        margin-right: 6px;
+      }
+      .page .jan-ack > p { margin: 4px 0 0; }
     `;
     document.head.appendChild(css);
   })();
@@ -1623,8 +1762,20 @@
     menu.style.top = (rect.bottom + 4) + 'px';
     menu.style.left = Math.max(4, Math.min(rect.left, window.innerWidth - 220)) + 'px';
     const items = [
-      { label: '현재 노트를 논문 포맷으로 (Science 3페이지)', act: 'convert' },
       { label: '논문 샘플 불러오기 (Science 포맷)', act: 'load-sample' },
+      { label: '논문 템플릿 마법사 (자동 변환)', act: 'convert' },
+      { label: '——', act: 'sep' },
+      { label: '── 원자 기능 ──', act: 'heading-atoms' },
+      { label: '러닝 헤더 · 꼬리말 설정', act: 'atom-headers' },
+      { label: '저자 · 소속 · 교신 블록 삽입', act: 'atom-authors' },
+      { label: 'Abstract 박스 삽입', act: 'atom-abstract' },
+      { label: 'Keywords 블록 삽입', act: 'atom-keywords' },
+      { label: 'TOC (목차) 자동 생성', act: 'atom-toc' },
+      { label: '2단 레이아웃 토글', act: 'atom-twocol' },
+      { label: '페이지 래퍼 (.jan-page) 감싸기', act: 'atom-wrap' },
+      { label: '감사의 말 박스 삽입', act: 'atom-ack' },
+      { label: '——', act: 'sep' },
+      { label: '── 삽입 ──', act: 'heading-insert' },
       { label: '각주 삽입', act: 'footnote' },
       { label: '인용 삽입', act: 'cite' },
       { label: '참고문헌 항목 추가', act: 'bib-add' },
@@ -1639,6 +1790,15 @@
         const sep = document.createElement('div');
         sep.style.cssText = 'height:1px; background:#eee; margin:4px 2px;';
         menu.appendChild(sep);
+        return;
+      }
+      if (it.act === 'heading-atoms' || it.act === 'heading-insert') {
+        const hd = document.createElement('div');
+        hd.textContent = it.label;
+        hd.style.cssText =
+          'padding:4px 10px; font-size:10.5px; letter-spacing:0.08em; ' +
+          'color:#888; text-transform:uppercase; font-weight:600;';
+        menu.appendChild(hd);
         return;
       }
       const row = document.createElement('button');
@@ -1660,6 +1820,15 @@
         else if (it.act === 'bib-open') openBibManager();
         else if (it.act === 'pagebreak') insertPageBreak();
         else if (it.act === 'help') openPaperHelp();
+        /* v10 — 원자 기능 */
+        else if (it.act === 'atom-headers') configureHeaderFooter();
+        else if (it.act === 'atom-authors') insertAuthorsBlock();
+        else if (it.act === 'atom-abstract') insertAbstractBox();
+        else if (it.act === 'atom-keywords') insertKeywordsBlock();
+        else if (it.act === 'atom-toc') generateTOC();
+        else if (it.act === 'atom-twocol') toggleTwoColumn();
+        else if (it.act === 'atom-wrap') wrapAsPage();
+        else if (it.act === 'atom-ack') insertAcknowledgments();
         else if (it.act === 'renumber') {
           renumberFootnotes();
           renumberCitations();
@@ -1681,6 +1850,376 @@
       document.addEventListener('click', closer, true);
     }, 10);
   }
+
+  /* ============================================================
+     v10 — 원자 기능 8종 (window.JANPaper.atoms.*)
+     각자 선택 영역 또는 커서 위치에 독립 동작. 템플릿 마법사
+     (convertToSciencePaper) 와 달리 **문서를 파괴하지 않음**.
+     ============================================================ */
+
+  /* 선택 범위가 있으면 그 Range 반환, 없으면 null. editable 영역 안인지 검사. */
+  function getActiveRange() {
+    const page = getPageEl();
+    if (!page) return null;
+    try {
+      const sel = document.getSelection();
+      if (!sel || sel.rangeCount === 0) return null;
+      const r = sel.getRangeAt(0);
+      // 페이지 안에 걸쳐있는지 확인
+      if (!page.contains(r.commonAncestorContainer)) return null;
+      return r;
+    } catch (e) { return null; }
+  }
+
+  /* HTML 조각을 커서 위치에 삽입 (또는 선택 대체) */
+  function insertHtmlAtCaret(html) {
+    const page = getPageEl();
+    if (!page) return false;
+    restorePageSel();
+    try {
+      document.execCommand('insertHTML', false, html);
+      return true;
+    } catch (e) {
+      page.insertAdjacentHTML('beforeend', html);
+      return true;
+    }
+  }
+
+  /* --- 1. 2단 레이아웃 토글 --- */
+  function toggleTwoColumn() {
+    const page = getPageEl();
+    if (!page) { notify('편집 영역을 찾을 수 없습니다'); return; }
+    pushPaperUndo('toggle-two-col');
+
+    const r = getActiveRange();
+
+    // 이미 jan-two-col 안에 있으면 풀기 (선택/커서 중 아무 지점이어도)
+    let ancestor = null;
+    if (r) {
+      let n = r.commonAncestorContainer;
+      if (n.nodeType === 3) n = n.parentNode;
+      while (n && n !== page) {
+        if (n.classList && n.classList.contains('jan-two-col')) { ancestor = n; break; }
+        n = n.parentNode;
+      }
+    }
+    if (ancestor) {
+      // 풀기: 자식을 부모로 옮김
+      const parent = ancestor.parentNode;
+      while (ancestor.firstChild) parent.insertBefore(ancestor.firstChild, ancestor);
+      parent.removeChild(ancestor);
+      scheduleSave();
+      notify('2단 레이아웃 해제');
+      showUndoToast('2단 해제');
+      return;
+    }
+
+    if (!r || r.collapsed) {
+      notify('2단으로 만들 영역을 먼저 선택하세요');
+      return;
+    }
+    // 선택 범위를 div.jan-two-col 로 감쌈
+    try {
+      const wrap = document.createElement('div');
+      wrap.className = 'jan-two-col';
+      wrap.appendChild(r.extractContents());
+      r.insertNode(wrap);
+      scheduleSave();
+      notify('2단 레이아웃 적용');
+      showUndoToast('2단 적용');
+    } catch (e) {
+      console.warn('[JANPaper] toggleTwoColumn 실패', e);
+      notify('2단 변환 실패 — 블록 경계를 포함하도록 다시 선택해 주세요');
+    }
+  }
+
+  /* --- 2. 러닝 헤더/꼬리말 설정 --- */
+  async function configureHeaderFooter() {
+    const page = getPageEl();
+    if (!page) { notify('편집 영역을 찾을 수 없습니다'); return; }
+    const pages = Array.from(page.querySelectorAll('.jan-page'));
+    if (!pages.length) {
+      notify('.jan-page 블록이 없습니다. 먼저 "논문 템플릿 마법사" 또는 "페이지 래퍼 감싸기" 로 만드세요');
+      return;
+    }
+
+    // 간단 모달 — prompt 4번. 빈 문자열이면 해당 슬롯 건너뜀(기존 유지).
+    const curTitle = (document.title || '').replace(' — JustANotepad', '') ||
+                     (page.querySelector('h1,h2') && page.querySelector('h1,h2').textContent) || 'Untitled';
+    const defaults = {
+      hdrL: curTitle.trim(),
+      hdrR: 'SCIENCE (Draft)',
+      ftrL: 'DOI: 10.xxxx/placeholder',
+      ftrR: 'Page N of M'
+    };
+    const hdrL = prompt('좌측 헤더 (러닝 타이틀)', defaults.hdrL);
+    if (hdrL === null) return;
+    const hdrR = prompt('우측 헤더 (저널명 등)', defaults.hdrR);
+    if (hdrR === null) return;
+    const ftrL = prompt('좌측 푸터 (DOI 등)', defaults.ftrL);
+    if (ftrL === null) return;
+    const ftrR = prompt('우측 푸터 ("Page N of M" 고정)', defaults.ftrR);
+    if (ftrR === null) return;
+
+    pushPaperUndo('configure-headers');
+    const total = pages.length;
+    pages.forEach((pg, idx) => {
+      // 기존 .jan-header / .jan-footer 제거 후 재삽입
+      pg.querySelectorAll(':scope > .jan-header, :scope > .jan-footer').forEach(el => el.remove());
+      const pageNo = idx + 1;
+      const ftrRResolved = ftrR
+        .replace(/\bN\b/, String(pageNo))
+        .replace(/\bM\b/, String(total));
+
+      const h = document.createElement('div');
+      h.className = 'jan-header';
+      h.style.cssText = 'display:flex; justify-content:space-between; align-items:center; gap:10px;';
+      h.innerHTML =
+        '<span>' + escapeHtml(hdrL) + '</span>' +
+        '<span>' + escapeHtml(hdrR) + '</span>';
+      pg.insertBefore(h, pg.firstChild);
+
+      const f = document.createElement('div');
+      f.className = 'jan-footer';
+      f.style.cssText = 'display:flex; justify-content:space-between; align-items:center; gap:10px;';
+      f.innerHTML =
+        '<span>' + escapeHtml(ftrL) + '</span>' +
+        '<span>' + escapeHtml(ftrRResolved) + '</span>';
+      pg.appendChild(f);
+    });
+    scheduleSave();
+    notify('헤더 · 꼬리말 적용됨 (' + total + '페이지)');
+    showUndoToast('헤더 · 꼬리말');
+  }
+
+  /* --- 3. 저자 · 소속 · 교신 블록 --- */
+  function insertAuthorsBlock() {
+    const page = getPageEl();
+    if (!page) { notify('편집 영역을 찾을 수 없습니다'); return; }
+    const authorsStr = prompt('저자 이름 (쉼표 구분)', 'Hong Gildong, Kim Cheolsoo, Lee Yeonghui');
+    if (authorsStr === null) return;
+    const affilStr = prompt('소속 (줄바꿈 구분 — 여러 개면 " | " 로 구분)',
+      'Dept. of Physics, Seoul National Univ. | Dept. of Chemistry, KAIST');
+    if (affilStr === null) return;
+    const email = prompt('교신저자 이메일', 'corresponding@univ.ac.kr');
+    if (email === null) return;
+
+    const authors = authorsStr.split(',').map(s => s.trim()).filter(Boolean);
+    const affils = affilStr.split(/\s*\|\s*|\n/).map(s => s.trim()).filter(Boolean);
+    const authorsHtml = authors.map((a, i) => {
+      const sup = affils.length > 1 ? ('<sup>' + ((i % affils.length) + 1) + '</sup>') : '';
+      return escapeHtml(a) + sup;
+    }).join(', ');
+    const affilHtml = affils.map((s, i) => {
+      const sup = affils.length > 1 ? ('<sup>' + (i + 1) + '</sup> ') : '';
+      return sup + escapeHtml(s);
+    }).join(' &nbsp; ');
+
+    const html =
+      '<p class="jan-authors">' + authorsHtml + '</p>' +
+      '<p class="jan-affil">' + affilHtml + '</p>' +
+      (email.trim()
+        ? '<p class="jan-corresponding">Corresponding: <code>' + escapeHtml(email.trim()) + '</code></p>'
+        : '');
+
+    pushPaperUndo('insert-authors');
+    insertHtmlAtCaret(html);
+    scheduleSave();
+    notify('저자 블록 삽입됨');
+    showUndoToast('저자 블록');
+  }
+
+  /* --- 4. Abstract 박스 --- */
+  function insertAbstractBox() {
+    const page = getPageEl();
+    if (!page) { notify('편집 영역을 찾을 수 없습니다'); return; }
+    const r = getActiveRange();
+    let body = '여기에 요약을 작성하세요 — 배경·방법·결과·의의를 2~4문장으로 요약.';
+    let replace = false;
+    if (r && !r.collapsed) {
+      const txt = r.toString().trim();
+      if (txt) { body = escapeHtml(txt); replace = true; }
+    }
+    const html =
+      '<div class="jan-abstract">' +
+        '<strong>ABSTRACT.</strong>' +
+        '<p>' + body + '</p>' +
+      '</div>';
+    pushPaperUndo('insert-abstract');
+    if (replace && r) {
+      // 선택 영역 교체
+      r.deleteContents();
+      const tmp = document.createElement('div');
+      tmp.innerHTML = html;
+      while (tmp.firstChild) r.insertNode(tmp.firstChild);
+    } else {
+      insertHtmlAtCaret(html);
+    }
+    scheduleSave();
+    notify('Abstract 박스 삽입됨');
+    showUndoToast('Abstract');
+  }
+
+  /* --- 5. Keywords --- */
+  function insertKeywordsBlock() {
+    const page = getPageEl();
+    if (!page) { notify('편집 영역을 찾을 수 없습니다'); return; }
+    const kws = prompt('키워드 (쉼표 구분)', 'quantum entanglement, superconductor, Bell inequality');
+    if (kws === null || !kws.trim()) return;
+    const list = kws.split(',').map(s => s.trim()).filter(Boolean).map(escapeHtml).join(', ');
+    const html = '<p class="jan-keywords"><strong>Keywords:</strong> ' + list + '</p>';
+    pushPaperUndo('insert-keywords');
+    insertHtmlAtCaret(html);
+    scheduleSave();
+    notify('Keywords 삽입됨');
+    showUndoToast('Keywords');
+  }
+
+  /* --- 6. TOC 자동 생성 --- */
+  function generateTOC() {
+    const page = getPageEl();
+    if (!page) { notify('편집 영역을 찾을 수 없습니다'); return; }
+    const heads = Array.from(page.querySelectorAll('h2, h3, h4'))
+      .filter(h => !h.closest('.jan-toc') && !h.closest('.jan-header') && !h.closest('.jan-footer'));
+    if (!heads.length) {
+      notify('h2/h3/h4 제목이 없습니다. 먼저 헤딩을 추가하세요');
+      return;
+    }
+    pushPaperUndo('generate-toc');
+
+    // id 부여 (없는 것만)
+    heads.forEach((h, i) => {
+      if (!h.id) {
+        const slug = (h.textContent || '').trim()
+          .toLowerCase()
+          .replace(/[^\w가-힣\s-]/g, '')
+          .replace(/\s+/g, '-')
+          .slice(0, 40);
+        h.id = 'sec-' + (slug || (i + 1));
+      }
+    });
+
+    // 기존 TOC 제거 (재생성)
+    page.querySelectorAll('.jan-toc').forEach(el => el.remove());
+
+    const nav = document.createElement('nav');
+    nav.className = 'jan-toc';
+    const title = document.createElement('h4');
+    title.textContent = 'CONTENTS';
+    nav.appendChild(title);
+    const ol = document.createElement('ol');
+    heads.forEach(h => {
+      const level = parseInt(h.tagName.substring(1), 10); // 2, 3, 4
+      const li = document.createElement('li');
+      li.className = 'jan-toc-l' + level;
+      const a = document.createElement('a');
+      a.href = '#' + h.id;
+      a.textContent = (h.textContent || '').trim();
+      li.appendChild(a);
+      ol.appendChild(li);
+    });
+    nav.appendChild(ol);
+
+    // 삽입 위치 — 커서 있으면 커서, 없으면 첫 헤딩 앞 (또는 첫 .jan-page 안 맨 앞)
+    const r = getActiveRange();
+    if (r && page.contains(r.commonAncestorContainer)) {
+      r.deleteContents();
+      r.insertNode(nav);
+    } else {
+      const firstPage = page.querySelector('.jan-page');
+      if (firstPage) firstPage.insertBefore(nav, firstPage.firstChild);
+      else if (heads[0] && heads[0].parentNode) heads[0].parentNode.insertBefore(nav, heads[0]);
+      else page.insertBefore(nav, page.firstChild);
+    }
+    scheduleSave();
+    notify('TOC 생성됨 (' + heads.length + '개 항목)');
+    showUndoToast('TOC 생성');
+  }
+
+  /* --- 7. 페이지 래퍼 (.jan-page) 감싸기 --- */
+  async function wrapAsPage() {
+    const page = getPageEl();
+    if (!page) { notify('편집 영역을 찾을 수 없습니다'); return; }
+    const r = getActiveRange();
+
+    // 선택 영역이 있으면 감싸기
+    if (r && !r.collapsed) {
+      pushPaperUndo('wrap-page');
+      try {
+        const sec = document.createElement('section');
+        sec.className = 'jan-page';
+        sec.appendChild(r.extractContents());
+        r.insertNode(sec);
+        scheduleSave();
+        notify('페이지 래퍼 감쌈');
+        showUndoToast('페이지 래퍼');
+        return;
+      } catch (e) {
+        console.warn('[JANPaper] wrapAsPage 실패', e);
+        notify('감싸기 실패 — 블록 경계를 포함하도록 재선택');
+        return;
+      }
+    }
+
+    // 선택 없고 이미 jan-page 있으면 안내만
+    if (page.querySelector('.jan-page')) {
+      notify('이미 .jan-page 가 있습니다. 감쌀 영역을 먼저 선택하세요');
+      return;
+    }
+
+    // 전혀 없는 상태 — 전체를 한 페이지로 감쌈
+    if (!confirm('현재 노트 전체를 한 개의 .jan-page 로 감쌉니다. 계속할까요?')) return;
+    pushPaperUndo('wrap-page-all');
+    const sec = document.createElement('section');
+    sec.className = 'jan-page';
+    while (page.firstChild) sec.appendChild(page.firstChild);
+    page.appendChild(sec);
+    scheduleSave();
+    notify('전체 노트를 .jan-page 로 감쌌습니다');
+    showUndoToast('페이지 래퍼 (전체)');
+  }
+
+  /* --- 8. 감사의 말 박스 --- */
+  function insertAcknowledgments() {
+    const page = getPageEl();
+    if (!page) { notify('편집 영역을 찾을 수 없습니다'); return; }
+    const r = getActiveRange();
+    let body = '여기에 감사 내용을 작성하세요 — 자금 지원, 자료 제공, 토론에 도움 준 분들.';
+    let replace = false;
+    if (r && !r.collapsed) {
+      const txt = r.toString().trim();
+      if (txt) { body = escapeHtml(txt); replace = true; }
+    }
+    const html =
+      '<div class="jan-ack">' +
+        '<strong>Acknowledgments.</strong>' +
+        '<p>' + body + '</p>' +
+      '</div>';
+    pushPaperUndo('insert-ack');
+    if (replace && r) {
+      r.deleteContents();
+      const tmp = document.createElement('div');
+      tmp.innerHTML = html;
+      while (tmp.firstChild) r.insertNode(tmp.firstChild);
+    } else {
+      insertHtmlAtCaret(html);
+    }
+    scheduleSave();
+    notify('감사의 말 박스 삽입됨');
+    showUndoToast('감사의 말');
+  }
+
+  /* 원자 기능 namespace */
+  const paperAtoms = {
+    toggleTwoColumn,
+    configureHeaderFooter,
+    insertAuthorsBlock,
+    insertAbstractBox,
+    insertKeywordsBlock,
+    generateTOC,
+    wrapAsPage,
+    insertAcknowledgments
+  };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
@@ -1710,6 +2249,8 @@
     paperUndo,
     pushPaperUndo,
     showUndoToast,
-    _paperUndoStack
+    _paperUndoStack,
+    /* v10 — 원자 기능 8종 */
+    atoms: paperAtoms
   };
 })();

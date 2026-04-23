@@ -5963,7 +5963,7 @@ const COMMANDS = [
   { ico:'i-printer', name:'인쇄', desc:'현재 탭 인쇄', hint:'Ctrl+P', run:() => $('printBtn').click() },
   { ico:'i-md', name:'마크다운 토글', desc:'리치 ↔ 마크다운', run:() => $('mdBtn').click() },
   /* 논문 작성 기능 (paper-features.js) */
-  { id:'paper.convert-to-science', ico:'i-book', name:'현재 노트를 Science 논문 포맷으로 변환', desc:'평문 + 표 + 그림을 3페이지 2단 학술 레이아웃으로 변환', keywords:['paper','convert','science','format','논문','변환','최종본','3페이지','2단'], run:() => window.JANPaper && window.JANPaper.convertToSciencePaper && window.JANPaper.convertToSciencePaper() },
+  { id:'paper.convert-to-science', ico:'i-book', name:'논문 템플릿 마법사 (현재 노트 전체를 자동 변환)', desc:'평문 + 표 + 그림을 3페이지 2단 학술 레이아웃으로 자동 변환. 원자 기능은 "논문 요소" 메뉴 참고', keywords:['paper','convert','science','format','논문','변환','마법사','최종본','3페이지','2단','템플릿','wizard'], run:() => window.JANPaper && window.JANPaper.convertToSciencePaper && window.JANPaper.convertToSciencePaper() },
   { ico:'i-book', name:'논문 시작 (Science 포맷)', desc:'완성된 물리학 논문 3페이지 샘플을 현재 노트 끝에 삽입', keywords:['paper','start','science','물리','샘플','템플릿','논문','시작'], run:() => {
       if (!confirm('현재 노트에 Science 포맷 물리학 논문 샘플 3페이지를 삽입합니다. 기존 내용은 유지됩니다. 계속하시겠습니까?')) return;
       const html = window.JANPaperTemplate && window.JANPaperTemplate.physicsScience;
@@ -5983,6 +5983,15 @@ const COMMANDS = [
   { ico:'i-clipboard', name:'참고문헌 영역 열기', desc:'논문 — 참고문헌 섹션으로 스크롤', keywords:['bibliography','참고문헌'], run:() => window.JANPaper && window.JANPaper.openBibManager() },
   { ico:'i-pages', name:'페이지 구분 삽입', desc:'논문 — 인쇄 시 새 페이지로 분할', keywords:['page','break','페이지','구분','논문'], run:() => window.JANPaper && window.JANPaper.insertPageBreak() },
   { ico:'i-refresh', name:'논문 번호 재정렬', desc:'각주·인용·그림·표 번호 다시 계산', keywords:['renumber','재정렬','논문'], run:() => { if (!window.JANPaper) return; window.JANPaper.renumberFootnotes(); window.JANPaper.renumberCitations(); window.JANPaper.refreshNumbering(); if (typeof toast === 'function') toast('재정렬 완료'); } },
+  /* 논문 원자 기능 8종 (paper-features.js v10 — window.JANPaper.atoms.*) */
+  { id:'paper.atom.toggle-two-col', ico:'i-columns', name:'2단 레이아웃 토글', desc:'선택 영역을 2단(column-count:2) 으로 감싸거나 해제', keywords:['paper','atom','two-col','column','2단','레이아웃','논문'], run:() => window.JANPaper && window.JANPaper.atoms && window.JANPaper.atoms.toggleTwoColumn() },
+  { id:'paper.atom.configure-headers', ico:'i-header', name:'러닝 헤더 · 꼬리말 설정', desc:'모든 .jan-page 에 러닝 타이틀/저널명/DOI/페이지번호 헤더·푸터 적용', keywords:['paper','atom','header','footer','러닝','헤더','꼬리말','논문','DOI'], run:() => window.JANPaper && window.JANPaper.atoms && window.JANPaper.atoms.configureHeaderFooter() },
+  { id:'paper.atom.insert-authors', ico:'i-users', name:'저자 · 소속 · 교신 블록 삽입', desc:'저자 이름(슈퍼스크립트 자동)/소속/교신저자 이메일 블록을 커서 위치에 삽입', keywords:['paper','atom','authors','affiliation','corresponding','저자','소속','교신','논문'], run:() => window.JANPaper && window.JANPaper.atoms && window.JANPaper.atoms.insertAuthorsBlock() },
+  { id:'paper.atom.insert-abstract', ico:'i-file-text', name:'Abstract 박스 삽입', desc:'선택 텍스트 또는 placeholder 로 abstract 박스를 커서 위치에 삽입', keywords:['paper','atom','abstract','요약','초록','논문'], run:() => window.JANPaper && window.JANPaper.atoms && window.JANPaper.atoms.insertAbstractBox() },
+  { id:'paper.atom.insert-keywords', ico:'i-tag', name:'Keywords 블록 삽입', desc:'쉼표 구분 키워드 입력 → Keywords 줄을 커서 위치에 삽입', keywords:['paper','atom','keywords','키워드','논문'], run:() => window.JANPaper && window.JANPaper.atoms && window.JANPaper.atoms.insertKeywordsBlock() },
+  { id:'paper.atom.generate-toc', ico:'i-list', name:'TOC (목차) 자동 생성', desc:'문서의 h2/h3/h4 를 스캔해 목차를 생성/삽입 (id 자동 부여)', keywords:['paper','atom','toc','table-of-contents','목차','논문','contents'], run:() => window.JANPaper && window.JANPaper.atoms && window.JANPaper.atoms.generateTOC() },
+  { id:'paper.atom.wrap-page', ico:'i-pages', name:'페이지 래퍼 (.jan-page) 감싸기', desc:'선택 영역을 <section class="jan-page"> 로 감쌈. 선택 없으면 전체 노트', keywords:['paper','atom','wrap','page','페이지','래퍼','논문'], run:() => window.JANPaper && window.JANPaper.atoms && window.JANPaper.atoms.wrapAsPage() },
+  { id:'paper.atom.insert-ack', ico:'i-heart', name:'감사의 말 박스 삽입', desc:'Acknowledgments 박스를 커서 위치에 삽입 (선택 영역이 있으면 그 텍스트로)', keywords:['paper','atom','acknowledgments','감사','논문','ack'], run:() => window.JANPaper && window.JANPaper.atoms && window.JANPaper.atoms.insertAcknowledgments() },
   /* 논문 변환/삽입/샘플 로드 되돌리기 — paper-features.js v8 의 자체 스냅샷 스택 사용 */
   { id:'paper.undo', ico:'i-refresh', name:'논문 변환 되돌리기 (최근 작업)', desc:'가장 최근의 논문 변환/삽입/샘플 로드를 복원', keywords:['paper','undo','revert','restore','논문','되돌리기','복원','취소'], run:() => { if (window.JANPaper && typeof window.JANPaper.paperUndo === 'function') window.JANPaper.paperUndo(); else if (typeof toast === 'function') toast('되돌리기 기능이 로드되지 않았습니다'); } },
   /* 바이오 논문 (CAR-T ALL) 나머지 부분 이어 붙이기 — bio-paper-rest-data.js */
@@ -20415,7 +20424,7 @@ if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
 <!-- JustANotepad AI 다이어그램 생성 (구성도/순서도/인포그래픽) — Mermaid + AI -->
 <script src="/ai-diagrams.js?v=9"></script>
 <!-- JustANotepad 논문 작성 기능 (각주·인용·번호·페이지 구분) -->
-<script src="/paper-features.js?v=9"></script>
+<script src="/paper-features.js?v=10"></script>
 <!-- JustANotepad 논문 샘플 템플릿 데이터 (Science 포맷 물리학 논문 3페이지) -->
 <script src="/paper-template-data.js?v=3"></script>
 <!-- JustANotepad CAR-T ALL 바이오 논문 나머지 본문 (2.3 ~ Conclusion + Refs) -->
