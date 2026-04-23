@@ -1640,27 +1640,147 @@
   }
 
   /* 완성된 Science 포맷 물리학 논문 샘플 3페이지를 현재 노트 끝에 삽입.
-     async — 수식·Mermaid 렌더가 모두 끝날 때까지 기다린 후 resolve. */
+     async — 수식·Mermaid 렌더가 모두 끝날 때까지 기다린 후 resolve.
+     v15: 분야별 샘플 picker 를 먼저 열어 사용자 선택 → 선택된 템플릿 삽입. */
   async function loadPaperSample() {
+    /* 분야별 샘플 로드 — picker 열기 */
+    if (window.JANPaperTemplate && window.JANPaperTemplate.byFieldList) {
+      openPaperSamplePicker();
+      return;
+    }
+    /* 폴백 — 분야 샘플 파일이 로드되지 않았으면 기존 풀 물리학 샘플로 */
     var tpl = window.JANPaperTemplate && window.JANPaperTemplate.physicsScience;
     if (!tpl) { notify('논문 템플릿이 로드되지 않았습니다'); return; }
-    if (!window.confirm('현재 노트에 Science 포맷 물리학 논문 샘플 3페이지를 삽입합니다. 기존 내용은 유지됩니다. 계속하시겠습니까?')) return;
+    await insertSampleHtml(tpl, 'Science 포맷 물리학 논문 3페이지');
+  }
+
+  /* 실제 삽입 로직 (풀/경량 공통) */
+  async function insertSampleHtml(tpl, label) {
+    if (!tpl) { notify('논문 템플릿 데이터가 없습니다'); return; }
     var page = document.getElementById('page');
     if (!page) { notify('편집 영역을 찾을 수 없습니다'); return; }
-    /* 삽입 직전 스냅샷 — 되돌리기 지원 */
     pushPaperUndo('load-sample');
     page.insertAdjacentHTML('beforeend', '<hr>' + tpl);
     try { refreshNumbering(); } catch (e) {}
     try { renumberFootnotes(); } catch (e) {}
     try { renumberCitations(); } catch (e) {}
-    notify('논문 샘플 삽입 완료 — 수식 렌더링 중…');
-    // 모든 수식·다이어그램 렌더가 끝날 때까지 기다림
+    notify((label || '논문 샘플') + ' 삽입 완료 — 수식 렌더링 중…');
     await renderAllPaperFigures(page);
     try { if (typeof window.scheduleSave === 'function') window.scheduleSave(); } catch (e) {}
-    // 첫 사용자 대상 온보딩 배너 (localStorage 로 1회만)
-    try { showPaperOnboardingBanner(); } catch (e) { console.warn('[JANPaper] 온보딩 배너 실패', e); }
-    notify('논문 샘플 삽입 완료');
-    showUndoToast('논문 샘플 삽입 완료');
+    try { showPaperOnboardingBanner(); } catch (e) {}
+    notify((label || '논문 샘플') + ' 삽입 완료');
+    showUndoToast((label || '논문 샘플') + ' 삽입 완료');
+  }
+
+  /* 분야별 샘플 picker — 카드 리스트 모달 */
+  function openPaperSamplePicker() {
+    const list = (window.JANPaperTemplate && window.JANPaperTemplate.byFieldList) || [];
+    const modal = document.getElementById('modal');
+    const title = document.getElementById('modalTitle');
+    const body = document.getElementById('modalBody');
+    const ok = document.getElementById('modalOk');
+    const cancel = document.getElementById('modalCancel');
+    if (!modal || !body) {
+      /* 폴백 */
+      const input = prompt('분야 번호 입력:\n' + list.map((x, i) => (i + 1) + '. ' + x.field + ' — ' + x.label).join('\n') + '\n0. Science 풀 샘플 (물리학 3페이지)');
+      if (!input) return;
+      const n = parseInt(input, 10);
+      if (n === 0 && window.JANPaperTemplate.physicsScience) {
+        insertSampleHtml(window.JANPaperTemplate.physicsScience, 'Science 포맷 물리학 풀 샘플');
+      } else if (n >= 1 && n <= list.length) {
+        const sample = window.JANPaperTemplate[list[n - 1].key];
+        if (sample) insertSampleHtml(sample.html, list[n - 1].field + ' · ' + sample.title);
+      }
+      return;
+    }
+
+    const origOkDisp = ok.style.display;
+    const origOkText = ok.textContent;
+    const origCancelText = cancel.textContent;
+
+    title.textContent = '분야별 예시 논문 선택';
+    body.innerHTML = '';
+
+    const intro = document.createElement('div');
+    intro.style.cssText = 'font-size:12px; color:#666; margin-bottom:10px; line-height:1.55;';
+    intro.innerHTML = '현재 탭 끝에 분야별 논문 스켈레톤을 삽입합니다. <br>구조 (제목·저자·Abstract·섹션·참고문헌) 를 유지한 채 내용을 자유롭게 수정하세요.';
+    body.appendChild(intro);
+
+    /* 경량 분야 샘플들 (5개) */
+    const grid = document.createElement('div');
+    grid.style.cssText = 'display:flex; flex-direction:column; gap:6px; margin-bottom:14px;';
+    list.forEach(item => {
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.style.cssText = 'display:flex; align-items:flex-start; gap:10px; padding:9px 11px; background:#fafafa; border:1px solid #eee; border-radius:8px; cursor:pointer; text-align:left; font-family:inherit; transition:all 0.12s;';
+      card.innerHTML =
+        '<svg class="ico" style="width:18px;height:18px;color:#D97757;flex-shrink:0;margin-top:2px;"><use href="#' + item.icon + '"/></svg>' +
+        '<div style="flex:1;">' +
+          '<div style="font-size:12.5px; font-weight:600; color:#333;">' +
+            '<span style="color:#D97757; margin-right:6px;">' + item.field + '</span>' +
+            item.label +
+          '</div>' +
+          '<div style="font-size:11px; color:#777; margin-top:2px; line-height:1.4;">' + item.summary + '</div>' +
+        '</div>';
+      card.addEventListener('mouseenter', () => {
+        card.style.background = '#fef5f1'; card.style.borderColor = '#D97757'; card.style.transform = 'translateY(-1px)';
+      });
+      card.addEventListener('mouseleave', () => {
+        card.style.background = '#fafafa'; card.style.borderColor = '#eee'; card.style.transform = 'none';
+      });
+      card.addEventListener('click', async () => {
+        const sample = window.JANPaperTemplate[item.key];
+        if (!sample) return notify('해당 샘플이 로드되지 않았습니다');
+        restoreModal();
+        await insertSampleHtml(sample.html, item.field + ' · ' + sample.title);
+      });
+      grid.appendChild(card);
+    });
+    body.appendChild(grid);
+
+    /* 풀 Science 물리학 샘플 (플래그십) 구분 섹션 */
+    if (window.JANPaperTemplate && window.JANPaperTemplate.physicsScience) {
+      const sepLabel = document.createElement('div');
+      sepLabel.style.cssText = 'font-size:10.5px; color:#888; letter-spacing:1px; text-transform:uppercase; font-weight:700; padding:4px 0 6px; border-top:1px solid #eee;';
+      sepLabel.textContent = '완성된 풀 샘플 (3페이지 · 2단 레이아웃 · 수식·Mermaid 포함)';
+      body.appendChild(sepLabel);
+
+      const fullCard = document.createElement('button');
+      fullCard.type = 'button';
+      fullCard.style.cssText = 'display:flex; align-items:flex-start; gap:10px; padding:11px; background:linear-gradient(135deg, #fef5f1 0%, #fae4dd 100%); border:1px solid #D97757; border-radius:8px; cursor:pointer; text-align:left; font-family:inherit; width:100%; transition:all 0.12s;';
+      fullCard.innerHTML =
+        '<svg class="ico" style="width:20px;height:20px;color:#8B4513;flex-shrink:0;margin-top:2px;"><use href="#i-book"/></svg>' +
+        '<div style="flex:1;">' +
+          '<div style="font-size:13px; font-weight:700; color:#8B4513;">Science 포맷 물리학 풀 샘플 (3페이지)</div>' +
+          '<div style="font-size:11px; color:#6B4423; margin-top:3px; line-height:1.45;">광격자 SOC-BEC 초유체 수송 연구. 완성된 수식(KaTeX)·위상도(Mermaid)·IEEE 참고문헌·2단 레이아웃 포함.</div>' +
+        '</div>';
+      fullCard.addEventListener('mouseenter', () => { fullCard.style.transform = 'translateY(-1px)'; fullCard.style.boxShadow = '0 6px 20px rgba(217,119,87,0.25)'; });
+      fullCard.addEventListener('mouseleave', () => { fullCard.style.transform = 'none'; fullCard.style.boxShadow = 'none'; });
+      fullCard.addEventListener('click', async () => {
+        restoreModal();
+        await insertSampleHtml(window.JANPaperTemplate.physicsScience, 'Science 포맷 물리학 풀 샘플');
+      });
+      body.appendChild(fullCard);
+    }
+
+    /* 넓은 모달 + 내부 스크롤 */
+    const modalBox = modal.querySelector('.modal') || modal;
+    modalBox.classList.add('jan-wide');
+
+    ok.style.display = 'none'; // 카드 클릭 = 즉시 적용
+    cancel.textContent = '닫기';
+
+    function restoreModal() {
+      modal.classList.remove('open');
+      modalBox.classList.remove('jan-wide');
+      ok.style.display = origOkDisp;
+      ok.textContent = origOkText;
+      cancel.textContent = origCancelText;
+      body.innerHTML = '';
+      cancel.onclick = null;
+    }
+    cancel.onclick = restoreModal;
+    modal.classList.add('open');
   }
 
   /* ============================================================
@@ -2953,6 +3073,158 @@
     showUndoToast('감사의 말');
   }
 
+  /* ============================================================
+     v15: 페이지 크기 시스템 (A4/A3/B4 · 세로/가로)
+     ------------------------------------------------------------
+     탭별로 페이지 크기를 지정 → 에디터가 종이처럼 렌더.
+     - 클래스: .page.jan-paged + .jan-paged-a4p 등 (CSS 변수)
+     - 상태 저장: currentTab().pageSize = 'a4p' | 'a4l' | ... | 'none'
+     - renderPage() 훅: 탭 전환 시 자동 복원 (app.html 측 호환)
+     ============================================================ */
+  const PAGE_SIZES = {
+    'none': { cls: null,              label: '페이지 구분 없음 (자유 길이)', dim: '' },
+    'a4p':  { cls: 'jan-paged-a4p',   label: 'A4 · 세로',   dim: '210 × 297 mm' },
+    'a4l':  { cls: 'jan-paged-a4l',   label: 'A4 · 가로',   dim: '297 × 210 mm' },
+    'a3p':  { cls: 'jan-paged-a3p',   label: 'A3 · 세로',   dim: '297 × 420 mm' },
+    'a3l':  { cls: 'jan-paged-a3l',   label: 'A3 · 가로',   dim: '420 × 297 mm' },
+    'b4p':  { cls: 'jan-paged-b4p',   label: 'B4 · 세로',   dim: '250 × 353 mm' },
+    'b4l':  { cls: 'jan-paged-b4l',   label: 'B4 · 가로',   dim: '353 × 250 mm' }
+  };
+
+  function setPageSize(key) {
+    const page = getPageEl();
+    if (!page) return;
+    if (!PAGE_SIZES[key]) key = 'none';
+    /* 기존 jan-paged* 클래스 제거 */
+    page.classList.remove('jan-paged');
+    Object.values(PAGE_SIZES).forEach(s => {
+      if (s.cls) page.classList.remove(s.cls);
+    });
+    /* 새 크기 적용 */
+    if (key !== 'none') {
+      page.classList.add('jan-paged', PAGE_SIZES[key].cls);
+    }
+    /* 현재 탭에 영속 — state.tabs[i].pageSize */
+    try {
+      if (typeof window.currentTab === 'function') {
+        const t = window.currentTab();
+        if (t) t.pageSize = key;
+        if (typeof window.save === 'function') window.save();
+      }
+    } catch (e) { console.warn('[JANPaper] setPageSize 저장 실패', e); }
+    notify('페이지 크기: ' + (PAGE_SIZES[key].label || '없음'));
+  }
+
+  function getPageSize() {
+    try {
+      const t = typeof window.currentTab === 'function' ? window.currentTab() : null;
+      return (t && t.pageSize) || 'none';
+    } catch { return 'none'; }
+  }
+
+  /* 탭 전환 / 페이지 렌더 후 호출 — 저장된 pageSize 를 시각적으로 복원 */
+  function applyPageSizeFromTab() {
+    const key = getPageSize();
+    const page = getPageEl();
+    if (!page) return;
+    page.classList.remove('jan-paged');
+    Object.values(PAGE_SIZES).forEach(s => {
+      if (s.cls) page.classList.remove(s.cls);
+    });
+    if (key !== 'none' && PAGE_SIZES[key]) {
+      page.classList.add('jan-paged', PAGE_SIZES[key].cls);
+    }
+  }
+
+  /* 페이지 크기 선택 모달 — 카드 그리드 UI */
+  function openPageSizePicker() {
+    const modal = document.getElementById('modal');
+    const title = document.getElementById('modalTitle');
+    const body = document.getElementById('modalBody');
+    const ok = document.getElementById('modalOk');
+    const cancel = document.getElementById('modalCancel');
+    if (!modal || !body) {
+      /* 폴백 — 네이티브 select */
+      const keys = Object.keys(PAGE_SIZES);
+      const current = getPageSize();
+      const idx = keys.indexOf(current);
+      const msg = '페이지 크기 선택\n' + keys.map((k, i) =>
+        (i === idx ? '● ' : '  ') + (i + 1) + '. ' + PAGE_SIZES[k].label +
+        (PAGE_SIZES[k].dim ? ' (' + PAGE_SIZES[k].dim + ')' : '')
+      ).join('\n');
+      const input = prompt(msg + '\n\n번호 입력:', String(idx + 1));
+      if (!input) return;
+      const n = parseInt(input, 10);
+      if (n >= 1 && n <= keys.length) setPageSize(keys[n - 1]);
+      return;
+    }
+
+    const origOk = ok.textContent;
+    const origCancel = cancel.textContent;
+    const origOkDisp = ok.style.display;
+
+    const current = getPageSize();
+    title.textContent = '페이지 크기 설정';
+    const grid = document.createElement('div');
+    grid.className = 'jan-pg-size-grid';
+    Object.entries(PAGE_SIZES).forEach(([key, info]) => {
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'jan-pg-size-card' + (key === current ? ' active' : '');
+      card.setAttribute('data-size', key);
+      /* 미니 미리보기 박스: 가로/세로 비율 */
+      let ratio = '';
+      if (key !== 'none' && info.dim) {
+        const [w, h] = info.dim.replace(/mm/g, '').split('×').map(s => parseFloat(s.trim()));
+        const maxDim = Math.max(w, h);
+        const pw = (w / maxDim) * 22;
+        const ph = (h / maxDim) * 22;
+        ratio = '<span class="pg-ico" style="display:inline-block; width:24px; height:24px; position:relative;">' +
+          '<span style="position:absolute; left:' + ((24 - pw) / 2) + 'px; top:' + ((24 - ph) / 2) + 'px; ' +
+          'width:' + pw + 'px; height:' + ph + 'px; border:1.5px solid currentColor; background:rgba(217,119,87,0.08);"></span></span>';
+      } else {
+        ratio = '<svg class="ico pg-ico"><use href="#i-x"/></svg>';
+      }
+      card.innerHTML = ratio +
+        '<span>' +
+          '<span class="pg-label">' + info.label + '</span>' +
+          (info.dim ? '<div class="pg-sub">' + info.dim + '</div>' : '<div class="pg-sub">자유 길이 · 페이지 경계 없음</div>') +
+        '</span>';
+      card.addEventListener('click', () => {
+        /* 카드 클릭 = 즉시 적용 + 모달 닫기 */
+        setPageSize(key);
+        restoreModal();
+      });
+      grid.appendChild(card);
+    });
+    body.innerHTML = '';
+    const intro = document.createElement('div');
+    intro.style.cssText = 'font-size:12px; color:#666; margin-bottom:4px; line-height:1.5;';
+    intro.textContent = '현재 탭에 적용할 페이지 크기를 선택하세요. 선택하면 에디터가 종이처럼 보이고, 인쇄 시 해당 용지 크기로 출력됩니다.';
+    body.appendChild(intro);
+    body.appendChild(grid);
+
+    /* 넓은 모달 + 스크롤 지원 */
+    const modalBox = modal.querySelector('.modal') || modal;
+    modalBox.classList.add('jan-wide');
+
+    ok.style.display = 'none'; // 카드 클릭으로 즉시 적용
+    cancel.textContent = '닫기';
+
+    function restoreModal() {
+      modal.classList.remove('open');
+      modalBox.classList.remove('jan-wide');
+      ok.style.display = origOkDisp;
+      ok.textContent = origOk;
+      cancel.textContent = origCancel;
+      body.innerHTML = '';
+      ok.onclick = null;
+      cancel.onclick = null;
+    }
+    cancel.onclick = restoreModal;
+    modal.classList.add('open');
+  }
+
   /* 원자 기능 namespace */
   const paperAtoms = {
     toggleTwoColumn,
@@ -2962,7 +3234,13 @@
     insertKeywordsBlock,
     generateTOC,
     wrapAsPage,
-    insertAcknowledgments
+    insertAcknowledgments,
+    /* v15 — 페이지 크기 */
+    setPageSize,
+    getPageSize,
+    applyPageSizeFromTab,
+    openPageSizePicker,
+    PAGE_SIZES
   };
 
   if (document.readyState === 'loading') {
