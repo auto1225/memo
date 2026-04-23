@@ -6597,16 +6597,16 @@ pageEl.addEventListener('paste', e => {
       if (meta) {
         const kind = meta.getAttribute('data-jan-figure') || 'math';
         const latexEnc = meta.getAttribute('data-jan-latex') || '';
-        const captionEnc = meta.getAttribute('data-jan-caption') || '';
         // b64dec 와 같은 UTF-8 decode: atob → escape → decodeURIComponent
         const dec = (enc) => { try { return decodeURIComponent(escape(atob(enc))); } catch { return ''; } };
         const latexFinal = dec(latexEnc);
-        const captionFinal = dec(captionEnc) || '수식';
-        if (kind === 'math' && latexFinal && typeof window.JANDiagrams.insertMathFromLatex === 'function') {
+        if (kind === 'math' && latexFinal && typeof window.JANDiagrams.insertMathInline === 'function') {
+          // 문장 흐름에 자연스럽게 붙도록 **인라인 수식**으로 삽입.
+          // 블록으로 크게 띄우려면 figure 툴바의 '편집' 모달에서 '블록 모드로 변환' 사용.
           e.preventDefault();
-          window.JANDiagrams.insertMathFromLatex(latexFinal, captionFinal);
+          window.JANDiagrams.insertMathInline(latexFinal);
           scheduleSave();
-          toast('수식 붙여넣기 완료');
+          toast('수식 붙여넣기 완료 (문장 속)');
           return;
         }
       }
@@ -20056,7 +20056,7 @@ if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
 <!-- JustANotepad app ↔ CMS integration (template insertion, state bridge) -->
 <script src="/app-integration.js"></script>
 <!-- JustANotepad AI 다이어그램 생성 (구성도/순서도/인포그래픽) — Mermaid + AI -->
-<script src="/ai-diagrams.js?v=6"></script>
+<script src="/ai-diagrams.js?v=7"></script>
 <!-- JustANotepad home hub — dashboard drawer with recent activity -->
 <script src="/home-hub.js"></script>
 <!-- JustANotepad Service Worker refresh — ensures latest deploy is fetched -->
