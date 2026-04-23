@@ -1318,6 +1318,33 @@
     grid-column:span 3; font-size:12px !important; height:30px !important;
     padding:0 8px !important;
   }
+  /* v15-fix: tool-group 드롭다운 내 action 버튼 & desc — 그리드 전체 폭 점유 */
+  .tool-group > .desc {
+    grid-column:1 / -1 !important;
+    font-size:11.5px !important; color:#888 !important; padding:0 10px 6px !important;
+    line-height:1.5 !important; white-space:normal !important;
+  }
+  .tool-group > .tool-group-action {
+    grid-column:1 / -1 !important;
+    display:flex !important; align-items:center !important; gap:10px !important;
+    padding:7px 10px !important; min-height:32px !important; height:auto !important;
+    background:transparent !important; border:1px solid transparent !important;
+    border-radius:6px !important; text-align:left !important; cursor:pointer !important;
+    font-size:12.5px !important; color:#444 !important; font-family:inherit !important;
+    font-weight:400 !important; min-width:auto !important;
+  }
+  .tool-group > .tool-group-action:hover {
+    background:color-mix(in srgb, var(--accent) 10%, white) !important;
+    color:var(--accent) !important; border-color:transparent !important;
+  }
+  .tool-group > .tool-group-action .tga-ico {
+    width:14px !important; height:14px !important;
+    color:#888; flex-shrink:0;
+  }
+  .tool-group > .tool-group-action:hover .tga-ico { color:var(--accent); }
+  .tool-group > .tool-group-action .tga-label {
+    flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
   .swatches { grid-template-columns:repeat(6,22px); gap:4px; padding:6px; }
   .swatches.open { display:grid; }
   .swatches span { width:22px; height:22px; border-radius:50%; cursor:pointer; border:1px solid #ccc; }
@@ -1351,6 +1378,8 @@
     background-repeat: repeat-y;
     background-attachment: local;
   }
+  /* v15-fix: 페이지 크기 켜진 에디터 안의 스켈레톤 샘플은 부모 폭 따라감 */
+  .page.jan-paged .jan-skel { max-width:none !important; margin:0 !important; }
   /* 페이지 크기별 CSS 변수 (ISO 규격) */
   .page.jan-paged-a4p { --page-w: 210mm; --page-h: 297mm; }
   .page.jan-paged-a4l { --page-w: 297mm; --page-h: 210mm; }
@@ -1375,6 +1404,8 @@
     .page.jan-paged {
       box-shadow: none !important; border: none !important;
       background-image: none !important; margin: 0 !important;
+      /* v15-fix: @page margin 이 이미 용지 여백 담당 — padding 리셋하여 여백 중복 방지 */
+      padding: 0 !important; min-height: auto !important; max-width: none !important;
     }
   }
   /* 페이지 크기 선택 모달 — 카드 그리드 */
@@ -12146,7 +12177,8 @@ function compactifyToolbar() {
         const d = document.createElement('div');
         d.className = 'desc';
         d.textContent = arg;
-        d.style.cssText = 'font-size:12px; color:#888; padding:2px 10px 6px; line-height:1.4;';
+        /* v15-fix: grid-column:1/-1 없으면 6칸 그리드 중 1칸만 차지하여 단어 세로 wrap */
+        d.style.cssText = 'grid-column:1 / -1; font-size:11.5px; color:#888; padding:0 10px 6px; line-height:1.5; white-space:normal;';
         panel.appendChild(d);
       } else if (type === 'sep') {
         const s = document.createElement('div');
@@ -12156,21 +12188,15 @@ function compactifyToolbar() {
         const el = tb.querySelector(arg);
         if (el) panel.appendChild(el); // 기존 버튼을 드롭다운으로 이동 (ID와 이벤트 그대로 유지)
       } else if (type === 'action') {
-        /* v15: 드롭다운 내에서 즉석 생성되는 액션 버튼
-           { icon, label, tip, onclick } — 1줄 레이아웃, 기존 paperMenuDrop 과 일관된 스타일 */
+        /* v15-fix: 드롭다운 내 즉석 액션 버튼 — 논문 드롭다운(.menu-item-btn) 과 완전히 일관된 디자인.
+           .tool-group-action 전용 CSS 를 사용하므로 inline !important 불필요. */
         const b = document.createElement('button');
         b.type = 'button';
         b.className = 'tool-group-action';
         b.title = arg.tip || arg.label;
-        b.style.cssText = 'grid-column:1 / -1; display:flex; align-items:center; gap:8px; ' +
-          'padding:7px 10px; background:transparent !important; border:none !important; ' +
-          'border-radius:6px; text-align:left; cursor:pointer; font-size:12.5px; color:#444 !important; ' +
-          'height:auto !important; min-height:32px;';
-        b.innerHTML = '<svg class="ico" style="width:14px;height:14px;color:#888;flex-shrink:0;"><use href="#' +
+        b.innerHTML = '<svg class="ico tga-ico"><use href="#' +
           (arg.icon || 'i-chevron-right') + '"/></svg>' +
-          '<span style="flex:1;">' + (arg.label || '') + '</span>';
-        b.addEventListener('mouseenter', () => { b.style.background = 'rgba(217,119,87,0.08) !important'; b.style.setProperty('background', 'rgba(217,119,87,0.08)', 'important'); b.style.color = '#8B4513 !important'; });
-        b.addEventListener('mouseleave', () => { b.style.removeProperty('background'); b.style.setProperty('background', 'transparent', 'important'); b.style.color = '#444 !important'; });
+          '<span class="tga-label">' + (arg.label || '') + '</span>';
         b.addEventListener('click', (ev) => {
           ev.stopPropagation();
           try { if (typeof arg.onclick === 'function') arg.onclick(ev); } catch (e) { console.warn('[page-menu]', e); }
@@ -20642,11 +20668,11 @@ if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
 <!-- JustANotepad AI 다이어그램 생성 (구성도/순서도/인포그래픽) — Mermaid + AI -->
 <script src="/ai-diagrams.js?v=9"></script>
 <!-- JustANotepad 논문 작성 기능 (각주·인용·번호·페이지 구분) -->
-<script src="/paper-features.js?v=15"></script>
+<script src="/paper-features.js?v=16"></script>
 <!-- JustANotepad 논문 샘플 템플릿 데이터 (Science 포맷 물리학 논문 3페이지) -->
 <script src="/paper-template-data.js?v=3"></script>
 <!-- v15: 분야별 예시 논문 스켈레톤 (생물·의학 / CS / 공학 / 경제학 / 물리학 경량) -->
-<script src="/paper-samples-by-field.js?v=1"></script>
+<script src="/paper-samples-by-field.js?v=2"></script>
 <!-- JustANotepad CAR-T ALL 바이오 논문 나머지 본문 (2.3 ~ Conclusion + Refs) -->
 <script src="/bio-paper-rest-data.js?v=1"></script>
 <!-- JustANotepad home hub — dashboard drawer with recent activity -->

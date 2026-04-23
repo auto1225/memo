@@ -1778,8 +1778,17 @@
       cancel.textContent = origCancelText;
       body.innerHTML = '';
       cancel.onclick = null;
+      modal.removeEventListener('click', backdropHandler);
+      document.removeEventListener('keydown', escHandler);
     }
+    function backdropHandler(e) {
+      /* v15-fix: backdrop 클릭 = 닫기 */
+      if (e.target === modal) restoreModal();
+    }
+    function escHandler(e) { if (e.key === 'Escape') restoreModal(); }
     cancel.onclick = restoreModal;
+    modal.addEventListener('click', backdropHandler);
+    document.addEventListener('keydown', escHandler);
     modal.classList.add('open');
   }
 
@@ -3104,12 +3113,13 @@
     if (key !== 'none') {
       page.classList.add('jan-paged', PAGE_SIZES[key].cls);
     }
-    /* 현재 탭에 영속 — state.tabs[i].pageSize */
+    /* 현재 탭에 영속 — state.tabs[i].pageSize. v15-fix: 디바운스 저장 (scheduleSave) 우선 */
     try {
       if (typeof window.currentTab === 'function') {
         const t = window.currentTab();
         if (t) t.pageSize = key;
-        if (typeof window.save === 'function') window.save();
+        if (typeof window.scheduleSave === 'function') window.scheduleSave();
+        else if (typeof window.save === 'function') window.save();
       }
     } catch (e) { console.warn('[JANPaper] setPageSize 저장 실패', e); }
     notify('페이지 크기: ' + (PAGE_SIZES[key].label || '없음'));
@@ -3220,8 +3230,19 @@
       body.innerHTML = '';
       ok.onclick = null;
       cancel.onclick = null;
+      modal.removeEventListener('click', backdropHandler);
+      document.removeEventListener('keydown', escHandler);
+    }
+    function backdropHandler(e) {
+      /* v15-fix: backdrop 클릭 = 닫기 (modal 자체가 클릭 타겟일 때만; .modal 내부 클릭은 무시) */
+      if (e.target === modal) restoreModal();
+    }
+    function escHandler(e) {
+      if (e.key === 'Escape') { restoreModal(); }
     }
     cancel.onclick = restoreModal;
+    modal.addEventListener('click', backdropHandler);
+    document.addEventListener('keydown', escHandler);
     modal.classList.add('open');
   }
 

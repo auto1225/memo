@@ -292,12 +292,14 @@
 </p>
 `};
 
-  /* 분야별 메타 리스트 (picker 에서 사용) */
+  /* 분야별 메타 리스트 (picker 에서 사용).
+     아이콘은 반드시 app.html 의 <symbol id="..."> 에 존재하는 것만 사용.
+     검증 가능한 id: i-sparkles, i-heart, i-code, i-building, i-stats, i-book, i-book-open */
   window.JANPaperTemplate.byFieldList = [
-    { key: 'physics',     icon: 'i-atom',      field: '물리학',        label: '광격자 SOC-BEC 수송',           summary: 'Science 포맷 · 경량 1페이지 스켈레톤' },
+    { key: 'physics',     icon: 'i-sparkles',  field: '물리학',        label: '광격자 SOC-BEC 수송',           summary: 'Science 포맷 · 경량 1페이지 스켈레톤' },
     { key: 'biomedical',  icon: 'i-heart',     field: '생물·의학',      label: 'CD19 CAR-T (r/r B-ALL)',       summary: 'Cell 포맷 · 임상시험 2상 결과 1.5페이지' },
-    { key: 'cs',          icon: 'i-cpu',       field: '컴퓨터과학',     label: 'Sparse MoA Transformer',        summary: 'NeurIPS 포맷 · 효율 개선 방법 1.5페이지' },
-    { key: 'engineering', icon: 'i-cog',       field: '공학',          label: 'AM Ti-6Al-4V 피로 (HIP+LSP)',  summary: 'JMPT 포맷 · 재료/기계 실험 1.5페이지' },
-    { key: 'economics',   icon: 'i-chart',     field: '경제학',        label: '최저임금 → 청년 고용 (2018 KR)', summary: 'AEJ:Applied 포맷 · DiD·RDD 실증 1.5페이지' }
+    { key: 'cs',          icon: 'i-code',      field: '컴퓨터과학',     label: 'Sparse MoA Transformer',        summary: 'NeurIPS 포맷 · 효율 개선 방법 1.5페이지' },
+    { key: 'engineering', icon: 'i-building',  field: '공학',          label: 'AM Ti-6Al-4V 피로 (HIP+LSP)',  summary: 'JMPT 포맷 · 재료/기계 실험 1.5페이지' },
+    { key: 'economics',   icon: 'i-stats',     field: '경제학',        label: '최저임금 → 청년 고용 (2018 KR)', summary: 'AEJ:Applied 포맷 · DiD·RDD 실증 1.5페이지' }
   ];
 })();
