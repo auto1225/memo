@@ -3174,14 +3174,36 @@
     return parseFloat(mmValue) * 96 / 25.4;
   }
 
+  /* v29: auto-pagination 포기. 단순 CSS 만 적용.
+     - .page.jan-paged = white 카드 (CSS 에서 설정)
+     - 사용자는 Ctrl+Enter 또는 메뉴 "페이지 구분 삽입" 으로 수동 break
+     - overlay/rebalance 없음 → 타이핑 완전 정상 */
   let _sheetsUpdatePending = false;
   function updatePageSheets() {
-    if (_sheetsUpdatePending) return;
-    _sheetsUpdatePending = true;
-    requestAnimationFrame(() => {
-      _sheetsUpdatePending = false;
-      _doUpdatePageSheets();
+    /* v29: noop — 복잡한 overlay 로직 모두 제거. CSS 만으로 시각화 */
+    const page = getPageEl();
+    if (!page) return;
+    const wrap = page.parentElement;
+    if (!wrap) return;
+    /* 기존 오버레이 / margin 조정 잔재 제거 (이전 버전에서 남은 것들) */
+    const outerSheets = wrap.querySelector(':scope > .jan-page-sheets');
+    if (outerSheets) outerSheets.remove();
+    const innerSheets = page.querySelector(':scope > .jan-page-sheets');
+    if (innerSheets) innerSheets.remove();
+    const existingLabels = page.querySelector(':scope > .jan-page-labels');
+    if (existingLabels) existingLabels.remove();
+    /* 콘텐츠 블록의 이전 shift margin 복원 */
+    Array.from(page.children).forEach(c => {
+      if (c.dataset && c.dataset.janPgShift) {
+        c.style.marginTop = c.dataset.janPgOrigMt || '';
+        delete c.dataset.janPgShift;
+        delete c.dataset.janPgOrigMt;
+      }
     });
+    /* 인라인 배경 강제 override 도 정리 */
+    ['background-image','background-color','background-size','background-repeat',
+     'background-attachment','background-position','box-shadow','border','min-height'
+    ].forEach(prop => page.style.removeProperty(prop));
   }
 
   function _doUpdatePageSheets() {

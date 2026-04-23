@@ -1349,43 +1349,37 @@
   .swatches.open { display:grid; }
   .swatches span { width:22px; height:22px; border-radius:50%; cursor:pointer; border:1px solid #ccc; }
 
-  /* ===== 페이지 크기 시스템 (A4/A3/B4 · 세로/가로) · v24: 배경 유지 + divider 오버레이 =====
-     기존 paperStyle (ruled/grid/dot) 배경과 충돌하지 않도록 background 는 건드리지 않음.
-     대신 각 페이지 경계에 뚜렷한 divider overlay + "페이지 N 시작" 라벨을 위로 올림. */
+  /* ===== 페이지 크기 시스템 (A4/A3/B4 · 세로/가로) · v29: 심플 단일 카드 =====
+     auto-pagination 폐기. 논문 템플릿처럼 "페이지 = 하나의 큰 흰 카드" 로 심플하게.
+     - max-width 로 A4/A3/B4 폭 고정
+     - min-height 로 최소 1페이지 높이 보장
+     - 그림자로 종이 카드 룩
+     - 콘텐츠 넘치면 아래로 자연스럽게 확장 (별도 페이지 렌더 없음)
+     - 페이지 경계 시각화는 background-image gradient 만 (subtle line) */
   .page.jan-paged {
     max-width: var(--page-w, 210mm);
     margin: 24px auto 120px !important;
     padding: var(--page-margin, 20mm) var(--page-margin-x, 22mm) !important;
     box-sizing: border-box;
     position: relative;
+    min-height: var(--page-h, 297mm);
+    background-color: #fff !important;
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent calc(var(--page-h, 297mm) - 1px),
+      rgba(217, 119, 87, 0.25) calc(var(--page-h, 297mm) - 1px),
+      rgba(217, 119, 87, 0.25) var(--page-h, 297mm)
+    ) !important;
+    background-size: 100% var(--page-h, 297mm) !important;
+    background-position: 0 0 !important;
+    background-repeat: repeat-y !important;
+    background-attachment: local !important;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05), 0 12px 28px rgba(0,0,0,0.10) !important;
+    border: 1px solid rgba(0,0,0,0.08) !important;
   }
-  /* stacked sheets 오버레이는 더 이상 사용 안 함 — 기존 렌더 정리 */
-  .jan-page-sheets, .jan-sheet { display:none !important; }
-  /* Page N 라벨은 유지 */
-  .jan-page-labels .jan-sheet-label {
-    display: inline-block !important;
-    position: absolute;
-    right: 0;
-    font-size: 10.5px;
-    color: #D97757;
-    background: #fff;
-    border: 1px solid rgba(217, 119, 87, 0.35);
-    border-radius: 10px;
-    padding: 2px 10px;
-    letter-spacing: 0.5px;
-    font-weight: 600;
-    pointer-events: none;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-    white-space: nowrap;
-    width: max-content;
-    line-height: 1.4;
-  }
-  /* v27-fix: 오버레이 내부 모든 요소에 pointer-events:none 강제 — 클릭 pass-through */
-  .jan-page-labels, .jan-page-labels * {
-    pointer-events: none !important;
-    -webkit-user-select: none;
-    user-select: none;
-  }
+  /* 모든 overlay 잔재 숨김 (이전 버전 호환) */
+  .jan-page-sheets, .jan-sheet, .jan-page-labels, .jan-page-divider, .jan-page-margin-bottom { display:none !important; }
   /* 페이지 번호 pill 라벨 — 페이지 시트 내부 absolute */
   .jan-page-labels {
     position: absolute;
@@ -20733,7 +20727,7 @@ if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
 <!-- JustANotepad AI 다이어그램 생성 (구성도/순서도/인포그래픽) — Mermaid + AI -->
 <script src="/ai-diagrams.js?v=9"></script>
 <!-- JustANotepad 논문 작성 기능 (각주·인용·번호·페이지 구분) -->
-<script src="/paper-features.js?v=28"></script>
+<script src="/paper-features.js?v=29"></script>
 <!-- JustANotepad 논문 샘플 템플릿 데이터 (Science 포맷 물리학 논문 3페이지) -->
 <script src="/paper-template-data.js?v=3"></script>
 <!-- v15: 분야별 예시 논문 스켈레톤 (생물·의학 / CS / 공학 / 경제학 / 물리학 경량) -->
