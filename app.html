@@ -2007,6 +2007,7 @@
     <button id="loadFontsBtn" title="시스템 폰트 가져오기 (Chrome/Edge 권한 필요)"><svg class="ico"><use href="#i-refresh"/></svg></button>
     <button id="charBtn" title="특수 문자 삽입" style="font-family:serif; font-weight:700;">Ω</button>
     <button id="mathBtn" title="수식 삽입" style="font-family:serif; font-style:italic; font-weight:700;">∫</button>
+    <button id="paperMenuBtn" title="논문 요소 (각주·인용·참고문헌·페이지 구분)" aria-haspopup="menu"><svg class="ico"><use href="#i-clipboard"/></svg></button>
     <button id="paperStyleBtn" title="배경 스타일 (줄/모눈/점격/오선지 등)"><svg class="ico"><use href="#i-pages"/></svg></button>
     <button id="attachFileBtn" title="파일 첨부"><svg class="ico"><use href="#i-paperclip"/></svg></button>
     <button id="audioRecordBtn" title="음성 녹음"><svg class="ico"><use href="#i-record"/></svg></button>
@@ -5863,7 +5864,14 @@ const COMMANDS = [
   { ico:'i-upload', name:'내보내기 (JSON)', desc:'전체 백업 파일', run:() => $('exportBtn').click() },
   { ico:'i-download', name:'가져오기', desc:'백업 불러오기', run:() => $('importBtn').click() },
   { ico:'i-printer', name:'인쇄', desc:'현재 탭 인쇄', hint:'Ctrl+P', run:() => $('printBtn').click() },
-  { ico:'i-md', name:'마크다운 토글', desc:'리치 ↔ 마크다운', run:() => $('mdBtn').click() }
+  { ico:'i-md', name:'마크다운 토글', desc:'리치 ↔ 마크다운', run:() => $('mdBtn').click() },
+  /* 논문 작성 기능 (paper-features.js) */
+  { ico:'i-clipboard', name:'각주 삽입', desc:'논문 — <sup> 각주 + 하단 목록', keywords:['footnote','각주','논문'], run:() => window.JANPaper && window.JANPaper.insertFootnote() },
+  { ico:'i-clipboard', name:'인용 삽입', desc:'논문 — 참고문헌 목록에서 선택해 [N] 삽입', keywords:['cite','citation','인용','논문'], run:() => window.JANPaper && window.JANPaper.insertCitation() },
+  { ico:'i-clipboard', name:'참고문헌 항목 추가', desc:'논문 — IEEE 스타일 참고문헌 추가', keywords:['bibliography','reference','참고문헌','논문'], run:() => window.JANPaper && window.JANPaper.addBibEntry() },
+  { ico:'i-clipboard', name:'참고문헌 영역 열기', desc:'논문 — 참고문헌 섹션으로 스크롤', keywords:['bibliography','참고문헌'], run:() => window.JANPaper && window.JANPaper.openBibManager() },
+  { ico:'i-pages', name:'페이지 구분 삽입', desc:'논문 — 인쇄 시 새 페이지로 분할', keywords:['page','break','페이지','구분','논문'], run:() => window.JANPaper && window.JANPaper.insertPageBreak() },
+  { ico:'i-refresh', name:'논문 번호 재정렬', desc:'각주·인용·그림·표 번호 다시 계산', keywords:['renumber','재정렬','논문'], run:() => { if (!window.JANPaper) return; window.JANPaper.renumberFootnotes(); window.JANPaper.renumberCitations(); window.JANPaper.refreshNumbering(); if (typeof toast === 'function') toast('재정렬 완료'); } }
 ];
 const palette = $('palette'), palInput = $('palInput'), palResults = $('palResults');
 let palSelected = 0, palFiltered = [];
@@ -20091,6 +20099,8 @@ if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
 <script src="/app-integration.js"></script>
 <!-- JustANotepad AI 다이어그램 생성 (구성도/순서도/인포그래픽) — Mermaid + AI -->
 <script src="/ai-diagrams.js?v=9"></script>
+<!-- JustANotepad 논문 작성 기능 (각주·인용·번호·페이지 구분) -->
+<script src="/paper-features.js?v=1"></script>
 <!-- JustANotepad home hub — dashboard drawer with recent activity -->
 <script src="/home-hub.js"></script>
 <!-- JustANotepad Service Worker refresh — ensures latest deploy is fetched -->
