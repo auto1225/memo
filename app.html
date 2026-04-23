@@ -1846,6 +1846,7 @@
     <button id="searchToggle" class="collapsible" aria-label="검색 열기" title="검색 (Ctrl+F)"><svg class="ico"><use href="#i-search"/></svg></button>
     <button id="focusBtn" class="collapsible" aria-label="집중 모드 전환" title="집중 모드"><svg class="ico"><use href="#i-target"/></svg></button>
     <button id="helpBtn" class="collapsible" aria-label="도움말 열기" title="도움말"><svg class="ico"><use href="#i-help"/></svg></button>
+    <button id="syncBtn" class="collapsible" aria-label="동기화 설정" title="동기화 설정 (Ctrl+Shift+Y) — 내 PC 폴더·Dropbox 등"><svg class="ico"><use href="#i-cloud"/></svg></button>
     <button id="authBtn" class="collapsible" aria-label="로그인" title="로그인"><svg class="ico" style="width:14px;height:14px;"><use href="#i-users"/></svg><span style="font-size:12px;font-weight:500;">로그인</span></button>
 
     <!-- Overflow menu for narrow widths (≤ 760px) — hidden by CSS at wide widths. -->
@@ -6583,6 +6584,27 @@ $('helpBtn').addEventListener('click', () => {
   else hm.classList.add('open');
 });
 $('helpClose').addEventListener('click', () => $('helpModal').classList.remove('open'));
+
+/* 동기화 설정 — 상단 툴바 + 단축키 + 명령 팔레트 진입점 */
+function openStorageOnboarding() {
+  if (window.JANStorageOnboarding && window.JANStorageOnboarding.open) {
+    window.JANStorageOnboarding.open();
+  } else {
+    try { toast('동기화 모듈 로딩 중입니다…', 2500); } catch {}
+    setTimeout(() => {
+      if (window.JANStorageOnboarding && window.JANStorageOnboarding.open) window.JANStorageOnboarding.open();
+    }, 500);
+  }
+}
+$('syncBtn')?.addEventListener('click', openStorageOnboarding);
+// Ctrl+Shift+Y — sYnc 설정 단축키
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'y' || e.key === 'Y')) {
+    e.preventDefault();
+    openStorageOnboarding();
+  }
+});
+window.openStorageOnboarding = openStorageOnboarding;
 
 /* ============================================================
    드래그 이동
@@ -19611,6 +19633,8 @@ if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
   add({ ico:'i-download', name:'지금 저장', desc:'즉시 로컬 저장 (자동저장도 ON)', hint:'Ctrl+S', run:async () => { try { syncPageToState(); } catch {} try { await save(); toast('저장됨'); } catch {} } });
   add({ ico:'i-folder', name:'저장 폴더 선택', desc:'파일시스템 접근 — 모든 내보내기가 이 폴더로', run:async () => { try { const h = await window.jnpSaveSystem?.pickRootFolder?.(); if (h) toast('저장 폴더: ' + (window.jnpSaveSystem?.getRootFolder?.() || '설정됨')); } catch (e) { toast('파일시스템 접근 권한이 필요합니다'); } } });
   add({ ico:'i-folder', name:'저장 시스템 설정', desc:'자동 분류 / 폴더 / 덮어쓰기', run:() => { try { window.jnpSaveSystem?.openConfig?.(); } catch { toast('저장 시스템을 로드 중입니다'); } } });
+  add({ ico:'i-cloud', name:'동기화 설정 (클라우드)', desc:'내 PC 폴더 · Dropbox · Google Drive 등 방식 선택', hint:'Ctrl+Shift+Y', keywords:['sync','cloud','byoc','dropbox','onedrive','gdrive','google','iCloud','동기화','클라우드','백업'], run:() => { try { openStorageOnboarding(); } catch { toast('동기화 모듈 로딩 실패'); } } });
+  add({ ico:'i-cloud', name:'지금 동기화', desc:'현재 provider 로 즉시 업로드', keywords:['push','upload','동기화'], run:async () => { try { const r = await window.JANSync?.syncNow?.(); toast(r?.ok ? '동기화 완료' : '동기화 실패: ' + (r?.error || r?.reason || '알 수 없음')); } catch (e) { toast('동기화 오류: ' + e.message); } } });
 
   // ─── 서식 (Format) — 인라인 스타일 ────────────────────
   add({ ico:'i-note', name:'굵게 (Bold)', desc:'선택 텍스트를 진하게', hint:'Ctrl+B', run:() => { document.execCommand('bold'); scheduleSave(); } });
