@@ -6585,6 +6585,20 @@ function autoCalc() {
   } catch {}
 }
 pageEl.addEventListener('paste', e => {
+  // 1) JustANotepad 자체 figure 가 클립보드에 있는 경우 — figure HTML 만 복원 (이미지/텍스트 무시)
+  //    copyFigureForWord 가 <!--jan-figure-start--> ... <!--jan-figure-end--> 로 감싸 저장함.
+  const htmlData = e.clipboardData.getData('text/html') || '';
+  if (htmlData.includes('<!--jan-figure-start-->') && htmlData.includes('<!--jan-figure-end-->')) {
+    const m = htmlData.match(/<!--jan-figure-start-->([\s\S]*?)<!--jan-figure-end-->/);
+    if (m && m[1]) {
+      e.preventDefault();
+      // 삽입 — 현재 커서 위치 뒤에 block 으로
+      insertHtmlAtCursor(m[1] + '<br>');
+      scheduleSave();
+      toast('수식이 복원됨 (붙여넣기)');
+      return;
+    }
+  }
   const items = e.clipboardData.items;
   for (const it of items) {
     if (it.type.startsWith('image/')) {
@@ -20027,7 +20041,7 @@ if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
 <!-- JustANotepad app ↔ CMS integration (template insertion, state bridge) -->
 <script src="/app-integration.js"></script>
 <!-- JustANotepad AI 다이어그램 생성 (구성도/순서도/인포그래픽) — Mermaid + AI -->
-<script src="/ai-diagrams.js?v=4"></script>
+<script src="/ai-diagrams.js?v=5"></script>
 <!-- JustANotepad home hub — dashboard drawer with recent activity -->
 <script src="/home-hub.js"></script>
 <!-- JustANotepad Service Worker refresh — ensures latest deploy is fetched -->

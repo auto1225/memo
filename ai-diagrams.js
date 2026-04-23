@@ -1382,12 +1382,27 @@
     else if (mermaidEnc) plainText = b64dec(mermaidEnc);
     else plainText = (fig.textContent || '').trim();
 
+    // text/html — figure 의 outerHTML 을 그대로 넣어 JustANotepad 안에 붙여넣기 시
+    // 편집 가능한 figure 로 복원되게 함. 외부 앱(Word·한글)도 대부분 HTML 을 인식하면
+    // 이미지 대신 텍스트가 붙여질 수 있어서, 외부용은 "주석" 으로 감싸서 데이터만 남기고
+    // 시각적으로는 img(base64) 가 대신 렌더되도록 한다.
+    const figHtml = fig.outerHTML;
+    const pngDataUrl = await blobToDataURL(pngBlob);
+    // Word·한글 등 HTML 을 선호하는 앱을 위한 렌더링: base64 이미지 + 원본 figure 를
+    // 주석 블록에 보관 (JustANotepad 가 붙여넣을 때 주석을 우선 파싱).
+    const htmlPayload =
+      '<!--jan-figure-start-->' + figHtml + '<!--jan-figure-end-->' +
+      '<img src="' + pngDataUrl + '" alt="' + escapeHtml(plainText) + '" style="max-width:100%;">';
+
     try {
       if (window.ClipboardItem && navigator.clipboard && navigator.clipboard.write) {
-        const items = { 'image/png': pngBlob };
+        const items = {
+          'image/png': pngBlob,
+          'text/html': new Blob([htmlPayload], { type: 'text/html' }),
+        };
         if (plainText) items['text/plain'] = new Blob([plainText], { type: 'text/plain' });
         await navigator.clipboard.write([new ClipboardItem(items)]);
-        notify('복사됨 · Word · 한글 · 메일에 붙여넣기 하세요');
+        notify('복사됨 · 노트에 붙여넣으면 수식으로, Word·한글·메일에는 이미지로');
         return true;
       }
     } catch (e) {
@@ -1401,6 +1416,15 @@
     } catch (e) {
       throw new Error('클립보드 접근 거부됨');
     }
+  }
+
+  function blobToDataURL(blob) {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.onerror = () => reject(new Error('blob → dataURL 실패'));
+      r.readAsDataURL(blob);
+    });
   }
 
   /* 현재 커서(또는 미리 캡처한 range) 위치에 노드를 그대로 삽입 — 원본 선택 텍스트 덮어쓰기 안 함 */
