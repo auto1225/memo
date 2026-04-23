@@ -381,8 +381,19 @@
 
     drawer.querySelector('button').addEventListener('click', () => toggleDrawer(false));
     backdrop.addEventListener('click', () => toggleDrawer(false));
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') toggleDrawer(false); });
   }
+
+  // ESC → drawer 닫기. document 레벨에 전역 등록 (build() 이후에 등록해도
+  // drawer 참조는 closure 로 해결). capture 단계로 등록해 다른 ESC 핸들러에
+  // 방해받지 않도록 하고, drawer 가 열려 있을 때만 toggleDrawer 호출.
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (!drawer || !drawer.classList.contains('open')) return;
+    // command palette 가 열려 있으면 팔레트를 먼저 닫게 양보
+    const palEl = document.querySelector('.jnp-palette-backdrop');
+    if (palEl && getComputedStyle(palEl).display !== 'none') return;
+    toggleDrawer(false);
+  }, true);
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', build);
   else build();
