@@ -1762,7 +1762,11 @@
   <symbol id="i-filter" viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></symbol>
   <symbol id="i-rotate" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></symbol>
   <symbol id="i-crop" viewBox="0 0 24 24"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></symbol>
-  <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></symbol>
+  <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/></symbol>
+  <symbol id="i-handwriting" viewBox="0 0 24 24"><path d="M3 20c2.5-.5 4-2 4.5-4.5S9 10 11 10s2 2 1.5 4.5S14 20 16.5 19.5 20 17 21 14"/><path d="M15 5l4 4-8.5 8.5a2 2 0 0 1-1 .55l-2.8.6a.5.5 0 0 1-.6-.6l.6-2.8a2 2 0 0 1 .55-1L15 5z"/><path d="M13 7l4 4"/></symbol>
+  <symbol id="i-diagram" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="5" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/><rect x="14" y="16" width="7" height="5" rx="1"/><path d="M6.5 8v3.5h11V8"/><path d="M6.5 16v-3.5h11V16"/><line x1="12" y1="11" x2="12" y2="13"/></symbol>
+  <symbol id="i-flowchart" viewBox="0 0 24 24"><rect x="2" y="9" width="6" height="6" rx="1"/><rect x="16" y="9" width="6" height="6" rx="1"/><polygon points="9 12 13 8 15 12 13 16"/><line x1="8" y1="12" x2="9" y2="12"/><line x1="15" y1="12" x2="16" y2="12"/></symbol>
+  <symbol id="i-infographic" viewBox="0 0 24 24"><rect x="3" y="14" width="4" height="7" rx="1"/><rect x="10" y="8" width="4" height="13" rx="1"/><rect x="17" y="3" width="4" height="18" rx="1"/></symbol>
   <symbol id="i-bucket" viewBox="0 0 24 24"><path d="M19 11l-7-7L3 13l7 7 9-9z"/><path d="M5 2v6"/><path d="M19 15v4a2 2 0 0 1-2 2h-1"/></symbol>
   <symbol id="i-eyedrop" viewBox="0 0 24 24"><path d="M2 22l3-3"/><path d="M12 12L5 19l-2-2 7-7 5 5-3 3z"/><path d="M18 2l4 4-5 5-4-4 5-5z"/></symbol>
   <symbol id="i-text-t" viewBox="0 0 24 24"><path d="M5 4h14M12 4v16M8 20h8"/></symbol>
@@ -1936,7 +1940,7 @@
     <button data-cmd="strikeThrough" title="취소선" class="text-btn strike">S</button>
     <button id="colorBtn" title="글자색"><svg class="ico"><use href="#i-palette"/></svg></button>
     <button id="hiliteBtn" title="형광펜"><svg class="ico"><use href="#i-highlight"/></svg></button>
-    <button id="sketchBtn" title="손글씨·스케치 (필압·터치·스타일러스 지원)"><svg class="ico"><use href="#i-brush"/></svg></button>
+    <button id="sketchBtn" title="손글씨·스케치 (필압·터치·스타일러스 지원)"><svg class="ico"><use href="#i-handwriting"/></svg></button>
     <div class="sep"></div>
     <button id="alignLeftBtn" title="왼쪽 정렬 (Ctrl+Shift+L)"><svg class="ico"><use href="#i-align-left"/></svg></button>
     <button id="alignCenterBtn" title="가운데 정렬 (Ctrl+Shift+E)"><svg class="ico"><use href="#i-align-center"/></svg></button>
@@ -2050,7 +2054,7 @@
 
     <div class="sketch-wrap" id="sketchWrap">
       <div class="sketch-tools">
-        <button id="sketchPen" class="active"><svg class="ico"><use href="#i-brush"/></svg>펜</button>
+        <button id="sketchPen" class="active"><svg class="ico"><use href="#i-pencil"/></svg>펜</button>
         <button id="sketchHighlight"><svg class="ico"><use href="#i-highlight"/></svg>형광펜</button>
         <button id="sketchEraser"><svg class="ico"><use href="#i-eraser"/></svg>지우개</button>
         <input type="color" id="sketchColor" value="#FAE100" title="색상 선택" />
@@ -2342,6 +2346,9 @@
   <button data-sel="translate" title="번역"><svg class="ico"><use href="#i-translate"/></svg>번역</button>
   <button data-sel="ai-improve" title="AI 다듬기"><svg class="ico"><use href="#i-sparkles"/></svg>AI 다듬기</button>
   <button data-sel="ai-explain" title="AI 설명"><svg class="ico"><use href="#i-help"/></svg>설명</button>
+  <button data-sel="diagram-org" title="구성도 만들기"><svg class="ico"><use href="#i-diagram"/></svg>구성도</button>
+  <button data-sel="diagram-flow" title="순서도 만들기"><svg class="ico"><use href="#i-flowchart"/></svg>순서도</button>
+  <button data-sel="diagram-info" title="인포그래픽 만들기"><svg class="ico"><use href="#i-infographic"/></svg>인포그래픽</button>
   <button data-sel="web" title="웹 검색"><svg class="ico"><use href="#i-globe"/></svg>검색</button>
   <div class="sep"></div>
   <button data-sel="highlight" title="형광펜"><svg class="ico"><use href="#i-highlight"/></svg></button>
@@ -2459,6 +2466,9 @@
         <button data-ai="translate-ko"><svg class="ico"><use href="#i-translate"/></svg>한국어로 번역</button>
         <button data-ai="translate-en"><svg class="ico"><use href="#i-translate"/></svg>영어로 번역</button>
         <button data-ai="flashcards"><svg class="ico"><use href="#i-cards"/></svg>플래시카드 만들기</button>
+        <button data-ai="diagram-org"><svg class="ico"><use href="#i-diagram"/></svg>구성도 만들기</button>
+        <button data-ai="diagram-flow"><svg class="ico"><use href="#i-flowchart"/></svg>순서도 만들기</button>
+        <button data-ai="diagram-info"><svg class="ico"><use href="#i-infographic"/></svg>인포그래픽 만들기</button>
         <button data-ai="ask"><svg class="ico"><use href="#i-help"/></svg>자유 질문</button>
       </div>
       <div class="ai-current-action" id="aiCurrentAction"><b id="aiCurrentLabel">—</b> <span id="aiCurrentState" style="color:var(--ink-soft); margin-left:6px;"></span></div>
@@ -5689,7 +5699,7 @@ const COMMANDS = [
   { ico:'i-mic', name:'음성 입력', desc:'말로 메모 받아쓰기', run:() => $('voiceBtn').click() },
   { ico:'i-speaker', name:'읽어주기', desc:'현재 메모를 음성으로', run:() => $('speakBtn').click() },
   { ico:'i-lock', name:'탭 잠금/해제', desc:'비밀번호로 암호화', run:() => toggleLock(state.activeId) },
-  { ico:'i-brush', name:'스케치 삽입', desc:'그림 그려서 메모에', run:() => openSketch() },
+  { ico:'i-handwriting', name:'스케치 삽입', desc:'그림 그려서 메모에', run:() => openSketch() },
   { ico:'i-clipboard', name:'템플릿 삽입', desc:'일기, 회의록, TODO 등', run:() => $('templateBtn').click() },
   { ico:'i-cal-tag', name:'캘린더 태그 삽입', desc:'YYYY-MM-DD 태그', run:() => $('dateTagBtn').click() },
   { ico:'i-table', name:'표 삽입', desc:'행x열 지정', run:() => $('tableBtn').click() },
@@ -9388,6 +9398,8 @@ const AI_ACTION_LABELS = {
   continue: '이어서 쓰기', title: '제목 생성', tasks: '할 일 추출',
   'translate-ko': '한국어로 번역', 'translate-en': '영어로 번역',
   flashcards: '플래시카드 만들기', ask: '자유 질문',
+  'diagram-org': '구성도 만들기', 'diagram-flow': '순서도 만들기',
+  'diagram-info': '인포그래픽 만들기',
 };
 function setAiActionUI(action, state /* 'running' | 'done' | 'error' | null */) {
   // 모든 버튼 active 해제 후 현재만 active
@@ -9411,6 +9423,21 @@ async function runAiAction(action) {
   tmp.innerHTML = t.html || '';
   const text = (tmp.textContent || '').trim();
   if (!text && action !== 'ask') { toast('탭에 내용이 없습니다'); return; }
+
+  // 다이어그램 3종: AI 모달에서 실행 — 현재 탭 본문으로 바로 생성
+  if (action === 'diagram-org' || action === 'diagram-flow' || action === 'diagram-info') {
+    if (!window.JANDiagrams) { toast('다이어그램 모듈이 로드되지 않았습니다'); return; }
+    $('aiModal').classList.remove('open');
+    try {
+      if (action === 'diagram-org')  await window.JANDiagrams.buildOrgChart(text);
+      if (action === 'diagram-flow') await window.JANDiagrams.buildFlowchart(text);
+      if (action === 'diagram-info') await window.JANDiagrams.buildInfographic(text);
+    } catch (err) {
+      console.error('[diagram]', err);
+      toast('다이어그램 생성 실패: ' + err.message);
+    }
+    return;
+  }
 
   let system, user;
   if (action === 'ask') {
@@ -9946,6 +9973,24 @@ selMenu.querySelectorAll('[data-sel]').forEach(btn => {
         $('aiModal').classList.add('open');
         showAiMain();
       }
+    } else if (act === 'diagram-org') {
+      hideSelMenu();
+      if (!window.JANDiagrams) { toast('다이어그램 모듈 로드 중…'); return; }
+      if (!getActiveProvider()) { toast('AI 계정을 먼저 연결하세요'); openAiKeyPanel(); $('aiModal').classList.add('open'); return; }
+      restorePageSel();
+      try { await window.JANDiagrams.buildOrgChart(text); } catch (err) { console.error(err); toast('구성도 생성 실패: ' + err.message); }
+    } else if (act === 'diagram-flow') {
+      hideSelMenu();
+      if (!window.JANDiagrams) { toast('다이어그램 모듈 로드 중…'); return; }
+      if (!getActiveProvider()) { toast('AI 계정을 먼저 연결하세요'); openAiKeyPanel(); $('aiModal').classList.add('open'); return; }
+      restorePageSel();
+      try { await window.JANDiagrams.buildFlowchart(text); } catch (err) { console.error(err); toast('순서도 생성 실패: ' + err.message); }
+    } else if (act === 'diagram-info') {
+      hideSelMenu();
+      if (!window.JANDiagrams) { toast('다이어그램 모듈 로드 중…'); return; }
+      if (!getActiveProvider()) { toast('AI 계정을 먼저 연결하세요'); openAiKeyPanel(); $('aiModal').classList.add('open'); return; }
+      restorePageSel();
+      try { await window.JANDiagrams.buildInfographic(text); } catch (err) { console.error(err); toast('인포그래픽 생성 실패: ' + err.message); }
     }
   });
 });
@@ -10752,7 +10797,7 @@ COMMANDS.unshift(
   { ico:'i-paperclip', name:'파일 첨부', desc:'어떤 파일이든', run:() => $('attachFileBtn').click() },
   { ico:'i-record', name:'음성 녹음', desc:'메모에 오디오 삽입', run:() => $('audioRecordBtn').click() },
   { ico:'i-mic', name:'회의 노트 (CLOVA Note 스타일)', desc:'녹음+실시간받아쓰기+AI화자분리·요약', run:() => $('meetingNoteBtn').click() },
-  { ico:'i-brush', name:'손글씨·펜 모드', desc:'터치·스타일러스 필압 감지', run:() => $('sketchBtn').click() },
+  { ico:'i-handwriting', name:'손글씨·펜 모드', desc:'터치·스타일러스 필압 감지', run:() => $('sketchBtn').click() },
   { ico:'i-sparkles', name:'손글씨 → 텍스트 변환', desc:'노트 필기 오버레이를 열고 AI 변환 준비', run:() => { if (window.JANHandwriting) window.JANHandwriting.open(); else $('sketchBtn').click(); } },
   { ico:'i-bucket', name:'전문 그림판 (레이어·AI)', desc:'레이어·필터·AI 이미지 생성', run:() => $('paintTopBtn')?.click() },
   { ico:'i-grid-view', name:'갤러리 뷰', desc:'모든 메모 썸네일', run:openGallery },
@@ -17114,7 +17159,7 @@ const HELP_CATALOG = {
   '그림·이미지': [
     { ico:'i-brush', name:'그림판 (Paint)', desc:'포토샵급 편집기 — 레이어·필터·AI 생성', action:() => Paint.open() },
     { ico:'i-resize', name:'이미지 변환기', desc:'크기·용량·포맷(JPG/PNG/WebP) 변경', action:() => ImageConverter.open() },
-    { ico:'i-brush', name:'손글씨/스케치', desc:'펜·필압 감지 그리기', action:() => $('sketchBtn').click() },
+    { ico:'i-handwriting', name:'손글씨/스케치', desc:'펜·필압 감지 그리기', action:() => $('sketchBtn').click() },
     { ico:'i-camera', name:'화면 캡쳐', desc:'일부 영역 캡쳐해서 메모에 삽입', action:() => $('captureBtn').click() }
   ],
   '명함·연락처': [
@@ -19700,6 +19745,32 @@ if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
   add({ ico:'i-search', name:'상세 통계', desc:'글자·단어·읽기시간·구조', run:clickIf('statsBtn') });
   add({ ico:'i-timer', name:'포모도로 타이머', desc:'25분 집중 타이머', run:clickIf('pomoBtn') });
   add({ ico:'i-sparkles', name:'AI 계정 연결 / 키 설정', desc:'OpenAI·Gemini·Claude API 키', run:() => { try { openAiKeyPanel(); } catch { toast('AI를 먼저 열어주세요'); } } });
+
+  // ─── AI 다이어그램 (구성도·순서도·인포그래픽) ─────────
+  const _runDiag = (kind) => async () => {
+    if (!window.JANDiagrams) { toast('다이어그램 모듈이 로드 중입니다'); return; }
+    if (typeof getActiveProvider === 'function' && !getActiveProvider()) {
+      toast('AI 계정을 먼저 연결하세요'); try { openAiKeyPanel(); $('aiModal').classList.add('open'); } catch {} return;
+    }
+    // 선택 텍스트가 있으면 그걸, 없으면 현재 탭 본문을 사용
+    const sel = window.getSelection && window.getSelection().toString().trim();
+    let text = sel;
+    if (!text) {
+      try {
+        const t = currentTab();
+        if (t && t.html) { const d = document.createElement('div'); d.innerHTML = t.html; text = (d.textContent || '').trim(); }
+      } catch {}
+    }
+    if (!text) { toast('변환할 텍스트가 없습니다 (선택 또는 탭 본문)'); return; }
+    try {
+      if (kind === 'org')  await window.JANDiagrams.buildOrgChart(text);
+      if (kind === 'flow') await window.JANDiagrams.buildFlowchart(text);
+      if (kind === 'info') await window.JANDiagrams.buildInfographic(text);
+    } catch (err) { console.error(err); toast('다이어그램 생성 실패: ' + err.message); }
+  };
+  add({ ico:'i-diagram', name:'다이어그램: 구성도로 변환', desc:'선택/본문을 AI가 조직도(Mermaid)로 변환', keywords:['org','chart','구성도','조직도','mermaid','diagram'], run:_runDiag('org') });
+  add({ ico:'i-flowchart', name:'다이어그램: 순서도로 변환', desc:'선택/본문의 절차를 순서도(Mermaid)로', keywords:['flow','flowchart','순서도','프로세스','mermaid'], run:_runDiag('flow') });
+  add({ ico:'i-infographic', name:'다이어그램: 인포그래픽 생성', desc:'텍스트의 수치를 바차트·KPI 카드 SVG로', keywords:['info','infographic','인포','차트','chart','kpi'], run:_runDiag('info') });
   add({ ico:'i-globe', name:'웹 검색 (in-app 브라우저)', desc:'앱 안에서 검색', hint:'Ctrl+Shift+F', run:clickIf('webBtn') });
   add({ ico:'i-globe', name:'웹 브라우저 열기', desc:'in-app 인앱 브라우저 열기', keywords:['web','browser','인앱'], run:clickIf('webBtn') });
   // ─── 웹 연구 도구 (v1.0.34) ────────────────────────────
@@ -19814,6 +19885,8 @@ if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
 <script src="/template-picker.js?v=3"></script>
 <!-- JustANotepad app ↔ CMS integration (template insertion, state bridge) -->
 <script src="/app-integration.js"></script>
+<!-- JustANotepad AI 다이어그램 생성 (구성도/순서도/인포그래픽) — Mermaid + AI -->
+<script src="/ai-diagrams.js?v=1"></script>
 <!-- JustANotepad home hub — dashboard drawer with recent activity -->
 <script src="/home-hub.js"></script>
 <!-- JustANotepad Service Worker refresh — ensures latest deploy is fetched -->

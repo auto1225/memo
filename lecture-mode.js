@@ -480,7 +480,7 @@
           <div class="jnp-lec-row">
             <button class="jnp-lec-btn" data-app-id="imgUploadBtn" title="이미지 업로드">${svg('i-image',14)}<span>이미지</span></button>
             <button class="jnp-lec-btn" data-app-id="captureBtn" title="화면 캡처">${svg('i-camera',14)}<span>캡처</span></button>
-            <button class="jnp-lec-btn" data-app-id="sketchBtn" title="손글씨">${svg('i-brush',14)}<span>손글씨</span></button>
+            <button class="jnp-lec-btn" data-app-id="sketchBtn" title="손글씨">${svg('i-handwriting',14)}<span>손글씨</span></button>
             <button class="jnp-lec-btn" data-app-id="attachFileBtn" title="파일 첨부">${svg('i-paperclip',14)}<span>파일</span></button>
             <span class="jnp-lec-sep"></span>
             <button class="jnp-lec-btn" data-app-id="audioRecordBtn" title="짧은 음성 메모">${svg('i-record',14)}<span>음성 메모</span></button>
