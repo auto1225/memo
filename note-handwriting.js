@@ -824,12 +824,25 @@
         if (typeof window.toast === 'function') window.toast('빈 결과 — 다시 써 보세요');
         return;
       }
-      // 응답에서 코드블록(```latex ... ```) 제거
-      let latex = String(result).trim();
-      const fence = latex.match(/```(?:[a-zA-Z]+)?\s*\n?([\s\S]*?)```/);
-      if (fence) latex = fence[1].trim();
-      // 달러 감싸기 제거 (안전)
-      latex = latex.replace(/^\$\$|\$\$$/g, '').replace(/^\$|\$$/g, '').trim();
+      // 응답에서 LaTeX 추출 + 설명문/코드펜스/달러 제거 (누수 방어)
+      const sanitize = window.JANDiagrams.sanitizeLatex ||
+        function(r) {
+          let s = String(r || '').trim();
+          const fence = s.match(/```(?:[a-zA-Z]+)?\s*\n?([\s\S]*?)```/);
+          if (fence) s = fence[1].trim();
+          s = s.replace(/^\s*\\\[|\\\]\s*$/g, '')
+               .replace(/^\s*\$\$|\$\$\s*$/g, '')
+               .replace(/^\s*\\\(|\\\)\s*$/g, '')
+               .replace(/^\s*(설명|답|결과|Explanation|LaTeX|Latex|Result|Answer)\s*[:：]\s*/gim, '')
+               .replace(/^`+|`+$/g, '')
+               .trim();
+          return s;
+        };
+      const latex = sanitize(result);
+      if (!latex) {
+        if (typeof window.toast === 'function') window.toast('LaTeX 를 추출하지 못했습니다');
+        return;
+      }
 
       // 오버레이 닫고 노트에 삽입
       close();  // 아래 close() = 오버레이 닫기

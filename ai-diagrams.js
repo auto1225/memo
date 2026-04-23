@@ -1063,7 +1063,8 @@
     notify('수식을 LaTeX 로 변환 중…');
     const resp = await aiCall(MATH_SYS, text);
     if (!resp) return null;
-    const latex = stripCodeFence(resp).trim();
+    const latex = sanitizeLatex(resp);
+    if (!latex) { notify('수식을 추출하지 못했습니다'); return null; }
     try {
       const html = await renderLatexHtml(latex);
       if (!html) { notify('렌더할 수식이 없습니다'); return null; }
@@ -1077,9 +1078,27 @@
     }
   }
 
+  /* LaTeX 응답에서 설명문·텍스트를 걸러내고 실제 수식만 남김 (LaTeX 누수 방어).
+     버그 재현: AI 가 "\chi^x" 만 반환해야 할 때 앞에 "답: \chi^x" 처럼 라벨이
+     붙어 그 전체가 insertMathFromLatex 에 들어가면, KaTeX 가 "답:" 부분을
+     raw 로 그려 figure 안에 보이고, 심지어 오류 파싱이 figure 경계를 깨뜨릴
+     가능성이 있음. 앞머리 라벨 + 코드펜스 + 달러 감싸기 모두 여기서 제거. */
+  function sanitizeLatex(raw) {
+    if (!raw) return '';
+    let s = stripCodeFence(String(raw));
+    s = s.replace(/^\s*\\\[|\\\]\s*$/g, '')
+         .replace(/^\s*\$\$|\$\$\s*$/g, '')
+         .replace(/^\s*\\\(|\\\)\s*$/g, '')
+         .trim();
+    // "설명:", "답:", "LaTeX:", "Result:" 같은 앞머리 라벨 제거
+    s = s.replace(/^\s*(설명|답|결과|Explanation|LaTeX|Latex|Result|Answer)\s*[:：]\s*/gim, '');
+    s = s.replace(/^`+|`+$/g, '').trim();
+    return s;
+  }
+
   /* 손글씨 수식 전용: OCR(math) 프롬프트로 이미 변환된 LaTeX 를 바로 삽입 (블록) */
   async function insertMathFromLatex(latex, caption) {
-    const s = String(latex || '').trim();
+    const s = sanitizeLatex(latex);
     if (!s) { notify('수식이 비어 있습니다'); return null; }
     try {
       const html = await renderLatexHtml(s);
@@ -1096,7 +1115,7 @@
 
   /* ----------- 인라인 수식: 현재 커서 위치에 글자처럼 삽입 ----------- */
   async function insertMathInline(latex) {
-    const s = String(latex || '').trim();
+    const s = sanitizeLatex(latex);
     if (!s) { notify('수식이 비어 있습니다'); return null; }
     try {
       const html = await renderLatexInlineHtml(s);
@@ -1318,6 +1337,7 @@
     captureRangeNow,
     buildDiagramFigureHtml,
     buildMathFigureHtml,
+    sanitizeLatex,
     // 내부 테스트용
     _parseInfoJson: parseInfoJson,
     _stripCodeFence: stripCodeFence,
