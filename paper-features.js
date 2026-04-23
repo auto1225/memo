@@ -3238,62 +3238,68 @@
     const totalH = nPages * pageHpx + (nPages - 1) * SHEET_GAP;
     page.style.minHeight = totalH + 'px';
 
-    /* v23-fix: 인라인 !important 로 ruled/grid/dot/staff 같은 paper-style 배경 강제 오버라이드.
-       setProperty 의 3번째 인자 'important' 는 CSS !important 와 같은 레벨이지만 inline style 은
-       specificity 가 가장 높음 (1-0-0-0) 으로 인라인이 이김. */
+    /* v24-fix: 배경은 건드리지 않고, 각 페이지 경계 위치에 두꺼운 divider + "Page N" 라벨 오버레이.
+       배경 paperStyle 과 충돌 없이 항상 페이지 구분이 뚜렷하게 보임. */
     const padTopPx = parseFloat(computed.paddingTop) || 0;
-    const padLeftPx = parseFloat(computed.paddingLeft) || 0;
-    const bgImg = 'repeating-linear-gradient(' +
-      'to bottom,' +
-      '#fff 0,' +
-      '#fff ' + pageHpx + 'px,' +
-      'transparent ' + pageHpx + 'px,' +
-      'transparent ' + cycle + 'px' +
-      ')';
-    page.style.setProperty('background-image', bgImg, 'important');
-    page.style.setProperty('background-color', 'transparent', 'important');
-    page.style.setProperty('background-size', '100% ' + cycle + 'px', 'important');
-    page.style.setProperty('background-repeat', 'repeat-y', 'important');
-    page.style.setProperty('background-attachment', 'local', 'important');
-    page.style.setProperty('background-position', '0 -' + padTopPx + 'px', 'important');
-    page.style.setProperty('box-shadow', '0 2px 6px rgba(0,0,0,0.05), 0 12px 28px rgba(0,0,0,0.10)', 'important');
-    page.style.setProperty('border', 'none', 'important');
 
-    /* v23: sheets 오버레이 제거 — .page 자체에 repeating gradient 로 페이지 영역 렌더.
-       Page N 라벨만 absolute 오버레이로 유지. */
+    /* v24-fix: 페이지 경계 divider + 라벨 오버레이 — 기존 sheets 오버레이 제거 */
     const outerSheets = wrap.querySelector(':scope > .jan-page-sheets');
     if (outerSheets) outerSheets.remove();
     const innerSheets = page.querySelector(':scope > .jan-page-sheets');
     if (innerSheets) innerSheets.remove();
 
-    /* Page N 라벨 오버레이 */
+    /* Overlay — 각 페이지 경계에 divider line + Page N 라벨 */
     let labels = page.querySelector(':scope > .jan-page-labels');
     if (!labels) {
       labels = document.createElement('div');
       labels.className = 'jan-page-labels';
       labels.setAttribute('contenteditable', 'false');
       labels.setAttribute('aria-hidden', 'true');
-      page.appendChild(labels);
+      page.insertBefore(labels, page.firstChild);
     }
-    const padTop_p = parseFloat(getComputedStyle(page).paddingTop) || 0;
+    const padLeftPx = parseFloat(computed.paddingLeft) || 0;
+    const padRightPx = parseFloat(computed.paddingRight) || 0;
     labels.style.position = 'absolute';
-    labels.style.top = (-padTop_p + 14) + 'px';
-    labels.style.right = '14px';
+    labels.style.left = (-padLeftPx) + 'px';
+    labels.style.right = (-padRightPx) + 'px';
+    labels.style.top = (-padTopPx) + 'px';
+    labels.style.width = 'auto';
     labels.style.height = totalH + 'px';
     labels.style.pointerEvents = 'none';
     labels.style.zIndex = '3';
 
-    /* 라벨 재생성 — 2페이지 이상일 때만 */
+    /* 내용 재생성 — 각 페이지 경계에 뚜렷한 divider + 라벨 */
     labels.innerHTML = '';
-    if (nPages >= 2) {
-      for (let i = 0; i < nPages; i++) {
+    for (let i = 0; i < nPages; i++) {
+      /* 페이지 번호 라벨 (2페이지 이상일 때만) */
+      if (nPages >= 2) {
         const lbl = document.createElement('span');
         lbl.className = 'jan-sheet-label';
         lbl.textContent = 'Page ' + (i + 1);
         lbl.style.position = 'absolute';
-        lbl.style.right = '0';
-        lbl.style.top = (i * cycle) + 'px';
+        lbl.style.right = '14px';
+        lbl.style.top = (i * cycle + 10) + 'px';
         labels.appendChild(lbl);
+      }
+      /* 페이지 경계 divider (i > 0 인 경우만 — 첫 페이지 위엔 없음) */
+      if (i > 0) {
+        const div = document.createElement('div');
+        div.className = 'jan-page-divider';
+        div.style.cssText =
+          'position:absolute;left:0;right:0;' +
+          'top:' + (i * cycle - SHEET_GAP / 2) + 'px;' +
+          'height:' + SHEET_GAP + 'px;' +
+          'background:repeating-linear-gradient(45deg,' +
+          ' rgba(217,119,87,0.15) 0, rgba(217,119,87,0.15) 8px,' +
+          ' transparent 8px, transparent 16px);' +
+          'border-top:2px dashed rgba(217,119,87,0.6);' +
+          'border-bottom:2px dashed rgba(217,119,87,0.6);' +
+          'display:flex;align-items:center;justify-content:center;' +
+          'color:#8B4513;font-size:10.5px;font-weight:700;letter-spacing:1px;';
+        div.innerHTML =
+          '<span style="background:#fff;padding:2px 10px;border-radius:10px;border:1px solid rgba(217,119,87,0.4);">' +
+          '— 페이지 ' + (i + 1) + ' 시작 —</span>';
+        labels.appendChild(div);
       }
     }
   }

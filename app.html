@@ -1349,33 +1349,15 @@
   .swatches.open { display:grid; }
   .swatches span { width:22px; height:22px; border-radius:50%; cursor:pointer; border:1px solid #ccc; }
 
-  /* ===== 페이지 크기 시스템 (A4/A3/B4 · 세로/가로) · v23: 단일 카드 + 내부 페이지 경계 gap =====
-     stacked sheets 오버레이 대신 단일 .page.jan-paged 에 repeating-linear-gradient 로
-     "흰색 페이지 영역 → 분홍 gap 영역 → 다음 흰색 페이지" 를 교차 렌더.
-     콘텐츠는 rebalanceContentToPages 로 gap 영역 자동 회피. */
-  .page.jan-paged, .page.page.jan-paged {
-    max-width: var(--page-w, 210mm) !important;
+  /* ===== 페이지 크기 시스템 (A4/A3/B4 · 세로/가로) · v24: 배경 유지 + divider 오버레이 =====
+     기존 paperStyle (ruled/grid/dot) 배경과 충돌하지 않도록 background 는 건드리지 않음.
+     대신 각 페이지 경계에 뚜렷한 divider overlay + "페이지 N 시작" 라벨을 위로 올림. */
+  .page.jan-paged {
+    max-width: var(--page-w, 210mm);
     margin: 24px auto 120px !important;
-    color: #222 !important;
-    border: none !important;
     padding: var(--page-margin, 20mm) var(--page-margin-x, 22mm) !important;
     box-sizing: border-box;
     position: relative;
-    /* 종이 카드 그림자 */
-    box-shadow: 0 2px 6px rgba(0,0,0,0.05), 0 12px 28px rgba(0,0,0,0.10) !important;
-    /* 페이지 영역은 흰색, gap 영역(24px)은 투명 (뒤의 분홍 배경 노출) */
-    background-color: transparent !important;
-    background-image: repeating-linear-gradient(
-      to bottom,
-      #fff 0,
-      #fff var(--page-h, 297mm),
-      transparent var(--page-h, 297mm),
-      transparent calc(var(--page-h, 297mm) + 24px)
-    ) !important;
-    background-size: 100% calc(var(--page-h, 297mm) + 24px) !important;
-    background-repeat: repeat-y !important;
-    background-attachment: local !important;
-    background-position: 0 calc(-1 * var(--page-margin, 20mm)) !important;
   }
   /* stacked sheets 오버레이는 더 이상 사용 안 함 — 기존 렌더 정리 */
   .jan-page-sheets, .jan-sheet { display:none !important; }
@@ -20745,7 +20727,7 @@ if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
 <!-- JustANotepad AI 다이어그램 생성 (구성도/순서도/인포그래픽) — Mermaid + AI -->
 <script src="/ai-diagrams.js?v=9"></script>
 <!-- JustANotepad 논문 작성 기능 (각주·인용·번호·페이지 구분) -->
-<script src="/paper-features.js?v=24"></script>
+<script src="/paper-features.js?v=25"></script>
 <!-- JustANotepad 논문 샘플 템플릿 데이터 (Science 포맷 물리학 논문 3페이지) -->
 <script src="/paper-template-data.js?v=3"></script>
 <!-- v15: 분야별 예시 논문 스켈레톤 (생물·의학 / CS / 공학 / 경제학 / 물리학 경량) -->
