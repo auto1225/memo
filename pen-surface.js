@@ -216,7 +216,11 @@
   }
 
   function boot() {
-    installFab();
+    // FAB 은 더 이상 기본 설치 안 함 — 툴바의 #sketchBtn (형광펜 옆) 으로 접근.
+    // 사용자가 명시적으로 localStorage 에 jnp.penFab.visible='1' 을 설정한 경우만 표시.
+    try {
+      if (localStorage.getItem('jnp.penFab.visible') === '1') installFab();
+    } catch {}
     installStylusDetection();
     registerPaletteCommand();
     installShortcut();
