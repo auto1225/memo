@@ -4956,35 +4956,66 @@ async function runOCR(dataUrl, mode, retryable = true) {
 // 결과 모달 — 좌측 원본 미리보기, 우측 편집 가능 텍스트
 function showOcrResultModal(result, mode, dataUrl) {
   const modeLabel = { text:'텍스트', math:'수식(LaTeX)', table:'표(Markdown)', markdown:'마크다운' }[mode] || '텍스트';
+  const isMath = mode === 'math';
+  // Primary action label — math 는 '인라인으로 삽입' (문장 흐름이 기본), 그 외는 '메모에 삽입'
+  const primaryLabel = isMath ? '인라인으로 삽입' : '메모에 삽입';
+  const primaryHint  = isMath ? '텍스트 흐름 속에 글자처럼 붙습니다' : '';
   showModalHtml(`AI 변환 결과 — ${modeLabel}`, `
-    <div style="display:grid; grid-template-columns:180px 1fr; gap:12px; margin-top:6px;">
-      <div>
-        <div style="font-size:10px; color:#888; margin-bottom:4px;">원본</div>
-        <img src="${dataUrl}" style="width:100%; border:1px solid #ddd; border-radius:6px; background:white;" />
-      </div>
-      <div>
-        <div style="display:flex; gap:6px; margin-bottom:6px; align-items:center;">
-          <span style="font-size:10px; color:#888;">인식 결과 (편집 가능)</span>
-          <span style="flex:1;"></span>
-          <select id="ocrLangSel" style="font-size:11px; padding:2px 6px;">
-            <option value="auto">자동</option>
-            <option value="한국어">한국어</option>
-            <option value="영어">영어</option>
-            <option value="일본어">일본어</option>
-            <option value="중국어">중국어</option>
-          </select>
-          <button id="ocrRetry" title="다른 언어로 다시 시도" style="font-size:11px; padding:3px 8px; background:#eee; border:none; border-radius:4px; cursor:pointer;">다시 시도</button>
+    <style>
+      .jan-ocr-modal { --jm-fg:#1c1c1c; --jm-muted:#7a7a7a; --jm-line:#e6e6e6; --jm-bg:#fff; --jm-accent:var(--accent); }
+      .jan-ocr-modal * { box-sizing:border-box; }
+      .jan-ocr-modal .col-label { font-size:11px; color:var(--jm-muted); font-weight:500; letter-spacing:.02em; margin-bottom:6px; display:flex; align-items:center; gap:8px; }
+      .jan-ocr-modal textarea { width:100%; padding:12px 14px; border:1px solid var(--jm-line); border-radius:10px; font-size:14px; line-height:1.6; resize:vertical; transition:border-color .15s; background:#fafafa; }
+      .jan-ocr-modal textarea:focus { outline:none; border-color:var(--jm-accent); background:#fff; }
+      .jan-ocr-modal .jm-src-img { width:100%; max-height:220px; object-fit:contain; border:1px solid var(--jm-line); border-radius:10px; background:#fff; padding:8px; }
+      .jan-ocr-modal .jm-util-row { display:flex; gap:6px; align-items:center; font-size:12px; margin-bottom:6px; }
+      .jan-ocr-modal .jm-util-row select { font-size:12px; padding:4px 8px; border:1px solid var(--jm-line); border-radius:6px; background:#fff; }
+      .jan-ocr-modal .jm-chip { font-size:12px; padding:5px 10px; background:transparent; color:var(--jm-muted); border:1px solid var(--jm-line); border-radius:999px; cursor:pointer; transition:background .12s, color .12s; }
+      .jan-ocr-modal .jm-chip:hover { background:#f4f4f4; color:var(--jm-fg); }
+      .jan-ocr-modal .jm-chip:disabled { opacity:.5; cursor:wait; }
+      .jan-ocr-modal .jm-primary-bar { display:flex; gap:8px; margin-top:14px; }
+      .jan-ocr-modal .jm-btn-primary { flex:1; background:var(--jm-accent); color:#fff; border:0; padding:12px 16px; border-radius:10px; cursor:pointer; font-weight:600; font-size:14px; transition:filter .12s; }
+      .jan-ocr-modal .jm-btn-primary:hover { filter:brightness(1.05); }
+      .jan-ocr-modal .jm-btn-secondary { padding:12px 16px; background:#fff; color:var(--jm-fg); border:1px solid var(--jm-line); border-radius:10px; cursor:pointer; font-size:13px; transition:background .12s; }
+      .jan-ocr-modal .jm-btn-secondary:hover { background:#f5f5f5; }
+      .jan-ocr-modal .jm-hint { font-size:11px; color:var(--jm-muted); margin-top:6px; text-align:center; }
+      .jan-ocr-modal .jm-links { display:flex; gap:10px; justify-content:center; margin-top:10px; padding-top:10px; border-top:1px dashed var(--jm-line); }
+      .jan-ocr-modal .jm-link { font-size:12px; color:var(--jm-muted); background:none; border:0; cursor:pointer; padding:4px 2px; text-decoration:underline dotted; text-underline-offset:3px; }
+      .jan-ocr-modal .jm-link:hover { color:var(--jm-fg); }
+      @media (max-width: 600px) { .jan-ocr-modal .jm-body { grid-template-columns:1fr !important; } }
+    </style>
+    <div class="jan-ocr-modal">
+      <div class="jm-body" style="display:grid; grid-template-columns:220px 1fr; gap:16px; margin-top:4px;">
+        <div>
+          <div class="col-label">원본</div>
+          <img src="${dataUrl}" class="jm-src-img" />
         </div>
-        <textarea id="ocrResultTxt" rows="8" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; font-size:14px; line-height:1.5; font-family:${mode==='math'?"'Consolas',monospace":"inherit"};">${escapeHtml(result)}</textarea>
+        <div>
+          <div class="jm-util-row">
+            <span class="col-label" style="margin-bottom:0; flex:1;">인식 결과 <span style="color:#aaa; font-weight:400;">(편집 가능)</span></span>
+            <select id="ocrLangSel" title="인식 언어">
+              <option value="auto">자동</option>
+              <option value="한국어">한국어</option>
+              <option value="영어">영어</option>
+              <option value="일본어">일본어</option>
+              <option value="중국어">중국어</option>
+            </select>
+            <button id="ocrRetry" class="jm-chip" title="다른 언어로 다시 시도">다시 시도</button>
+          </div>
+          <textarea id="ocrResultTxt" rows="7" style="font-family:${isMath ? "'Consolas',monospace" : 'inherit'};">${escapeHtml(result)}</textarea>
+        </div>
       </div>
-    </div>
-    <div style="display:flex; gap:6px; margin-top:10px; flex-wrap:wrap;">
-      <button id="ocrInsertPlain" style="flex:1; background:var(--accent); color:white; border:none; padding:9px; border-radius:6px; cursor:pointer; font-weight:600;">${mode === 'math' ? '수식으로 삽입 (블록)' : '메모에 삽입'}</button>
-      ${mode === 'math' ? '<button id="ocrInsertInline" title="텍스트 옆에 글자처럼 배치" style="padding:9px 14px; background:#ff8aa0; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:600;">인라인 수식</button>' : ''}
-      ${mode === 'math' ? '<button id="ocrInsertRaw" title="LaTeX 코드 자체를 텍스트로 삽입" style="padding:9px 14px; background:#888; color:white; border:none; border-radius:6px; cursor:pointer;">LaTeX 원문</button>' : ''}
-      <button id="ocrInsertWithImg" style="padding:9px 14px; background:#4caf50; color:white; border:none; border-radius:6px; cursor:pointer;">${mode === 'math' ? '원본+수식' : '이미지+텍스트'}</button>
-      <button id="ocrCleanup" title="AI로 오탈자 보정 (추가 호출)" style="padding:9px 14px; background:#7e57c2; color:white; border:none; border-radius:6px; cursor:pointer;">AI 보정</button>
-      <button id="ocrCopy" style="padding:9px 14px; background:#eee; border:none; border-radius:6px; cursor:pointer;">복사</button>
+      <div class="jm-primary-bar">
+        <button id="ocrInsertPlain" class="jm-btn-primary">${primaryLabel}</button>
+        ${isMath ? '<button id="ocrInsertBlock" class="jm-btn-secondary" title="독립된 블록으로 크게 배치">블록</button>' : ''}
+        <button id="ocrInsertWithImg" class="jm-btn-secondary" title="${isMath ? '원본 이미지와 수식을 함께' : '원본 이미지와 텍스트를 함께'}">${isMath ? '원본+수식' : '원본+텍스트'}</button>
+      </div>
+      ${primaryHint ? `<div class="jm-hint">${primaryHint}</div>` : ''}
+      <div class="jm-links">
+        <button id="ocrCleanup" class="jm-link" title="AI로 오탈자·기호 보정">AI 보정</button>
+        <button id="ocrCopy" class="jm-link" title="텍스트 클립보드에 복사">텍스트 복사</button>
+        ${isMath ? '<button id="ocrInsertRaw" class="jm-link" title="LaTeX 코드를 텍스트로 삽입">LaTeX 원문 삽입</button>' : ''}
+      </div>
     </div>
   `);
 
@@ -4999,10 +5030,11 @@ function showOcrResultModal(result, mode, dataUrl) {
     runOCR(dataUrl, mode, true);
   });
 
-  $('ocrInsertPlain').addEventListener('click', () => insertOCRResult(mode, false, null, mode === 'math' ? 'block' : undefined));
+  // 주 동작 — math 는 인라인이 primary, 그 외는 기본 삽입
+  $('ocrInsertPlain').addEventListener('click', () => insertOCRResult(mode, false, null, mode === 'math' ? 'inline' : undefined));
   $('ocrInsertWithImg').addEventListener('click', () => insertOCRResult(mode, true, dataUrl, mode === 'math' ? 'block' : undefined));
   if (mode === 'math') {
-    $('ocrInsertInline')?.addEventListener('click', () => insertOCRResult('math', false, null, 'inline'));
+    $('ocrInsertBlock')?.addEventListener('click', () => insertOCRResult('math', false, null, 'block'));
     $('ocrInsertRaw')?.addEventListener('click', () => insertOCRResult('math', false, null, 'raw'));
   }
 
@@ -5011,6 +5043,7 @@ function showOcrResultModal(result, mode, dataUrl) {
     if (!current.trim()) return;
     $('ocrCleanup').disabled = true;
     $('ocrCleanup').textContent = '보정 중…';
+    $('ocrCleanup').style.opacity = '.6';
     try {
       const cleaned = await callAI(
         '당신은 한국어·영어 오탈자 교정 전문가입니다. 다음 텍스트의 오탈자·띄어쓰기·부호만 최소한으로 보정하세요. 의미는 유지하고 결과만 반환.',
@@ -5021,6 +5054,7 @@ function showOcrResultModal(result, mode, dataUrl) {
     } catch (e) { toast('보정 실패: ' + e.message); }
     $('ocrCleanup').disabled = false;
     $('ocrCleanup').textContent = 'AI 보정';
+    $('ocrCleanup').style.opacity = '1';
   });
 
   $('ocrCopy').addEventListener('click', () => {
