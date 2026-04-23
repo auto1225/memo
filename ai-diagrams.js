@@ -200,17 +200,32 @@
         background: #FFD9D9; border-color: #C0392B; color: #C0392B;
       }
       /* 인라인 수식 — 텍스트 옆에 글자처럼 자연스럽게 흐름.
-         padding/border/background 없음 (박스처럼 안 보이게). 호버 시 미세한 배경만.
-         KaTeX 의 inline 출력은 필요한 inline-block 요소(분수·첨자 등)를 자체 생성하므로 건드리지 않음. */
+         주변 텍스트의 서식(font-size, color, font-weight) 을 그대로 상속 —
+         노트가 자연스러운 문서가 되려면 수식도 같은 스타일로 어우러져야 함.
+         padding/border/background 없음 (박스처럼 안 보이게). */
       .jan-math-inline {
-        display: inline-block;       /* KaTeX 의 분수·첨자 수직 정렬 유지 */
+        display: inline-block;
         vertical-align: middle;
         cursor: pointer;
-        line-height: 1;              /* 주변 텍스트와 높이 맞춤 */
+        line-height: 1;
         padding: 0; border: 0; background: transparent; border-radius: 0;
+        color: inherit;
+        font-weight: inherit;
+        font-style: inherit;
         transition: background 0.12s;
       }
-      .jan-math-inline .katex { font-size: inherit; }
+      /* KaTeX 내부 전체를 주변 텍스트 서식으로 강제 상속 — 색/크기/굵기 모두 */
+      .jan-math-inline .katex,
+      .jan-math-inline .katex * {
+        font-size: inherit !important;
+        color: inherit !important;
+      }
+      .jan-math-inline .katex .mord,
+      .jan-math-inline .katex .mbin,
+      .jan-math-inline .katex .mrel,
+      .jan-math-inline .katex .mop {
+        font-weight: inherit;
+      }
       .jan-math-inline:hover { background: rgba(255, 214, 228, 0.35); }
       .jan-math-inline.jan-focus { background: rgba(255, 182, 193, 0.45); }
       /* figure 선택(focus) 하이라이트 — Ctrl+C 복사 가능함을 시각적으로 */
