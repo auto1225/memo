@@ -5870,6 +5870,7 @@ const COMMANDS = [
   { ico:'i-printer', name:'인쇄', desc:'현재 탭 인쇄', hint:'Ctrl+P', run:() => $('printBtn').click() },
   { ico:'i-md', name:'마크다운 토글', desc:'리치 ↔ 마크다운', run:() => $('mdBtn').click() },
   /* 논문 작성 기능 (paper-features.js) */
+  { id:'paper.convert-to-science', ico:'i-book', name:'현재 노트를 Science 논문 포맷으로 변환', desc:'평문 + 표 + 그림을 3페이지 2단 학술 레이아웃으로 변환', keywords:['paper','convert','science','format','논문','변환','최종본','3페이지','2단'], run:() => window.JANPaper && window.JANPaper.convertToSciencePaper && window.JANPaper.convertToSciencePaper() },
   { ico:'i-book', name:'논문 시작 (Science 포맷)', desc:'완성된 물리학 논문 3페이지 샘플을 현재 노트 끝에 삽입', keywords:['paper','start','science','물리','샘플','템플릿','논문','시작'], run:() => {
       if (!confirm('현재 노트에 Science 포맷 물리학 논문 샘플 3페이지를 삽입합니다. 기존 내용은 유지됩니다. 계속하시겠습니까?')) return;
       const html = window.JANPaperTemplate && window.JANPaperTemplate.physicsScience;
@@ -20264,7 +20265,7 @@ if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
 <!-- JustANotepad AI 다이어그램 생성 (구성도/순서도/인포그래픽) — Mermaid + AI -->
 <script src="/ai-diagrams.js?v=9"></script>
 <!-- JustANotepad 논문 작성 기능 (각주·인용·번호·페이지 구분) -->
-<script src="/paper-features.js?v=6"></script>
+<script src="/paper-features.js?v=7"></script>
 <!-- JustANotepad 논문 샘플 템플릿 데이터 (Science 포맷 물리학 논문 3페이지) -->
 <script src="/paper-template-data.js?v=3"></script>
 <!-- JustANotepad CAR-T ALL 바이오 논문 나머지 본문 (2.3 ~ Conclusion + Refs) -->
