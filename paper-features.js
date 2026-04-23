@@ -1589,6 +1589,16 @@
       btn._janBound = true;
       btn.addEventListener('click', openPaperMenu);
     }
+
+    /* v16: stacked sheets observer — #page 변경 감지 → updatePageSheets 호출 */
+    try { setupSheetsObserver(); } catch (e) { console.warn('[JANPaper] sheets observer 실패', e); }
+    /* 창 리사이즈 시에도 재계산 — pageH 는 mm 고정이나 콘텐츠 재배치 시 scrollHeight 변동 */
+    try {
+      window.addEventListener('resize', () => {
+        const p = getPageEl();
+        if (p && p.classList.contains('jan-paged')) updatePageSheets();
+      });
+    } catch (e) {}
   }
 
   /* 템플릿 내 data-latex / data-mermaid-code figure 들을 모두 렌더.
@@ -3122,6 +3132,8 @@
         else if (typeof window.save === 'function') window.save();
       }
     } catch (e) { console.warn('[JANPaper] setPageSize 저장 실패', e); }
+    /* v16: 페이지 시트 오버레이 재계산 */
+    updatePageSheets();
     notify('페이지 크기: ' + (PAGE_SIZES[key].label || '없음'));
   }
 
@@ -3144,6 +3156,122 @@
     if (key !== 'none' && PAGE_SIZES[key]) {
       page.classList.add('jan-paged', PAGE_SIZES[key].cls);
     }
+    /* v16: 페이지 시트 오버레이 업데이트 */
+    updatePageSheets();
+  }
+
+  /* ============================================================
+     v16: stacked sheets — 콘텐츠가 페이지 높이를 넘으면 뒤에 종이 추가
+     ------------------------------------------------------------
+     - 페이지 크기 지정되지 않음 ('none') 시 : 오버레이 제거
+     - 콘텐츠 높이 측정 → 필요 페이지 수 계산 → 오버레이에 N 장 종이 쌓기
+     - 페이지 사이 24px gap 이 pink 배경을 노출 → 시각적 분리
+     ============================================================ */
+  const SHEET_GAP = 24;   // px, 종이 사이 간격
+
+  /* mm → px 변환 (1mm ≈ 3.7795px @ 96dpi) */
+  function mmToPx(mmValue) {
+    return parseFloat(mmValue) * 96 / 25.4;
+  }
+
+  let _sheetsUpdatePending = false;
+  function updatePageSheets() {
+    if (_sheetsUpdatePending) return;
+    _sheetsUpdatePending = true;
+    requestAnimationFrame(() => {
+      _sheetsUpdatePending = false;
+      _doUpdatePageSheets();
+    });
+  }
+
+  function _doUpdatePageSheets() {
+    const page = getPageEl();
+    if (!page) return;
+    const wrap = page.parentElement;
+    if (!wrap) return;
+
+    /* 페이지 크기 없으면 오버레이 제거 */
+    if (!page.classList.contains('jan-paged')) {
+      const existing = wrap.querySelector('.jan-page-sheets');
+      if (existing) existing.remove();
+      page.style.removeProperty('min-height');
+      return;
+    }
+
+    /* 페이지 높이 (mm → px) 계산 */
+    const computed = getComputedStyle(page);
+    const pageHmm = parseFloat(computed.getPropertyValue('--page-h')) || 297;
+    const pageHpx = mmToPx(pageHmm);
+
+    /* 현재 콘텐츠 높이 — 페이지의 scrollHeight 는 padding 포함 실제 콘텐츠 높이 */
+    const contentH = page.scrollHeight;
+    /* 몇 장 필요한가? 최소 1장, 콘텐츠가 pageH 를 넘을 때마다 +1장 */
+    const nPages = Math.max(1, Math.ceil(contentH / pageHpx));
+
+    /* min-height 업데이트 — 정확히 N장 × pageH + (N-1) × gap */
+    const totalH = nPages * pageHpx + (nPages - 1) * SHEET_GAP;
+    page.style.minHeight = totalH + 'px';
+
+    /* 오버레이 찾거나 생성 */
+    let sheets = wrap.querySelector('.jan-page-sheets');
+    if (!sheets) {
+      sheets = document.createElement('div');
+      sheets.className = 'jan-page-sheets';
+      sheets.setAttribute('contenteditable', 'false');
+      sheets.setAttribute('aria-hidden', 'true');
+      /* 부모가 position:relative 가 아니면 오버레이가 이상한 곳에 붙음 */
+      if (getComputedStyle(wrap).position === 'static') {
+        wrap.style.position = 'relative';
+      }
+      wrap.insertBefore(sheets, page);
+    }
+    /* 오버레이 전체 높이 맞추기 */
+    sheets.style.height = totalH + 'px';
+
+    /* 기존 자식 수와 비교해 필요한 만큼 add/remove */
+    const existingSheets = sheets.querySelectorAll('.jan-sheet').length;
+    if (existingSheets !== nPages) {
+      sheets.innerHTML = '';
+      for (let i = 0; i < nPages; i++) {
+        const sheet = document.createElement('div');
+        sheet.className = 'jan-sheet';
+        sheet.style.top = (i * (pageHpx + SHEET_GAP)) + 'px';
+        sheets.appendChild(sheet);
+      }
+      /* 페이지 번호 라벨 (2페이지 이상일 때만) */
+      if (nPages >= 2) {
+        for (let i = 0; i < nPages; i++) {
+          const lbl = document.createElement('div');
+          lbl.className = 'jan-sheet-label';
+          lbl.textContent = 'Page ' + (i + 1);
+          lbl.style.top = (i * (pageHpx + SHEET_GAP) + 10) + 'px';
+          sheets.appendChild(lbl);
+        }
+      }
+    } else {
+      /* 페이지 수는 같지만 pageH 가 바뀌었을 수 있음 — 위치만 업데이트 */
+      const sheetEls = sheets.querySelectorAll('.jan-sheet');
+      const labelEls = sheets.querySelectorAll('.jan-sheet-label');
+      sheetEls.forEach((s, i) => { s.style.top = (i * (pageHpx + SHEET_GAP)) + 'px'; });
+      labelEls.forEach((l, i) => { l.style.top = (i * (pageHpx + SHEET_GAP) + 10) + 'px'; });
+    }
+  }
+
+  /* MutationObserver — #page 내용 변경 시 디바운스로 sheet 재계산 */
+  let _sheetsObserver = null;
+  let _sheetsDebounceTimer = null;
+  function setupSheetsObserver() {
+    const page = getPageEl();
+    if (!page || _sheetsObserver) return;
+    _sheetsObserver = new MutationObserver(() => {
+      if (_sheetsDebounceTimer) clearTimeout(_sheetsDebounceTimer);
+      _sheetsDebounceTimer = setTimeout(() => {
+        if (page.classList.contains('jan-paged')) updatePageSheets();
+      }, 180);
+    });
+    _sheetsObserver.observe(page, {
+      childList: true, subtree: true, characterData: true, attributes: false
+    });
   }
 
   /* 페이지 크기 선택 모달 — 카드 그리드 UI */
@@ -3261,7 +3389,9 @@
     getPageSize,
     applyPageSizeFromTab,
     openPageSizePicker,
-    PAGE_SIZES
+    PAGE_SIZES,
+    /* v16 — stacked sheets */
+    updatePageSheets
   };
 
   if (document.readyState === 'loading') {
