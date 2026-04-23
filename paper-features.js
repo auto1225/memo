@@ -2254,8 +2254,13 @@
     ok.style.display = 'none';
     cancel.textContent = '닫기';
 
+    // 긴 도움말 콘텐츠 — 모달 넓이/높이 확장 + 내부 스크롤
+    const modalBox = modal.querySelector('.modal') || modal;
+    modalBox.classList.add('jan-wide');
+
     const close = () => {
       modal.classList.remove('open');
+      modalBox.classList.remove('jan-wide');
       ok.style.display = origOkDisplay;
       cancel.textContent = origCancelText;
       ok.textContent = origOkText;
@@ -2334,8 +2339,15 @@
       ok.textContent = opts.okLabel || '삽입';
       cancel.textContent = '취소';
 
+      // 3필드 이상이면 넓은 모달로 확장
+      const modalBox = modal.querySelector('.modal') || modal;
+      if (fields.length >= 2 || fields.some(f => f.type === 'textarea')) {
+        modalBox.classList.add('jan-wide');
+      }
+
       const restore = () => {
         modal.classList.remove('open');
+        modalBox.classList.remove('jan-wide');
         ok.style.display = origOkDisplay;
         ok.textContent = origOkText;
         cancel.textContent = origCancelText;

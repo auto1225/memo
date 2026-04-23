@@ -484,8 +484,18 @@
   /* 앱 전체 모달 공통 스타일 — 모서리 12px · 동일한 그림자 · overflow hidden
      해서 inline padding:0인 모달의 내부 컬러 헤더 바도 둥글게 clip됨. */
   .modal { background:#fff; color:#333; border-radius:12px; padding:18px 20px;
-    width:340px; max-width:90vw; box-shadow:0 20px 60px rgba(0,0,0,.18);
-    overflow:hidden; }
+    width:340px; max-width:90vw; max-height:85vh; box-shadow:0 20px 60px rgba(0,0,0,.18);
+    overflow:hidden; display:flex; flex-direction:column; }
+  /* 논문 도움말 · 폼 같이 긴 콘텐츠용 넓은 모달 */
+  .modal.jan-wide { width:580px; max-width:92vw; max-height:88vh; }
+  /* 본문 영역이 모달 내부 스크롤 컨테이너가 되도록 */
+  .modal > #modalBody, .modal > .modal-body { flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; padding-right:4px; }
+  .modal > #modalBody::-webkit-scrollbar, .modal > .modal-body::-webkit-scrollbar { width:8px; }
+  .modal > #modalBody::-webkit-scrollbar-thumb, .modal > .modal-body::-webkit-scrollbar-thumb { background:rgba(0,0,0,0.18); border-radius:4px; }
+  .modal > #modalBody::-webkit-scrollbar-track, .modal > .modal-body::-webkit-scrollbar-track { background:transparent; }
+  /* h3 제목과 actions 버튼 영역은 스크롤 안 되게 sticky */
+  .modal > h3, .modal > #modalTitle { flex-shrink:0; }
+  .modal > .actions, .modal > #modalActions { flex-shrink:0; padding-top:12px; margin-top:auto; border-top:1px solid rgba(0,0,0,0.06); }
   .modal h3 { margin:0 0 10px; font-size:14px; }
   .modal input, .modal textarea, .modal select { width:100%; padding:8px 10px;
     border:1px solid #ddd; border-radius:8px; font-size:14px; outline:none; margin-bottom:6px; }
@@ -20498,7 +20508,7 @@ if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
 <!-- JustANotepad AI 다이어그램 생성 (구성도/순서도/인포그래픽) — Mermaid + AI -->
 <script src="/ai-diagrams.js?v=9"></script>
 <!-- JustANotepad 논문 작성 기능 (각주·인용·번호·페이지 구분) -->
-<script src="/paper-features.js?v=13"></script>
+<script src="/paper-features.js?v=14"></script>
 <!-- JustANotepad 논문 샘플 템플릿 데이터 (Science 포맷 물리학 논문 3페이지) -->
 <script src="/paper-template-data.js?v=3"></script>
 <!-- JustANotepad CAR-T ALL 바이오 논문 나머지 본문 (2.3 ~ Conclusion + Refs) -->
