@@ -1349,39 +1349,54 @@
   .swatches.open { display:grid; }
   .swatches span { width:22px; height:22px; border-radius:50%; cursor:pointer; border:1px solid #ccc; }
 
-  /* ===== 페이지 크기 시스템 (A4/A3/B4 · 세로/가로) · v19: stacked sheets + content rebalance =====
-     v19 변경: v17 은 연속 흰 카드라 페이지 구분이 시각적으로 없음 → 다시 물리적 분리 (24px gap).
-     단, 콘텐츠가 gap 에 빠지지 않도록 MutationObserver 가 overflow 블록을 다음 페이지로 자동 푸시. */
-  .page.jan-paged {
-    max-width: var(--page-w, 210mm);
+  /* ===== 페이지 크기 시스템 (A4/A3/B4 · 세로/가로) · v23: 단일 카드 + 내부 페이지 경계 gap =====
+     stacked sheets 오버레이 대신 단일 .page.jan-paged 에 repeating-linear-gradient 로
+     "흰색 페이지 영역 → 분홍 gap 영역 → 다음 흰색 페이지" 를 교차 렌더.
+     콘텐츠는 rebalanceContentToPages 로 gap 영역 자동 회피. */
+  .page.jan-paged, .page.page.jan-paged {
+    max-width: var(--page-w, 210mm) !important;
     margin: 24px auto 120px !important;
-    background: transparent !important;
     color: #222 !important;
-    box-shadow: none !important;
     border: none !important;
     padding: var(--page-margin, 20mm) var(--page-margin-x, 22mm) !important;
     box-sizing: border-box;
     position: relative;
-    /* z-index 제거 — sheets 가 DOM 순서로 뒤에 렌더되도록 */
-    background-image: none !important;
+    /* 종이 카드 그림자 */
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05), 0 12px 28px rgba(0,0,0,0.10) !important;
+    /* 페이지 영역은 흰색, gap 영역(24px)은 투명 (뒤의 분홍 배경 노출) */
+    background-color: transparent !important;
+    background-image: repeating-linear-gradient(
+      to bottom,
+      #fff 0,
+      #fff var(--page-h, 297mm),
+      transparent var(--page-h, 297mm),
+      transparent calc(var(--page-h, 297mm) + 24px)
+    ) !important;
+    background-size: 100% calc(var(--page-h, 297mm) + 24px) !important;
+    background-repeat: repeat-y !important;
+    background-attachment: local !important;
+    background-position: 0 calc(-1 * var(--page-margin, 20mm)) !important;
   }
-  /* 뒤에 깔리는 종이 스택 오버레이 (v17 방식 복원) */
-  .jan-page-sheets {
+  /* stacked sheets 오버레이는 더 이상 사용 안 함 — 기존 렌더 정리 */
+  .jan-page-sheets, .jan-sheet { display:none !important; }
+  /* Page N 라벨은 유지 */
+  .jan-page-labels .jan-sheet-label {
+    display: inline-block !important;
     position: absolute;
-    left: 0; right: 0; top: 0;
-    pointer-events: none;
-    z-index: 1;
-    max-width: var(--page-w, 210mm);
-    margin: 24px auto 0;
-  }
-  .jan-sheet {
-    position: absolute;
-    left: 0; right: 0;
-    height: var(--page-h, 297mm);
+    right: 0;
+    font-size: 10.5px;
+    color: #D97757;
     background: #fff;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.06), 0 14px 32px rgba(0,0,0,0.10);
-    border: 1px solid rgba(0,0,0,0.06);
-    border-radius: 2px;
+    border: 1px solid rgba(217, 119, 87, 0.35);
+    border-radius: 10px;
+    padding: 2px 10px;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+    pointer-events: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    white-space: nowrap;
+    width: max-content;
+    line-height: 1.4;
   }
   /* 페이지 번호 pill 라벨 — 페이지 시트 내부 absolute */
   .jan-page-labels {
@@ -20730,7 +20745,7 @@ if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
 <!-- JustANotepad AI 다이어그램 생성 (구성도/순서도/인포그래픽) — Mermaid + AI -->
 <script src="/ai-diagrams.js?v=9"></script>
 <!-- JustANotepad 논문 작성 기능 (각주·인용·번호·페이지 구분) -->
-<script src="/paper-features.js?v=22"></script>
+<script src="/paper-features.js?v=23"></script>
 <!-- JustANotepad 논문 샘플 템플릿 데이터 (Science 포맷 물리학 논문 3페이지) -->
 <script src="/paper-template-data.js?v=3"></script>
 <!-- v15: 분야별 예시 논문 스켈레톤 (생물·의학 / CS / 공학 / 경제학 / 물리학 경량) -->

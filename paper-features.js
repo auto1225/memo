@@ -3227,62 +3227,42 @@
     const totalH = nPages * pageHpx + (nPages - 1) * SHEET_GAP;
     page.style.minHeight = totalH + 'px';
 
-    /* v20-fix: sheets 를 .page 내부 첫 자식으로 배치.
-       page 자체의 padding 안쪽에 들어가지만, 우리는 sheets 에 negative margin/inset 으로
-       page padding 영역도 커버하게 만듦. */
-    /* 기존 wrap 안에 있던 sheets 제거 */
+    /* v23: sheets 오버레이 제거 — .page 자체에 repeating gradient 로 페이지 영역 렌더.
+       Page N 라벨만 absolute 오버레이로 유지. */
     const outerSheets = wrap.querySelector(':scope > .jan-page-sheets');
     if (outerSheets) outerSheets.remove();
+    const innerSheets = page.querySelector(':scope > .jan-page-sheets');
+    if (innerSheets) innerSheets.remove();
 
-    let sheets = page.querySelector(':scope > .jan-page-sheets');
-    if (!sheets) {
-      sheets = document.createElement('div');
-      sheets.className = 'jan-page-sheets';
-      sheets.setAttribute('contenteditable', 'false');
-      sheets.setAttribute('aria-hidden', 'true');
-      page.insertBefore(sheets, page.firstChild);
+    /* Page N 라벨 오버레이 */
+    let labels = page.querySelector(':scope > .jan-page-labels');
+    if (!labels) {
+      labels = document.createElement('div');
+      labels.className = 'jan-page-labels';
+      labels.setAttribute('contenteditable', 'false');
+      labels.setAttribute('aria-hidden', 'true');
+      page.appendChild(labels);
     }
-    /* sheets 를 .page 의 padding 영역을 포함해서 전체 범위로 확장.
-       v21-fix: z-index 제거, DOM 순서로 콘텐츠 뒤에 렌더되도록 함 */
-    const padLeft = parseFloat(getComputedStyle(page).paddingLeft) || 0;
     const padTop_p = parseFloat(getComputedStyle(page).paddingTop) || 0;
-    const padRight = parseFloat(getComputedStyle(page).paddingRight) || 0;
-    sheets.style.position = 'absolute';
-    sheets.style.left = (-padLeft) + 'px';
-    sheets.style.right = (-padRight) + 'px';
-    sheets.style.top = (-padTop_p) + 'px';
-    sheets.style.width = 'auto';
-    sheets.style.maxWidth = 'none';
-    sheets.style.margin = '0';
-    sheets.style.height = totalH + 'px';
-    sheets.style.pointerEvents = 'none';
-    sheets.style.zIndex = '0';   /* 기본 stacking — DOM 순서로 뒤 */
+    labels.style.position = 'absolute';
+    labels.style.top = (-padTop_p + 14) + 'px';
+    labels.style.right = '14px';
+    labels.style.height = totalH + 'px';
+    labels.style.pointerEvents = 'none';
+    labels.style.zIndex = '3';
 
-    const existingN = sheets.querySelectorAll('.jan-sheet').length;
-    if (existingN !== nPages) {
-      sheets.innerHTML = '';
+    /* 라벨 재생성 — 2페이지 이상일 때만 */
+    labels.innerHTML = '';
+    if (nPages >= 2) {
       for (let i = 0; i < nPages; i++) {
-        const sheet = document.createElement('div');
-        sheet.className = 'jan-sheet';
-        sheet.style.top = (i * cycle) + 'px';
-        sheets.appendChild(sheet);
+        const lbl = document.createElement('span');
+        lbl.className = 'jan-sheet-label';
+        lbl.textContent = 'Page ' + (i + 1);
+        lbl.style.position = 'absolute';
+        lbl.style.right = '0';
+        lbl.style.top = (i * cycle) + 'px';
+        labels.appendChild(lbl);
       }
-      /* Page N 라벨 — 2페이지 이상일 때만 */
-      if (nPages >= 2) {
-        for (let i = 0; i < nPages; i++) {
-          const lbl = document.createElement('div');
-          lbl.className = 'jan-sheet-label';
-          lbl.textContent = 'Page ' + (i + 1);
-          lbl.style.top = (i * cycle + 10) + 'px';
-          sheets.appendChild(lbl);
-        }
-      }
-    } else {
-      /* 위치만 업데이트 */
-      const sheetEls = sheets.querySelectorAll('.jan-sheet');
-      const labelEls = sheets.querySelectorAll('.jan-sheet-label');
-      sheetEls.forEach((s, i) => { s.style.top = (i * cycle) + 'px'; });
-      labelEls.forEach((l, i) => { l.style.top = (i * cycle + 10) + 'px'; });
     }
   }
 
