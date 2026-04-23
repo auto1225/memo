@@ -3190,10 +3190,14 @@
     const wrap = page.parentElement;
     if (!wrap) return;
 
-    /* 페이지 크기 없으면 오버레이 제거 */
+    /* v17: 기존 stacked sheets 오버레이가 있으면 제거 (구버전 호환) */
+    const oldSheets = wrap.querySelector('.jan-page-sheets');
+    if (oldSheets) oldSheets.remove();
+
+    /* 페이지 크기 없으면 라벨 오버레이 제거 + min-height 리셋 */
     if (!page.classList.contains('jan-paged')) {
-      const existing = wrap.querySelector('.jan-page-sheets');
-      if (existing) existing.remove();
+      const existingLabels = page.querySelector('.jan-page-labels');
+      if (existingLabels) existingLabels.remove();
       page.style.removeProperty('min-height');
       return;
     }
@@ -3203,57 +3207,35 @@
     const pageHmm = parseFloat(computed.getPropertyValue('--page-h')) || 297;
     const pageHpx = mmToPx(pageHmm);
 
-    /* 현재 콘텐츠 높이 — 페이지의 scrollHeight 는 padding 포함 실제 콘텐츠 높이 */
+    /* 현재 콘텐츠 높이 (scrollHeight = padding 포함 실제 콘텐츠 높이) */
     const contentH = page.scrollHeight;
-    /* 몇 장 필요한가? 최소 1장, 콘텐츠가 pageH 를 넘을 때마다 +1장 */
+    /* 페이지 수 = ceil(콘텐츠 / pageH), 최소 1 */
     const nPages = Math.max(1, Math.ceil(contentH / pageHpx));
 
-    /* min-height 업데이트 — 정확히 N장 × pageH + (N-1) × gap */
-    const totalH = nPages * pageHpx + (nPages - 1) * SHEET_GAP;
-    page.style.minHeight = totalH + 'px';
+    /* min-height = N × pageH (gap 없음, 연속) */
+    page.style.minHeight = (nPages * pageHpx) + 'px';
 
-    /* 오버레이 찾거나 생성 */
-    let sheets = wrap.querySelector('.jan-page-sheets');
-    if (!sheets) {
-      sheets = document.createElement('div');
-      sheets.className = 'jan-page-sheets';
-      sheets.setAttribute('contenteditable', 'false');
-      sheets.setAttribute('aria-hidden', 'true');
-      /* 부모가 position:relative 가 아니면 오버레이가 이상한 곳에 붙음 */
-      if (getComputedStyle(wrap).position === 'static') {
-        wrap.style.position = 'relative';
-      }
-      wrap.insertBefore(sheets, page);
+    /* Page N 라벨 오버레이 — 에디터 내부에 position:absolute 로 */
+    let labels = page.querySelector(':scope > .jan-page-labels');
+    if (!labels) {
+      labels = document.createElement('div');
+      labels.className = 'jan-page-labels';
+      labels.setAttribute('contenteditable', 'false');
+      labels.setAttribute('aria-hidden', 'true');
+      page.appendChild(labels);
     }
-    /* 오버레이 전체 높이 맞추기 */
-    sheets.style.height = totalH + 'px';
+    labels.style.height = (nPages * pageHpx) + 'px';
 
-    /* 기존 자식 수와 비교해 필요한 만큼 add/remove */
-    const existingSheets = sheets.querySelectorAll('.jan-sheet').length;
-    if (existingSheets !== nPages) {
-      sheets.innerHTML = '';
+    /* 라벨 재생성 — 2페이지 이상일 때만 표시 */
+    labels.innerHTML = '';
+    if (nPages >= 2) {
       for (let i = 0; i < nPages; i++) {
-        const sheet = document.createElement('div');
-        sheet.className = 'jan-sheet';
-        sheet.style.top = (i * (pageHpx + SHEET_GAP)) + 'px';
-        sheets.appendChild(sheet);
+        const lbl = document.createElement('span');
+        lbl.className = 'jan-sheet-label';
+        lbl.textContent = 'Page ' + (i + 1);
+        lbl.style.top = (i * pageHpx + 14) + 'px';
+        labels.appendChild(lbl);
       }
-      /* 페이지 번호 라벨 (2페이지 이상일 때만) */
-      if (nPages >= 2) {
-        for (let i = 0; i < nPages; i++) {
-          const lbl = document.createElement('div');
-          lbl.className = 'jan-sheet-label';
-          lbl.textContent = 'Page ' + (i + 1);
-          lbl.style.top = (i * (pageHpx + SHEET_GAP) + 10) + 'px';
-          sheets.appendChild(lbl);
-        }
-      }
-    } else {
-      /* 페이지 수는 같지만 pageH 가 바뀌었을 수 있음 — 위치만 업데이트 */
-      const sheetEls = sheets.querySelectorAll('.jan-sheet');
-      const labelEls = sheets.querySelectorAll('.jan-sheet-label');
-      sheetEls.forEach((s, i) => { s.style.top = (i * (pageHpx + SHEET_GAP)) + 'px'; });
-      labelEls.forEach((l, i) => { l.style.top = (i * (pageHpx + SHEET_GAP) + 10) + 'px'; });
     }
   }
 
