@@ -3295,6 +3295,7 @@
         lbl.style.position = 'absolute';
         lbl.style.right = '14px';
         lbl.style.top = (i * cycle + 10) + 'px';
+        lbl.style.pointerEvents = 'none';  /* v27-fix: 클릭 pass-through */
         labels.appendChild(lbl);
       }
       /* 페이지 경계 divider (i > 0 인 경우만) — 이전 페이지 하단 여백 + gap + 다음 페이지 상단 여백 한 덩어리로 표시 */
@@ -3304,8 +3305,9 @@
         const noWriteHeight = padBottomPx + SHEET_GAP + padTopPxLbl;
         const div = document.createElement('div');
         div.className = 'jan-page-divider';
+        /* v27-fix: pointer-events:none 로 클릭 pass-through 보장 (CSS inherit 아님) */
         div.style.cssText =
-          'position:absolute;left:0;right:0;' +
+          'position:absolute;left:0;right:0;pointer-events:none;' +
           'top:' + noWriteStart + 'px;' +
           'height:' + noWriteHeight + 'px;' +
           'background:repeating-linear-gradient(45deg,' +
@@ -3316,7 +3318,7 @@
           'display:flex;align-items:center;justify-content:center;' +
           'color:#8B4513;font-size:10.5px;font-weight:700;letter-spacing:1px;';
         div.innerHTML =
-          '<span style="background:#fff;padding:3px 14px;border-radius:12px;border:1px solid rgba(217,119,87,0.4); box-shadow:0 2px 6px rgba(0,0,0,0.08);">' +
+          '<span style="background:#fff;padding:3px 14px;border-radius:12px;border:1px solid rgba(217,119,87,0.4); box-shadow:0 2px 6px rgba(0,0,0,0.08); pointer-events:none;">' +
           '— 페이지 ' + (i + 1) + ' 시작 —</span>';
         labels.appendChild(div);
       }
@@ -3326,7 +3328,7 @@
         const lastMargin = document.createElement('div');
         lastMargin.className = 'jan-page-margin-bottom';
         lastMargin.style.cssText =
-          'position:absolute;left:0;right:0;' +
+          'position:absolute;left:0;right:0;pointer-events:none;' +
           'top:' + (i * cycle + pageHpx - padBottomPx) + 'px;' +
           'height:' + padBottomPx + 'px;' +
           'background:repeating-linear-gradient(45deg,' +
