@@ -1846,6 +1846,7 @@
     <button id="searchToggle" class="collapsible" aria-label="검색 열기" title="검색 (Ctrl+F)"><svg class="ico"><use href="#i-search"/></svg></button>
     <button id="focusBtn" class="collapsible" aria-label="집중 모드 전환" title="집중 모드"><svg class="ico"><use href="#i-target"/></svg></button>
     <button id="helpBtn" class="collapsible" aria-label="도움말 열기" title="도움말"><svg class="ico"><use href="#i-help"/></svg></button>
+    <button id="homeHubBtn" class="collapsible" aria-label="홈 허브" title="홈 허브 — 최근 클립·공유 노트·공지"><svg class="ico"><use href="#i-grid"/></svg></button>
     <button id="syncBtn" class="collapsible" aria-label="동기화 설정" title="동기화 설정 (Ctrl+Shift+Y) — 내 PC 폴더·Dropbox 등"><svg class="ico"><use href="#i-cloud"/></svg></button>
     <button id="authBtn" class="collapsible" aria-label="로그인" title="로그인"><svg class="ico" style="width:14px;height:14px;"><use href="#i-users"/></svg><span style="font-size:12px;font-weight:500;">로그인</span></button>
 
@@ -1935,6 +1936,7 @@
     <button data-cmd="strikeThrough" title="취소선" class="text-btn strike">S</button>
     <button id="colorBtn" title="글자색"><svg class="ico"><use href="#i-palette"/></svg></button>
     <button id="hiliteBtn" title="형광펜"><svg class="ico"><use href="#i-highlight"/></svg></button>
+    <button id="sketchBtn" title="손글씨·스케치 (필압·터치·스타일러스 지원)"><svg class="ico"><use href="#i-brush"/></svg></button>
     <div class="sep"></div>
     <button id="alignLeftBtn" title="왼쪽 정렬 (Ctrl+Shift+L)"><svg class="ico"><use href="#i-align-left"/></svg></button>
     <button id="alignCenterBtn" title="가운데 정렬 (Ctrl+Shift+E)"><svg class="ico"><use href="#i-align-center"/></svg></button>
@@ -1974,7 +1976,6 @@
     <button id="emojiBtn" title="이모지"><svg class="ico"><use href="#i-smile"/></svg></button>
     <button id="voiceBtn" title="음성 입력"><svg class="ico"><use href="#i-mic"/></svg></button>
     <button id="speakBtn" title="읽어주기"><svg class="ico"><use href="#i-speaker"/></svg></button>
-    <button id="sketchBtn" title="손글씨·스케치 (필압 감지·터치·스타일러스 펜 지원)"><svg class="ico"><use href="#i-brush"/></svg></button>
     <button id="imgUploadBtn" title="이미지 업로드 (파일 선택)"><svg class="ico"><use href="#i-image"/></svg></button>
     <button id="captureBtn" title="화면 캡쳐"><svg class="ico"><use href="#i-camera"/></svg></button>
     <div class="sep"></div>
@@ -19714,7 +19715,7 @@ if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
   add({ ico:'i-rocket', name:'자동시작 OFF', desc:'PC 로그인 시 자동 실행 안 함', run:async () => { try { await window.__TAURI__?.core?.invoke?.('autostart_set', { enabled: false }); toast('자동시작 OFF'); } catch { toast('데스크톱 앱에서만 사용 가능'); } } });
 
   // ─── 홈 / 허브 / 공유 ─────────────────────────
-  add({ ico:'i-grid', name:'홈 허브 열기', desc:'최근 클립·공유 노트·템플릿', keywords:['hub','home','dashboard'], run:() => { const fab = document.querySelector('.jan-hub-fab'); if (fab) fab.click(); else toast('홈 허브 로드 중…'); } });
+  add({ ico:'i-grid', name:'홈 허브 열기', desc:'최근 클립·공유 노트·공지', keywords:['hub','home','dashboard','허브','대시보드','클립','공유'], run:() => { if (typeof window.openHomeHub === 'function') window.openHomeHub(); else toast('홈 허브 로드 중…'); } });
   add({ ico:'i-share', name:'현재 메모 공유 링크', desc:'QR 공유 모달', run:clickIf('qrBtn') });
 
   // ─── 앱 관리 ─────────────────────────────

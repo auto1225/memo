@@ -152,8 +152,13 @@
   document.head.appendChild(style);
 
   function installPenFab() {
+    // 데스크톱에서는 툴바의 #sketchBtn 이 이미 있으므로 FAB 불필요.
+    // 모바일 전용으로 유지하되, 뷰포트가 좁은 Tauri WebView 에서 잘못 표시되는
+    // 걸 막기 위해 pointerType 감지로 터치 장치에서만 설치.
+    // (hover:none 이고 pointer:coarse 면 모바일로 간주)
+    const isTouchOnly = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+    if (!isTouchOnly) return;
     if (document.querySelector('.jnp-pen-fab')) return;
-    // Only show if #sketchBtn exists (proof that sketch feature is loaded)
     const waitForSketch = () => {
       const sketchBtn = document.getElementById('sketchBtn');
       if (!sketchBtn) return setTimeout(waitForSketch, 400);

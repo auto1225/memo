@@ -345,15 +345,22 @@
     });
   }
 
+  // 전역 API — 툴바 버튼 / 명령 팔레트에서 호출
+  window.openHomeHub = () => toggleDrawer(true);
+
   function build() {
     injectStyles();
 
-    const fab = document.createElement('button');
-    fab.className = 'jan-hub-fab';
-    fab.title = '홈 허브 (최근 클립·공유 노트·템플릿)';
-    fab.setAttribute('aria-label', '홈 허브 열기');
-    fab.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>`;
-    document.body.appendChild(fab);
+    // FAB 은 더 이상 생성하지 않음. 앱 테마(분홍)와 안 맞는 검정 원형 단색 버튼이었고,
+    // 화면을 가리는 단점도 있었음. 접근 경로는:
+    //   1) 상단 툴바 'i-home' 아이콘 (#homeHubBtn, app.html 에서 연결)
+    //   2) Ctrl+K → '홈 허브 열기'
+    //   3) window.openHomeHub() 직접 호출
+    const existingBtn = document.getElementById('homeHubBtn');
+    if (existingBtn && !existingBtn.dataset.hubBound) {
+      existingBtn.dataset.hubBound = '1';
+      existingBtn.addEventListener('click', () => toggleDrawer(true));
+    }
 
     backdrop = document.createElement('div');
     backdrop.className = 'jan-hub-backdrop';
@@ -372,7 +379,6 @@
       </div>`;
     document.body.appendChild(drawer);
 
-    fab.addEventListener('click', () => toggleDrawer(true));
     drawer.querySelector('button').addEventListener('click', () => toggleDrawer(false));
     backdrop.addEventListener('click', () => toggleDrawer(false));
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') toggleDrawer(false); });
