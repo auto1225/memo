@@ -1613,6 +1613,7 @@
 
     /* v16: stacked sheets observer — #page 변경 감지 → updatePageSheets 호출 */
     try { setupSheetsObserver(); } catch (e) { console.warn('[JANPaper] sheets observer 실패', e); }
+    try { setupAutoSplitObserver(); } catch (e) { console.warn('[JANPaper] autoSplit observer 실패', e); }
     /* 창 리사이즈 시에도 재계산 — pageH 는 mm 고정이나 콘텐츠 재배치 시 scrollHeight 변동 */
     try {
       window.addEventListener('resize', () => {
@@ -3227,6 +3228,9 @@
     /* v31: jan-paged 상태라면 자식을 .jan-doc-page 로 래핑 */
     if (page.classList.contains('jan-paged')) {
       wrapContentInDocPages(page);
+      /* v32: 초기 자동 split — 긴 콘텐츠 처음부터 페이지 분할 */
+      try { setupAutoSplitObserver(); } catch {}
+      scheduleAutoSplit();
     } else {
       unwrapDocPages(page);
     }
@@ -3276,6 +3280,148 @@
       /* 페이지 사이 구분선 삽입 (선택) */
       dp.remove();
     });
+  }
+
+  /* ============================================================
+     v32: 페이지 자동 split — .jan-doc-page 가 pageH 넘치면 overflow 블록을 다음 페이지로 이동
+     ============================================================ */
+  let _autoSplitPending = false;
+  let _isComposingSplit = false;
+  function scheduleAutoSplit() {
+    if (_autoSplitPending) return;
+    _autoSplitPending = true;
+    setTimeout(() => {
+      _autoSplitPending = false;
+      if (_isComposingSplit) return;  /* IME 중엔 건드리지 않음 */
+      try { autoSplitOverflowingPages(); } catch (e) { console.warn('[JANPaper] autoSplit 실패', e); }
+    }, 350);
+  }
+  function autoSplitOverflowingPages() {
+    const page = getPageEl();
+    if (!page || !page.classList.contains('jan-paged')) return;
+    const computed = getComputedStyle(page);
+    const pageHmm = parseFloat(computed.getPropertyValue('--page-h')) || 297;
+    const pageHpx = mmToPx(pageHmm);
+
+    /* 반복 처리 — 각 페이지 검사, overflow 시 다음 페이지로 이동 */
+    let maxIter = 30;  /* 무한 루프 방지 */
+    let modified = true;
+    while (modified && maxIter-- > 0) {
+      modified = false;
+      const docPages = Array.from(page.querySelectorAll(':scope > .jan-doc-page'));
+      for (let i = 0; i < docPages.length; i++) {
+        const dp = docPages[i];
+        const dpHeight = dp.offsetHeight;
+        if (dpHeight <= pageHpx + 2) continue;  /* overflow 없음 */
+
+        /* 허용 콘텐츠 영역 (padding 포함 전체 pageH) — 블록이 이 이상 걸치면 overflow */
+        const dpRect = dp.getBoundingClientRect();
+        const allowBottom = dpRect.top + pageHpx;
+
+        /* 자식 중에 overflow 시작점 찾기 */
+        const children = Array.from(dp.children).filter(c =>
+          c.nodeType === Node.ELEMENT_NODE
+        );
+        let overflowIdx = -1;
+        for (let j = 0; j < children.length; j++) {
+          const cRect = children[j].getBoundingClientRect();
+          /* 블록 끝이 허용 영역을 넘음 → overflow */
+          if (cRect.bottom > allowBottom + 1) {
+            /* 블록이 한 페이지보다 크면 이동해도 소용 없음 — 건너뜀 */
+            if (cRect.height > pageHpx * 0.95) {
+              overflowIdx = (j === 0) ? -1 : j;  /* 첫 번째 거대 블록은 건들지 않음 */
+              if (overflowIdx === -1) break;
+            } else {
+              overflowIdx = j;
+            }
+            break;
+          }
+        }
+        if (overflowIdx < 0) continue;
+
+        /* 다음 페이지 확보 */
+        let nextDp = dp.nextElementSibling;
+        if (!nextDp || !nextDp.classList || !nextDp.classList.contains('jan-doc-page')) {
+          nextDp = document.createElement('div');
+          nextDp.className = 'jan-doc-page';
+          dp.parentNode.insertBefore(nextDp, dp.nextSibling);
+        }
+
+        /* overflow 블록들을 다음 페이지 앞쪽으로 이동 */
+        const toMove = children.slice(overflowIdx);
+        /* 다음 페이지에 '<p><br></p>' 빈 자식만 있으면 제거 */
+        if (nextDp.children.length === 1) {
+          const onlyChild = nextDp.firstElementChild;
+          if (onlyChild && onlyChild.tagName === 'P' &&
+              onlyChild.childNodes.length === 1 &&
+              onlyChild.firstChild && onlyChild.firstChild.nodeName === 'BR') {
+            nextDp.innerHTML = '';
+          }
+        }
+        /* 역순으로 insertBefore (다음 페이지 첫 자식 앞에) */
+        for (let j = toMove.length - 1; j >= 0; j--) {
+          nextDp.insertBefore(toMove[j], nextDp.firstChild);
+        }
+        modified = true;
+      }
+    }
+
+    /* 빈 페이지 (마지막 제외) 제거 + 여유 있는 페이지에 다음 페이지 콘텐츠 당기기 (선택적, 보수적) */
+    consolidateDocPages(page, pageHpx);
+  }
+
+  /* 페이지들 사이 콘텐츠 밸런싱: 이전 페이지에 여유 있으면 다음 페이지 첫 블록 당김 */
+  function consolidateDocPages(page, pageHpx) {
+    let changed = true;
+    let iter = 30;
+    while (changed && iter-- > 0) {
+      changed = false;
+      const docPages = Array.from(page.querySelectorAll(':scope > .jan-doc-page'));
+      for (let i = 0; i < docPages.length - 1; i++) {
+        const dp = docPages[i];
+        const nextDp = docPages[i + 1];
+        /* 다음 페이지 첫 블록을 가져왔을 때 현재 페이지가 pageH 이하로 유지되면 당김 */
+        const firstNext = nextDp.firstElementChild;
+        if (!firstNext) continue;
+        const nextFirstRect = firstNext.getBoundingClientRect();
+        if (nextFirstRect.height > pageHpx * 0.95) continue;  /* 거대 블록은 skip */
+        /* 시뮬레이션: 현재 페이지 하단에 추가했을 때 높이 */
+        const dpBottom = dp.getBoundingClientRect().bottom;
+        /* 현재 페이지가 이미 pageH 에 꽉 차면 skip */
+        if (dp.offsetHeight > pageHpx * 0.92) continue;
+        /* 여유 공간이 블록 높이보다 큼 — 당겨오기 */
+        const spare = pageHpx - dp.offsetHeight;
+        if (spare > nextFirstRect.height + 10) {
+          dp.appendChild(firstNext);
+          changed = true;
+          /* 다음 페이지가 비었으면 삭제 (마지막 페이지면 유지) */
+          if (nextDp.children.length === 0 && i + 1 < docPages.length - 1) {
+            nextDp.remove();
+          }
+        }
+      }
+    }
+  }
+
+  /* 편집 이벤트 리스너 — scheduleAutoSplit 트리거.
+     init() 내 setupSheetsObserver 와 병행. */
+  function setupAutoSplitObserver() {
+    const page = getPageEl();
+    if (!page || page._autoSplitBound) return;
+    page._autoSplitBound = true;
+    page.addEventListener('compositionstart', () => { _isComposingSplit = true; });
+    page.addEventListener('compositionend', () => {
+      _isComposingSplit = false;
+      scheduleAutoSplit();
+    });
+    page.addEventListener('input', () => {
+      if (!page.classList.contains('jan-paged')) return;
+      scheduleAutoSplit();
+    });
+    /* 초기 1회 */
+    setTimeout(() => {
+      if (page.classList.contains('jan-paged')) scheduleAutoSplit();
+    }, 300);
   }
 
   /* 사용자가 페이지 구분 요청 시 — 커서 이후 콘텐츠를 새 .jan-doc-page 로 split */
