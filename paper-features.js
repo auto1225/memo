@@ -65,11 +65,10 @@
   /* ---------- 되돌리기 스택 (자체 스냅샷) ----------
      convertToSciencePaper · loadPaperSample · bio-append 같이
      page.innerHTML 을 통째로 바꾸는 파괴적 연산 직전에 push.
-     Ctrl+Z (최근 30초 이내) 또는 paper.undo 명령으로 복원. */
+     Ctrl+Z 또는 paper.undo 명령으로 복원.
+     시간 제한 없음 — 스택에 남아있는 한 언제든 되돌림. 최대 10단계. */
   const _paperUndoStack = [];
-  let _lastOpTimestamp = 0;
-  const PAPER_UNDO_MAX = 8;
-  const PAPER_UNDO_WINDOW_MS = 30000;
+  const PAPER_UNDO_MAX = 10;
 
   function pushPaperUndo(label) {
     try {
@@ -80,9 +79,8 @@
         label: label || 'paper-op',
         ts: Date.now()
       });
-      // 스택 크기 제한
+      // 스택 크기 제한 (10개 초과 시 가장 오래된 것 버림)
       while (_paperUndoStack.length > PAPER_UNDO_MAX) _paperUndoStack.shift();
-      _lastOpTimestamp = Date.now();
     } catch (e) { console.warn('[JANPaper] pushPaperUndo 실패', e); }
   }
 
@@ -158,7 +156,7 @@
       if (!((ev.ctrlKey || ev.metaKey) && !ev.shiftKey && !ev.altKey)) return;
       if (ev.key !== 'z' && ev.key !== 'Z') return;
       if (!_paperUndoStack.length) return;
-      if (Date.now() - _lastOpTimestamp > PAPER_UNDO_WINDOW_MS) return;
+      // 시간 제한 없음 — 스택에 스냅샷이 있으면 언제나 되돌림 (최대 10단계)
       ev.preventDefault();
       ev.stopPropagation();
       paperUndo();
