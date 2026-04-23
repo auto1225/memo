@@ -2338,6 +2338,7 @@
   <div class="sep"></div>
   <button data-iact="link" title="링크 걸기"><svg class="ico"><use href="#i-link"/></svg></button>
   <button data-iact="ocr" title="AI로 텍스트 인식 (이미지 속 글씨 → 텍스트)"><svg class="ico"><use href="#i-sparkles"/></svg></button>
+  <button data-iact="ocr-math" title="AI로 수식 인식 (이미지 속 수학 → KaTeX)"><svg class="ico"><use href="#i-math"/></svg></button>
   <button data-iact="download" title="이미지 다운로드"><svg class="ico"><use href="#i-download"/></svg></button>
   <button data-iact="delete" class="danger" title="삭제"><svg class="ico"><use href="#i-trash"/></svg></button>
 </div>
@@ -4964,8 +4965,10 @@ function showOcrResultModal(result, mode, dataUrl) {
       </div>
     </div>
     <div style="display:flex; gap:6px; margin-top:10px; flex-wrap:wrap;">
-      <button id="ocrInsertPlain" style="flex:1; background:var(--accent); color:white; border:none; padding:9px; border-radius:6px; cursor:pointer; font-weight:600;">메모에 삽입</button>
-      <button id="ocrInsertWithImg" style="padding:9px 14px; background:#4caf50; color:white; border:none; border-radius:6px; cursor:pointer;">이미지+텍스트</button>
+      <button id="ocrInsertPlain" style="flex:1; background:var(--accent); color:white; border:none; padding:9px; border-radius:6px; cursor:pointer; font-weight:600;">${mode === 'math' ? '수식으로 삽입 (블록)' : '메모에 삽입'}</button>
+      ${mode === 'math' ? '<button id="ocrInsertInline" title="텍스트 옆에 글자처럼 배치" style="padding:9px 14px; background:#ff8aa0; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:600;">인라인 수식</button>' : ''}
+      ${mode === 'math' ? '<button id="ocrInsertRaw" title="LaTeX 코드 자체를 텍스트로 삽입" style="padding:9px 14px; background:#888; color:white; border:none; border-radius:6px; cursor:pointer;">LaTeX 원문</button>' : ''}
+      <button id="ocrInsertWithImg" style="padding:9px 14px; background:#4caf50; color:white; border:none; border-radius:6px; cursor:pointer;">${mode === 'math' ? '원본+수식' : '이미지+텍스트'}</button>
       <button id="ocrCleanup" title="AI로 오탈자 보정 (추가 호출)" style="padding:9px 14px; background:#7e57c2; color:white; border:none; border-radius:6px; cursor:pointer;">AI 보정</button>
       <button id="ocrCopy" style="padding:9px 14px; background:#eee; border:none; border-radius:6px; cursor:pointer;">복사</button>
     </div>
@@ -4982,8 +4985,12 @@ function showOcrResultModal(result, mode, dataUrl) {
     runOCR(dataUrl, mode, true);
   });
 
-  $('ocrInsertPlain').addEventListener('click', () => insertOCRResult(mode, false));
-  $('ocrInsertWithImg').addEventListener('click', () => insertOCRResult(mode, true, dataUrl));
+  $('ocrInsertPlain').addEventListener('click', () => insertOCRResult(mode, false, null, mode === 'math' ? 'block' : undefined));
+  $('ocrInsertWithImg').addEventListener('click', () => insertOCRResult(mode, true, dataUrl, mode === 'math' ? 'block' : undefined));
+  if (mode === 'math') {
+    $('ocrInsertInline')?.addEventListener('click', () => insertOCRResult('math', false, null, 'inline'));
+    $('ocrInsertRaw')?.addEventListener('click', () => insertOCRResult('math', false, null, 'raw'));
+  }
 
   $('ocrCleanup').addEventListener('click', async () => {
     const current = $('ocrResultTxt').value;
@@ -5007,12 +5014,44 @@ function showOcrResultModal(result, mode, dataUrl) {
   });
 }
 
-function insertOCRResult(mode, withImage, dataUrl) {
+function insertOCRResult(mode, withImage, dataUrl, mathStyle) {
   const text = $('ocrResultTxt').value;
   $('modal').classList.remove('open');
   closeSketch();
   restorePageSel();
   pageEl.focus();
+
+  // 수식 모드 — JANDiagrams 로 KaTeX 렌더 figure/inline 삽입.
+  // mathStyle: 'block' (기본) | 'inline' | 'raw'(폴백 — pre 로 코드 텍스트)
+  if (mode === 'math' && window.JANDiagrams) {
+    const style = mathStyle || 'block';
+    try {
+      if (style === 'inline' && typeof window.JANDiagrams.insertMathInline === 'function') {
+        window.JANDiagrams.insertMathInline(text);
+        if (withImage && dataUrl) {
+          document.execCommand('insertImage', false, dataUrl);
+          document.execCommand('insertHTML', false, '<br>');
+        }
+        scheduleSave();
+        toast('수식 삽입 완료 (인라인)');
+        return;
+      }
+      if (style === 'block' && typeof window.JANDiagrams.insertMathFromLatex === 'function') {
+        if (withImage && dataUrl) {
+          document.execCommand('insertImage', false, dataUrl);
+          document.execCommand('insertHTML', false, '<br>');
+        }
+        window.JANDiagrams.insertMathFromLatex(text, '이미지 → 수식');
+        scheduleSave();
+        toast('수식 삽입 완료 (블록)');
+        return;
+      }
+      // style === 'raw' 는 아래 기본 경로로 떨어져 pre 삽입
+    } catch (e) {
+      console.warn('[OCR] math render failed, fallback to raw', e);
+    }
+  }
+
   let html = '';
   if (mode === 'math') {
     html = `<pre class="code" style="background:#f5f0ff; color:#5e35b1;">${escapeHtml(text)}</pre><br>`;
@@ -7805,17 +7844,21 @@ imageToolbar.querySelectorAll('[data-iact]').forEach(btn => {
           a.appendChild(img);
         }
       }
-    } else if (act === 'ocr') {
+    } else if (act === 'ocr' || act === 'ocr-math') {
       if (!getActiveProvider()) { toast('AI 계정을 먼저 연결하세요'); openAiKeyPanel(); $('aiModal').classList.add('open'); return; }
-      // 모드 선택 다이얼로그 → 스케치 OCR 흐름 재사용
-      const modeChoice = await pickList('인식 모드', ['일반 텍스트', '수식 (LaTeX)', '표 (Markdown)', '마크다운 문서']);
-      if (!modeChoice) return;
-      const modeMap = { '일반 텍스트':'text', '수식 (LaTeX)':'math', '표 (Markdown)':'table', '마크다운 문서':'markdown' };
-      const mode = modeMap[modeChoice];
-      // 이미지 src가 너무 크면 축소 (data: URL이면 직접, 외부는 그대로)
+      let mode;
+      if (act === 'ocr-math') {
+        // 수식 전용 빠른 경로 — 모드 선택 스킵
+        mode = 'math';
+      } else {
+        const modeChoice = await pickList('인식 모드', ['일반 텍스트', '수식 (LaTeX)', '표 (Markdown)', '마크다운 문서']);
+        if (!modeChoice) return;
+        const modeMap = { '일반 텍스트':'text', '수식 (LaTeX)':'math', '표 (Markdown)':'table', '마크다운 문서':'markdown' };
+        mode = modeMap[modeChoice];
+      }
+      // 이미지 src가 너무 크면 축소
       let dataUrl = img.src;
       if (dataUrl.startsWith('data:')) {
-        // canvas에 그려 압축
         const tmp = document.createElement('canvas');
         const tmpImg = new Image();
         tmpImg.src = dataUrl;
