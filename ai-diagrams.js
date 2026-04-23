@@ -158,20 +158,44 @@
         fill: #555 !important;
         stroke: #555 !important;
       }
-      /* 수식 figure — 노트에 자연스러운 텍스트처럼 보이도록 박스·배경 제거.
-         hover/focus 시에만 편집 툴바 표시. */
+      /* 수식 figure — 문장 사이에 끼어들어갈 수 있게 inline-block.
+         배경·패딩·보더 완전 투명. KaTeX 내부의 기본 흰 배경까지 모두 제거. */
       figure.jan-math {
-        margin: 0.4em auto;
+        display: inline-block !important;   /* 문단 안에서 텍스트 흐름 따라감 */
+        vertical-align: middle;
+        margin: 0 0.15em;
         max-width: 100%;
         text-align: center;
-        padding: 0;
-        background: transparent;
-        border: 0;
-        overflow-x: auto;
+        padding: 0 !important;
+        background: transparent !important;
+        background-color: transparent !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        overflow-x: visible;
         color: inherit;
+        line-height: 1.3;
       }
-      figure.jan-math .katex-display { margin: 0 !important; color: inherit; }
-      figure.jan-math .katex { color: inherit; }
+      figure.jan-math .katex-display {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: transparent !important;
+        color: inherit;
+        display: inline-block !important;
+      }
+      figure.jan-math .katex,
+      figure.jan-math .katex *,
+      figure.jan-math .katex-html,
+      figure.jan-math .katex-mathml {
+        background: transparent !important;
+        background-color: transparent !important;
+        color: inherit !important;
+      }
+      /* KaTeX 분수/근호 줄긋기만 색 따로 (원래 currentColor 이지만 보장) */
+      figure.jan-math .katex .frac-line,
+      figure.jan-math .katex .sqrt-line {
+        border-color: currentColor !important;
+      }
       figure.jan-math figcaption {
         margin-top: 2px;
         font-size: 11px;
