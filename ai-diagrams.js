@@ -199,24 +199,20 @@
       figure.jan-math .jan-math-tools button.danger:hover {
         background: #FFD9D9; border-color: #C0392B; color: #C0392B;
       }
-      /* 인라인 수식 — 텍스트 옆에 글자처럼 */
+      /* 인라인 수식 — 텍스트 옆에 글자처럼 자연스럽게 흐름.
+         padding/border/background 없음 (박스처럼 안 보이게). 호버 시 미세한 배경만.
+         KaTeX 의 inline 출력은 필요한 inline-block 요소(분수·첨자 등)를 자체 생성하므로 건드리지 않음. */
       .jan-math-inline {
-        display: inline-block;
+        display: inline-block;       /* KaTeX 의 분수·첨자 수직 정렬 유지 */
         vertical-align: middle;
         cursor: pointer;
-        padding: 0 2px;
-        border-radius: 3px;
-        transition: outline 0.12s;
+        line-height: 1;              /* 주변 텍스트와 높이 맞춤 */
+        padding: 0; border: 0; background: transparent; border-radius: 0;
+        transition: background 0.12s;
       }
-      .jan-math-inline:hover {
-        outline: 2px solid rgba(217, 119, 87, 0.55);
-        background: #FFF6F8;
-      }
-      .jan-math-inline.jan-focus {
-        outline: 2px solid #D97757;
-        background: #FFF0F4;
-      }
-      .jan-math-inline .katex { font-size: 1.05em; }
+      .jan-math-inline .katex { font-size: inherit; }
+      .jan-math-inline:hover { background: rgba(255, 214, 228, 0.35); }
+      .jan-math-inline.jan-focus { background: rgba(255, 182, 193, 0.45); }
       /* figure 선택(focus) 하이라이트 — Ctrl+C 복사 가능함을 시각적으로 */
       figure.jan-diagram.jan-focus,
       figure.jan-math.jan-focus {

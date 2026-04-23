@@ -173,9 +173,12 @@
     .jan-hw-toolbar.bottom { bottom: 24px; }
     .jan-hw-toolbar button {
       appearance: none; background: transparent; border: 1px solid transparent;
-      padding: 6px 8px; border-radius: 8px; cursor: pointer;
+      padding: 6px 10px; border-radius: 8px; cursor: pointer;
       color: #333; font: inherit; display: inline-flex; align-items: center; gap: 4px;
+      white-space: nowrap; flex-shrink: 0;
     }
+    .jan-hw-toolbar button span { white-space: nowrap; }
+    .jan-hw-toolbar.bottom { flex-wrap: wrap; max-width: calc(100vw - 40px); gap: 4px; }
     .jan-hw-toolbar button:hover { background: rgba(255,182,193,0.18); border-color: rgba(255,182,193,0.35); }
     .jan-hw-toolbar button.active { background: #ffd7e0; border-color: #ffb6c1; color: #c2185b; }
     .jan-hw-toolbar button svg { width: 16px; height: 16px; }
@@ -318,15 +321,15 @@
     soundBtn.addEventListener('click', toggleSound);
     bottomBar.appendChild(soundBtn);
 
-    const aiBtn = mkBtn(I.sparkles + '<span style="margin-left:4px;">AI 텍스트 변환</span>', 'AI로 손글씨를 텍스트로 변환');
+    const aiBtn = mkBtn(I.sparkles + '<span style="margin-left:4px;">텍스트</span>', 'AI로 손글씨를 텍스트로 변환');
     aiBtn.addEventListener('click', runAiOcr);
     bottomBar.appendChild(aiBtn);
 
-    const mathBtn = mkBtn(I.math + '<span style="margin-left:4px;">수식 (블록)</span>', '손글씨 수식을 블록 형태로 삽입 — 가운데 정렬, 한 줄 차지');
+    const mathBtn = mkBtn(I.math + '<span style="margin-left:4px;">수식·블록</span>', '손글씨 수식을 블록 형태로 삽입 — 가운데 정렬, 한 줄 차지');
     mathBtn.addEventListener('click', () => runAiMathOcr(false));
     bottomBar.appendChild(mathBtn);
 
-    const mathInlineBtn = mkBtn(I.math + '<span style="margin-left:4px;">수식 (인라인)</span>', '손글씨 수식을 텍스트 옆에 글자처럼 삽입');
+    const mathInlineBtn = mkBtn(I.math + '<span style="margin-left:4px;">수식·인라인</span>', '손글씨 수식을 텍스트 옆에 글자처럼 삽입');
     mathInlineBtn.addEventListener('click', () => runAiMathOcr(true));
     bottomBar.appendChild(mathInlineBtn);
 
@@ -336,7 +339,7 @@
 
     bottomBar.appendChild(mkSep());
 
-    const saveBtn = mkBtn(I.check + '<span style="margin-left:4px;">저장하고 끝내기</span>', '');
+    const saveBtn = mkBtn(I.check + '<span style="margin-left:4px;">저장</span>', '저장하고 오버레이 닫기');
     saveBtn.className = 'primary';
     saveBtn.addEventListener('click', save);
     bottomBar.appendChild(saveBtn);
