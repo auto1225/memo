@@ -436,7 +436,10 @@
     const enc = latex ? b64enc(latex) : '';
     const tools =
       '<span class="jan-math-tools" contenteditable="false">' +
+        '<button type="button" data-math-act="move-up" title="한 칸 위로 이동">↑</button>' +
+        '<button type="button" data-math-act="move-down" title="한 칸 아래로 이동">↓</button>' +
         '<button type="button" data-math-act="edit">편집</button>' +
+        '<button type="button" data-math-act="cut" title="잘라내기 (Word·한글 붙여넣기용)">잘라내기</button>' +
         '<button type="button" data-math-act="copy" title="Word · 한글 · 메일에 이미지로 붙여넣기">복사</button>' +
         '<button type="button" data-math-act="copy-latex" title="LaTeX 텍스트만 복사">LaTeX</button>' +
         '<button type="button" data-math-act="delete" class="danger">삭제</button>' +
@@ -453,6 +456,18 @@
   /* ---------- 노트 삽입 (원본 텍스트 보존 = 선택 끝점 뒤에 삽입) ----------
      forcedRange: 외부에서 미리 확보한 Range 가 있으면 그걸 우선 사용
      (AI 호출로 오래 기다리는 동안 selection 이 날아가는 걸 방어)  */
+  // 빈 블록 판단 — 위/아래 이동 시 빈 <p><br></p> 같은 placeholder 는 건너뛴다
+  function isEmptyBlock(node) {
+    if (!node || node.nodeType !== 1) return false;
+    const tag = node.nodeName;
+    if (tag !== 'P' && tag !== 'DIV') return false;
+    const txt = (node.textContent || '').replace(/\s|\u200b/g, '');
+    if (txt) return false;
+    // figure / img / table / iframe / svg 같은 의미 있는 자식이 있으면 비어있는 게 아님
+    if (node.querySelector('figure,img,table,iframe,svg,video,audio,canvas')) return false;
+    return true;
+  }
+
   let _preservedRange = null;
   function captureRangeNow() {
     try {
@@ -563,6 +578,38 @@
       fig.remove();
       try { if (typeof window.scheduleSave === 'function') window.scheduleSave(); } catch {}
       notify('삭제됨');
+      return;
+    }
+    if (act === 'move-up' || act === 'move-down') {
+      // 바로 인접한 형제가 빈 <p>/줄바꿈인 경우 흔해서, 같은 타입 figure 가 아니어도
+      // 한 블록 위/아래로 단순 스왑. 인접 형제가 없으면 부모 레벨로 올라가며 찾음.
+      const dir = act === 'move-up' ? 'prev' : 'next';
+      let target = dir === 'prev' ? fig.previousElementSibling : fig.nextElementSibling;
+      // 빈 <p> 이거나 <br> 만 있는 블록은 건너뛰면서 의미있는 형제 찾기
+      while (target && isEmptyBlock(target)) {
+        target = dir === 'prev' ? target.previousElementSibling : target.nextElementSibling;
+      }
+      if (!target) { notify(dir === 'prev' ? '더 위로 이동할 수 없음' : '더 아래로 이동할 수 없음'); return; }
+      if (dir === 'prev') {
+        fig.parentNode.insertBefore(fig, target);
+      } else {
+        fig.parentNode.insertBefore(fig, target.nextSibling);
+      }
+      try { if (typeof window.scheduleSave === 'function') window.scheduleSave(); } catch {}
+      fig.focus();
+      notify(dir === 'prev' ? '위로 이동됨' : '아래로 이동됨');
+      return;
+    }
+    if (act === 'cut') {
+      // Word 호환 복사 → 성공 후 figure 제거
+      copyFigureForWord(fig).then(() => {
+        fig.remove();
+        try { if (typeof window.scheduleSave === 'function') window.scheduleSave(); } catch {}
+        notify('잘라냈습니다 — 원하는 곳에 Ctrl+V');
+      }).catch(err => {
+        console.error('[cutFigure]', err);
+        notify('잘라내기 실패: ' + err.message);
+      });
       return;
     }
     if (act === 'copy-latex') {
