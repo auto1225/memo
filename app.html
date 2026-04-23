@@ -4737,7 +4737,14 @@ function restoreSketchState(state) {
 }
 function closeSketch() { $('sketchWrap').classList.remove('open'); }
 
-$('sketchBtn').addEventListener('click', openSketch);
+$('sketchBtn').addEventListener('click', () => {
+  // 노트 필기 오버레이 (note-handwriting.js) 가 있으면 그걸 열고, 없으면 기존 #sketchWrap 폴백
+  if (window.JANHandwriting && typeof window.JANHandwriting.open === 'function') {
+    window.JANHandwriting.open();
+  } else {
+    openSketch();
+  }
+});
 $('sketchCancel').addEventListener('click', closeSketch);
 $('sketchClear').addEventListener('click', () => {
   if (!sketchCtx) return;
@@ -10741,7 +10748,8 @@ COMMANDS.unshift(
   { ico:'i-record', name:'음성 녹음', desc:'메모에 오디오 삽입', run:() => $('audioRecordBtn').click() },
   { ico:'i-mic', name:'회의 노트 (CLOVA Note 스타일)', desc:'녹음+실시간받아쓰기+AI화자분리·요약', run:() => $('meetingNoteBtn').click() },
   { ico:'i-brush', name:'손글씨·펜 모드', desc:'터치·스타일러스 필압 감지', run:() => $('sketchBtn').click() },
-  { ico:'i-sparkles', name:'손글씨 → 텍스트 변환', desc:'AI가 필기를 읽어 타이핑 (스케치 모드에서)', run:() => { $('sketchBtn').click(); setTimeout(() => $('sketchOCR')?.click(), 500); } },
+  { ico:'i-sparkles', name:'손글씨 → 텍스트 변환', desc:'노트 필기 오버레이를 열고 AI 변환 준비', run:() => { if (window.JANHandwriting) window.JANHandwriting.open(); else $('sketchBtn').click(); } },
+  { ico:'i-bucket', name:'전문 그림판 (레이어·AI)', desc:'레이어·필터·AI 이미지 생성', run:() => $('paintTopBtn')?.click() },
   { ico:'i-grid-view', name:'갤러리 뷰', desc:'모든 메모 썸네일', run:openGallery },
   { ico:'i-style', name:'서식 스타일', desc:'제목/부제/본문/인용', run:() => $('styleMenuBtn').click() }
 );
@@ -19789,6 +19797,8 @@ if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
 <script src="/login-persist.js"></script>
 <!-- JustANotepad pen/handwriting surface (FAB + stylus detection + Alt+P) -->
 <script src="/pen-surface.js"></script>
+<!-- JustANotepad 노트 필기 오버레이 — sketchBtn 가로채서 전체화면 투명 캔버스로 필기 -->
+<script src="/note-handwriting.js?v=1"></script>
 <!-- JustANotepad super-admin shortcut — only auto0104@gmail.com sees it -->
 <script src="/super-admin-link.js"></script>
 <!-- JustANotepad built-in professional templates (15종, SVG 아이콘만) — picker 가 사용 -->
