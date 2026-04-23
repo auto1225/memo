@@ -1458,5 +1458,52 @@
     _b64dec: b64dec,
   };
 
-  console.log('[JANDiagrams v3] ready — inline math + word-compatible copy');
+  // 기존에 저장된 figure 들의 툴바가 구 버전이라면 (위/아래/잘라내기 버튼이 없음)
+  // 새 버튼으로 교체. 저장 트리거는 수정 시에만.
+  function upgradeFigureToolbars(root) {
+    const scope = root || document;
+    const figs = scope.querySelectorAll('figure.jan-math .jan-math-tools');
+    let changed = 0;
+    figs.forEach(tools => {
+      if (tools.querySelector('[data-math-act="move-up"]')) return; // 이미 최신
+      const newHTML =
+        '<button type="button" data-math-act="move-up" title="한 칸 위로 이동">↑</button>' +
+        '<button type="button" data-math-act="move-down" title="한 칸 아래로 이동">↓</button>' +
+        '<button type="button" data-math-act="edit">편집</button>' +
+        '<button type="button" data-math-act="cut" title="잘라내기 (Word·한글 붙여넣기용)">잘라내기</button>' +
+        '<button type="button" data-math-act="copy" title="Word · 한글 · 메일에 이미지로 붙여넣기">복사</button>' +
+        '<button type="button" data-math-act="copy-latex" title="LaTeX 텍스트만 복사">LaTeX</button>' +
+        '<button type="button" data-math-act="delete" class="danger">삭제</button>';
+      tools.innerHTML = newHTML;
+      changed++;
+    });
+    if (changed) {
+      try { if (typeof window.scheduleSave === 'function') window.scheduleSave(); } catch {}
+      console.log('[JANDiagrams] 기존 수식 figure 툴바 업그레이드:', changed, '개');
+    }
+  }
+  // 페이지 로드 후 한 번, 그리고 페이지 전환 시에도 — 단, 무한 루프 방지
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => upgradeFigureToolbars());
+  } else {
+    upgradeFigureToolbars();
+  }
+  // 노트 전환 시 MutationObserver 로 새 figure 가 나타나면 업그레이드 (존재하는 figure 만)
+  try {
+    const pageEl = document.getElementById('page') || document.querySelector('[contenteditable="true"]');
+    if (pageEl) {
+      const obs = new MutationObserver(muts => {
+        for (const m of muts) {
+          for (const n of m.addedNodes) {
+            if (n.nodeType === 1 && (n.matches?.('figure.jan-math') || n.querySelector?.('figure.jan-math'))) {
+              upgradeFigureToolbars(n);
+            }
+          }
+        }
+      });
+      obs.observe(pageEl, { childList: true, subtree: true });
+    }
+  } catch (e) { console.warn('[JANDiagrams] observer 설치 실패', e); }
+
+  console.log('[JANDiagrams v4] ready — figure toolbar 확장 (↑↓ 이동, 잘라내기)');
 })();
