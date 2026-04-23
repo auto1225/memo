@@ -11625,7 +11625,9 @@ init();
           const name = window.JANStorage.getActiveName();
           const a = window.JANStorage.getActive();
           const st = a && a.getStatus && a.getStatus();
-          const label = name === 'none' ? '오프라인만'
+          const hasSupabaseSession = !!(window.JANSync && window.JANSync.getSession && window.JANSync.getSession());
+          const label = name === 'none' && hasSupabaseSession ? 'Supabase (기본 · 관리형 백업)'
+                     : name === 'none' ? '오프라인만 (이 기기 로컬)'
                      : name === 'supabase' ? 'Supabase (서버)'
                      : name === 'local' ? '내 PC 폴더' + (st && st.identity ? ' · ' + st.identity : '')
                      : name === 'dropbox' ? 'Dropbox' + (st && st.identity ? ' · ' + st.identity : '')

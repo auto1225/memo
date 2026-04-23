@@ -382,7 +382,7 @@
     try {
       const saved = window.JANStorage && window.JANStorage.getActiveName && window.JANStorage.getActiveName();
       if (saved && saved !== 'none' && saved !== 'supabase') {
-        const adapter = window.JANStorage.get ? window.JANStorage.get(saved) : null
+        const adapter = (window.JANStorage.get && window.JANStorage.get(saved))
                      || (window.JANStorage.adapters && window.JANStorage.adapters[saved]);
         if (adapter) {
           window.JANStorage.setActive(saved).catch(e => {

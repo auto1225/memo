@@ -60,12 +60,17 @@
     });
   }
 
-  /* ==== Tauri 감지 & FS API 래핑 ==== */
+  /* ==== Tauri 감지 & FS API 래핑 ====
+   * 주의: Tauri 런타임이더라도 plugin-fs/plugin-dialog 가 빌드에 포함되지
+   * 않았을 수 있다. 그 경우 FSA (WebView2 는 Chromium 기반이라 지원됨) 로
+   * fall-back. hasTauriFsPlugin() 이 true 일 때만 Tauri 네이티브 경로를 쓴다. */
   function isTauri() {
     return !!(window.__TAURI__ || window.__TAURI_INTERNALS__ || window.__TAURI_METADATA__);
   }
+  function hasTauriFsPlugin() {
+    return !!(window.__TAURI__ && window.__TAURI__.fs && window.__TAURI__.dialog);
+  }
   async function tauriFs() {
-    if (!isTauri()) return null;
     try {
       // Tauri v2 plugin-fs 는 window.__TAURI__.fs 로 노출됨
       if (window.__TAURI__ && window.__TAURI__.fs) return window.__TAURI__.fs;
@@ -114,10 +119,9 @@
     }
 
     async init(/* config */) {
-      if (isTauri()) {
+      // Tauri + plugin-fs 가 있으면 네이티브 경로, 없으면 FSA fall-back.
+      if (hasTauriFsPlugin()) {
         this._mode = 'tauri';
-        // Tauri 는 고정 폴더 (Documents/JustANotepad) 기본값.
-        // 향후 picker 연결 가능.
         const saved = localStorage.getItem('jan.storage.local.tauriRoot');
         this._root = saved || null;
         if (!this._root) {
@@ -129,9 +133,9 @@
         this._setStatus({ connected: true, identity: this._root, error: null });
         return;
       }
-      // Web — FSA 복원
+      // Web / Tauri-without-fs-plugin — FSA 복원
       if (!('showDirectoryPicker' in window)) {
-        throw new Error('이 브라우저는 File System Access API 를 지원하지 않습니다 (Chrome/Edge 필요). Dropbox 방식을 써주세요.');
+        throw new Error('이 환경은 File System Access API 를 지원하지 않습니다. Dropbox 방식을 써주세요.');
       }
       this._mode = 'fsa';
       const handle = await idbGet(HANDLE_KEY);
@@ -151,20 +155,25 @@
      * 다음 실행 시 자동 복원.
      */
     async promptPickFolder() {
-      if (this._mode === null) this._mode = isTauri() ? 'tauri' : 'fsa';
+      // Tauri + plugin-dialog 가 있으면 네이티브 dialog, 아니면 FSA.
+      if (this._mode === null) this._mode = hasTauriFsPlugin() ? 'tauri' : 'fsa';
       if (this._mode === 'tauri') {
         const dialog = window.__TAURI__ && window.__TAURI__.dialog;
-        if (!dialog) throw new Error('Tauri dialog plugin 없음');
-        const picked = await dialog.open({ directory: true, multiple: false, title: 'JustANotepad 저장 폴더 선택' });
-        if (!picked) throw new Error('사용자가 폴더 선택을 취소했습니다');
-        localStorage.setItem('jan.storage.local.tauriRoot', picked);
-        this._root = picked;
-        this._setStatus({ connected: true, identity: picked });
-        return picked;
+        if (!dialog) {
+          // Tauri 지만 dialog 플러그인이 없음 — FSA 로 fallback
+          this._mode = 'fsa';
+        } else {
+          const picked = await dialog.open({ directory: true, multiple: false, title: 'JustANotepad 저장 폴더 선택' });
+          if (!picked) throw new Error('폴더 선택이 취소되었습니다');
+          localStorage.setItem('jan.storage.local.tauriRoot', picked);
+          this._root = picked;
+          this._setStatus({ connected: true, identity: picked });
+          return picked;
+        }
       }
-      // FSA
+      // FSA — Tauri WebView2 포함, Chrome/Edge 기반 브라우저 모두 지원
       if (!('showDirectoryPicker' in window)) {
-        throw new Error('이 브라우저는 File System Access API 를 지원하지 않습니다.');
+        throw new Error('이 환경은 폴더 선택을 지원하지 않습니다. Dropbox 방식을 써주세요.');
       }
       const handle = await window.showDirectoryPicker({
         mode: 'readwrite',

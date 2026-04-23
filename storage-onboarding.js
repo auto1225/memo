@@ -240,6 +240,14 @@
   }
 
   async function onAction(e) {
+    // "준비 중" 카드 전체 영역 클릭 시 안내 토스트
+    const soonCard = e.target.closest('.ob-card.soon');
+    if (soonCard) {
+      const prov = soonCard.dataset.provider || 'gdrive';
+      const label = prov === 'gdrive' ? 'Google Drive' : prov === 'onedrive' ? 'OneDrive' : prov;
+      toast(label + ' 은 곧 지원 예정입니다. 지금은 내 PC 폴더 또는 Dropbox 방식을 써주세요.', 4500);
+      return;
+    }
     const btn = e.target.closest('[data-action]');
     if (!btn) return;
     const action = btn.dataset.action;
@@ -248,7 +256,8 @@
       if (action === 'local') await chooseLocal();
       else if (action === 'dropbox') await chooseDropbox();
       else if (action === 'gdrive' || action === 'onedrive') {
-        toast(action + ' 은 곧 지원 예정입니다. 폴더 또는 Dropbox 방식을 먼저 써주세요.', 4500);
+        const label = action === 'gdrive' ? 'Google Drive' : 'OneDrive';
+        toast(label + ' 은 곧 지원 예정입니다. 폴더 또는 Dropbox 방식을 먼저 써주세요.', 4500);
       }
       else if (action === 'supabase') await chooseSupabase();
       else if (action === 'offline') await chooseOffline();
