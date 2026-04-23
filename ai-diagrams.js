@@ -1,5 +1,5 @@
 /* ============================================================
-   ai-diagrams.js — AI 다이어그램 자동 생성
+   ai-diagrams.js — AI 다이어그램 자동 생성 (v2)
    ------------------------------------------------------------
    선택한 텍스트를 분석해서 다음 3종 다이어그램을 자동 생성합니다:
 
@@ -7,20 +7,19 @@
      - 순서도 (buildFlowchart)     : Mermaid flowchart LR
      - 인포그래픽 (buildInfographic): 자체 SVG 바차트 · KPI 카드
 
+   v2 개선:
+     - 선택된 원본 텍스트를 "보존"하고 그 다음 줄에 figure 삽입
+       (insertHtmlAtCursor 는 선택을 덮어쓰기 때문에 range 끝점 뒤에 insertNode)
+     - Mermaid 테마를 base + 명시적 themeVariables + CSS !important 로 강제
+       → 다크모드에서도 노드/텍스트 가독성 보장
+     - figure 에 [편집]/[삭제] 버튼 (data-mermaid-code 에 원본 코드 보존)
+     - 편집 모달 (textarea + 실시간 미리보기)
+
    공개 API:  window.JANDiagrams = {
      ensureMermaid, renderMermaid,
      buildOrgChart, buildFlowchart, buildInfographic,
-     insertFigure
+     insertFigure, insertFigureAfterSelection, renderMath
    }
-
-   사용 예:
-     await window.JANDiagrams.buildOrgChart(selectedText);
-     // -> 노트에 <figure> 가 자동 삽입됨.
-
-   의존:
-     - window.callAI(system, user)   — app.html 에 이미 정의됨
-     - window.toast(msg)             — 앱 공용 토스트
-     - window.insertHtmlAtCursor(h)  — 커서 위치에 HTML 삽입
    ============================================================ */
 (function () {
   'use strict';
@@ -41,25 +40,168 @@
       .replace(/"/g, '&quot;');
   }
 
+  // base64 인코딩 (유니코드 안전)
+  function b64enc(s) {
+    try {
+      return btoa(unescape(encodeURIComponent(String(s || ''))));
+    } catch {
+      return '';
+    }
+  }
+  function b64dec(s) {
+    try {
+      return decodeURIComponent(escape(atob(String(s || ''))));
+    } catch {
+      return '';
+    }
+  }
+
   // AI 응답에서 코드블록/설명문을 걷어내고 실제 코드만 추출
   function stripCodeFence(txt, hintLang) {
     if (!txt) return '';
     const raw = String(txt).trim();
-    // ```mermaid ... ``` 또는 ```json ... ``` 형태
     const fence = raw.match(/```(?:[a-zA-Z]+)?\s*\n?([\s\S]*?)```/);
     if (fence) return fence[1].trim();
     return raw;
   }
 
-  // Mermaid 가 싫어하는 문자를 노드 레이블에서 이스케이프
-  function mermaidSafeLabel(s) {
-    return String(s || '')
-      .replace(/"/g, "'")
-      .replace(/\|/g, '／')
-      .replace(/[\[\]\(\)\{\}]/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-  }
+  /* ---------- 전역 CSS (한 번만 주입) ---------- */
+  (function injectCss() {
+    if (document.getElementById('jan-diagram-css')) return;
+    const css = document.createElement('style');
+    css.id = 'jan-diagram-css';
+    css.textContent = `
+      figure.jan-diagram {
+        margin: 12px auto;
+        max-width: 640px;
+        text-align: center;
+        border: 1px solid rgba(0,0,0,0.08);
+        border-radius: 8px;
+        padding: 12px;
+        background: #ffffff;
+        position: relative;
+      }
+      figure.jan-diagram .jan-diagram-body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: auto;
+        background: #ffffff;
+      }
+      figure.jan-diagram figcaption {
+        margin-top: 8px;
+        font-size: 11.5px;
+        color: #888;
+        font-style: italic;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+      }
+      figure.jan-diagram .jan-diagram-tools {
+        display: inline-flex;
+        gap: 4px;
+        margin-left: 8px;
+      }
+      figure.jan-diagram .jan-diagram-tools button {
+        appearance: none;
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 2px 8px;
+        font-size: 11px;
+        color: #555;
+        cursor: pointer;
+        font-family: inherit;
+        font-style: normal;
+        line-height: 1.4;
+      }
+      figure.jan-diagram .jan-diagram-tools button:hover {
+        background: #FFE0EC;
+        border-color: #D97757;
+        color: #B23A4C;
+      }
+      figure.jan-diagram .jan-diagram-tools button.danger:hover {
+        background: #FFD9D9;
+        border-color: #C0392B;
+        color: #C0392B;
+      }
+      /* 다크모드/검정배경에서도 가독성 보장 — Mermaid SVG 내부 강제 색 */
+      figure.jan-diagram svg .node rect,
+      figure.jan-diagram svg .node polygon,
+      figure.jan-diagram svg .node circle,
+      figure.jan-diagram svg .node ellipse {
+        fill: #FFE0EC !important;
+        stroke: #D97757 !important;
+        stroke-width: 1.5px !important;
+      }
+      figure.jan-diagram svg .node .label,
+      figure.jan-diagram svg .node text,
+      figure.jan-diagram svg .node foreignObject div,
+      figure.jan-diagram svg .nodeLabel {
+        color: #2c2c2c !important;
+        fill: #2c2c2c !important;
+      }
+      figure.jan-diagram svg .edgePath path,
+      figure.jan-diagram svg .flowchart-link {
+        stroke: #555 !important;
+        stroke-width: 1.6px !important;
+      }
+      figure.jan-diagram svg .edgeLabel,
+      figure.jan-diagram svg .edgeLabel rect {
+        background-color: #fff !important;
+        fill: #fff !important;
+        color: #2c2c2c !important;
+      }
+      figure.jan-diagram svg .arrowheadPath,
+      figure.jan-diagram svg marker path {
+        fill: #555 !important;
+        stroke: #555 !important;
+      }
+      /* 수식 figure */
+      figure.jan-math {
+        margin: 12px auto;
+        max-width: 100%;
+        text-align: center;
+        padding: 10px 14px;
+        background: #fffdf7;
+        border: 1px solid rgba(0,0,0,0.06);
+        border-radius: 8px;
+        overflow-x: auto;
+      }
+      figure.jan-math .katex-display { margin: 0 !important; }
+      figure.jan-math figcaption {
+        margin-top: 6px;
+        font-size: 11px;
+        color: #999;
+        font-style: italic;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+      }
+      figure.jan-math .jan-math-tools { display: inline-flex; gap: 4px; margin-left: 8px; }
+      figure.jan-math .jan-math-tools button {
+        appearance: none;
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 2px 8px;
+        font-size: 11px;
+        color: #555;
+        cursor: pointer;
+        font-family: inherit;
+        font-style: normal;
+      }
+      figure.jan-math .jan-math-tools button:hover {
+        background: #FFE0EC; border-color: #D97757; color: #B23A4C;
+      }
+      figure.jan-math .jan-math-tools button.danger:hover {
+        background: #FFD9D9; border-color: #C0392B; color: #C0392B;
+      }
+    `;
+    document.head.appendChild(css);
+  })();
 
   /* ---------- Mermaid 로더 ---------- */
   let _mermaidPromise = null;
@@ -78,12 +220,24 @@
             securityLevel: 'loose',
             fontFamily: 'inherit',
             themeVariables: {
+              background: '#ffffff',
+              mainBkg: '#ffffff',
               primaryColor: '#FFE0EC',
+              primaryTextColor: '#2c2c2c',
               primaryBorderColor: '#D97757',
-              primaryTextColor: '#222',
-              lineColor: '#D97757',
-              secondaryColor: '#CCE5FF',
-              tertiaryColor: '#FFF6D5'
+              lineColor: '#555555',
+              secondaryColor: '#E3F2FD',
+              tertiaryColor: '#FFF9C4',
+              nodeBkg: '#FFE0EC',
+              nodeTextColor: '#2c2c2c',
+              nodeBorder: '#D97757',
+              edgeLabelBackground: '#ffffff',
+              clusterBkg: '#FFF6F8',
+              clusterBorder: '#D97757',
+              titleColor: '#2c2c2c',
+              textColor: '#2c2c2c',
+              labelTextColor: '#2c2c2c',
+              arrowheadColor: '#555555',
             },
             flowchart: { htmlLabels: true, curve: 'basis' }
           });
@@ -99,39 +253,341 @@
   async function renderMermaid(code) {
     const m = await ensureMermaid();
     const id = 'jan-mrm-' + Math.random().toString(36).slice(2, 9);
-    // mermaid.render 는 validateUp 을 내부에서 돌림. 실패하면 throw.
     const { svg } = await m.render(id, code);
     return svg;
   }
 
-  /* ---------- 노트 삽입 ---------- */
-  function insertFigure(svgOrHtml, caption) {
-    const figHtml =
-      '<figure class="jan-diagram" contenteditable="false" ' +
-      'style="margin:12px auto; max-width:600px; text-align:center; ' +
-      'border:1px solid rgba(0,0,0,0.08); border-radius:8px; ' +
-      'padding:12px; background:#fff;">' +
-        '<div class="jan-diagram-body" style="display:flex; ' +
-        'justify-content:center; align-items:center; overflow:auto;">' +
-          svgOrHtml +
-        '</div>' +
-        (caption
-          ? '<figcaption style="margin-top:8px; font-size:11.5px; ' +
-            'color:#888; font-style:italic;">' +
-            escapeHtml(caption) + '</figcaption>'
-          : '') +
-      '</figure><p><br></p>';
+  /* ---------- KaTeX 로더 (수식 렌더) ---------- */
+  let _katexPromise = null;
+  function ensureKatex() {
+    if (window.katex) return Promise.resolve(window.katex);
+    if (_katexPromise) return _katexPromise;
+    _katexPromise = new Promise((resolve, reject) => {
+      // CSS
+      if (!document.querySelector('link[data-jan-katex]')) {
+        const css = document.createElement('link');
+        css.rel = 'stylesheet';
+        css.href = 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css';
+        css.setAttribute('data-jan-katex', '');
+        document.head.appendChild(css);
+      }
+      // JS
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js';
+      s.async = true;
+      s.onload = () => resolve(window.katex);
+      s.onerror = () => reject(new Error('KaTeX 라이브러리 로드 실패'));
+      document.head.appendChild(s);
+    });
+    return _katexPromise;
+  }
 
-    if (typeof window.insertHtmlAtCursor === 'function') {
-      window.insertHtmlAtCursor(figHtml);
-    } else {
-      const page = document.getElementById('page');
-      if (page) {
-        const tmp = document.createElement('div');
-        tmp.innerHTML = figHtml;
-        page.appendChild(tmp.firstChild);
+  /* 여러 줄 LaTeX 를 라인별로 displayMode 렌더 */
+  async function renderLatexHtml(latex) {
+    const katex = await ensureKatex();
+    const lines = String(latex || '').split(/\n+/).map(l => l.trim()).filter(Boolean);
+    if (!lines.length) return '';
+    return lines.map(l => {
+      // \[ ... \] / $$...$$ 껍질 제거
+      let clean = l.replace(/^\\\[|\\\]$/g, '')
+                   .replace(/^\$\$|\$\$$/g, '')
+                   .replace(/^\\\(|\\\)$/g, '')
+                   .replace(/^\$|\$$/g, '')
+                   .trim();
+      try {
+        return katex.renderToString(clean, {
+          displayMode: true,
+          throwOnError: false,
+          errorColor: '#D97757',
+          strict: 'ignore',
+        });
+      } catch (e) {
+        return '<span style="color:#c00">' + escapeHtml(clean) + '</span>';
+      }
+    }).join('');
+  }
+
+  /* ---------- Figure HTML 조립 ---------- */
+  function buildDiagramFigureHtml(svgOrHtml, caption, mermaidCode) {
+    const enc = mermaidCode ? b64enc(mermaidCode) : '';
+    const tools =
+      '<span class="jan-diagram-tools" contenteditable="false">' +
+        (mermaidCode ? '<button type="button" data-diag-act="edit">편집</button>' : '') +
+        '<button type="button" data-diag-act="delete" class="danger">삭제</button>' +
+      '</span>';
+    return (
+      '<figure class="jan-diagram" contenteditable="false"' +
+      (enc ? ' data-mermaid-code="' + enc + '"' : '') + '>' +
+        '<div class="jan-diagram-body">' + svgOrHtml + '</div>' +
+        '<figcaption>' + escapeHtml(caption || '') + tools + '</figcaption>' +
+      '</figure>'
+    );
+  }
+
+  function buildMathFigureHtml(html, latex, caption) {
+    const enc = latex ? b64enc(latex) : '';
+    const tools =
+      '<span class="jan-math-tools" contenteditable="false">' +
+        '<button type="button" data-math-act="edit">편집</button>' +
+        '<button type="button" data-math-act="copy">복사</button>' +
+        '<button type="button" data-math-act="delete" class="danger">삭제</button>' +
+      '</span>';
+    return (
+      '<figure class="jan-math" contenteditable="false"' +
+      (enc ? ' data-latex="' + enc + '"' : '') + '>' +
+        html +
+        '<figcaption>' + escapeHtml(caption || '수식') + tools + '</figcaption>' +
+      '</figure>'
+    );
+  }
+
+  /* ---------- 노트 삽입 (원본 텍스트 보존 = 선택 끝점 뒤에 삽입) ----------
+     forcedRange: 외부에서 미리 확보한 Range 가 있으면 그걸 우선 사용
+     (AI 호출로 오래 기다리는 동안 selection 이 날아가는 걸 방어)  */
+  let _preservedRange = null;
+  function captureRangeNow() {
+    try {
+      const pageEl = document.getElementById('page') || document.querySelector('[contenteditable="true"]');
+      const sel = window.getSelection();
+      if (pageEl && sel && sel.rangeCount > 0 && pageEl.contains(sel.anchorNode)) {
+        _preservedRange = sel.getRangeAt(0).cloneRange();
+        return _preservedRange;
+      }
+    } catch {}
+    return null;
+  }
+
+  function insertFigureAfterSelection(figHtml) {
+    const pageEl = document.getElementById('page') || document.querySelector('[contenteditable="true"]');
+    if (!pageEl) {
+      if (typeof window.insertHtmlAtCursor === 'function') window.insertHtmlAtCursor(figHtml);
+      return;
+    }
+
+    // 캡처해 둔 range 우선, 없으면 현재 selection 복원 시도
+    let range = _preservedRange;
+    _preservedRange = null; // 1회성
+    if (!range) {
+      try {
+        if (typeof window.restorePageSel === 'function') window.restorePageSel();
+      } catch {}
+    }
+    const sel = window.getSelection();
+    if (!range) {
+      if (sel && sel.rangeCount > 0 && pageEl.contains(sel.anchorNode)) {
+        range = sel.getRangeAt(0).cloneRange();
       }
     }
+
+    // temp container 에서 figure 노드 생성
+    const tmp = document.createElement('div');
+    tmp.innerHTML = figHtml;
+    const figNode = tmp.firstChild;
+    const brNode = document.createElement('p');
+    brNode.innerHTML = '<br>';
+
+    if (range) {
+      // 선택 끝점으로 collapse → 삽입 (원본 텍스트 유지!)
+      range.collapse(false);
+      // 블록 라인 밖으로 빠져나가도록: 현재 블록의 뒤에 삽입
+      // 가장 가까운 block 레벨 조상 찾기
+      let block = range.startContainer;
+      if (block.nodeType === 3) block = block.parentNode;
+      while (block && block !== pageEl && !/^(P|DIV|LI|H[1-6]|BLOCKQUOTE|PRE|FIGURE|ARTICLE|SECTION)$/i.test(block.nodeName)) {
+        block = block.parentNode;
+      }
+      if (block && block !== pageEl && block.parentNode) {
+        // 블록 뒤에 삽입 (원본 텍스트 손상 없이 다음 줄)
+        if (block.nextSibling) block.parentNode.insertBefore(figNode, block.nextSibling);
+        else block.parentNode.appendChild(figNode);
+        if (figNode.nextSibling) figNode.parentNode.insertBefore(brNode, figNode.nextSibling);
+        else figNode.parentNode.appendChild(brNode);
+      } else {
+        // 블록을 못 찾으면 range 뒤에 그대로 삽입
+        range.insertNode(brNode);
+        range.insertNode(figNode);
+      }
+      // 커서를 figure 다음으로
+      const after = document.createRange();
+      after.setStartAfter(brNode);
+      after.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(after);
+    } else {
+      // 선택 없으면 문서 끝에 append
+      pageEl.appendChild(figNode);
+      pageEl.appendChild(brNode);
+    }
+
+    // 저장 트리거
+    try { if (typeof window.scheduleSave === 'function') window.scheduleSave(); } catch {}
+  }
+
+  // 하위 호환: 기존 API (단, 이제 선택 영역을 '보존'하며 뒤에 삽입)
+  function insertFigure(svgOrHtml, caption, mermaidCode) {
+    insertFigureAfterSelection(buildDiagramFigureHtml(svgOrHtml, caption, mermaidCode));
+  }
+
+  /* ---------- 편집/삭제 이벤트 위임 ---------- */
+  function onDocClickForFigures(ev) {
+    const btn = ev.target.closest && ev.target.closest('[data-diag-act], [data-math-act]');
+    if (!btn) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    const fig = btn.closest('figure.jan-diagram, figure.jan-math');
+    if (!fig) return;
+    const act = btn.getAttribute('data-diag-act') || btn.getAttribute('data-math-act');
+    if (act === 'delete') {
+      fig.remove();
+      try { if (typeof window.scheduleSave === 'function') window.scheduleSave(); } catch {}
+      notify('삭제됨');
+      return;
+    }
+    if (act === 'copy') {
+      const enc = fig.getAttribute('data-latex') || '';
+      const latex = b64dec(enc);
+      try { navigator.clipboard.writeText(latex); notify('LaTeX 복사됨'); }
+      catch { notify('복사 실패'); }
+      return;
+    }
+    if (act === 'edit') {
+      if (fig.classList.contains('jan-diagram')) {
+        openDiagramEditor(fig);
+      } else if (fig.classList.contains('jan-math')) {
+        openMathEditor(fig);
+      }
+    }
+  }
+  document.addEventListener('click', onDocClickForFigures, true);
+
+  /* ---------- 편집 모달: 다이어그램 ---------- */
+  function openDiagramEditor(fig) {
+    const enc = fig.getAttribute('data-mermaid-code') || '';
+    const code = b64dec(enc);
+    const modal = document.getElementById('modal');
+    const title = document.getElementById('modalTitle');
+    const body = document.getElementById('modalBody');
+    const okBtn = document.getElementById('modalOk');
+    const cancelBtn = document.getElementById('modalCancel');
+    if (!modal || !title || !body || !okBtn || !cancelBtn) {
+      notify('편집 다이얼로그를 열 수 없습니다');
+      return;
+    }
+    title.textContent = '다이어그램 편집 (Mermaid)';
+    body.innerHTML =
+      '<div style="font-size:12px; color:#666; margin-bottom:6px;">Mermaid 코드를 수정한 뒤 "재생성"을 누르세요.</div>' +
+      '<textarea id="janDiagEditTa" rows="10" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; font-family:Consolas,monospace; font-size:12.5px; line-height:1.5;"></textarea>' +
+      '<div id="janDiagPreview" style="margin-top:10px; min-height:60px; border:1px dashed #eee; border-radius:6px; padding:8px; background:#fff; overflow:auto;"></div>' +
+      '<div style="font-size:11px; color:#888; margin-top:4px;">Tip: 아래 미리보기는 실시간으로 갱신됩니다.</div>';
+    const ta = document.getElementById('janDiagEditTa');
+    const preview = document.getElementById('janDiagPreview');
+    ta.value = code;
+    okBtn.textContent = '재생성';
+    cancelBtn.textContent = '취소';
+    modal.classList.add('open');
+
+    let previewTimer = null;
+    async function updatePreview() {
+      try {
+        preview.classList.add('jan-diagram');
+        const svg = await renderMermaid(ta.value.trim());
+        preview.innerHTML = svg;
+      } catch (e) {
+        preview.innerHTML = '<div style="color:#c00; font-size:12px;">오류: ' + escapeHtml(e.message) + '</div>';
+      }
+    }
+    ta.addEventListener('input', () => {
+      clearTimeout(previewTimer);
+      previewTimer = setTimeout(updatePreview, 400);
+    });
+    // 초기 미리보기
+    updatePreview();
+
+    function cleanup() {
+      modal.classList.remove('open');
+      okBtn.onclick = null;
+      cancelBtn.onclick = null;
+      okBtn.textContent = '확인';
+      cancelBtn.textContent = '취소';
+    }
+    okBtn.onclick = async () => {
+      const newCode = ta.value.trim();
+      if (!newCode) { notify('코드가 비어 있습니다'); return; }
+      try {
+        const svg = await renderMermaid(newCode);
+        const body2 = fig.querySelector('.jan-diagram-body');
+        if (body2) body2.innerHTML = svg;
+        fig.setAttribute('data-mermaid-code', b64enc(newCode));
+        try { if (typeof window.scheduleSave === 'function') window.scheduleSave(); } catch {}
+        notify('다이어그램 갱신 완료');
+        cleanup();
+      } catch (e) {
+        notify('렌더 실패: ' + e.message);
+      }
+    };
+    cancelBtn.onclick = cleanup;
+  }
+
+  /* ---------- 편집 모달: 수식 ---------- */
+  function openMathEditor(fig) {
+    const enc = fig.getAttribute('data-latex') || '';
+    const latex = b64dec(enc);
+    const modal = document.getElementById('modal');
+    const title = document.getElementById('modalTitle');
+    const body = document.getElementById('modalBody');
+    const okBtn = document.getElementById('modalOk');
+    const cancelBtn = document.getElementById('modalCancel');
+    if (!modal) { notify('편집 다이얼로그를 열 수 없습니다'); return; }
+    title.textContent = '수식 편집 (LaTeX)';
+    body.innerHTML =
+      '<div style="font-size:12px; color:#666; margin-bottom:6px;">LaTeX 코드를 수정한 뒤 "재생성"을 누르세요.</div>' +
+      '<textarea id="janMathEditTa" rows="6" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; font-family:Consolas,monospace; font-size:13px; line-height:1.5;"></textarea>' +
+      '<div id="janMathPreview" style="margin-top:10px; min-height:50px; border:1px dashed #eee; border-radius:6px; padding:10px; background:#fffdf7; overflow-x:auto;"></div>';
+    const ta = document.getElementById('janMathEditTa');
+    const preview = document.getElementById('janMathPreview');
+    ta.value = latex;
+    okBtn.textContent = '재생성';
+    cancelBtn.textContent = '취소';
+    modal.classList.add('open');
+
+    let previewTimer = null;
+    async function updatePreview() {
+      try {
+        preview.innerHTML = await renderLatexHtml(ta.value);
+      } catch (e) {
+        preview.innerHTML = '<div style="color:#c00; font-size:12px;">' + escapeHtml(e.message) + '</div>';
+      }
+    }
+    ta.addEventListener('input', () => {
+      clearTimeout(previewTimer);
+      previewTimer = setTimeout(updatePreview, 300);
+    });
+    updatePreview();
+
+    function cleanup() {
+      modal.classList.remove('open');
+      okBtn.onclick = null;
+      cancelBtn.onclick = null;
+      okBtn.textContent = '확인';
+      cancelBtn.textContent = '취소';
+    }
+    okBtn.onclick = async () => {
+      const newLatex = ta.value.trim();
+      if (!newLatex) { notify('LaTeX 가 비어 있습니다'); return; }
+      try {
+        const html = await renderLatexHtml(newLatex);
+        // figure 의 figcaption 보존하면서 앞부분만 교체
+        const cap = fig.querySelector('figcaption');
+        fig.innerHTML = html + (cap ? cap.outerHTML : '');
+        fig.setAttribute('data-latex', b64enc(newLatex));
+        try { if (typeof window.scheduleSave === 'function') window.scheduleSave(); } catch {}
+        notify('수식 갱신 완료');
+        cleanup();
+      } catch (e) {
+        notify('렌더 실패: ' + e.message);
+      }
+    };
+    cancelBtn.onclick = cleanup;
   }
 
   /* ---------- AI 호출 ---------- */
@@ -180,18 +636,42 @@
     '5. label 은 한국어. 20자 이내\n' +
     '6. 수치가 전혀 없으면 빈 배열 [] 출력';
 
+  const MATH_SYS =
+    '당신은 수학 표기 전문가입니다. 주어진 텍스트(또는 설명문)를 ' +
+    'KaTeX/LaTeX 수식으로 정확히 변환하세요.\n\n' +
+    '지원 기호 — 최대한 많이 활용하세요:\n' +
+    '- 사칙연산: +, -, \\times, \\div, \\pm, \\mp\n' +
+    '- 분수: \\frac{a}{b}\n' +
+    '- 근호: \\sqrt{x}, \\sqrt[n]{x}\n' +
+    '- 지수/첨자: x^2, x_n, x^{n+1}, x_{i,j}\n' +
+    '- 적분/합: \\int, \\iint, \\oint, \\sum, \\prod, \\bigcup, \\bigcap\n' +
+    '- 미분: \\frac{dy}{dx}, \\partial, \\nabla, f\'(x), \\dot{x}, \\ddot{x}\n' +
+    '- 벡터: \\vec{v}, \\mathbf{v}, \\overrightarrow{AB}\n' +
+    '- 행렬: \\begin{pmatrix}...\\end{pmatrix}, bmatrix, vmatrix\n' +
+    '- 로그: \\log, \\ln, \\log_2\n' +
+    '- 지수함수: e^x, \\exp(x)\n' +
+    '- 삼각: \\sin, \\cos, \\tan, \\arcsin, \\arctan, \\sec, \\csc\n' +
+    '- 극한: \\lim_{x \\to 0}, \\limsup, \\liminf\n' +
+    '- 집합: \\in, \\notin, \\subset, \\subseteq, \\cup, \\cap, \\emptyset, \\mathbb{R}\n' +
+    '- 부등호: \\leq, \\geq, \\neq, \\approx, \\equiv, \\sim, \\cong\n' +
+    '- 그리스: \\alpha, \\beta, \\gamma, \\theta, \\pi, \\sigma, \\phi, \\omega, \\Omega\n' +
+    '- 괄호: \\left(...\\right), \\{...\\}, \\langle...\\rangle, \\lfloor...\\rfloor\n' +
+    '- 논리/기타: \\to, \\rightarrow, \\iff, \\forall, \\exists, \\infty\n\n' +
+    '규칙:\n' +
+    '1. **LaTeX 코드만** 출력 (설명·마크다운·코드블록 감싸기 금지)\n' +
+    '2. 다중 식은 **줄바꿈** 으로 구분\n' +
+    '3. 변환 불가/판독 불가는 [?] 로 표시\n' +
+    '4. 달러($) 나 \\[ \\] 같은 구분자 감싸지 말고 순수 식만';
+
   /* ---------- Mermaid 코드 후처리 ---------- */
-  // AI 가 종종 한글 ID 를 넣거나 잘못된 따옴표를 쓰는 걸 보정
   function sanitizeMermaid(code, kind) {
     if (!code) return '';
     let c = String(code).trim();
-    // 맨 첫줄이 flowchart 로 시작 안 하면 보정
     const firstLine = c.split(/\r?\n/, 1)[0].trim();
     if (!/^flowchart\s+(TD|LR|TB|BT|RL)/i.test(firstLine)) {
       const header = kind === 'flow' ? 'flowchart LR' : 'flowchart TD';
       c = header + '\n' + c;
     }
-    // "flowchart TD\n" 보장
     return c;
   }
 
@@ -199,25 +679,24 @@
   async function buildOrgChart(selectedText) {
     const text = (selectedText || '').trim();
     if (!text) { notify('선택된 텍스트가 없습니다'); return null; }
+    captureRangeNow();  // 현재 선택 위치를 고정 (AI 대기 중 selection 손실 방어)
     notify('구성도를 생성 중…');
-    let resp = await aiCall(ORG_SYS, text);
+    const resp = await aiCall(ORG_SYS, text);
     if (!resp) return null;
     const code = sanitizeMermaid(stripCodeFence(resp, 'mermaid'), 'org');
     try {
       const svg = await renderMermaid(code);
-      insertFigure(svg, 'AI 가 생성한 구성도');
+      insertFigureAfterSelection(buildDiagramFigureHtml(svg, 'AI 가 생성한 구성도', code));
       notify('구성도 삽입 완료');
       return { code, svg };
     } catch (e) {
       console.error('[OrgChart] render 실패:', e, '\ncode:', code);
-      // fallback: 코드블록으로 삽입
-      insertFigure(
+      const fallback =
         '<pre style="text-align:left; background:#f5f5f5; padding:10px; ' +
         'border-radius:6px; font-size:12px; overflow:auto; max-width:100%;">' +
-        escapeHtml(code) + '</pre>',
-        '다이어그램 렌더 실패 — 원본 Mermaid 코드'
-      );
-      notify('렌더는 실패했지만 코드를 삽입했습니다');
+        escapeHtml(code) + '</pre>';
+      insertFigureAfterSelection(buildDiagramFigureHtml(fallback, '다이어그램 렌더 실패 — 원본 Mermaid 코드', code));
+      notify('렌더는 실패했지만 코드를 삽입했습니다 (편집으로 수정 가능)');
       return { code, error: e.message };
     }
   }
@@ -226,24 +705,24 @@
   async function buildFlowchart(selectedText) {
     const text = (selectedText || '').trim();
     if (!text) { notify('선택된 텍스트가 없습니다'); return null; }
+    captureRangeNow();
     notify('순서도를 생성 중…');
-    let resp = await aiCall(FLOW_SYS, text);
+    const resp = await aiCall(FLOW_SYS, text);
     if (!resp) return null;
     const code = sanitizeMermaid(stripCodeFence(resp, 'mermaid'), 'flow');
     try {
       const svg = await renderMermaid(code);
-      insertFigure(svg, 'AI 가 생성한 순서도');
+      insertFigureAfterSelection(buildDiagramFigureHtml(svg, 'AI 가 생성한 순서도', code));
       notify('순서도 삽입 완료');
       return { code, svg };
     } catch (e) {
       console.error('[Flowchart] render 실패:', e, '\ncode:', code);
-      insertFigure(
+      const fallback =
         '<pre style="text-align:left; background:#f5f5f5; padding:10px; ' +
         'border-radius:6px; font-size:12px; overflow:auto; max-width:100%;">' +
-        escapeHtml(code) + '</pre>',
-        '다이어그램 렌더 실패 — 원본 Mermaid 코드'
-      );
-      notify('렌더는 실패했지만 코드를 삽입했습니다');
+        escapeHtml(code) + '</pre>';
+      insertFigureAfterSelection(buildDiagramFigureHtml(fallback, '다이어그램 렌더 실패 — 원본 Mermaid 코드', code));
+      notify('렌더는 실패했지만 코드를 삽입했습니다 (편집으로 수정 가능)');
       return { code, error: e.message };
     }
   }
@@ -257,7 +736,6 @@
   function parseInfoJson(raw) {
     if (!raw) return [];
     let t = stripCodeFence(raw, 'json').trim();
-    // 대괄호만 남기기
     const s = t.indexOf('[');
     const e = t.lastIndexOf(']');
     if (s >= 0 && e > s) t = t.slice(s, e + 1);
@@ -280,7 +758,6 @@
     }
   }
 
-  // 수평 바차트 SVG (단위가 같거나 단일일 때 비교용)
   function renderBarChartSvg(items) {
     const W = 560;
     const rowH = 42;
@@ -323,7 +800,6 @@
     );
   }
 
-  // KPI 카드 SVG (서로 다른 성격의 수치들을 카드로)
   function renderKpiCardsSvg(items) {
     const cardW = 170;
     const cardH = 110;
@@ -377,6 +853,7 @@
   async function buildInfographic(selectedText) {
     const text = (selectedText || '').trim();
     if (!text) { notify('선택된 텍스트가 없습니다'); return null; }
+    captureRangeNow();
     notify('인포그래픽 데이터를 추출 중…');
     const resp = await aiCall(INFO_SYS, text);
     if (!resp) return null;
@@ -385,29 +862,78 @@
       notify('핵심 수치를 추출하지 못했습니다. 숫자가 포함된 텍스트를 선택해 보세요');
       return { items: [], error: '수치 추출 실패' };
     }
-    // 단위가 같으면 바차트, 다르면 KPI 카드
     const units = new Set(items.map(it => it.unit || ''));
     const svg = units.size <= 1
       ? renderBarChartSvg(items)
       : renderKpiCardsSvg(items);
-    insertFigure(svg, 'AI 가 생성한 인포그래픽 (' + items.length + '개 지표)');
+    // 인포그래픽은 Mermaid 코드가 없으므로 편집 버튼 없음
+    insertFigureAfterSelection(buildDiagramFigureHtml(svg, 'AI 가 생성한 인포그래픽 (' + items.length + '개 지표)', ''));
     notify('인포그래픽 삽입 완료');
     return { items, svg };
+  }
+
+  /* ---------- 수식 변환 (텍스트/LaTeX → KaTeX 렌더) ---------- */
+  async function convertTextToMath(selectedText) {
+    const text = (selectedText || '').trim();
+    if (!text) { notify('선택된 텍스트가 없습니다'); return null; }
+    captureRangeNow();
+    notify('수식을 LaTeX 로 변환 중…');
+    const resp = await aiCall(MATH_SYS, text);
+    if (!resp) return null;
+    const latex = stripCodeFence(resp).trim();
+    try {
+      const html = await renderLatexHtml(latex);
+      if (!html) { notify('렌더할 수식이 없습니다'); return null; }
+      insertFigureAfterSelection(buildMathFigureHtml(html, latex, '수식'));
+      notify('수식 삽입 완료');
+      return { latex, html };
+    } catch (e) {
+      console.error('[Math] render 실패:', e, latex);
+      notify('렌더 실패: ' + e.message);
+      return { latex, error: e.message };
+    }
+  }
+
+  /* 손글씨 수식 전용: OCR(math) 프롬프트로 이미 변환된 LaTeX 를 바로 삽입 */
+  async function insertMathFromLatex(latex, caption) {
+    const s = String(latex || '').trim();
+    if (!s) { notify('수식이 비어 있습니다'); return null; }
+    try {
+      const html = await renderLatexHtml(s);
+      if (!html) { notify('렌더할 수식이 없습니다'); return null; }
+      insertFigureAfterSelection(buildMathFigureHtml(html, s, caption || '수식'));
+      notify('수식 삽입 완료');
+      return { latex: s, html };
+    } catch (e) {
+      console.error('[Math] render 실패:', e, s);
+      notify('렌더 실패: ' + e.message);
+      return { latex: s, error: e.message };
+    }
   }
 
   /* ---------- 공개 ---------- */
   window.JANDiagrams = {
     ensureMermaid,
     renderMermaid,
+    ensureKatex,
+    renderLatexHtml,
     buildOrgChart,
     buildFlowchart,
     buildInfographic,
+    convertTextToMath,
+    insertMathFromLatex,
     insertFigure,
+    insertFigureAfterSelection,
+    captureRangeNow,
+    buildDiagramFigureHtml,
+    buildMathFigureHtml,
     // 내부 테스트용
     _parseInfoJson: parseInfoJson,
     _stripCodeFence: stripCodeFence,
-    _sanitizeMermaid: sanitizeMermaid
+    _sanitizeMermaid: sanitizeMermaid,
+    _b64enc: b64enc,
+    _b64dec: b64dec,
   };
 
-  console.log('[JANDiagrams] ready — buildOrgChart/buildFlowchart/buildInfographic');
+  console.log('[JANDiagrams v2] ready — preserve-selection + editable + math');
 })();
