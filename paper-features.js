@@ -3227,26 +3227,35 @@
     const totalH = nPages * pageHpx + (nPages - 1) * SHEET_GAP;
     page.style.minHeight = totalH + 'px';
 
-    /* 시트 오버레이 생성/갱신 — v19-fix: .page 의 실제 offsetLeft/Top/Width 에 맞춰 JS 로 위치 */
-    let sheets = wrap.querySelector('.jan-page-sheets');
+    /* v20-fix: sheets 를 .page 내부 첫 자식으로 배치.
+       page 자체의 padding 안쪽에 들어가지만, 우리는 sheets 에 negative margin/inset 으로
+       page padding 영역도 커버하게 만듦. */
+    /* 기존 wrap 안에 있던 sheets 제거 */
+    const outerSheets = wrap.querySelector(':scope > .jan-page-sheets');
+    if (outerSheets) outerSheets.remove();
+
+    let sheets = page.querySelector(':scope > .jan-page-sheets');
     if (!sheets) {
       sheets = document.createElement('div');
       sheets.className = 'jan-page-sheets';
       sheets.setAttribute('contenteditable', 'false');
       sheets.setAttribute('aria-hidden', 'true');
-      if (getComputedStyle(wrap).position === 'static') {
-        wrap.style.position = 'relative';
-      }
-      wrap.insertBefore(sheets, page);
+      page.insertBefore(sheets, page.firstChild);
     }
-    /* v19-fix: 시트 위치를 page 엘리먼트와 정확히 일치시킴 */
-    sheets.style.left = page.offsetLeft + 'px';
-    sheets.style.top = page.offsetTop + 'px';
-    sheets.style.width = page.offsetWidth + 'px';
-    sheets.style.right = 'auto';
+    /* sheets 를 .page 의 padding 영역을 포함해서 전체 범위로 확장 */
+    const padLeft = parseFloat(getComputedStyle(page).paddingLeft) || 0;
+    const padTop_p = parseFloat(getComputedStyle(page).paddingTop) || 0;
+    const padRight = parseFloat(getComputedStyle(page).paddingRight) || 0;
+    sheets.style.position = 'absolute';
+    sheets.style.left = (-padLeft) + 'px';
+    sheets.style.right = (-padRight) + 'px';
+    sheets.style.top = (-padTop_p) + 'px';
+    sheets.style.width = 'auto';
     sheets.style.maxWidth = 'none';
     sheets.style.margin = '0';
     sheets.style.height = totalH + 'px';
+    sheets.style.pointerEvents = 'none';
+    sheets.style.zIndex = '-1'; /* 콘텐츠 뒤로 */
 
     const existingN = sheets.querySelectorAll('.jan-sheet').length;
     if (existingN !== nPages) {
@@ -3291,11 +3300,13 @@
     const pageHpx = mmToPx(parseFloat(computed.getPropertyValue('--page-h')) || 297);
     const padTop = parseFloat(computed.paddingTop) || 0;
     const cycle = pageHpx + SHEET_GAP;
-    /* 1단계: 기존 shift 복원 */
+    /* 1단계: 기존 shift 복원 — sheets/labels 는 제외 */
     const children = Array.from(page.children).filter(c => {
       return c.nodeType === Node.ELEMENT_NODE
         && !c.classList.contains('jan-page-labels')
-        && !c.classList.contains('jan-page-sheets');
+        && !c.classList.contains('jan-page-sheets')
+        && !c.classList.contains('jan-sheet')
+        && !c.classList.contains('jan-sheet-label');
     });
     children.forEach(c => {
       if (c.dataset && c.dataset.janPgShift) {
