@@ -4874,7 +4874,28 @@ function buildOcrPrompt(mode, langHint) {
     ? `주 언어는 ${langHint}입니다. ` : '';
   const baseRules = '다른 설명·해설·마크다운 없이 순수 인식 결과만 반환하세요. 알아볼 수 없는 부분은 [?]로 표시하고, 여러 줄이면 줄바꿈을 보존하세요.';
   if (mode === 'math') {
-    return `이 이미지에 손으로 쓴 수학 수식이 있습니다. LaTeX 표기로 변환하세요. 분수=\\frac{}{}, 루트=\\sqrt{}, 적분=\\int, 합=\\sum, 극한=\\lim 등을 사용. 여러 식은 줄바꿈으로 구분. ${baseRules}`;
+    return `이 이미지에 손으로 쓴 수학 수식이 있습니다. **LaTeX** 표기로 정확히 변환하세요.
+지원 기호 (최대한 활용):
+- 사칙연산: +, -, \\times, \\div, \\pm
+- 분수: \\frac{a}{b}
+- 근호: \\sqrt{x}, \\sqrt[n]{x}
+- 지수/첨자: x^2, x_n, x^{n+1}, x_{i,j}
+- 적분/합: \\int, \\iint, \\oint, \\sum, \\prod
+- 미분: \\frac{dy}{dx}, \\partial, \\nabla, f'(x), \\dot{x}
+- 벡터: \\vec{v}, \\mathbf{v}, \\overrightarrow{AB}
+- 행렬: \\begin{pmatrix}...\\end{pmatrix}, bmatrix, vmatrix
+- 로그: \\log, \\ln, \\log_2
+- 지수함수: e^x, \\exp(x)
+- 삼각: \\sin, \\cos, \\tan, \\arcsin, \\arctan
+- 극한: \\lim_{x \\to 0}
+- 집합: \\in, \\subset, \\cup, \\cap, \\emptyset, \\mathbb{R}
+- 부등호: \\leq, \\geq, \\neq, \\approx, \\equiv
+- 그리스: \\alpha, \\beta, \\gamma, \\theta, \\pi, \\sigma, \\phi, \\omega, \\Omega
+- 괄호: \\left(...\\right), \\{...\\}, \\langle...\\rangle
+- 논리/화살표: \\to, \\rightarrow, \\iff, \\forall, \\exists, \\infty
+
+**LaTeX 코드만** 출력 (달러 $, \\[ \\] 같은 감싸기 금지. 마크다운·설명 금지).
+다중 식은 **줄바꿈** 으로 구분. 변환 불가 부분은 [?] 로 표시.`;
   }
   if (mode === 'table') {
     return `이 이미지에 표·도표가 있습니다. 내용을 읽어서 **마크다운 표 형식**으로 변환하세요. 헤더는 | 열1 | 열2 |, 구분선은 | --- | --- |, 행은 | 값 | 값 | 형식. ${baseRules}`;
@@ -19874,7 +19895,7 @@ if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
 <!-- JustANotepad pen/handwriting surface (FAB + stylus detection + Alt+P) -->
 <script src="/pen-surface.js"></script>
 <!-- JustANotepad 노트 필기 오버레이 — sketchBtn 가로채서 전체화면 투명 캔버스로 필기 -->
-<script src="/note-handwriting.js?v=2"></script>
+<script src="/note-handwriting.js?v=3"></script>
 <!-- JustANotepad super-admin shortcut — only auto0104@gmail.com sees it -->
 <script src="/super-admin-link.js"></script>
 <!-- JustANotepad built-in professional templates (15종, SVG 아이콘만) — picker 가 사용 -->

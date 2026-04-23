@@ -230,6 +230,7 @@
     soundOff:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>',
     sparkles:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/><path d="M19 16l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/></svg>',
     shape:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="4"/><rect x="13" y="13" width="8" height="8"/></svg>',
+    math:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h6l-3 6 4 10h-7"/><path d="M13 8l7 7M20 8l-7 7"/></svg>',
     check:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
     close:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
   };
@@ -320,6 +321,10 @@
     const aiBtn = mkBtn(I.sparkles + '<span style="margin-left:4px;">AI 텍스트 변환</span>', 'AI로 손글씨를 텍스트로 변환');
     aiBtn.addEventListener('click', runAiOcr);
     bottomBar.appendChild(aiBtn);
+
+    const mathBtn = mkBtn(I.math + '<span style="margin-left:4px;">수식 변환</span>', '손글씨 수식을 LaTeX 로 변환해 KaTeX 로 렌더');
+    mathBtn.addEventListener('click', runAiMathOcr);
+    bottomBar.appendChild(mathBtn);
 
     const shapeBtn = mkBtn(I.shape + '<span style="margin-left:4px;">도형 정돈</span>', '원·직사각형·직선으로 정돈');
     shapeBtn.addEventListener('click', tidyShapes);
@@ -729,6 +734,105 @@
       runOCR(dataUrl, 'text', true);
     } else {
       if (typeof window.toast === 'function') window.toast('AI OCR 기능을 찾을 수 없습니다');
+    }
+  }
+
+  // 손글씨 수식 전용: OCR(math) → LaTeX 수취 → KaTeX 로 노트에 렌더
+  // 기존 runOCR 의 결과 모달을 건너뛰고 바로 삽입 (사용자가 원한 UX)
+  async function runAiMathOcr() {
+    if (!S.strokes.length) {
+      if (typeof window.toast === 'function') window.toast('변환할 수식이 없습니다');
+      return;
+    }
+    // AI 프로바이더 확인
+    const hasProv = (typeof window.getActiveProvider === 'function' && window.getActiveProvider()) ||
+                    (typeof getActiveProvider === 'function' && getActiveProvider());
+    if (!hasProv) {
+      if (typeof window.toast === 'function') window.toast('먼저 AI 계정을 연결하세요');
+      if (typeof window.openAiKeyPanel === 'function') window.openAiKeyPanel();
+      const aiModal = document.getElementById('aiModal');
+      if (aiModal) aiModal.classList.add('open');
+      return;
+    }
+    // JANDiagrams (KaTeX 렌더 도우미) 필요
+    if (!window.JANDiagrams || typeof window.JANDiagrams.insertMathFromLatex !== 'function') {
+      if (typeof window.toast === 'function') window.toast('수식 렌더 모듈이 로드되지 않았습니다');
+      return;
+    }
+
+    const bbox = strokesBBox(S.strokes, 20);
+    if (!bbox) return;
+    const oc = document.createElement('canvas');
+    const pad = 20;
+    oc.width = Math.ceil(bbox.w + pad * 2);
+    oc.height = Math.ceil(bbox.h + pad * 2);
+    const octx = oc.getContext('2d');
+    octx.fillStyle = 'white';
+    octx.fillRect(0, 0, oc.width, oc.height);
+    octx.translate(-bbox.x + pad, -bbox.y + pad);
+    octx.lineCap = 'round'; octx.lineJoin = 'round';
+    const prevCtx = ctx2d; ctx2d = octx;
+    for (const st of S.strokes) {
+      if (st.erase) continue;
+      drawStroke(st);
+    }
+    ctx2d = prevCtx;
+    const dataUrl = oc.toDataURL('image/png');
+
+    // 프롬프트 (app.html 의 buildOcrPrompt('math') 와 동일 내용 — 여기는 독립 복제)
+    const prompt = `이 이미지에 손으로 쓴 수학 수식이 있습니다. **LaTeX** 표기로 정확히 변환하세요.
+지원 기호 (최대한 활용):
+- 사칙연산: +, -, \\times, \\div, \\pm
+- 분수: \\frac{a}{b}
+- 근호: \\sqrt{x}, \\sqrt[n]{x}
+- 지수/첨자: x^2, x_n, x^{n+1}, x_{i,j}
+- 적분/합: \\int, \\iint, \\oint, \\sum, \\prod
+- 미분: \\frac{dy}{dx}, \\partial, \\nabla, f'(x), \\dot{x}
+- 벡터: \\vec{v}, \\mathbf{v}, \\overrightarrow{AB}
+- 행렬: \\begin{pmatrix}...\\end{pmatrix}, bmatrix, vmatrix
+- 로그: \\log, \\ln, \\log_2
+- 지수함수: e^x, \\exp(x)
+- 삼각: \\sin, \\cos, \\tan, \\arcsin, \\arctan
+- 극한: \\lim_{x \\to 0}
+- 집합: \\in, \\subset, \\cup, \\cap, \\emptyset, \\mathbb{R}
+- 부등호: \\leq, \\geq, \\neq, \\approx, \\equiv
+- 그리스: \\alpha, \\beta, \\pi, \\sigma, \\Omega
+- 괄호: \\left(...\\right), \\{...\\}, \\langle...\\rangle
+- 논리: \\to, \\iff, \\forall, \\exists, \\infty
+
+**LaTeX 코드만** 출력 (달러 $, \\[ \\] 감싸기 금지, 마크다운·설명 금지).
+다중 식은 줄바꿈으로 구분. 변환 불가 부분은 [?] 로 표시.`;
+
+    if (typeof window.toast === 'function') window.toast('AI 가 수식을 분석 중…');
+    try {
+      const callVision = window.callAIVisionWithTimeout || window.callAIVision;
+      if (typeof callVision !== 'function') {
+        if (typeof window.toast === 'function') window.toast('AI Vision 함수를 찾을 수 없습니다');
+        return;
+      }
+      const result = await callVision(prompt, dataUrl);
+      if (!result || !String(result).trim()) {
+        if (typeof window.toast === 'function') window.toast('빈 결과 — 다시 써 보세요');
+        return;
+      }
+      // 응답에서 코드블록(```latex ... ```) 제거
+      let latex = String(result).trim();
+      const fence = latex.match(/```(?:[a-zA-Z]+)?\s*\n?([\s\S]*?)```/);
+      if (fence) latex = fence[1].trim();
+      // 달러 감싸기 제거 (안전)
+      latex = latex.replace(/^\$\$|\$\$$/g, '').replace(/^\$|\$$/g, '').trim();
+
+      // 오버레이 닫고 노트에 삽입
+      close();  // 아래 close() = 오버레이 닫기
+      // 약간 기다려 selection 복원 후 삽입 (노트 페이지 포커스)
+      setTimeout(async () => {
+        try {
+          if (typeof window.restorePageSel === 'function') window.restorePageSel();
+        } catch {}
+        await window.JANDiagrams.insertMathFromLatex(latex, '손글씨 수식 변환');
+      }, 50);
+    } catch (e) {
+      if (typeof window.toast === 'function') window.toast('수식 변환 실패: ' + e.message);
     }
   }
 
