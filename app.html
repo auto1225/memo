@@ -1414,6 +1414,8 @@
   @media print {
     .jan-page-labels { display:none !important; }
     .page.jan-paged { background-image: none !important; }
+    /* v20: 책갈피 강조 표시도 인쇄 시 제거 */
+    .jan-bookmark { background:none !important; border:0 !important; padding:0 !important; }
   }
   /* 페이지 크기별 CSS 변수 (ISO 규격) */
   .page.jan-paged-a4p { --page-w: 210mm; --page-h: 297mm; }
@@ -20736,7 +20738,7 @@ if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
 <!-- v19: MS Word 호환 단축키 — capture 단계 → 기존 바인딩 가로챔 -->
 <script src="/ms-word-shortcuts.js?v=1"></script>
 <!-- v20: MS Word 공통 기능 10종 (자간·장평·들여쓰기·단락간격·여백·책갈피·텍스트박스 등) -->
-<script src="/word-features.js?v=1"></script>
+<script src="/word-features.js?v=2"></script>
 <!-- JustANotepad CAR-T ALL 바이오 논문 나머지 본문 (2.3 ~ Conclusion + Refs) -->
 <script src="/bio-paper-rest-data.js?v=1"></script>
 <!-- JustANotepad home hub — dashboard drawer with recent activity -->

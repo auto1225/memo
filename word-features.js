@@ -66,7 +66,19 @@
     return null;
   }
 
-  /* 선택 텍스트를 span 으로 wrap 후 콜백으로 스타일 적용 */
+  /* 선택 텍스트를 span 으로 wrap 후 콜백으로 스타일 적용.
+     v2 수정: 선택 없음 가드를 이 함수 호출 전에 하도록 분리. */
+  function hasSelection () {
+    const sel = window.getSelection();
+    return sel && !sel.isCollapsed && sel.toString().length > 0;
+  }
+  function requireSelection () {
+    if (!hasSelection()) {
+      notify('먼저 텍스트를 선택하세요');
+      return false;
+    }
+    return true;
+  }
   function wrapSelection (applyFn, markerClass) {
     const sel = window.getSelection();
     if (!sel || sel.isCollapsed || !sel.toString()) {
@@ -95,10 +107,42 @@
     }
   }
 
+  /* 공용 유틸 — HTML escape + CSS color 화이트리스트 */
+  function escapeHtml (s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  /* CSS color 값 검증 — hex/rgb/rgba/named 만 허용 */
+  function sanitizeCssColor (value, fallback) {
+    if (!value) return fallback || '';
+    const v = String(value).trim();
+    /* 명시적 금지 — 따옴표, 세미콜론, url(), javascript:, expression() */
+    if (/[;"'{}()\\]|url\s*\(|javascript:|expression/i.test(v)) return fallback || '';
+    /* 허용 패턴: #hex, rgb(...), rgba(...), named color */
+    if (/^#[0-9a-f]{3,8}$/i.test(v)) return v;
+    if (/^rgba?\s*\(\s*[\d.,\s%]+\s*\)$/i.test(v)) return v;
+    if (/^[a-z]{3,30}$/i.test(v)) return v;
+    return fallback || '';
+  }
+  /* 저장된 range 를 복원 (모달 닫은 후 wrapSelection 호출 전) */
+  function saveRange () {
+    const sel = window.getSelection();
+    return sel && sel.rangeCount > 0 ? sel.getRangeAt(0).cloneRange() : null;
+  }
+  function restoreRange (range) {
+    if (!range) return;
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+
   /* ================================================================
-     1. 자간 (letter-spacing)
+     1. 자간 (letter-spacing)  v2: 선택 가드 앞으로 이동
      ================================================================ */
   async function openLetterSpacing () {
+    if (!requireSelection()) return;
+    const savedRange = saveRange();
     const r = await prompt2('자간 설정', [
       { name: 'px', label: '자간 (px)', type: 'text', value: '0',
         placeholder: '0 = 기본, 양수 = 넓게, 음수 = 좁게 (-2 ~ 10)', required: true }
@@ -106,14 +150,17 @@
     if (!r) return;
     const v = parseFloat(r.px);
     if (isNaN(v) || v < -5 || v > 20) { notify('자간은 -5 ~ 20 범위로 입력하세요'); return; }
+    restoreRange(savedRange);
     wrapSelection(span => { span.style.letterSpacing = v + 'px'; }, 'jan-letter-spacing');
     notify('자간 ' + v + 'px 적용');
   }
 
   /* ================================================================
-     2. 장평 (horizontal scale) — transform scaleX
+     2. 장평 (horizontal scale) — v2: letter-spacing 기반 대체 구현
      ================================================================ */
   async function openCharScale () {
+    if (!requireSelection()) return;
+    const savedRange = saveRange();
     const r = await prompt2('장평 설정', [
       { name: 'pct', label: '장평 (%)', type: 'text', value: '100',
         placeholder: '100 = 기본, 50 = 절반 너비, 150 = 1.5배 (50 ~ 200)', required: true }
@@ -121,12 +168,20 @@
     if (!r) return;
     const v = parseInt(r.pct, 10);
     if (isNaN(v) || v < 50 || v > 200) { notify('장평은 50 ~ 200 범위로 입력하세요'); return; }
+    restoreRange(savedRange);
     wrapSelection(span => {
       span.style.display = 'inline-block';
       span.style.transform = 'scaleX(' + (v / 100) + ')';
       span.style.transformOrigin = '0 0';
-      /* transform scaleX 은 레이아웃 폭을 변경하지 않음 — margin 으로 보정 */
-      span.style.marginRight = ((v - 100) * 0.3) + 'px';
+      /* v2: scaleX 후 getBoundingClientRect 기반 실제 폭 측정해 marginRight 보정 */
+      requestAnimationFrame(() => {
+        try {
+          const unscaledWidth = span.offsetWidth;
+          const actualVisualWidth = unscaledWidth * (v / 100);
+          const gap = unscaledWidth - actualVisualWidth; /* 양수 = 왼쪽으로 축소된 공간, 음수 = 오른쪽으로 넘침 */
+          span.style.marginRight = (-gap) + 'px'; /* 축소 시 → 남은 공간 제거, 확대 시 → 공간 추가 */
+        } catch {}
+      });
     }, 'jan-char-scale');
     notify('장평 ' + v + '% 적용');
   }
@@ -179,9 +234,12 @@
   }
 
   /* ================================================================
-     5. 글자 효과 (text-shadow) — 그림자·외곽선 프리셋 4종
+     5. 글자 효과 (text-shadow) — 그림자·외곽선 프리셋 6종
+     v2: selection 보존 (모달 닫은 후 blur 되지 않도록 saveRange/restoreRange)
      ================================================================ */
   function openTextEffects () {
+    if (!requireSelection()) return;
+    const savedRange = saveRange();
     const presets = [
       { key: 'none',     label: '효과 없음',    shadow: 'none' },
       { key: 'soft',     label: '부드러운 그림자', shadow: '1px 1px 3px rgba(0,0,0,0.25)' },
@@ -221,6 +279,8 @@
       btn.addEventListener('mouseleave', () => { btn.style.borderColor = '#e8e8e8'; btn.style.background = '#fff'; });
       btn.addEventListener('click', () => {
         restoreModal();
+        /* v2: 모달 닫은 후 selection 복원 → wrapSelection */
+        restoreRange(savedRange);
         wrapSelection(span => {
           if (p.shadow === 'none') span.style.textShadow = '';
           else span.style.textShadow = p.shadow;
@@ -256,19 +316,25 @@
   }
 
   /* ================================================================
-     6. 강조 배경 (highlight box)
+     6. 강조 배경 (highlight box) — v2: 선택 가드 + color/padding 검증
      ================================================================ */
   async function openHighlightBox () {
+    if (!requireSelection()) return;
+    const savedRange = saveRange();
     const r = await prompt2('강조 배경 상자', [
       { name: 'color', label: '배경색 (hex 또는 rgba)', type: 'text', value: '#fef4c6',
         placeholder: '#fef4c6 / rgba(217,119,87,0.15)', required: true },
-      { name: 'padding', label: '안쪽 여백 (px)', type: 'text', value: '3',
+      { name: 'padding', label: '안쪽 여백 (px, 0~20)', type: 'text', value: '3',
         placeholder: '0 ~ 20' }
     ], { okLabel: '적용' });
     if (!r) return;
-    const p = parseInt(r.padding || '3', 10);
+    /* v2: color 화이트리스트 + padding NaN 방어 */
+    const safeColor = sanitizeCssColor(r.color, '#fef4c6');
+    let p = parseInt(r.padding || '3', 10);
+    if (isNaN(p) || p < 0 || p > 20) p = 3;
+    restoreRange(savedRange);
     wrapSelection(span => {
-      span.style.background = r.color;
+      span.style.background = safeColor;
       span.style.padding = p + 'px 6px';
       span.style.borderRadius = '3px';
     }, 'jan-highlight-box');
@@ -276,19 +342,27 @@
   }
 
   /* ================================================================
-     7. 페이지 여백 설정 (mm)
+     7. 페이지 여백 설정 (mm) — v2: 페이지 크기별 유효 영역 가드 추가
      ================================================================ */
   async function openPageMargins () {
     const page = getPageEl();
     if (!page) return notify('편집 영역을 찾을 수 없음');
     if (!page.classList.contains('jan-paged')) {
-      notify('페이지 크기를 먼저 설정하세요 (페이지 > 페이지 크기 설정)'); return;
+      notify('페이지 크기를 먼저 설정해주세요');
+      /* v2: 사용자 친절 — 페이지 크기 설정 다이얼로그 자동 오픈 */
+      setTimeout(() => {
+        try { if (window.JANPaper && window.JANPaper.atoms.openPageSizePicker) window.JANPaper.atoms.openPageSizePicker(); } catch {}
+      }, 400);
+      return;
     }
     const computed = getComputedStyle(page);
     const curTop = parseFloat(computed.paddingTop) || 0;
     const curRight = parseFloat(computed.paddingRight) || 0;
     const curBottom = parseFloat(computed.paddingBottom) || 0;
     const curLeft = parseFloat(computed.paddingLeft) || 0;
+    /* 현재 페이지 크기 (mm) 측정 — --page-w / --page-h */
+    const pageWmm = parseFloat(computed.getPropertyValue('--page-w')) || 210;
+    const pageHmm = parseFloat(computed.getPropertyValue('--page-h')) || 297;
     /* px → mm 변환: 1mm = 96/25.4 px */
     const pxToMm = (px) => Math.round(px * 25.4 / 96);
     const r = await prompt2('페이지 여백 설정 (mm)', [
@@ -302,6 +376,15 @@
           bottom = parseInt(r.bottom, 10), left = parseInt(r.left, 10);
     if ([top,right,bottom,left].some(n => isNaN(n) || n < 0 || n > 100)) {
       notify('0 ~ 100mm 범위로 입력하세요'); return;
+    }
+    /* v2: 합산 가드 — 페이지 크기별 유효 콘텐츠 영역 최소 30mm 확보 */
+    if (top + bottom > pageHmm - 30) {
+      notify('위+아래 여백 합이 ' + (pageHmm - 30) + 'mm 를 넘습니다 (콘텐츠 영역 최소 30mm 필요)');
+      return;
+    }
+    if (left + right > pageWmm - 30) {
+      notify('왼쪽+오른쪽 여백 합이 ' + (pageWmm - 30) + 'mm 를 넘습니다 (콘텐츠 영역 최소 30mm 필요)');
+      return;
     }
     pushUndo('page-margins');
     /* padding 을 직접 설정하여 CSS !important 를 이기도록 style.setProperty + important 사용 */
@@ -327,45 +410,58 @@
   }
 
   /* ================================================================
-     8. 책갈피 (bookmark) — 이름 있는 앵커
+     8. 책갈피 (bookmark) — v2: id 중복 방지 + 한글 id 영문 변환
      ================================================================ */
   async function openBookmark () {
     const r = await prompt2('책갈피 삽입', [
       { name: 'name', label: '책갈피 이름', type: 'text',
-        placeholder: '예: 도입부 (영문/숫자/하이픈 권장)', required: true }
+        placeholder: '예: 도입부 / Introduction', required: true }
     ], { okLabel: '삽입' });
     if (!r || !r.name) return;
-    const id = 'bm-' + r.name.replace(/[^\w가-힣-]/g, '-').replace(/-+/g, '-');
+    const page = getPageEl();
+    if (!page) return;
+    /* v2: id 는 영문/숫자/하이픈만 (querySelector 안전). 비영문 문자는 idx 로 치환 */
+    let baseId = 'bm-' + r.name.replace(/[^\w-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').toLowerCase();
+    if (baseId === 'bm-' || baseId === 'bm') baseId = 'bm-' + Math.random().toString(36).slice(2, 8);
+    /* v2: 중복 방지 — 이미 같은 id 있으면 -2, -3 … 붙임 */
+    let id = baseId, n = 1;
+    while (page.querySelector('#' + id.replace(/([:.[\]])/g, '\\$1'))) {
+      n += 1; id = baseId + '-' + n;
+    }
     pushUndo('bookmark');
-    const html = '<a id="' + id + '" class="jan-bookmark" data-bookmark-name="' + r.name.replace(/"/g, '&quot;') +
+    const safeName = escapeHtml(r.name);
+    const html = '<a id="' + id + '" class="jan-bookmark" data-bookmark-name="' + safeName +
       '" style="background:rgba(217,119,87,0.1); border-bottom:1px dashed #D97757; padding:0 3px;" ' +
-      'title="책갈피: ' + r.name.replace(/"/g, '&quot;') + '">' + r.name + '</a>';
+      'title="책갈피: ' + safeName + '">' + safeName + '</a>';
     exec('insertHTML', html);
     scheduleSave();
-    notify('책갈피 "' + r.name + '" 삽입됨');
+    notify('책갈피 "' + r.name + '" 삽입됨 (id: ' + id + ')');
   }
 
   /* ================================================================
-     9. 텍스트 상자 (text box) — 선택 영역을 테두리 박스로 래핑
+     9. 텍스트 상자 (text box) — v2: color 화이트리스트 + content escape
      ================================================================ */
   async function openTextBox () {
     const sel = window.getSelection();
-    const hasSelection = sel && !sel.isCollapsed && sel.toString();
+    const hasSel = sel && !sel.isCollapsed && sel.toString();
     const r = await prompt2('텍스트 상자', [
-      { name: 'border',  label: '테두리 (color, 비우면 없음)', type: 'text', value: '#D97757' },
-      { name: 'background',  label: '배경색 (비우면 투명)', type: 'text', value: '#fef9f6' },
-      { name: 'content', label: hasSelection ? '내용 (선택 영역 무시하려면 여기에 입력)' : '내용', type: 'textarea',
-        placeholder: '상자 안에 넣을 텍스트', value: hasSelection ? '' : '' }
+      { name: 'border',  label: '테두리 색 (비우면 없음)', type: 'text', value: '#D97757', placeholder: '#RRGGBB 또는 rgba(...)' },
+      { name: 'background',  label: '배경 색 (비우면 투명)', type: 'text', value: '#fef9f6', placeholder: '#RRGGBB 또는 rgba(...)' },
+      { name: 'content', label: hasSel ? '내용 (비우면 선택 영역 사용)' : '내용', type: 'textarea',
+        placeholder: '상자 안에 넣을 텍스트', value: '' }
     ], { okLabel: '삽입' });
     if (!r) return;
-    const borderCss = r.border ? '2px solid ' + r.border : 'none';
-    const bgCss = r.background || 'transparent';
-    const text = r.content || (hasSelection ? sel.toString() : '텍스트 상자');
-    const html = '<div class="jan-textbox" style="border:' + borderCss + '; background:' + bgCss +
+    /* v2: injection 방어 — color 화이트리스트, content escape + <br> */
+    const safeBorder = sanitizeCssColor(r.border, '');
+    const safeBg = sanitizeCssColor(r.background, 'transparent');
+    const borderCss = safeBorder ? '2px solid ' + safeBorder : 'none';
+    const rawText = (r.content && r.content.trim()) ? r.content : (hasSel ? sel.toString() : '텍스트 상자');
+    const safeText = escapeHtml(rawText).replace(/\n/g, '<br>');
+    const html = '<div class="jan-textbox" style="border:' + borderCss + '; background:' + safeBg +
       '; padding:12px 16px; border-radius:6px; margin:10px 0;">' +
-      text.replace(/\n/g, '<br>') + '</div>';
+      safeText + '</div>';
     pushUndo('textbox');
-    if (hasSelection && !r.content) {
+    if (hasSel && !(r.content && r.content.trim())) {
       /* 선택 영역을 대체 */
       exec('delete');
     }
@@ -375,16 +471,49 @@
   }
 
   /* ================================================================
-     10. 구분선 스타일 (HR variants)
+     10. 구분선 스타일 (HR variants) — v2: 깨진 HTML 완전 재설계
      ================================================================ */
   function openHRVariants () {
+    /* 각 variant: previewHtml = 모달 내 프리뷰용, insertHtml = 실제 삽입 HTML */
     const variants = [
-      { label: '기본 (실선)',  style: '' },
-      { label: '점선',       style: 'border:0;border-top:1px dashed #888;' },
-      { label: '이중선',      style: 'border:0;border-top:3px double #888;' },
-      { label: '굵은 실선',    style: 'border:0;border-top:3px solid #333;' },
-      { label: '장식선',      style: 'border:0;border-top:1px solid #eee;margin:20px 0;position:relative;overflow:visible;"><span style="position:absolute;left:50%;top:-8px;transform:translateX(-50%);background:#fff;padding:0 10px;color:#D97757;font-size:14px;">§</span><span class="__jan_hide_' },
-      { label: '그라데이션',   style: 'border:0;height:2px;background:linear-gradient(to right, transparent, #D97757, transparent);' }
+      {
+        label: '기본 (실선)',
+        previewHtml: '<hr style="margin:0; border:0; border-top:1px solid #ccc;">',
+        insertHtml: '<hr>'
+      },
+      {
+        label: '점선',
+        previewHtml: '<hr style="margin:0; border:0; border-top:1px dashed #888;">',
+        insertHtml: '<hr style="border:0; border-top:1px dashed #888;">'
+      },
+      {
+        label: '이중선',
+        previewHtml: '<hr style="margin:0; border:0; border-top:3px double #888;">',
+        insertHtml: '<hr style="border:0; border-top:3px double #888;">'
+      },
+      {
+        label: '굵은 실선',
+        previewHtml: '<hr style="margin:0; border:0; border-top:3px solid #333;">',
+        insertHtml: '<hr style="border:0; border-top:3px solid #333;">'
+      },
+      {
+        label: '그라데이션',
+        previewHtml: '<hr style="margin:0; border:0; height:2px; background:linear-gradient(to right, transparent, #D97757, transparent);">',
+        insertHtml: '<hr style="border:0; height:2px; background:linear-gradient(to right, transparent, #D97757, transparent);">'
+      },
+      {
+        label: '장식선 (§)',
+        previewHtml:
+          '<div style="position:relative; padding:8px 0;">' +
+            '<hr style="margin:0; border:0; border-top:1px solid #ddd;">' +
+            '<span style="position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); background:#fff; padding:0 10px; color:#D97757; font-size:14px;">§</span>' +
+          '</div>',
+        insertHtml:
+          '<div class="jan-hr-ornament" style="position:relative; padding:8px 0; margin:12px 0; text-align:center;">' +
+            '<hr style="margin:0; border:0; border-top:1px solid #ddd;">' +
+            '<span style="position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); background:#fff; padding:0 10px; color:#D97757; font-size:14px;">§</span>' +
+          '</div>'
+      }
     ];
     const modal = $('modal');
     const title = $('modalTitle');
@@ -401,21 +530,17 @@
     body.innerHTML = '<div style="font-size:12px;color:#666;margin-bottom:10px;line-height:1.5;">삽입할 구분선 스타일을 선택하세요.</div>';
     const list = document.createElement('div');
     list.style.cssText = 'display:flex;flex-direction:column;gap:10px;';
-    variants.slice(0,5).forEach(v => {
+    variants.forEach(v => {
       const card = document.createElement('button');
       card.type = 'button';
       card.style.cssText = 'padding:12px; background:#fafafa; border:1px solid #eee; border-radius:8px; cursor:pointer; text-align:left; font-family:inherit; transition:all 0.12s;';
-      card.innerHTML = '<div style="font-size:12.5px; color:#333; font-weight:600; margin-bottom:6px;">' + v.label + '</div>' +
-        '<hr style="margin:0; ' + v.style.replace(/">.*/, '') + '">';
+      card.innerHTML = '<div style="font-size:12.5px; color:#333; font-weight:600; margin-bottom:6px;">' + v.label + '</div>' + v.previewHtml;
       card.addEventListener('mouseenter', () => { card.style.background = '#fef5f1'; card.style.borderColor = '#D97757'; });
       card.addEventListener('mouseleave', () => { card.style.background = '#fafafa'; card.style.borderColor = '#eee'; });
       card.addEventListener('click', () => {
         restoreModal();
         pushUndo('hr-variant');
-        const hrHtml = v.style
-          ? '<hr style="' + v.style.replace(/"><span.*/, '') + '">'
-          : '<hr>';
-        exec('insertHTML', hrHtml);
+        exec('insertHTML', v.insertHtml);
         scheduleSave();
         notify('구분선 삽입됨 — ' + v.label);
       });
