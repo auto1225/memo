@@ -7557,11 +7557,16 @@ function attachResizeDragHandler(handle, img, dir) {
     el.style.cursor = 'grab';
     // 사용자에게 "드래그 가능" 힌트
     if (!el.title) {
-      el.title = (el.tagName === 'IMG' ? '이미지' : '표') + ' — 드래그해서 위치 이동';
+      const kind = el.tagName === 'IMG' ? '이미지'
+        : el.tagName === 'TABLE' ? '표'
+        : el.classList && el.classList.contains('jan-diagram') ? '다이어그램'
+        : el.classList && el.classList.contains('jan-math') ? '수식'
+        : '블록';
+      el.title = kind + ' — 드래그해서 위치 이동';
     }
   }
   function prepareAll(root) {
-    root.querySelectorAll('img, table').forEach(prepareMedia);
+    root.querySelectorAll('img, table, figure.jan-diagram, figure.jan-math').forEach(prepareMedia);
   }
   prepareAll(pageEl);
   const mo = new MutationObserver(muts => {
@@ -7569,17 +7574,18 @@ function attachResizeDragHandler(handle, img, dir) {
       m.addedNodes && m.addedNodes.forEach(n => {
         if (n.nodeType !== 1) return;
         if (n.tagName === 'IMG' || n.tagName === 'TABLE') prepareMedia(n);
+        else if (n.tagName === 'FIGURE' && (n.classList.contains('jan-diagram') || n.classList.contains('jan-math'))) prepareMedia(n);
         else prepareAll(n);
       });
     });
   });
   mo.observe(pageEl, { childList: true, subtree: true });
 
-  // 브라우저 기본 drag 동작을 이미지/표 전체 범위에서 차단.
+  // 브라우저 기본 drag 동작을 이미지/표/figure 전체 범위에서 차단.
   // 안 그러면 contenteditable 안에서 셀 내부 텍스트를 드래그할 때
   // 브라우저가 그 텍스트를 통째로 떼어 다른 곳으로 옮겨서 표 구조가 깨짐.
   pageEl.addEventListener('dragstart', (e) => {
-    const m = e.target.closest && e.target.closest('img, table');
+    const m = e.target.closest && e.target.closest('img, table, figure.jan-diagram, figure.jan-math');
     if (m) { e.preventDefault(); e.stopPropagation(); }
   }, true);  // capture phase — 다른 handler 보다 먼저
 
@@ -7588,7 +7594,9 @@ function attachResizeDragHandler(handle, img, dir) {
   pageEl.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return;  // 좌클릭만
     const target = e.target;
-    const media = target.closest && target.closest('img, table');
+    // figure 내부 편집/복사/삭제 버튼 클릭은 드래그 트리거 안 돼야
+    if (target.closest && target.closest('button, [data-diag-act], [data-math-act]')) return;
+    const media = target.closest && target.closest('img, table, figure.jan-diagram, figure.jan-math');
     if (!media) return;
     // 표는 pointer 드래그로 이동 시 contenteditable 과 충돌해 구조가 깨질 수 있음.
     // 안전하게 표 드래그 자체 비활성화 — 표 이동은 툴바의 "이동 위/아래" 버튼 사용.
