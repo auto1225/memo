@@ -199,6 +199,24 @@
       figure.jan-math .jan-math-tools button.danger:hover {
         background: #FFD9D9; border-color: #C0392B; color: #C0392B;
       }
+      /* 인라인 수식 — 텍스트 옆에 글자처럼 */
+      .jan-math-inline {
+        display: inline-block;
+        vertical-align: middle;
+        cursor: pointer;
+        padding: 0 2px;
+        border-radius: 3px;
+        transition: outline 0.12s;
+      }
+      .jan-math-inline:hover {
+        outline: 2px solid rgba(217, 119, 87, 0.55);
+        background: #FFF6F8;
+      }
+      .jan-math-inline.jan-focus {
+        outline: 2px solid #D97757;
+        background: #FFF0F4;
+      }
+      .jan-math-inline .katex { font-size: 1.05em; }
     `;
     document.head.appendChild(css);
   })();
@@ -280,6 +298,29 @@
       document.head.appendChild(s);
     });
     return _katexPromise;
+  }
+
+  /* 인라인 모드로 LaTeX 한 줄 렌더 (displayMode: false) */
+  async function renderLatexInlineHtml(latex) {
+    const katex = await ensureKatex();
+    const clean = String(latex || '')
+      .replace(/^\\\[|\\\]$/g, '')
+      .replace(/^\$\$|\$\$$/g, '')
+      .replace(/^\\\(|\\\)$/g, '')
+      .replace(/^\$|\$$/g, '')
+      .replace(/\n+/g, ' ')
+      .trim();
+    if (!clean) return '';
+    try {
+      return katex.renderToString(clean, {
+        displayMode: false,
+        throwOnError: false,
+        errorColor: '#D97757',
+        strict: 'ignore',
+      });
+    } catch (e) {
+      return '<span style="color:#c00">' + escapeHtml(clean) + '</span>';
+    }
   }
 
   /* 여러 줄 LaTeX 를 라인별로 displayMode 렌더 */
@@ -430,6 +471,14 @@
 
   /* ---------- 편집/삭제 이벤트 위임 ---------- */
   function onDocClickForFigures(ev) {
+    // 인라인 수식 span 클릭 → 편집
+    const inlineMath = ev.target.closest && ev.target.closest('span.jan-math-inline');
+    if (inlineMath && !ev.target.closest('[data-math-act]')) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      openInlineMathEditor(inlineMath);
+      return;
+    }
     const btn = ev.target.closest && ev.target.closest('[data-diag-act], [data-math-act]');
     if (!btn) return;
     ev.preventDefault();
@@ -524,6 +573,87 @@
       } catch (e) {
         notify('렌더 실패: ' + e.message);
       }
+    };
+    cancelBtn.onclick = cleanup;
+  }
+
+  /* ---------- 편집 모달: 인라인 수식 ---------- */
+  function openInlineMathEditor(span) {
+    const latex = span.dataset.latex || '';
+    const modal = document.getElementById('modal');
+    const title = document.getElementById('modalTitle');
+    const body = document.getElementById('modalBody');
+    const okBtn = document.getElementById('modalOk');
+    const cancelBtn = document.getElementById('modalCancel');
+    if (!modal) { notify('편집 다이얼로그를 열 수 없습니다'); return; }
+    title.textContent = '인라인 수식 편집';
+    body.innerHTML =
+      '<div style="font-size:12px; color:#666; margin-bottom:6px;">LaTeX 한 줄을 수정하세요.</div>' +
+      '<textarea id="janMathInlineTa" rows="2" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; font-family:Consolas,monospace; font-size:13px;"></textarea>' +
+      '<div id="janMathInlinePreview" style="margin-top:10px; padding:10px; background:#fffdf7; border:1px dashed #eee; border-radius:6px; min-height:28px;"></div>' +
+      '<div style="margin-top:8px;"><button type="button" id="janInlineConvertBlock" style="padding:4px 10px; font-size:11px; border:1px solid #ddd; background:#fff; border-radius:4px; cursor:pointer;">블록 모드로 변환</button> <button type="button" id="janInlineDelete" style="padding:4px 10px; font-size:11px; border:1px solid #C0392B; color:#C0392B; background:#fff; border-radius:4px; cursor:pointer;">삭제</button></div>';
+    const ta = document.getElementById('janMathInlineTa');
+    const preview = document.getElementById('janMathInlinePreview');
+    ta.value = latex;
+    okBtn.textContent = '재생성';
+    cancelBtn.textContent = '취소';
+    modal.classList.add('open');
+
+    let previewTimer = null;
+    async function updatePreview() {
+      try {
+        preview.innerHTML = await renderLatexInlineHtml(ta.value);
+      } catch (e) {
+        preview.innerHTML = '<span style="color:#c00; font-size:12px;">' + escapeHtml(e.message) + '</span>';
+      }
+    }
+    ta.addEventListener('input', () => {
+      clearTimeout(previewTimer);
+      previewTimer = setTimeout(updatePreview, 250);
+    });
+    updatePreview();
+
+    function cleanup() {
+      modal.classList.remove('open');
+      okBtn.onclick = null;
+      cancelBtn.onclick = null;
+      okBtn.textContent = '확인';
+      cancelBtn.textContent = '취소';
+    }
+    document.getElementById('janInlineConvertBlock').onclick = async () => {
+      const newLatex = ta.value.trim();
+      if (!newLatex) return;
+      try {
+        const html = await renderLatexHtml(newLatex);
+        if (!html) { notify('렌더할 수식이 없습니다'); return; }
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = buildMathFigureHtml(html, newLatex, '수식');
+        const fig = wrapper.firstChild;
+        span.replaceWith(fig);
+        try { if (typeof window.scheduleSave === 'function') window.scheduleSave(); } catch {}
+        notify('블록 모드로 변환됨');
+        cleanup();
+      } catch (e) { notify('변환 실패: ' + e.message); }
+    };
+    document.getElementById('janInlineDelete').onclick = () => {
+      span.remove();
+      try { if (typeof window.scheduleSave === 'function') window.scheduleSave(); } catch {}
+      notify('삭제됨');
+      cleanup();
+    };
+    okBtn.onclick = async () => {
+      const newLatex = ta.value.trim();
+      if (!newLatex) { notify('LaTeX 가 비어 있습니다'); return; }
+      try {
+        const html = await renderLatexInlineHtml(newLatex);
+        if (!html) { notify('렌더할 수식이 없습니다'); return; }
+        span.innerHTML = html;
+        span.dataset.latex = newLatex;
+        span.title = newLatex + ' (클릭해서 편집)';
+        try { if (typeof window.scheduleSave === 'function') window.scheduleSave(); } catch {}
+        notify('수식 갱신 완료');
+        cleanup();
+      } catch (e) { notify('렌더 실패: ' + e.message); }
     };
     cancelBtn.onclick = cleanup;
   }
@@ -894,7 +1024,7 @@
     }
   }
 
-  /* 손글씨 수식 전용: OCR(math) 프롬프트로 이미 변환된 LaTeX 를 바로 삽입 */
+  /* 손글씨 수식 전용: OCR(math) 프롬프트로 이미 변환된 LaTeX 를 바로 삽입 (블록) */
   async function insertMathFromLatex(latex, caption) {
     const s = String(latex || '').trim();
     if (!s) { notify('수식이 비어 있습니다'); return null; }
@@ -911,17 +1041,70 @@
     }
   }
 
+  /* ----------- 인라인 수식: 현재 커서 위치에 글자처럼 삽입 ----------- */
+  async function insertMathInline(latex) {
+    const s = String(latex || '').trim();
+    if (!s) { notify('수식이 비어 있습니다'); return null; }
+    try {
+      const html = await renderLatexInlineHtml(s);
+      if (!html) { notify('렌더할 수식이 없습니다'); return null; }
+      const span = document.createElement('span');
+      span.className = 'jan-math-inline';
+      span.contentEditable = 'false';
+      span.dataset.latex = s;
+      span.innerHTML = html;
+      span.title = s + ' (클릭해서 편집)';
+      insertInlineAtCursor(span);
+      try { if (typeof window.scheduleSave === 'function') window.scheduleSave(); } catch {}
+      notify('인라인 수식 삽입 완료');
+      return { latex: s, html, node: span };
+    } catch (e) {
+      console.error('[MathInline] render 실패:', e, s);
+      notify('렌더 실패: ' + e.message);
+      return { latex: s, error: e.message };
+    }
+  }
+
+  /* 현재 커서(또는 미리 캡처한 range) 위치에 노드를 그대로 삽입 — 원본 선택 텍스트 덮어쓰기 안 함 */
+  function insertInlineAtCursor(node) {
+    const pageEl = document.getElementById('page') || document.querySelector('[contenteditable="true"]');
+    if (!pageEl) return;
+    let range = _preservedRange;
+    _preservedRange = null;
+    if (!range) {
+      try { if (typeof window.restorePageSel === 'function') window.restorePageSel(); } catch {}
+    }
+    const sel = window.getSelection();
+    if (!range && sel && sel.rangeCount > 0 && pageEl.contains(sel.anchorNode)) {
+      range = sel.getRangeAt(0).cloneRange();
+    }
+    if (range) {
+      // 원본 텍스트 유지 — 선택이 있어도 끝점으로 collapse
+      range.collapse(false);
+      range.insertNode(node);
+      // 커서를 span 뒤로
+      const after = document.createRange();
+      after.setStartAfter(node);
+      after.collapse(true);
+      if (sel) { sel.removeAllRanges(); sel.addRange(after); }
+    } else {
+      pageEl.appendChild(node);
+    }
+  }
+
   /* ---------- 공개 ---------- */
   window.JANDiagrams = {
     ensureMermaid,
     renderMermaid,
     ensureKatex,
     renderLatexHtml,
+    renderLatexInlineHtml,
     buildOrgChart,
     buildFlowchart,
     buildInfographic,
     convertTextToMath,
     insertMathFromLatex,
+    insertMathInline,
     insertFigure,
     insertFigureAfterSelection,
     captureRangeNow,
@@ -935,5 +1118,5 @@
     _b64dec: b64dec,
   };
 
-  console.log('[JANDiagrams v2] ready — preserve-selection + editable + math');
+  console.log('[JANDiagrams v3] ready — inline math support');
 })();

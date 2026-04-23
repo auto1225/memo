@@ -322,9 +322,13 @@
     aiBtn.addEventListener('click', runAiOcr);
     bottomBar.appendChild(aiBtn);
 
-    const mathBtn = mkBtn(I.math + '<span style="margin-left:4px;">수식 변환</span>', '손글씨 수식을 LaTeX 로 변환해 KaTeX 로 렌더');
-    mathBtn.addEventListener('click', runAiMathOcr);
+    const mathBtn = mkBtn(I.math + '<span style="margin-left:4px;">수식 (블록)</span>', '손글씨 수식을 블록 형태로 삽입 — 가운데 정렬, 한 줄 차지');
+    mathBtn.addEventListener('click', () => runAiMathOcr(false));
     bottomBar.appendChild(mathBtn);
+
+    const mathInlineBtn = mkBtn(I.math + '<span style="margin-left:4px;">수식 (인라인)</span>', '손글씨 수식을 텍스트 옆에 글자처럼 삽입');
+    mathInlineBtn.addEventListener('click', () => runAiMathOcr(true));
+    bottomBar.appendChild(mathInlineBtn);
 
     const shapeBtn = mkBtn(I.shape + '<span style="margin-left:4px;">도형 정돈</span>', '원·직사각형·직선으로 정돈');
     shapeBtn.addEventListener('click', tidyShapes);
@@ -739,7 +743,8 @@
 
   // 손글씨 수식 전용: OCR(math) → LaTeX 수취 → KaTeX 로 노트에 렌더
   // 기존 runOCR 의 결과 모달을 건너뛰고 바로 삽입 (사용자가 원한 UX)
-  async function runAiMathOcr() {
+  // inline=true 면 텍스트 옆에 글자처럼(인라인), false 면 블록 figure
+  async function runAiMathOcr(inline = false) {
     if (!S.strokes.length) {
       if (typeof window.toast === 'function') window.toast('변환할 수식이 없습니다');
       return;
@@ -758,6 +763,10 @@
     if (!window.JANDiagrams || typeof window.JANDiagrams.insertMathFromLatex !== 'function') {
       if (typeof window.toast === 'function') window.toast('수식 렌더 모듈이 로드되지 않았습니다');
       return;
+    }
+    // 인라인 모드일 땐 현재 노트 커서 위치를 미리 캡처 (오버레이 닫힌 뒤에도 복원)
+    if (inline && typeof window.JANDiagrams.captureRangeNow === 'function') {
+      try { window.JANDiagrams.captureRangeNow(); } catch {}
     }
 
     const bbox = strokesBBox(S.strokes, 20);
@@ -829,7 +838,11 @@
         try {
           if (typeof window.restorePageSel === 'function') window.restorePageSel();
         } catch {}
-        await window.JANDiagrams.insertMathFromLatex(latex, '손글씨 수식 변환');
+        if (inline && typeof window.JANDiagrams.insertMathInline === 'function') {
+          await window.JANDiagrams.insertMathInline(latex);
+        } else {
+          await window.JANDiagrams.insertMathFromLatex(latex, '손글씨 수식 변환');
+        }
       }, 50);
     } catch (e) {
       if (typeof window.toast === 'function') window.toast('수식 변환 실패: ' + e.message);

@@ -2470,7 +2470,8 @@
         <button data-ai="diagram-org"><svg class="ico"><use href="#i-diagram"/></svg>구성도 만들기</button>
         <button data-ai="diagram-flow"><svg class="ico"><use href="#i-flowchart"/></svg>순서도 만들기</button>
         <button data-ai="diagram-info"><svg class="ico"><use href="#i-infographic"/></svg>인포그래픽 만들기</button>
-        <button data-ai="math-render"><svg class="ico"><use href="#i-math"/></svg>수식 변환</button>
+        <button data-ai="math-render" title="선택·본문을 블록 수식으로 변환 (가운데 정렬·한 줄 차지)"><svg class="ico"><use href="#i-math"/></svg>수식 (블록)</button>
+        <button data-ai="math-render-inline" title="선택·본문을 인라인 수식으로 변환 (텍스트 옆에 글자처럼)"><svg class="ico"><use href="#i-math"/></svg>수식 (인라인)</button>
         <button data-ai="ask"><svg class="ico"><use href="#i-help"/></svg>자유 질문</button>
       </div>
       <div class="ai-current-action" id="aiCurrentAction"><b id="aiCurrentLabel">—</b> <span id="aiCurrentState" style="color:var(--ink-soft); margin-left:6px;"></span></div>
@@ -9431,7 +9432,8 @@ const AI_ACTION_LABELS = {
   flashcards: '플래시카드 만들기', ask: '자유 질문',
   'diagram-org': '구성도 만들기', 'diagram-flow': '순서도 만들기',
   'diagram-info': '인포그래픽 만들기',
-  'math-render': '수식 변환',
+  'math-render': '수식 변환 (블록)',
+  'math-render-inline': '수식 변환 (인라인)',
 };
 function setAiActionUI(action, state /* 'running' | 'done' | 'error' | null */) {
   // 모든 버튼 active 해제 후 현재만 active
@@ -9456,8 +9458,9 @@ async function runAiAction(action) {
   const text = (tmp.textContent || '').trim();
   if (!text && action !== 'ask') { toast('탭에 내용이 없습니다'); return; }
 
-  // 다이어그램 3종 + 수식 변환: AI 모달에서 실행 — 현재 탭 본문(또는 선택)으로 바로 생성
-  if (action === 'diagram-org' || action === 'diagram-flow' || action === 'diagram-info' || action === 'math-render') {
+  // 다이어그램 3종 + 수식 변환 (블록/인라인): AI 모달에서 실행
+  if (action === 'diagram-org' || action === 'diagram-flow' || action === 'diagram-info' ||
+      action === 'math-render' || action === 'math-render-inline') {
     if (!window.JANDiagrams) { toast('다이어그램 모듈이 로드되지 않았습니다'); return; }
     $('aiModal').classList.remove('open');
     try {
@@ -9465,6 +9468,15 @@ async function runAiAction(action) {
       if (action === 'diagram-flow') await window.JANDiagrams.buildFlowchart(text);
       if (action === 'diagram-info') await window.JANDiagrams.buildInfographic(text);
       if (action === 'math-render')  await window.JANDiagrams.convertTextToMath(text);
+      if (action === 'math-render-inline') {
+        // 인라인은 captureRangeNow 로 현재 커서 위치를 먼저 고정 → AI 호출 후 삽입
+        try { window.JANDiagrams.captureRangeNow(); } catch {}
+        toast('인라인 수식 생성 중…');
+        const prompt = '아래 텍스트를 KaTeX/LaTeX 수식 한 줄로 변환하세요. LaTeX 코드만 출력하고 설명·마크다운·달러 감싸기 금지. 변환 불가 부분은 [?]. ' +
+                       '다중 식이어도 줄바꿈 없이 한 줄로 합쳐 주세요 (인라인 수식은 한 줄이어야 함).';
+        const resp = await window.callAI(prompt, text);
+        if (resp) await window.JANDiagrams.insertMathInline(resp);
+      }
     } catch (err) {
       console.error('[diagram]', err);
       toast('작업 실패: ' + err.message);
@@ -19907,7 +19919,7 @@ if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
 <!-- JustANotepad pen/handwriting surface (FAB + stylus detection + Alt+P) -->
 <script src="/pen-surface.js"></script>
 <!-- JustANotepad 노트 필기 오버레이 — sketchBtn 가로채서 전체화면 투명 캔버스로 필기 -->
-<script src="/note-handwriting.js?v=3"></script>
+<script src="/note-handwriting.js?v=4"></script>
 <!-- JustANotepad super-admin shortcut — only auto0104@gmail.com sees it -->
 <script src="/super-admin-link.js"></script>
 <!-- JustANotepad built-in professional templates (15종, SVG 아이콘만) — picker 가 사용 -->
@@ -19919,7 +19931,7 @@ if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
 <!-- JustANotepad app ↔ CMS integration (template insertion, state bridge) -->
 <script src="/app-integration.js"></script>
 <!-- JustANotepad AI 다이어그램 생성 (구성도/순서도/인포그래픽) — Mermaid + AI -->
-<script src="/ai-diagrams.js?v=2"></script>
+<script src="/ai-diagrams.js?v=3"></script>
 <!-- JustANotepad home hub — dashboard drawer with recent activity -->
 <script src="/home-hub.js"></script>
 <!-- JustANotepad Service Worker refresh — ensures latest deploy is fetched -->
