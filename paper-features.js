@@ -3313,7 +3313,8 @@
       savedRange = sel.getRangeAt(0).cloneRange();
     }
 
-    /* 반복 처리 — 각 페이지 검사, overflow 시 다음 페이지로 이동 */
+    /* 반복 처리 — 각 페이지 검사, overflow 시 다음 페이지로 이동.
+       v33: padding-bottom 도 고려해서 훨씬 일찍 split (content 가 bottom margin 까지 침범하면 OUT) */
     let maxIter = 30;  /* 무한 루프 방지 */
     let modified = true;
     while (modified && maxIter-- > 0) {
@@ -3322,11 +3323,16 @@
       for (let i = 0; i < docPages.length; i++) {
         const dp = docPages[i];
         const dpHeight = dp.offsetHeight;
-        if (dpHeight <= pageHpx + 2) continue;  /* overflow 없음 */
+        /* v33: bottom padding 읽어서 허용 영역 계산 */
+        const dpComputed = getComputedStyle(dp);
+        const padBottom = parseFloat(dpComputed.paddingBottom) || 0;
+        /* 콘텐츠가 margin area 침범하면 split — pageH - padBottom 을 한계로 */
+        const safeBottomInPage = pageHpx - padBottom;
+        /* 짧은 페이지는 skip */
+        if (dpHeight <= safeBottomInPage + 2) continue;
 
-        /* 허용 콘텐츠 영역 (padding 포함 전체 pageH) — 블록이 이 이상 걸치면 overflow */
         const dpRect = dp.getBoundingClientRect();
-        const allowBottom = dpRect.top + pageHpx;
+        const allowBottom = dpRect.top + safeBottomInPage;
 
         /* 자식 중에 overflow 시작점 찾기 */
         const children = Array.from(dp.children).filter(c =>
@@ -3335,11 +3341,11 @@
         let overflowIdx = -1;
         for (let j = 0; j < children.length; j++) {
           const cRect = children[j].getBoundingClientRect();
-          /* 블록 끝이 허용 영역을 넘음 → overflow */
-          if (cRect.bottom > allowBottom + 1) {
-            /* 블록이 한 페이지보다 크면 이동해도 소용 없음 — 건너뜀 */
+          /* 블록 끝이 허용 영역을 넘음 OR 블록 시작이 margin 영역에 있으면 overflow */
+          if (cRect.bottom > allowBottom + 1 || cRect.top > allowBottom) {
+            /* 한 페이지보다 큰 블록은 이동 불가 */
             if (cRect.height > pageHpx * 0.95) {
-              overflowIdx = (j === 0) ? -1 : j;  /* 첫 번째 거대 블록은 건들지 않음 */
+              overflowIdx = (j === 0) ? -1 : j;
               if (overflowIdx === -1) break;
             } else {
               overflowIdx = j;
@@ -3379,14 +3385,29 @@
     /* 빈 페이지 (마지막 제외) 제거 + 여유 있는 페이지에 다음 페이지 콘텐츠 당기기 (선택적, 보수적) */
     consolidateDocPages(page, pageHpx);
 
-    /* v33: 저장된 selection 복원 — DOM 조작으로 sel 이 이탈했으면 재적용 */
+    /* v33: 저장된 selection 복원 — DOM 조작으로 sel 이 이탈했으면 재적용.
+       + 커서가 다른 페이지로 이동했으면 scrollIntoView 로 보이게. */
     if (savedRange) {
       try {
         const sel2 = window.getSelection();
-        /* Range 가 여전히 유효한지 (startContainer 가 DOM 에 있는지) 확인 */
         if (savedRange.startContainer && page.contains(savedRange.startContainer)) {
           sel2.removeAllRanges();
           sel2.addRange(savedRange);
+          /* 커서가 있는 블록의 부모 .jan-doc-page 찾아서 화면에 보이게 */
+          let cursorPage = savedRange.startContainer;
+          if (cursorPage.nodeType === Node.TEXT_NODE) cursorPage = cursorPage.parentElement;
+          while (cursorPage && cursorPage !== page) {
+            if (cursorPage.classList && cursorPage.classList.contains('jan-doc-page')) break;
+            cursorPage = cursorPage.parentElement;
+          }
+          if (cursorPage && cursorPage.classList && cursorPage.classList.contains('jan-doc-page')) {
+            /* 커서가 화면 밖에 있으면 스크롤 */
+            const rect = cursorPage.getBoundingClientRect();
+            const viewH = window.innerHeight;
+            if (rect.top < 0 || rect.top > viewH * 0.8) {
+              cursorPage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }
         }
       } catch {}
     }
