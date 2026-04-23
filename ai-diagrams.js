@@ -1013,9 +1013,20 @@
   /* ---------- Mermaid 코드 후처리 ---------- */
   function sanitizeMermaid(code, kind) {
     if (!code) return '';
-    let c = String(code).trim();
+    let s = String(code);
+    // 1. 주변 코드펜스 제거 (``` 또는 ```mermaid)
+    s = s.replace(/^\s*```+\s*(?:mermaid|mmd)?\s*\n?/i, '');
+    s = s.replace(/\n?\s*```+\s*$/, '');
+    // 2. 본문 내부에 중복된 ```mermaid 와 그 뒤 중복된 flowchart/graph 헤더 제거
+    //    (AI 가 `flowchart TD\n```mermaid\nflowchart TD\n...` 형태로 중첩 반환하는 경우)
+    s = s.replace(/\s*```+\s*(?:mermaid|mmd)?\s*\n\s*(flowchart|graph|sequenceDiagram|classDiagram|stateDiagram|erDiagram|journey|gantt|pie)\s+\w+\n/gi,
+                  '\n');
+    // 3. 닫히지 않은 ``` 단독 라인 제거
+    s = s.replace(/^\s*```+\s*$/gm, '');
+    let c = s.trim();
+    // 4. 헤더 보강: flowchart 또는 graph 헤더가 없으면 기본값 삽입
     const firstLine = c.split(/\r?\n/, 1)[0].trim();
-    if (!/^flowchart\s+(TD|LR|TB|BT|RL)/i.test(firstLine)) {
+    if (!/^(?:flowchart|graph)\s+(TD|LR|TB|BT|RL)/i.test(firstLine)) {
       const header = kind === 'flow' ? 'flowchart LR' : 'flowchart TD';
       c = header + '\n' + c;
     }

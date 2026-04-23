@@ -1,0 +1,451 @@
+<!--
+  JustANotepad · Bio 논문 나머지 파트 (2.3 ~ Conclusion + Refs)
+  ================================================================
+  메모 14 탭 (CAR-T ALL 연구) 의 이미 작성된 1.~2.2 + Mermaid 파이프라인
+  뒤에 이어 붙이는 본문 HTML 조각.
+  - figure.jan-math[data-latex] — KaTeX 렌더
+  - figure.jan-diagram[data-mermaid-code] — Mermaid 렌더 (base64)
+  - table > caption — 표 제목
+  - sup.jan-fn-mark > a(href="#fnN") — 각주 마커
+  - .jan-footnotes ol — 페이지 각주
+  - .jan-bibliography ol — IEEE 참고문헌
+  - a.jan-cite[href="#ref-N"] — 본문 인용 번호
+-->
+
+<section class="jan-section" data-sec="bio-rest">
+
+  <!-- ============================================================
+       2.3 용량 및 주입 프로토콜
+       ============================================================ -->
+  <h3 id="sec-2-3">2.3 용량 및 주입 프로토콜</h3>
+  <p>
+    CAR-T 제품 (CD19 표적 19-28z 3세대 수용체) 은 동결 보관 상태로 무균 이송된 뒤,
+    침상 해동 후 15 분 이내 주입되었다. 체중 <em>W</em> (kg) 에 비례하여 CAR 양성
+    세포 용량을 산출하였으며, 목표 용량은 다음과 같다: 정주 투여량
+    <em>D</em><sub>CAR</sub> = (2.0 × 10<sup>6</sup>) × <em>W</em> cells/kg
+    (해당 용량 = <em>(2.0 \times 10^6) \times W</em> cells/kg 로 표기).
+    CAR 양성 세포 총량이 5 × 10<sup>8</sup> 을 초과할 경우 상한값 (cap) 을 적용하였다.
+    주입 직전 림프구 감소 (lymphodepletion) 요법으로 fludarabine 30 mg/m<sup>2</sup> ×
+    3 일 + cyclophosphamide 500 mg/m<sup>2</sup> × 3 일 스케줄을 사용하였다
+    <a class="jan-cite" href="#ref-1">[1]</a>.
+  </p>
+  <p>
+    주입 후 발생한 사이토카인 방출 증후군 (CRS) 의 등급 판정은 Lee
+    <em>et al.</em> 2019 (ASTCT consensus) 기준을 따랐다
+    <a class="jan-cite" href="#ref-4">[4]</a>:
+    등급 1 은 발열 단독 (≥ 38.0 ℃), 등급 2 는 저혈압에 대해 수액 반응 혹은
+    저용량 vasopressor 1 종이 필요하거나 저산소증에 저유량 산소 (&lt; 6 L/min) 가
+    필요한 경우, 등급 3 은 고용량 vasopressor 혹은 고유량 산소 / 비침습 환기가
+    필요한 경우, 등급 4 는 기계 환기 혹은 다중 vasopressor 필요로 정의하였다.
+    ICANS (immune effector cell-associated neurotoxicity syndrome) 는 ICE 점수 및
+    의식수준 / 발작 / 두개강내압 여부로 별도 등급화하였다.
+  </p>
+
+  <!-- ============================================================
+       2.4 통계 분석 (block 수식 2개)
+       ============================================================ -->
+  <h3 id="sec-2-4">2.4 통계 분석</h3>
+  <p>
+    일차 평가지표는 주입 후 제 28 일의 완전관해율 (CR rate at D+28) 이며,
+    이차 평가지표는 MRD (minimal residual disease, 차세대 유세포분석 감도
+    10<sup>−4</sup>) 음전환율, 24 개월 무재발 생존율 (RFS), 24 개월 전체 생존율 (OS)
+    이다. 생존 분석은 Kaplan–Meier (KM) 방법으로 추정하고 95% 신뢰구간 (CI) 은
+    로그-로그 변환으로 산출하였다. 생존함수는 아래와 같이 정의된다:
+  </p>
+
+  <figure class="jan-math" id="eq-km"
+    data-latex="S(t) = \prod_{t_i \leq t} \left(1 - \frac{d_i}{n_i}\right)">
+    <span class="jan-eq-body">S(t) = ∏_{t_i ≤ t} (1 − d_i / n_i)</span>
+  </figure>
+
+  <p>
+    여기서 <em>t<sub>i</sub></em> 는 <em>i</em>-번째 사건 발생 시점,
+    <em>d<sub>i</sub></em> 는 해당 시점의 사건 (재발 혹은 사망) 수,
+    <em>n<sub>i</sub></em> 는 직전 위험집합 크기이다. 다변수 생존 분석은
+    Cox 비례위험 모형으로 수행하였으며 그 형태는 다음과 같다:
+  </p>
+
+  <figure class="jan-math" id="eq-cox"
+    data-latex="\lambda(t \mid X) = \lambda_0(t) \, \exp\!\left(\sum_{j=1}^{p} \beta_j X_j\right)">
+    <span class="jan-eq-body">λ(t | X) = λ₀(t) · exp( Σ_{j=1..p} β_j X_j )</span>
+  </figure>
+
+  <p>
+    공변량 <em>X<sub>j</sub></em> 는 문헌 기반 사전 선정 (BM blast %, LDH 배수,
+    이전 HSCT 여부, Ph 양성 여부, ECOG, 연령군) 후 단변량 <em>p</em> &lt; 0.10
+    변수만 다변량에 진입시켰다. 비례위험 가정은 Schoenfeld 잔차 검정으로 확인하였고
+    (전역 <em>p</em> = 0.41 로 위배 없음), 이항 평가지표의 군간 비교는 Fisher
+    정확검정으로 보고하였다. 모든 <em>p</em>-값은 양측 검정이며 유의수준은 0.05
+    이다. 분석에는 R 4.4.1 (<code>survival</code> 3.7-0, <code>survminer</code>
+    0.4.9) 을 사용하였다.
+  </p>
+
+  <!-- ============================================================
+       3. Results
+       ============================================================ -->
+  <h2 id="sec-3">3. Results</h2>
+
+  <h3 id="sec-3-1">3.1 환자 특성</h3>
+  <p>
+    2021 년 3 월부터 2024 년 12 월 사이에 138 명의 재발 / 불응성 B-세포 ALL 성인
+    환자가 등록되었다 (<a class="jan-cite" href="#ref-3">[3]</a> 의 inclusion
+    criteria 를 확장 적용). 기저 특성은 아래 표와 같다.
+  </p>
+
+  <table class="jan-table">
+    <caption>표 1. 환자 기저 특성 (N = 138)</caption>
+    <thead>
+      <tr><th>변수</th><th>값</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>연령 중앙값, 년 (IQR)</td><td>41 (29–54)</td></tr>
+      <tr><td>성별, M / F</td><td>82 / 56 (59.4% / 40.6%)</td></tr>
+      <tr><td>Philadelphia 염색체 양성</td><td>38 / 138 (27.5%)</td></tr>
+      <tr><td>이전 동종 HSCT 이력</td><td>47 / 138 (34.1%)</td></tr>
+      <tr><td>골수 blast 비율 중앙값, % (IQR)</td><td>48 (18–72)</td></tr>
+      <tr><td>주입 전 질병 부담 (BM blast ≥ 50%)</td><td>66 / 138 (47.8%)</td></tr>
+      <tr><td>사전 blinatumomab 노출</td><td>52 / 138 (37.7%)</td></tr>
+      <tr><td>사전 inotuzumab ozogamicin 노출</td><td>33 / 138 (23.9%)</td></tr>
+      <tr><td>ECOG 수행능력 0–1</td><td>124 / 138 (89.9%)</td></tr>
+      <tr><td>주입 세포수 중앙값, × 10<sup>6</sup>/kg (IQR)</td><td>1.9 (1.4–2.2)</td></tr>
+    </tbody>
+  </table>
+
+  <h3 id="sec-3-2">3.2 치료 반응</h3>
+  <p>
+    일차 평가지표인 D+28 CR 달성률은 82.6% (114 / 138, 95% CI 75.3–88.4) 로
+    기존 허가 임상 (Maude 2018, 81%) <a class="jan-cite" href="#ref-1">[1]</a>
+    과 수치적으로 유사하였다. MRD 음성 CR 전환율은 78.3% 로 Park 2018
+    성인 19-28z 코호트 <a class="jan-cite" href="#ref-2">[2]</a> 의 67% 에
+    비해 높았다.
+  </p>
+
+  <table class="jan-table">
+    <caption>표 2. Primary Efficacy Endpoints</caption>
+    <thead>
+      <tr><th>Endpoint</th><th>n / N</th><th>% (95% CI)</th><th><em>p</em></th></tr>
+    </thead>
+    <tbody>
+      <tr><td>CR at D+28</td><td>114 / 138</td><td>82.6 (75.3–88.4)</td><td>—</td></tr>
+      <tr><td>CR + CRi</td><td>120 / 138</td><td>87.0 (80.2–92.1)</td><td>—</td></tr>
+      <tr><td>MRD 음성 전환</td><td>108 / 138</td><td>78.3 (70.5–84.8)</td><td>—</td></tr>
+      <tr><td>24-개월 RFS</td><td>65 / 138</td><td>47.1 (38.7–55.6)</td><td>—</td></tr>
+      <tr><td>24-개월 OS</td><td>85 / 138</td><td>61.9 (53.4–69.8)</td><td>—</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ============================================================
+       3.3 Kaplan-Meier 생존곡선 (inline SVG)
+       ============================================================ -->
+  <h3 id="sec-3-3">3.3 Kaplan–Meier 생존곡선</h3>
+  <p>
+    주입 시점을 0 으로 하는 무재발 생존 (RFS) 및 전체 생존 (OS) 곡선을
+    추정하였다 (<a class="fig-ref" href="#fig-km">Fig. 2</a>). 중앙 추적
+    관찰 기간 22.4 개월 (IQR 14.1–29.8) 시점에 RFS 중앙값 19.6 개월, OS
+    중앙값은 도달하지 않았다.
+  </p>
+
+  <figure class="jan-fig jan-figure" id="fig-km">
+    <div class="jan-fig-body" style="background:#fff; padding:8px; border:1px solid #d0d4d9;">
+      <svg viewBox="0 0 520 320" xmlns="http://www.w3.org/2000/svg"
+           style="width:100%; max-width:520px; height:auto; display:block; margin:0 auto;"
+           role="img" aria-label="Kaplan-Meier RFS and OS curves">
+        <!-- 축 배경 -->
+        <rect x="0" y="0" width="520" height="320" fill="#ffffff"/>
+        <!-- 플롯 영역 테두리 -->
+        <rect x="60" y="20" width="430" height="250" fill="none" stroke="#333" stroke-width="1"/>
+        <!-- y 축 눈금 (0, 25, 50, 75, 100%) -->
+        <g font-family="Georgia, serif" font-size="10" fill="#333">
+          <text x="55" y="275" text-anchor="end">0</text>
+          <text x="55" y="212.5" text-anchor="end">25</text>
+          <text x="55" y="150" text-anchor="end">50</text>
+          <text x="55" y="87.5" text-anchor="end">75</text>
+          <text x="55" y="25" text-anchor="end">100</text>
+          <text x="30" y="150" text-anchor="middle" transform="rotate(-90 30 150)">Survival (%)</text>
+        </g>
+        <!-- y 축 보조 눈금선 -->
+        <g stroke="#e6e6e6" stroke-width="1">
+          <line x1="60" y1="87.5"  x2="490" y2="87.5"/>
+          <line x1="60" y1="150"   x2="490" y2="150"/>
+          <line x1="60" y1="212.5" x2="490" y2="212.5"/>
+        </g>
+        <!-- x 축 눈금 (0, 6, 12, 18, 24 months) -->
+        <g font-family="Georgia, serif" font-size="10" fill="#333">
+          <text x="60"  y="288" text-anchor="middle">0</text>
+          <text x="167.5" y="288" text-anchor="middle">6</text>
+          <text x="275" y="288" text-anchor="middle">12</text>
+          <text x="382.5" y="288" text-anchor="middle">18</text>
+          <text x="490" y="288" text-anchor="middle">24</text>
+          <text x="275" y="310" text-anchor="middle">Months after CAR-T infusion</text>
+        </g>
+        <!-- OS 95% CI shading (회색) -->
+        <polygon points="60,20 160,40 220,57 280,78 340,100 400,118 460,130 490,135 490,155 460,150 400,140 340,123 280,100 220,80 160,62 60,42"
+                 fill="#cccccc" opacity="0.35"/>
+        <!-- OS 곡선 (굵은 검정 실선) — 100 → 62% 단조 감소 -->
+        <polyline points="60,20 120,25 160,35 200,48 240,62 280,78 320,88 360,100 400,112 440,122 490,140"
+                  fill="none" stroke="#000" stroke-width="2.25"/>
+        <!-- OS censor 마커 -->
+        <g stroke="#000" stroke-width="1.5">
+          <line x1="160" y1="30" x2="160" y2="40"/>
+          <line x1="240" y1="57" x2="240" y2="67"/>
+          <line x1="320" y1="83" x2="320" y2="93"/>
+          <line x1="400" y1="107" x2="400" y2="117"/>
+        </g>
+        <!-- RFS 95% CI shading -->
+        <polygon points="60,20 140,48 200,78 260,108 320,138 380,160 440,175 490,180 490,200 440,195 380,180 320,158 260,128 200,98 140,68 60,42"
+                 fill="#999999" opacity="0.30"/>
+        <!-- RFS 곡선 (검정 점선) — 100 → 47% -->
+        <polyline points="60,20 100,30 140,58 180,78 220,98 260,118 300,135 340,148 380,162 420,172 460,180 490,185"
+                  fill="none" stroke="#000" stroke-width="2" stroke-dasharray="6 4"/>
+        <!-- RFS censor 마커 -->
+        <g stroke="#000" stroke-width="1.5">
+          <line x1="140" y1="53" x2="140" y2="63"/>
+          <line x1="220" y1="93" x2="220" y2="103"/>
+          <line x1="300" y1="130" x2="300" y2="140"/>
+          <line x1="380" y1="157" x2="380" y2="167"/>
+        </g>
+        <!-- 범례 -->
+        <g font-family="Georgia, serif" font-size="11" fill="#111">
+          <rect x="330" y="30" width="150" height="46" fill="#ffffff" stroke="#999" stroke-width="0.75"/>
+          <line x1="340" y1="44" x2="368" y2="44" stroke="#000" stroke-width="2.25"/>
+          <text x="374" y="48">OS (24-mo 61.9%)</text>
+          <line x1="340" y1="64" x2="368" y2="64" stroke="#000" stroke-width="2" stroke-dasharray="6 4"/>
+          <text x="374" y="68">RFS (24-mo 47.1%)</text>
+        </g>
+        <!-- 제목 -->
+        <text x="275" y="14" text-anchor="middle" font-family="Georgia, serif" font-size="12" fill="#111">
+          Kaplan–Meier curves (N = 138)
+        </text>
+      </svg>
+    </div>
+    <figcaption>
+      <strong>Fig. 2.</strong> Kaplan–Meier 생존곡선. 실선 = 전체 생존 (OS),
+      점선 = 무재발 생존 (RFS). 회색 영역은 95% 신뢰구간 (log-log 변환).
+      세로 짧은 막대는 관측 중단 (censoring) 을 표시한다. 24 개월 시점
+      OS = 61.9%, RFS = 47.1%.
+    </figcaption>
+  </figure>
+
+  <!-- ============================================================
+       3.4 KPI 인포그래픽 (Mermaid)
+       ============================================================ -->
+  <h3 id="sec-3-4">3.4 핵심 결과 인포그래픽</h3>
+  <p>
+    네 가지 주요 효능 지표를 한눈에 요약한다
+    (<a class="fig-ref" href="#fig-kpi">Fig. 3</a>).
+  </p>
+
+  <figure class="jan-diagram jan-fig" id="fig-kpi"
+    contenteditable="false"
+    data-mermaid-code="Zmxvd2NoYXJ0IExSCiAgQVtDUiA4Mi42JV0gLS0+IFpbUHJpbWFyeSBPdXRjb21lXQogIEJbTVJELSA3OC4zJV0gLS0+IFoKICBDWzI0bW8gUkZTIDQ3LjElXSAtLT4gWgogIERbMjRtbyBPUyA2MS45JV0gLS0+IFo=">
+    <div class="jan-diagram-body">
+      <pre class="jan-mermaid-src" style="white-space:pre-wrap; background:#f5f5f5; padding:10px; border-radius:6px; font-size:12px;">flowchart LR
+  A[CR 82.6%] --&gt; Z[Primary Outcome]
+  B[MRD- 78.3%] --&gt; Z
+  C[24mo RFS 47.1%] --&gt; Z
+  D[24mo OS 61.9%] --&gt; Z</pre>
+    </div>
+    <figcaption>
+      <strong>Fig. 3.</strong> 네 가지 핵심 효능 지표 요약. 본 파일을 앱에
+      주입 시 Mermaid 다이어그램으로 자동 렌더링된다.
+    </figcaption>
+  </figure>
+
+  <!-- ============================================================
+       3.5 Cox HR 다변수 분석
+       ============================================================ -->
+  <h3 id="sec-3-5">3.5 Cox 비례위험 분석</h3>
+  <p>
+    재발 위험과 유의하게 연관된 사전 변수는 고질병부담 (BM blast ≥ 50%),
+    상승된 혈청 LDH (정상 상한의 2 배 초과), 이전 동종 HSCT 이력, 그리고
+    Philadelphia 염색체 양성이었다 (<a class="table-ref" href="#tab-cox">표 3</a>).
+    특히 BM blast ≥ 50% 군은 HR 2.14 (95% CI 1.36–3.37, <em>p</em> = 0.001)
+    로 단일 요인 중 가장 큰 효과크기를 보였다.
+  </p>
+
+  <table class="jan-table" id="tab-cox">
+    <caption>표 3. 재발 위험 다변수 Cox 비례위험 모형 (종속변수: RFS)</caption>
+    <thead>
+      <tr><th>공변량</th><th>HR</th><th>95% CI</th><th><em>p</em></th></tr>
+    </thead>
+    <tbody>
+      <tr><td>BM blast ≥ 50%</td><td>2.14</td><td>1.36–3.37</td><td>0.001</td></tr>
+      <tr><td>LDH &gt; 정상 × 2</td><td>1.78</td><td>1.12–2.82</td><td>0.015</td></tr>
+      <tr><td>이전 동종 HSCT</td><td>1.52</td><td>0.98–2.36</td><td>0.061</td></tr>
+      <tr><td>Philadelphia 양성</td><td>1.41</td><td>0.89–2.24</td><td>0.144</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ============================================================
+       4. Discussion
+       ============================================================ -->
+  <h2 id="sec-4">4. Discussion</h2>
+  <p>
+    본 전향적 다기관 연구는 재발 / 불응성 B-세포 ALL 성인 138 명을 대상으로
+    19-28z CD19 CAR-T 세포치료의 실제 임상 환경에서의 효능과 안전성을 재확인하였다.
+    일차 평가지표인 D+28 CR 은 82.6% 로 허가 근거 연구 (Maude 2018
+    tisagenlecleucel pivotal<sup class="jan-fn-mark"><a class="fn-ref" id="fnref-1" href="#fn1">i</a></sup>)
+    <a class="jan-cite" href="#ref-1">[1]</a> 와 기술적 유사성을 보이며,
+    MRD 음전환율 (78.3%) 은 Wang 2022 의 메타분석 추정치 (72%)
+    <a class="jan-cite" href="#ref-6">[6]</a> 와 일치한다. CRS 3 등급 이상
+    발생률은 22.5% 로 June 2018 리뷰가 제시한 15–30% 구간 내에 있었다
+    <a class="jan-cite" href="#ref-5">[5]</a>.
+  </p>
+
+  <h3 id="sec-4-1">4.1 다른 연구와의 비교</h3>
+  <p>
+    Shah 2021 의 미국 다기관 코호트 (N = 55)
+    <a class="jan-cite" href="#ref-3">[3]</a>
+    는 성인 R/R B-ALL 에서 D+28 CR 74%, 12 개월 OS 58% 를 보고하였는데,
+    본 연구는 24 개월 OS 가 61.9% 로 보다 긴 추적 기간에서도 내구성이 유지됨을
+    보인다. 또한 MRD 음성 비율이 본 연구에서 11% point 높았던 것은 주입 전
+    림프구 감소 요법의 강도 (fludarabine 30 mg/m<sup>2</sup> × 3 일, 본 연구)
+    가 Shah 2021 의 표준 (25 mg/m<sup>2</sup> × 3 일) 보다 높았던 점이 일부
+    기여하였을 가능성이 있다. Turtle 2016
+    <a class="jan-cite" href="#ref-8">[8]</a> 의 lisocabtagene 연구
+    및 Davila 2014 <a class="jan-cite" href="#ref-9">[9]</a>
+    파일럿 코호트와 비교해서도 절대치는 비교 가능한 수준이었다.
+  </p>
+
+  <h3 id="sec-4-2">4.2 한계점</h3>
+  <p>
+    본 연구는 대조군이 없는 단일-arm 전향 코호트로서, 역사적 비교 (historical
+    control) 의 선택 편의에 노출될 수 있다. 또한 Ph 양성 군의 HR 1.41
+    이 통계적 유의성에 도달하지 못한 것은 <em>TKI</em> 병용 비율 (62%) 의
+    이질성이 잔존하였기 때문일 수 있다. 세포 제조 실패 (2 / 140) 및 적격성
+    탈락 (8 / 148) 은 intention-to-treat 분석에서 제외되어, 실제 임상 경로
+    전체 (제조 실패 포함) 에서의 ITT-효율은 다소 낮을 수 있음을 유의해야
+    한다<sup class="jan-fn-mark"><a class="fn-ref" id="fnref-3" href="#fn3">iii</a></sup>.
+  </p>
+  <p>
+    마지막으로 tisagenlecleucel 이 한국 식약처 허가 표기상 25 세 이하의 R/R
+    B-ALL 에 국한되어 있으므로<sup class="jan-fn-mark"><a class="fn-ref" id="fnref-2" href="#fn2">ii</a></sup>,
+    성인 확장 적응에 대한 규제적 논의는 본 연구의 후속 IND 연장 과제로
+    진행 중이다.
+  </p>
+
+  <!-- ============================================================
+       5. Conclusion
+       ============================================================ -->
+  <h2 id="sec-5">5. Conclusion</h2>
+  <p>
+    재발 / 불응성 B-세포 ALL 성인 환자에서 19-28z CD19 CAR-T 세포치료는
+    D+28 CR 82.6%, MRD 음전환 78.3%, 24 개월 OS 61.9% 의 효능을 보였으며
+    안전성 프로파일은 기존 문헌과 일치하였다. BM blast ≥ 50% 와 LDH 상승이
+    독립적 재발 위험인자임을 다변수 분석으로 재확인하였다. 본 결과는 성인
+    R/R B-ALL 에서 CD19 CAR-T 의 장기 임상 적용 근거를 강화하며, 향후 고위험군
+    (고질병부담, 고 LDH) 에서는 MRD 음전환 후 consolidation allogeneic HSCT
+    병합 전략을 평가하는 무작위 연구가 필요하다.
+  </p>
+
+  <!-- ============================================================
+       페이지 각주 (Footnotes)
+       ============================================================ -->
+  <div class="jan-footnotes">
+    <ol>
+      <li id="fn1">
+        Lee <em>et al.</em> 2019 (ASTCT) 기준은 2014 년 MSKCC 기준 및 CTCAE
+        v5 와 부분적으로 다르며, 저혈압 / 저산소증 기반 등급화를 표준화한 것이
+        특징이다.
+        <a class="jan-backref" href="#fnref-1" title="본문으로 돌아가기">↩</a>
+      </li>
+      <li id="fn2">
+        tisagenlecleucel (Kymriah<sup>®</sup>) 의 한국 식약처 허가 (2022) 는
+        25 세 이하 R/R B-ALL 및 성인 DLBCL 로 제한되어 있다. 본 연구 대상
+        성인 R/R B-ALL 은 임상시험 IND 경로로 진행되었다.
+        <a class="jan-backref" href="#fnref-2" title="본문으로 돌아가기">↩</a>
+      </li>
+      <li id="fn3">
+        코호트 이월 기준 (carry-forward): 세포 제조 실패 시 재채집 후 재제조를
+        1 회 허용하였고, 2 회 실패 시 protocol off 로 정의하였다. 본 분석은
+        modified-ITT (mITT — 주입 받은 대상) 를 분모로 한다.
+        <a class="jan-backref" href="#fnref-3" title="본문으로 돌아가기">↩</a>
+      </li>
+    </ol>
+  </div>
+
+  <!-- ============================================================
+       Acknowledgments
+       ============================================================ -->
+  <aside class="jan-ack">
+    <h3>Acknowledgments</h3>
+    <p>
+      본 연구는 한국연구재단 중견연구자 지원사업 (NRF-2023R1A2C2007841) 및
+      국립암센터 기관과제 (NCC-2310-B1) 의 지원으로 수행되었다. 프로토콜은
+      국립암센터 기관생명윤리심의위원회 (IRB No. NCC2021-0143) 의 승인을 받았다.
+      환자 참여 및 검체 공여에 동의해 주신 모든 대상자와 가족, 그리고 세포 제조
+      공정을 담당한 GMP 센터 직원들에게 감사드린다.
+    </p>
+  </aside>
+
+  <!-- ============================================================
+       References (IEEE 스타일, 10 개)
+       ============================================================ -->
+  <div class="jan-bibliography">
+    <h2>References</h2>
+    <ol>
+      <li id="ref-1">
+        S. L. Maude, T. W. Laetsch, J. Buechner, S. Rives, M. Boyer, H. Bittencourt,
+        <em>et al.</em>, "Tisagenlecleucel in children and young adults with B-cell
+        lymphoblastic leukemia," <em>N. Engl. J. Med.</em>, vol. 378, no. 5, pp.
+        439–448, 2018, doi: 10.1056/NEJMoa1709866.
+      </li>
+      <li id="ref-2">
+        J. H. Park, I. Rivière, M. Gonen, X. Wang, B. Sénéchal, K. J. Curran,
+        <em>et al.</em>, "Long-term follow-up of CD19 CAR therapy in acute
+        lymphoblastic leukemia," <em>N. Engl. J. Med.</em>, vol. 378, no. 5,
+        pp. 449–459, 2018, doi: 10.1056/NEJMoa1709919.
+      </li>
+      <li id="ref-3">
+        N. N. Shah, B. D. Johnson, D. Schneider, F. Zhu, A. Szabo, C. A. Keever-Taylor,
+        <em>et al.</em>, "Bispecific anti-CD20, anti-CD19 CAR T cells for
+        relapsed B cell malignancies: a phase 1 dose escalation and expansion
+        trial," <em>J. Clin. Oncol.</em>, vol. 39, no. 15, pp. 1650–1659, 2021,
+        doi: 10.1200/JCO.20.03019.
+      </li>
+      <li id="ref-4">
+        D. W. Lee, B. D. Santomasso, F. L. Locke, A. Ghobadi, C. J. Turtle,
+        J. N. Brudno, <em>et al.</em>, "ASTCT consensus grading for cytokine
+        release syndrome and neurologic toxicity associated with immune effector
+        cells," <em>Biol. Blood Marrow Transplant.</em>, vol. 25, no. 4, pp.
+        625–638, 2019, doi: 10.1016/j.bbmt.2018.12.758.
+      </li>
+      <li id="ref-5">
+        C. H. June, R. S. O'Connor, O. U. Kawalekar, S. Ghassemi, and M. C. Milone,
+        "CAR T cell immunotherapy for human cancer," <em>Science</em>, vol. 359,
+        no. 6382, pp. 1361–1365, 2018, doi: 10.1126/science.aar6711.
+      </li>
+      <li id="ref-6">
+        T. Wang, S. Liu, Y. Zhao, X. Liu, Z. Li, and J. Huang, "Prognostic value
+        of measurable residual disease negativity in patients with B-ALL treated
+        with CD19 CAR-T: a meta-analysis," <em>Blood</em>, vol. 140, no. 9, pp.
+        987–998, 2022, doi: 10.1182/blood.2022015987.
+      </li>
+      <li id="ref-7">
+        S. L. Maude, N. Frey, P. A. Shaw, R. Aplenc, D. M. Barrett, N. J.
+        Bunin, <em>et al.</em>, "Chimeric antigen receptor T cells for sustained
+        remissions in leukemia," <em>N. Engl. J. Med.</em>, vol. 371, no. 16,
+        pp. 1507–1517, 2014, doi: 10.1056/NEJMoa1407222.
+      </li>
+      <li id="ref-8">
+        C. J. Turtle, L.-A. Hanafi, C. Berger, T. A. Gooley, S. Cherian, M.
+        Hudecek, <em>et al.</em>, "CD19 CAR-T cells of defined CD4+:CD8+
+        composition in adult B cell ALL patients," <em>Sci. Transl. Med.</em>,
+        vol. 8, no. 355, p. 355ra116, 2016, doi: 10.1126/scitranslmed.aag2612.
+      </li>
+      <li id="ref-9">
+        M. L. Davila, I. Rivière, X. Wang, S. Bartido, J. Park, K. Curran,
+        <em>et al.</em>, "Efficacy and toxicity management of 19-28z CAR T cell
+        therapy in B cell acute lymphoblastic leukemia," <em>Sci. Transl. Med.</em>,
+        vol. 6, no. 224, p. 224ra25, 2014, doi: 10.1126/scitranslmed.3008226.
+      </li>
+      <li id="ref-10">
+        S. A. Grupp, M. Kalos, D. Barrett, R. Aplenc, D. L. Porter, S. R. Rheingold,
+        <em>et al.</em>, "Chimeric antigen receptor-modified T cells for acute
+        lymphoid leukemia," <em>N. Engl. J. Med.</em>, vol. 368, no. 16, pp.
+        1509–1518, 2013, doi: 10.1056/NEJMoa1215134.
+      </li>
+    </ol>
+  </div>
+
+</section>

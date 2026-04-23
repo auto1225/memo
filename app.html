@@ -5884,7 +5884,49 @@ const COMMANDS = [
   { ico:'i-clipboard', name:'참고문헌 항목 추가', desc:'논문 — IEEE 스타일 참고문헌 추가', keywords:['bibliography','reference','참고문헌','논문'], run:() => window.JANPaper && window.JANPaper.addBibEntry() },
   { ico:'i-clipboard', name:'참고문헌 영역 열기', desc:'논문 — 참고문헌 섹션으로 스크롤', keywords:['bibliography','참고문헌'], run:() => window.JANPaper && window.JANPaper.openBibManager() },
   { ico:'i-pages', name:'페이지 구분 삽입', desc:'논문 — 인쇄 시 새 페이지로 분할', keywords:['page','break','페이지','구분','논문'], run:() => window.JANPaper && window.JANPaper.insertPageBreak() },
-  { ico:'i-refresh', name:'논문 번호 재정렬', desc:'각주·인용·그림·표 번호 다시 계산', keywords:['renumber','재정렬','논문'], run:() => { if (!window.JANPaper) return; window.JANPaper.renumberFootnotes(); window.JANPaper.renumberCitations(); window.JANPaper.refreshNumbering(); if (typeof toast === 'function') toast('재정렬 완료'); } }
+  { ico:'i-refresh', name:'논문 번호 재정렬', desc:'각주·인용·그림·표 번호 다시 계산', keywords:['renumber','재정렬','논문'], run:() => { if (!window.JANPaper) return; window.JANPaper.renumberFootnotes(); window.JANPaper.renumberCitations(); window.JANPaper.refreshNumbering(); if (typeof toast === 'function') toast('재정렬 완료'); } },
+  /* 바이오 논문 (CAR-T ALL) 나머지 부분 이어 붙이기 — bio-paper-rest-data.js */
+  { id:'paper.bio-append', ico:'i-book', name:'바이오 논문 나머지 추가', desc:'CAR-T ALL 논문 2.3 ~ Conclusion + Refs 를 현재 노트 끝에 삽입', keywords:['paper','bio','CAR-T','ALL','논문','바이오','암','append','이어쓰기'], run: async () => {
+      const html = window.JANBioPaperRest;
+      if (!html) { if (typeof toast === 'function') toast('바이오 논문 데이터 로드 실패 (bio-paper-rest-data.js)'); return; }
+      const page = document.getElementById('page');
+      if (!page) { if (typeof toast === 'function') toast('편집 영역을 찾을 수 없습니다'); return; }
+      page.insertAdjacentHTML('beforeend', '<hr>' + html);
+      // 논문 번호 재정렬 (각주·인용·그림·표)
+      try { if (window.JANPaper && window.JANPaper.refreshNumbering) window.JANPaper.refreshNumbering(); } catch {}
+      try { if (window.JANPaper && window.JANPaper.renumberFootnotes) window.JANPaper.renumberFootnotes(); } catch {}
+      try { if (window.JANPaper && window.JANPaper.renumberCitations) window.JANPaper.renumberCitations(); } catch {}
+      // KaTeX / Mermaid 후처리 (paper-features.js 의 renderAllPaperFigures)
+      try {
+        if (window.JANPaper && typeof window.JANPaper.renderAllPaperFigures === 'function') {
+          await window.JANPaper.renderAllPaperFigures(page);
+        } else if (window.JANDiagrams) {
+          // fallback: 직접 수식·다이어그램 렌더
+          const mathFigs = Array.from(page.querySelectorAll('figure.jan-math[data-latex]'));
+          for (const f of mathFigs) {
+            if (f.querySelector('.katex, .katex-display')) continue;
+            const latex = f.getAttribute('data-latex') || '';
+            try {
+              const h = await window.JANDiagrams.renderLatexHtml(latex);
+              if (h) { const cap = f.querySelector('figcaption'); f.innerHTML = h; if (cap) f.appendChild(cap); }
+            } catch (e) { console.warn('[bio] latex 실패', e); }
+          }
+          const diags = Array.from(page.querySelectorAll('figure.jan-diagram[data-mermaid-code]'));
+          for (const d of diags) {
+            if (d.querySelector('svg')) continue;
+            const enc = d.getAttribute('data-mermaid-code') || '';
+            let mm = enc;
+            try { mm = decodeURIComponent(escape(atob(enc))); } catch {}
+            try {
+              const svg = await window.JANDiagrams.renderMermaid(mm);
+              if (svg) { const cap = d.querySelector('figcaption'); d.innerHTML = svg; if (cap) d.appendChild(cap); }
+            } catch (e) { console.warn('[bio] mermaid 실패', e); }
+          }
+        }
+      } catch (e) { console.warn('[bio] 후처리 실패', e); }
+      try { if (typeof scheduleSave === 'function') scheduleSave(); } catch {}
+      if (typeof toast === 'function') toast('바이오 논문 나머지 삽입 완료');
+  } }
 ];
 const palette = $('palette'), palInput = $('palInput'), palResults = $('palResults');
 let palSelected = 0, palFiltered = [];
@@ -20116,6 +20158,8 @@ if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
 <script src="/paper-features.js?v=6"></script>
 <!-- JustANotepad 논문 샘플 템플릿 데이터 (Science 포맷 물리학 논문 3페이지) -->
 <script src="/paper-template-data.js?v=3"></script>
+<!-- JustANotepad CAR-T ALL 바이오 논문 나머지 본문 (2.3 ~ Conclusion + Refs) -->
+<script src="/bio-paper-rest-data.js?v=1"></script>
 <!-- JustANotepad home hub — dashboard drawer with recent activity -->
 <script src="/home-hub.js"></script>
 <!-- JustANotepad Service Worker refresh — ensures latest deploy is fetched -->
