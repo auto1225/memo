@@ -1382,16 +1382,22 @@
     else if (mermaidEnc) plainText = b64dec(mermaidEnc);
     else plainText = (fig.textContent || '').trim();
 
-    // text/html — figure 의 outerHTML 을 그대로 넣어 JustANotepad 안에 붙여넣기 시
-    // 편집 가능한 figure 로 복원되게 함. 외부 앱(Word·한글)도 대부분 HTML 을 인식하면
-    // 이미지 대신 텍스트가 붙여질 수 있어서, 외부용은 "주석" 으로 감싸서 데이터만 남기고
-    // 시각적으로는 img(base64) 가 대신 렌더되도록 한다.
-    const figHtml = fig.outerHTML;
+    // text/html — JustANotepad 안으로 붙여넣을 때 '원본 LaTeX' 로부터 새로 렌더해
+    // 깨끗한 figure 로 복원되도록, 메타데이터를 data-attributes 로 담은 빈 span 을
+    // 주석 블록 안에 둔다. (outerHTML 로 하면 KaTeX 내부 DOM 이 붙여넣기 중 sanitize
+    // 되면서 figcaption/mathml 이 노출되는 버그가 있어 포기)
+    const figKind = fig.classList.contains('jan-math') ? 'math' : 'diagram';
+    const caption = (fig.querySelector('figcaption') ? fig.querySelector('figcaption').firstChild.textContent : '') || '수식';
+    const payloadEl =
+      '<span data-jan-figure="' + figKind + '"' +
+      ' data-jan-latex="' + b64enc(plainText) + '"' +
+      ' data-jan-caption="' + b64enc(caption) + '">' +
+      '</span>';
     const pngDataUrl = await blobToDataURL(pngBlob);
-    // Word·한글 등 HTML 을 선호하는 앱을 위한 렌더링: base64 이미지 + 원본 figure 를
-    // 주석 블록에 보관 (JustANotepad 가 붙여넣을 때 주석을 우선 파싱).
+    // Word·한글 등 외부 앱용 렌더링: base64 이미지. JustANotepad 는 주석 안의 meta 를 보고
+    // 새로 렌더, 외부는 img 를 렌더.
     const htmlPayload =
-      '<!--jan-figure-start-->' + figHtml + '<!--jan-figure-end-->' +
+      '<!--jan-figure-start-->' + payloadEl + '<!--jan-figure-end-->' +
       '<img src="' + pngDataUrl + '" alt="' + escapeHtml(plainText) + '" style="max-width:100%;">';
 
     try {
