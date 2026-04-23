@@ -3190,53 +3190,144 @@
     const wrap = page.parentElement;
     if (!wrap) return;
 
-    /* v17: 기존 stacked sheets 오버레이가 있으면 제거 (구버전 호환) */
-    const oldSheets = wrap.querySelector('.jan-page-sheets');
-    if (oldSheets) oldSheets.remove();
-
-    /* 페이지 크기 없으면 라벨 오버레이 제거 + min-height 리셋 */
+    /* 페이지 크기 없으면: 시트 오버레이 + 콘텐츠 margin 조정 모두 제거 */
     if (!page.classList.contains('jan-paged')) {
-      const existingLabels = page.querySelector('.jan-page-labels');
+      const existingSheets = wrap.querySelector('.jan-page-sheets');
+      if (existingSheets) existingSheets.remove();
+      const existingLabels = page.querySelector(':scope > .jan-page-labels');
       if (existingLabels) existingLabels.remove();
       page.style.removeProperty('min-height');
+      /* 콘텐츠 블록의 이전 페이지 shift margin 복원 */
+      Array.from(page.children).forEach(c => {
+        if (c.dataset && c.dataset.janPgShift) {
+          c.style.marginTop = c.dataset.janPgOrigMt || '';
+          delete c.dataset.janPgShift;
+          delete c.dataset.janPgOrigMt;
+        }
+      });
       return;
     }
+
+    /* === v19: 콘텐츠 블록들을 페이지 경계 기준으로 재배치 === */
+    rebalanceContentToPages(page);
 
     /* 페이지 높이 (mm → px) 계산 */
     const computed = getComputedStyle(page);
     const pageHmm = parseFloat(computed.getPropertyValue('--page-h')) || 297;
     const pageHpx = mmToPx(pageHmm);
 
-    /* 현재 콘텐츠 높이 (scrollHeight = padding 포함 실제 콘텐츠 높이) */
+    /* 재배치 후 최종 콘텐츠 높이 측정 */
     const contentH = page.scrollHeight;
-    /* 페이지 수 = ceil(콘텐츠 / pageH), 최소 1 */
-    const nPages = Math.max(1, Math.ceil(contentH / pageHpx));
+    /* 페이지 수 = ceil(콘텐츠 / (pageH + gap)), 최소 1.
+       실제 레이아웃에서는 블록이 gap 에 안 빠지도록 rebalance 후 높이 기준. */
+    const cycle = pageHpx + SHEET_GAP;
+    const nPages = Math.max(1, Math.ceil(contentH / cycle));
 
-    /* min-height = N × pageH (gap 없음, 연속) */
-    page.style.minHeight = (nPages * pageHpx) + 'px';
+    /* min-height = N × (pageH + gap) */
+    const totalH = nPages * pageHpx + (nPages - 1) * SHEET_GAP;
+    page.style.minHeight = totalH + 'px';
 
-    /* Page N 라벨 오버레이 — 에디터 내부에 position:absolute 로 */
-    let labels = page.querySelector(':scope > .jan-page-labels');
-    if (!labels) {
-      labels = document.createElement('div');
-      labels.className = 'jan-page-labels';
-      labels.setAttribute('contenteditable', 'false');
-      labels.setAttribute('aria-hidden', 'true');
-      page.appendChild(labels);
-    }
-    labels.style.height = (nPages * pageHpx) + 'px';
-
-    /* 라벨 재생성 — 2페이지 이상일 때만 표시 */
-    labels.innerHTML = '';
-    if (nPages >= 2) {
-      for (let i = 0; i < nPages; i++) {
-        const lbl = document.createElement('span');
-        lbl.className = 'jan-sheet-label';
-        lbl.textContent = 'Page ' + (i + 1);
-        lbl.style.top = (i * pageHpx + 14) + 'px';
-        labels.appendChild(lbl);
+    /* 시트 오버레이 생성/갱신 */
+    let sheets = wrap.querySelector('.jan-page-sheets');
+    if (!sheets) {
+      sheets = document.createElement('div');
+      sheets.className = 'jan-page-sheets';
+      sheets.setAttribute('contenteditable', 'false');
+      sheets.setAttribute('aria-hidden', 'true');
+      if (getComputedStyle(wrap).position === 'static') {
+        wrap.style.position = 'relative';
       }
+      wrap.insertBefore(sheets, page);
     }
+    sheets.style.height = totalH + 'px';
+
+    const existingN = sheets.querySelectorAll('.jan-sheet').length;
+    if (existingN !== nPages) {
+      sheets.innerHTML = '';
+      for (let i = 0; i < nPages; i++) {
+        const sheet = document.createElement('div');
+        sheet.className = 'jan-sheet';
+        sheet.style.top = (i * cycle) + 'px';
+        sheets.appendChild(sheet);
+      }
+      /* Page N 라벨 — 2페이지 이상일 때만 */
+      if (nPages >= 2) {
+        for (let i = 0; i < nPages; i++) {
+          const lbl = document.createElement('div');
+          lbl.className = 'jan-sheet-label';
+          lbl.textContent = 'Page ' + (i + 1);
+          lbl.style.top = (i * cycle + 10) + 'px';
+          sheets.appendChild(lbl);
+        }
+      }
+    } else {
+      /* 위치만 업데이트 */
+      const sheetEls = sheets.querySelectorAll('.jan-sheet');
+      const labelEls = sheets.querySelectorAll('.jan-sheet-label');
+      sheetEls.forEach((s, i) => { s.style.top = (i * cycle) + 'px'; });
+      labelEls.forEach((l, i) => { l.style.top = (i * cycle + 10) + 'px'; });
+    }
+  }
+
+  /* ============================================================
+     v19: 콘텐츠 블록 재배치 — 페이지 경계를 넘는 블록을 다음 페이지로 푸시
+     ------------------------------------------------------------
+     알고리즘:
+       1. 기존 janPgShift margin-top 을 모두 복원
+       2. 각 자식 블록의 top/bottom 측정 (padding 제외)
+       3. 블록이 페이지 경계(pageH)를 넘으면 → 다음 페이지 시작 위치로 shift
+       4. shift 크기만큼 marginTop 에 더해서 적용
+     ============================================================ */
+  function rebalanceContentToPages(page) {
+    if (!page || !page.classList.contains('jan-paged')) return;
+    const computed = getComputedStyle(page);
+    const pageHpx = mmToPx(parseFloat(computed.getPropertyValue('--page-h')) || 297);
+    const padTop = parseFloat(computed.paddingTop) || 0;
+    const cycle = pageHpx + SHEET_GAP;
+    /* 1단계: 기존 shift 복원 */
+    const children = Array.from(page.children).filter(c => {
+      return c.nodeType === Node.ELEMENT_NODE
+        && !c.classList.contains('jan-page-labels')
+        && !c.classList.contains('jan-page-sheets');
+    });
+    children.forEach(c => {
+      if (c.dataset && c.dataset.janPgShift) {
+        c.style.marginTop = c.dataset.janPgOrigMt || '';
+        delete c.dataset.janPgShift;
+        delete c.dataset.janPgOrigMt;
+      }
+    });
+    /* 2-3단계: 재측정 후 경계 넘는 블록 찾아 shift 적용 */
+    const pageRect = page.getBoundingClientRect();
+    children.forEach(c => {
+      const rect = c.getBoundingClientRect();
+      const top = rect.top - pageRect.top - padTop;       // 블록 상단 (콘텐츠 기준)
+      const bottom = top + rect.height;                   // 블록 하단
+      if (bottom <= 0) return;                            // 위로 넘어간 블록 (음수)
+      /* 블록 시작 페이지 / 끝 페이지 (0-indexed) */
+      const startPage = Math.floor(top / cycle);
+      /* 블록 하단이 페이지 콘텐츠 영역 (pageH) 안쪽인지 확인.
+         cycle 안에서 pageH 이후는 gap 영역 → 다음 페이지로 푸시 */
+      const topInCycle = top - startPage * cycle;
+      const bottomInCycle = topInCycle + rect.height;
+      /* 블록이 페이지 경계를 넘는 경우:
+         - 블록이 gap 영역 안에 시작 (topInCycle >= pageHpx)
+         - 블록 높이가 pageH 이하이면서 끝이 페이지 밖 (bottomInCycle > pageHpx) */
+      if (rect.height > pageHpx * 0.95) return;  /* 한 페이지보다 큰 블록은 건드리지 않음 */
+      if (topInCycle >= pageHpx || bottomInCycle > pageHpx) {
+        /* 다음 페이지 시작점 = (startPage + 1) * cycle */
+        const nextPageStart = (startPage + 1) * cycle;
+        const shift = nextPageStart - top;
+        if (shift > 0 && shift < cycle) {
+          /* 원래 marginTop 을 저장 */
+          const origMt = c.style.marginTop || '';
+          const curMt = parseFloat(getComputedStyle(c).marginTop) || 0;
+          c.dataset.janPgOrigMt = origMt;
+          c.dataset.janPgShift = String(shift);
+          c.style.marginTop = (curMt + shift) + 'px';
+        }
+      }
+    });
   }
 
   /* MutationObserver — #page 내용 변경 시 디바운스로 sheet 재계산 */

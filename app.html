@@ -1349,46 +1349,46 @@
   .swatches.open { display:grid; }
   .swatches span { width:22px; height:22px; border-radius:50%; cursor:pointer; border:1px solid #ccc; }
 
-  /* ===== 페이지 크기 시스템 (A4/A3/B4 · 세로/가로) · v17: 연속 카드 + 경계선 =====
-     v17 변경: 콘텐츠가 페이지 사이 gap 에 빠져서 핑크 영역에 텍스트가 보이는 문제 수정.
-       - 에디터 = 하나의 연속된 흰 카드 (콘텐츠가 밖으로 새지 않음)
-       - 각 페이지 경계에 수평 구분선 (subtle gray) + 'Page N' 라벨
-       - min-height 는 JS 가 콘텐츠 기반으로 N 페이지 분량으로 확장 */
+  /* ===== 페이지 크기 시스템 (A4/A3/B4 · 세로/가로) · v19: stacked sheets + content rebalance =====
+     v19 변경: v17 은 연속 흰 카드라 페이지 구분이 시각적으로 없음 → 다시 물리적 분리 (24px gap).
+     단, 콘텐츠가 gap 에 빠지지 않도록 MutationObserver 가 overflow 블록을 다음 페이지로 자동 푸시. */
   .page.jan-paged {
     max-width: var(--page-w, 210mm);
     margin: 24px auto 120px !important;
-    background: #fff !important;
+    background: transparent !important;
     color: #222 !important;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.05), 0 14px 32px rgba(0,0,0,0.12) !important;
-    border: 1px solid rgba(0,0,0,0.08) !important;
-    border-radius: 2px;
+    box-shadow: none !important;
+    border: none !important;
     padding: var(--page-margin, 20mm) var(--page-margin-x, 22mm) !important;
-    /* min-height 는 JS 가 동적 설정 (1페이지 최소, 콘텐츠 늘면 N페이지) */
-    min-height: var(--page-h, 297mm);
     box-sizing: border-box;
     position: relative;
-    /* 매 페이지 높이마다 경계선 (subtle shadow + thin accent line) */
-    background-image: repeating-linear-gradient(
-      to bottom,
-      transparent 0,
-      transparent calc(var(--page-h, 297mm) - 2px),
-      rgba(0, 0, 0, 0.04) calc(var(--page-h, 297mm) - 2px),
-      rgba(0, 0, 0, 0.04) calc(var(--page-h, 297mm) - 1px),
-      rgba(217, 119, 87, 0.25) calc(var(--page-h, 297mm) - 1px),
-      rgba(217, 119, 87, 0.25) var(--page-h, 297mm)
-    );
-    background-size: 100% var(--page-h, 297mm);
-    background-position: 0 0;
-    background-repeat: repeat-y;
-    background-attachment: local;
+    z-index: 2;
+    background-image: none !important;
   }
-  /* 페이지 번호 pill 라벨 — 에디터 내부 absolute 오버레이 */
+  /* 뒤에 깔리는 종이 스택 오버레이 (v17 방식 복원) */
+  .jan-page-sheets {
+    position: absolute;
+    left: 0; right: 0; top: 0;
+    pointer-events: none;
+    z-index: 1;
+    max-width: var(--page-w, 210mm);
+    margin: 24px auto 0;
+  }
+  .jan-sheet {
+    position: absolute;
+    left: 0; right: 0;
+    height: var(--page-h, 297mm);
+    background: #fff;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06), 0 14px 32px rgba(0,0,0,0.10);
+    border: 1px solid rgba(0,0,0,0.06);
+    border-radius: 2px;
+  }
+  /* 페이지 번호 pill 라벨 — 페이지 시트 내부 absolute */
   .jan-page-labels {
     position: absolute;
     top: 0; right: 12px;
     pointer-events: none;
     z-index: 5;
-    /* height 는 JS 가 동적 계산 */
   }
   .jan-sheet-label {
     position: absolute;
@@ -20730,7 +20730,7 @@ if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
 <!-- JustANotepad AI 다이어그램 생성 (구성도/순서도/인포그래픽) — Mermaid + AI -->
 <script src="/ai-diagrams.js?v=9"></script>
 <!-- JustANotepad 논문 작성 기능 (각주·인용·번호·페이지 구분) -->
-<script src="/paper-features.js?v=18"></script>
+<script src="/paper-features.js?v=19"></script>
 <!-- JustANotepad 논문 샘플 템플릿 데이터 (Science 포맷 물리학 논문 3페이지) -->
 <script src="/paper-template-data.js?v=3"></script>
 <!-- v15: 분야별 예시 논문 스켈레톤 (생물·의학 / CS / 공학 / 경제학 / 물리학 경량) -->
