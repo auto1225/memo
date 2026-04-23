@@ -401,7 +401,8 @@
   }
 
   function drawStroke(st) {
-    if (!ctx2d || !st.points.length) return;
+    if (!ctx2d) return;
+    // 도형(shape-*)은 points 배열이 비어 있어도 그려야 함 — 먼저 처리.
     if (st.kind === 'shape-circle') {
       ctx2d.save();
       ctx2d.strokeStyle = st.color;
@@ -432,6 +433,8 @@
       return;
     }
 
+    // freehand — 여기서부터는 points 필요
+    if (!st.points || !st.points.length) return;
     const pts = st.points;
     ctx2d.save();
     if (st.erase) {
