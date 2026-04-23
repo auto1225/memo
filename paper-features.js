@@ -1,5 +1,5 @@
 /* ============================================================
-   paper-features.js — 논문 작성 기능 팩 (v1)
+   paper-features.js — 논문 작성 기능 팩 (v3)
    ------------------------------------------------------------
    JustANotepad 에 논문 작성에 필요한 4개 기능을 추가:
 
@@ -676,6 +676,25 @@
   }
 
   function onDocClick(ev) {
+    // 목차 (TOC) 링크 클릭 → contenteditable 기본 동작이 막혀있으므로
+    // 수동으로 스크롤. href 가 "#sec-..." 꼴이어야 함.
+    const tocA = ev.target.closest && ev.target.closest('.jan-toc a[href^="#"]');
+    if (tocA) {
+      ev.preventDefault();
+      const href = tocA.getAttribute('href');
+      if (href && href.length > 1) {
+        try {
+          const target = document.querySelector(href);
+          if (target && target.scrollIntoView) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            flashTarget(target);
+          } else {
+            notify('대상 섹션(' + href + ')을 찾지 못했습니다');
+          }
+        } catch (e) { console.warn('[JANPaper] TOC 이동 실패', e); }
+      }
+      return;
+    }
     // 각주 ref 클릭 → 해당 li 로 스크롤
     const ref = ev.target.closest && ev.target.closest('sup.jan-fn-ref');
     if (ref) {
@@ -844,6 +863,85 @@
     })();
     try { if (typeof window.scheduleSave === 'function') window.scheduleSave(); } catch (e) {}
     notify('논문 샘플 삽입 완료 — 수식 렌더링 중…');
+    // 첫 사용자 대상 온보딩 배너 (localStorage 로 1회만)
+    try { showPaperOnboardingBanner(); } catch (e) { console.warn('[JANPaper] 온보딩 배너 실패', e); }
+  }
+
+  /* 논문 기능 도움말 모달 — 사용법 요약표 */
+  function openPaperHelp() {
+    const html =
+      '<div style="padding:4px 2px 8px; font-size:13px; line-height:1.55; color:#222;">' +
+        '<p style="margin:0 0 10px;">논문 작성에 필요한 요소들은 아래 방식으로 빠르게 삽입할 수 있습니다.</p>' +
+        '<table style="width:100%; border-collapse:collapse; font-size:12.5px;">' +
+          '<thead>' +
+            '<tr style="background:#f6f8fb; border-bottom:1px solid #dbe0e7;">' +
+              '<th style="text-align:left; padding:6px 8px; font-weight:700;">기능</th>' +
+              '<th style="text-align:left; padding:6px 8px; font-weight:700;">방법</th>' +
+            '</tr>' +
+          '</thead>' +
+          '<tbody>' +
+            '<tr style="border-bottom:1px solid #eef0f3;"><td style="padding:6px 8px;">논문 샘플 불러오기</td><td style="padding:6px 8px;">툴바 "논문 요소" 메뉴 → <em>논문 샘플 불러오기</em></td></tr>' +
+            '<tr style="border-bottom:1px solid #eef0f3;"><td style="padding:6px 8px;">각주 삽입</td><td style="padding:6px 8px;">Ctrl+K → <em>각주 삽입</em>, 또는 "논문 요소" 메뉴</td></tr>' +
+            '<tr style="border-bottom:1px solid #eef0f3;"><td style="padding:6px 8px;">인용 삽입</td><td style="padding:6px 8px;">Ctrl+K → <em>인용 삽입</em> (먼저 참고문헌 항목이 있어야 함)</td></tr>' +
+            '<tr style="border-bottom:1px solid #eef0f3;"><td style="padding:6px 8px;">참고문헌 항목 추가</td><td style="padding:6px 8px;">"논문 요소" 메뉴 → <em>참고문헌 항목 추가</em> (IEEE 스타일 텍스트)</td></tr>' +
+            '<tr style="border-bottom:1px solid #eef0f3;"><td style="padding:6px 8px;">페이지 구분 삽입</td><td style="padding:6px 8px;">Ctrl+K → <em>페이지 구분</em>. 인쇄 시 한 장씩 나눠짐</td></tr>' +
+            '<tr style="border-bottom:1px solid #eef0f3;"><td style="padding:6px 8px;">수식 번호 (1)(2)…</td><td style="padding:6px 8px;"><code>&lt;figure class="jan-math"&gt;</code> 자동 카운터</td></tr>' +
+            '<tr style="border-bottom:1px solid #eef0f3;"><td style="padding:6px 8px;">Figure 번호</td><td style="padding:6px 8px;"><code>&lt;figure class="jan-fig"&gt;</code> 안에 <code>&lt;figcaption&gt;</code></td></tr>' +
+            '<tr style="border-bottom:1px solid #eef0f3;"><td style="padding:6px 8px;">Table 번호</td><td style="padding:6px 8px;"><code>&lt;figure class="jan-tbl"&gt;</code> 안에 <code>&lt;table&gt;</code> + <code>&lt;figcaption&gt;</code></td></tr>' +
+            '<tr style="border-bottom:1px solid #eef0f3;"><td style="padding:6px 8px;">Mermaid 다이어그램</td><td style="padding:6px 8px;"><code>&lt;figure class="jan-diagram" data-mermaid-code="BASE64"&gt;</code> — 샘플 로드 시 자동 렌더</td></tr>' +
+            '<tr><td style="padding:6px 8px;">번호 재정렬</td><td style="padding:6px 8px;">"논문 요소" → <em>번호 재정렬</em> (자동 실행되지만 수동 트리거)</td></tr>' +
+          '</tbody>' +
+        '</table>' +
+        '<p style="margin:10px 0 0; font-size:12px; color:#666;">각주·인용·목차 링크는 클릭하면 해당 위치로 스크롤합니다.</p>' +
+      '</div>';
+    if (typeof window.showModalHtml === 'function') {
+      window.showModalHtml('논문 기능 도움말', html);
+    } else {
+      // fallback — 창 띄우기
+      const w = window.open('', '_blank');
+      if (w) { w.document.write('<h2>논문 기능 도움말</h2>' + html); w.document.close(); }
+    }
+  }
+
+  /* 첫 사용자 온보딩 배너 — 논문 샘플 로드 직후 한 번만 노출 */
+  function showPaperOnboardingBanner() {
+    try {
+      if (localStorage.getItem('jan-paper-onboarding-dismissed') === '1') return;
+    } catch (e) {}
+    const old = document.getElementById('jan-paper-onboarding');
+    if (old) old.remove();
+    const banner = document.createElement('div');
+    banner.id = 'jan-paper-onboarding';
+    banner.style.cssText =
+      'position:fixed; bottom:12px; right:12px; background:#fff; ' +
+      'border:1px solid var(--accent, #1a4b8c); padding:10px 14px 10px 12px; ' +
+      'border-radius:8px; z-index:9999; box-shadow:0 4px 16px rgba(0,0,0,0.15); ' +
+      'max-width:360px; font-size:12.5px; line-height:1.5; color:#222; ' +
+      'font-family:inherit; display:flex; align-items:flex-start; gap:10px;';
+    banner.innerHTML =
+      '<div style="flex:1 1 auto;">' +
+        '<strong style="display:block; margin-bottom:3px; color:var(--accent, #1a4b8c);">논문 샘플이 삽입되었습니다</strong>' +
+        '<span>팁: 각주·인용·참고문헌은 툴바 "논문 요소" 메뉴 또는 ' +
+        '<kbd style="background:#f2f4f7; border:1px solid #ddd; border-radius:3px; padding:0 4px; font-size:11px;">Ctrl+K</kbd> ' +
+        '&rarr; "논문" 검색으로 사용할 수 있어요.</span>' +
+        '<div style="margin-top:8px;"><button type="button" id="jan-paper-onboarding-help" ' +
+        'style="background:transparent; border:1px solid #ddd; border-radius:5px; ' +
+        'padding:4px 9px; font-size:11.5px; cursor:pointer; font-family:inherit;">' +
+        '자세히 보기</button></div>' +
+      '</div>' +
+      '<button type="button" id="jan-paper-onboarding-close" aria-label="닫기" ' +
+        'style="background:transparent; border:0; font-size:18px; line-height:1; ' +
+        'cursor:pointer; color:#888; padding:0 2px; margin-top:-2px;">×</button>';
+    document.body.appendChild(banner);
+    banner.querySelector('#jan-paper-onboarding-close').addEventListener('click', () => {
+      try { localStorage.setItem('jan-paper-onboarding-dismissed', '1'); } catch (e) {}
+      banner.remove();
+    });
+    banner.querySelector('#jan-paper-onboarding-help').addEventListener('click', () => {
+      openPaperHelp();
+    });
+    // 자동 닫힘 — 45초
+    setTimeout(() => { if (banner.isConnected) banner.remove(); }, 45000);
   }
 
   /* 논문 요소 서브메뉴 (툴바 버튼 클릭 시 작은 드롭다운) */
@@ -867,9 +965,17 @@
       { label: '참고문헌 항목 추가', act: 'bib-add' },
       { label: '참고문헌 영역으로 이동', act: 'bib-open' },
       { label: '페이지 구분 삽입', act: 'pagebreak' },
-      { label: '번호 재정렬', act: 'renumber' }
+      { label: '번호 재정렬', act: 'renumber' },
+      { label: '——', act: 'sep' },
+      { label: '논문 기능 도움말', act: 'help' }
     ];
     items.forEach(it => {
+      if (it.act === 'sep') {
+        const sep = document.createElement('div');
+        sep.style.cssText = 'height:1px; background:#eee; margin:4px 2px;';
+        menu.appendChild(sep);
+        return;
+      }
       const row = document.createElement('button');
       row.type = 'button';
       row.textContent = it.label;
@@ -887,6 +993,7 @@
         else if (it.act === 'bib-add') addBibEntry();
         else if (it.act === 'bib-open') openBibManager();
         else if (it.act === 'pagebreak') insertPageBreak();
+        else if (it.act === 'help') openPaperHelp();
         else if (it.act === 'renumber') {
           renumberFootnotes();
           renumberCitations();
@@ -928,6 +1035,8 @@
     insertPageBreak,
     refreshNumbering,
     openPaperMenu,
-    loadPaperSample
+    loadPaperSample,
+    openPaperHelp,
+    showPaperOnboardingBanner
   };
 })();

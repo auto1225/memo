@@ -435,8 +435,10 @@
 /* ============================================================
    [SECTION G] 수식 (KaTeX 자동 렌더 자리)
    ============================================================ */
-figure.jan-math {
+.jan-paper figure.jan-math {
   counter-increment: pap-eq;
+}
+figure.jan-math {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -474,7 +476,7 @@ figure.jan-math[data-latex]:not(.jan-rendered) .jan-eq-body {
   word-break: break-word;
 }
 
-figure.jan-math::after {
+.jan-paper figure.jan-math::after {
   content: "(" counter(pap-eq) ")";
   font-family: var(--pap-font-serif);
   font-size: 10pt;
@@ -495,8 +497,10 @@ figure.jan-math::after {
 /* ============================================================
    [SECTION H] 그림 / 표
    ============================================================ */
-figure.jan-fig {
+.jan-paper figure.jan-fig {
   counter-increment: pap-fig;
+}
+figure.jan-fig {
   margin: 3mm 0;
   padding: 0;
   break-inside: avoid;
@@ -545,15 +549,17 @@ figure.jan-fig figcaption {
   line-height: 1.45;
 }
 
-figure.jan-fig figcaption::before {
+.jan-paper figure.jan-fig figcaption::before {
   content: "Figure " counter(pap-fig) ". ";
   font-weight: 700;
   color: var(--pap-ink);
 }
 
 /* 표 */
-figure.jan-tbl {
+.jan-paper figure.jan-tbl {
   counter-increment: pap-tbl;
+}
+figure.jan-tbl {
   margin: 3mm 0;
   break-inside: avoid;
   page-break-inside: avoid;
@@ -612,7 +618,7 @@ figure.jan-tbl figcaption {
   line-height: 1.45;
 }
 
-figure.jan-tbl figcaption::before {
+.jan-paper figure.jan-tbl figcaption::before {
   content: "Table " counter(pap-tbl) ". ";
   font-weight: 700;
   color: var(--pap-ink);
@@ -873,25 +879,44 @@ a.cite:hover {
 }
 
 @media print {
+  html, body {
+    background: #fff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
   .jan-paper {
     background: #fff;
     padding: 0;
     gap: 0;
+    display: block;
   }
 
-  .jan-page {
+  .jan-paper .jan-page {
     width: 210mm;
     height: 297mm;
     min-height: 297mm;
     max-height: 297mm;
     box-shadow: none;
     margin: 0;
-    page-break-after: always;
-    break-after: page;
+    padding: var(--pap-margin-top) var(--pap-margin-side) var(--pap-margin-bottom);
+    page-break-after: always !important;
+    break-after: page !important;
+    page-break-inside: avoid;
+    break-inside: avoid-page;
+    overflow: hidden;
   }
 
-  .jan-page:last-child {
-    page-break-after: auto;
+  .jan-paper .jan-page:last-child {
+    page-break-after: auto !important;
+    break-after: auto !important;
+  }
+
+  /* 헤더·푸터는 각 .jan-page 내부에 이미 absolute 로 자리잡고 있어 그대로 인쇄됨 */
+  .jan-paper .jan-header,
+  .jan-paper .jan-footer {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   /* 화면에서 보인 둥근 모서리 / 그림자 모두 제거 */
@@ -1105,9 +1130,10 @@ a.cite:hover {
         실험 실행 순서는 <a class="fig-ref" href="#fig2">Fig. 2</a> 의 순서도에 나타냈다. 각 단계의 괄호 안 숫자는 평균 지속 시간이다. 전체 1 shot 에 약 8.5 s 가 소요되며 반복 rate 는 7.1 Hz 이다.
       </p>
 
-      <figure class="jan-fig" id="fig2">
+      <figure class="jan-fig jan-diagram" id="fig2"
+        data-mermaid-code="Zmxvd2NoYXJ0IFRECkFbTU9UIOuhnOuUqV0gLS0+IEJb7Kad67Cc64OJ6rCBXQpCIC0tPiBDW0JFQyDsg53shLFdCkMgLS0+IERb6rSR6rKp7J6QIOueqO2UhF0KRCAtLT4gRVtSYW1hbiDqsrDtlaldCkUgLS0+IEZbQnJhZ2cg7Y6E7IqkXQpGIC0tPiBHW1RPRiDtjL3ssL1dCkcgLS0+IEhb7Z2h7IiYIOydtOuvuOynlV0=">
         <div class="jan-fig-placeholder">
-          [그림 2 자리 — 실험 프로토콜 순서도: MOT 로딩 → 증발냉각 → BEC 생성 → 광격자 램프 → Raman 결합 → 방향 선택 → Bragg 펄스 → 자유 팽창 → 흡수 이미징 → 공명 판정 → 반복. Mermaid 로 그려진 flowchart 자동 렌더 위치.]
+          [그림 2 — 실험 프로토콜 순서도. Mermaid 렌더 대기 중…]
         </div>
         <figcaption>실험 프로토콜. 각 스텝의 괄호 안 숫자는 평균 지속 시간. 공명 판정은 Bragg 응답의 로렌츠 피팅 FWHM 기준으로 자동 분기된다.</figcaption>
       </figure>
@@ -1117,9 +1143,10 @@ a.cite:hover {
         전체 하드웨어 배치는 <a class="fig-ref" href="#fig3">Fig. 3</a> 과 같다. Ti:Sa 와 다이오드 레이저가 각기 AOM 을 거쳐 광격자 / Raman 광학계로 분배되고, 진공 챔버 (&lt; 2×10<sup>−11</sup> Torr) 내부에서 BEC 와 상호작용한 뒤 CCD 이미징으로 검출된다. RF 안테나는 디튜닝 δ 를 피드포워드 보정한다.
       </p>
 
-      <figure class="jan-fig" id="fig3">
+      <figure class="jan-fig jan-diagram" id="fig3"
+        data-mermaid-code="Zmxvd2NoYXJ0IExSClRpU2FbVGk6U2EgMTA2NG5tXSAtLT4gQU9NMVtBT00xXQpBT00xIC0tPiBMYXR0aWNlW+qyqeyekCDqsrDruZTqs4RdCkxhdHRpY2UgLS0+IENoYW1iZXJbKOynhOqztSDssZTrsoQpXQpEaW9kZVtEaW9kZSA3OTBubV0gLS0+IEFPTTJbQU9NMl0KQU9NMiAtLT4gUmFtYW5bUmFtYW4g66qo65OIXQpSYW1hbiAtLT4gQ2hhbWJlcgpDaGFtYmVyIC0tPiBDQ0RbQ0NEIOydtOuvuOynlV0KQ0NEIC0tPiBQQ1vrtoTshJ0gUENd">
         <div class="jan-fig-placeholder">
-          [그림 3 자리 — 장치 블록 다이어그램: Ti:Sa 1064nm → AOM1 → 격자 광학계, Diode 790nm → AOM2 → Raman 모듈, → 진공 챔버 (&lt;2×10⁻¹¹ Torr) ← RF 안테나, → CCD 이미징 → DAQ (1 GS/s) → 분석 PC.]
+          [그림 3 — 장치 블록 다이어그램. Mermaid 렌더 대기 중…]
         </div>
         <figcaption>실험 장치 블록 다이어그램. AOM = 음향광학 변조기. 모든 광경로는 능동 빔 안정화 피드백 (100 Hz 대역) 을 포함한다.</figcaption>
       </figure>
@@ -1209,9 +1236,10 @@ a.cite:hover {
         <a class="fig-ref" href="#fig5">Fig. 5</a> 에 본 연구의 핵심 결과를 방사형으로 요약한다. 중앙 대표 숫자 𝒞 = 0.97 ± 0.04 와, 네 가지 보조 지표 — (i) 비등방 비율 <em>v<sub>c</sub><sup>x</sup></em>/<em>v<sub>c</sub><sup>y</sup></em> ≈ 34, (ii) 원자 수 10<sup>5</sup>, (iii) 18 샷 평균, (iv) 4% 이론-실험 일치 — 가 한눈에 드러나도록 배치했다.
       </p>
 
-      <figure class="jan-fig" id="fig5">
+      <figure class="jan-fig jan-diagram" id="fig5"
+        data-mermaid-code="Zmxvd2NoYXJ0IExSCkFb7Lih7KCV6rCSIPCdkp4gPSAwLjk3XSAtLT4gQlvsnbTroaDqsJIg8J2SniA9IDEuMDBdCkEgLS0+IENb7IOB64yA7Jik7LCoIDwgNCVdCkIgLS0+IEM=">
         <div class="jan-fig-placeholder">
-          [그림 5 자리 — 핵심 결과 인포그래픽. 중앙 큰 숫자 𝒞 = 0.97 ± 0.04 둘레에 비등방 비율 34, 원자 수 10⁵, 18 샷 평균, 4% 일치 배치.]
+          [그림 5 — 핵심 결과 인포그래픽. Mermaid 렌더 대기 중…]
         </div>
         <figcaption>핵심 결과 인포그래픽. 중앙 지표 𝒞 = 0.97 ± 0.04 는 정수화 위상 차수와 2σ 이상 일치한다. 주변 보조 지표는 이 값의 robustness 를 보조하는 독립 관측량이다.</figcaption>
       </figure>
