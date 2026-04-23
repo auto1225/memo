@@ -1286,6 +1286,7 @@
       /* 실패하면 폴백: 새 빈 .jan-doc-page 를 마지막에 추가 */
       const newPage = document.createElement('div');
       newPage.className = 'jan-doc-page';
+      newPage.setAttribute('contenteditable', 'true');  /* v35 */
       newPage.innerHTML = '<p><br></p>';
       page.appendChild(newPage);
       /* 커서 이동 */
@@ -3236,8 +3237,18 @@
     }
   }
 
-  /* 콘텐츠 하위를 .jan-doc-page 로 래핑 (이미 래핑돼 있으면 skip) */
+  /* 콘텐츠 하위를 .jan-doc-page 로 래핑 (이미 래핑돼 있으면 skip).
+     v35: Google Docs 방식 — 각 .jan-doc-page 가 자체 contenteditable="true",
+     부모 #page 는 contenteditable="false" 로 전환. */
   function wrapContentInDocPages(page) {
+    /* v35: 부모 #page 의 contenteditable 을 false 로 (각 페이지가 독립 편집) */
+    try {
+      if (page.getAttribute('contenteditable') !== 'false') {
+        page.dataset.janOrigCe = page.getAttribute('contenteditable') || 'true';
+        page.setAttribute('contenteditable', 'false');
+      }
+    } catch {}
+
     /* 이미 최상위 자식들이 모두 .jan-doc-page 이면 skip */
     const children = Array.from(page.childNodes).filter(n =>
       n.nodeType === Node.ELEMENT_NODE || (n.nodeType === Node.TEXT_NODE && n.textContent.trim())
@@ -3245,39 +3256,52 @@
     const allWrapped = children.length > 0 && children.every(n =>
       n.nodeType === Node.ELEMENT_NODE && n.classList && n.classList.contains('jan-doc-page')
     );
-    if (allWrapped) return;
-    /* 래핑 전 스냅샷 (undo) */
+    if (allWrapped) {
+      /* 각 페이지에 contenteditable="true" 보장 */
+      children.forEach(c => {
+        if (c.getAttribute && c.getAttribute('contenteditable') !== 'true') {
+          c.setAttribute('contenteditable', 'true');
+        }
+      });
+      return;
+    }
     try { pushPaperUndo('page-wrap'); } catch {}
-    /* 새 .jan-doc-page 만들고 기존 자식 전부 이동 */
     const wrapDiv = document.createElement('div');
     wrapDiv.className = 'jan-doc-page';
-    /* 기존 자식 모두 옮김 (jan-doc-page 가 이미 있으면 그대로 보존) */
+    wrapDiv.setAttribute('contenteditable', 'true');  /* v35: 독립 편집 */
     while (page.firstChild) {
       const c = page.firstChild;
       if (c.nodeType === Node.ELEMENT_NODE && c.classList && c.classList.contains('jan-doc-page')) {
-        /* 이미 래핑된 페이지는 단독으로 이동 — 내부 page 리스트에 추가 */
         page.removeChild(c);
         page.appendChild(c);
+        if (c.getAttribute('contenteditable') !== 'true') {
+          c.setAttribute('contenteditable', 'true');
+        }
         break;
       } else {
         wrapDiv.appendChild(c);
       }
     }
-    /* 빈 페이지 방지: 기본 <p><br></p> 삽입 */
     if (!wrapDiv.innerHTML.trim()) {
       wrapDiv.innerHTML = '<p><br></p>';
     }
     page.insertBefore(wrapDiv, page.firstChild);
   }
 
-  /* .jan-doc-page 래퍼 제거 — 모든 자식 콘텐츠를 .page 최상위로 flatten */
+  /* .jan-doc-page 래퍼 제거 — 모든 자식 콘텐츠를 .page 최상위로 flatten.
+     v35: 부모 #page 의 contenteditable 복원 */
   function unwrapDocPages(page) {
     const docPages = Array.from(page.querySelectorAll(':scope > .jan-doc-page'));
+    /* v35: 부모 contenteditable 복원 */
+    try {
+      const orig = page.dataset.janOrigCe || 'true';
+      page.setAttribute('contenteditable', orig);
+      delete page.dataset.janOrigCe;
+    } catch {}
     if (docPages.length === 0) return;
     try { pushPaperUndo('page-unwrap'); } catch {}
     docPages.forEach(dp => {
       while (dp.firstChild) page.insertBefore(dp.firstChild, dp);
-      /* 페이지 사이 구분선 삽입 (선택) */
       dp.remove();
     });
   }
@@ -3360,6 +3384,7 @@
         if (!nextDp || !nextDp.classList || !nextDp.classList.contains('jan-doc-page')) {
           nextDp = document.createElement('div');
           nextDp.className = 'jan-doc-page';
+          nextDp.setAttribute('contenteditable', 'true');  /* v35 */
           dp.parentNode.insertBefore(nextDp, dp.nextSibling);
         }
 
@@ -3516,6 +3541,7 @@
     /* 커서 이후 콘텐츠를 새 페이지로 이동 */
     const newPage = document.createElement('div');
     newPage.className = 'jan-doc-page';
+    newPage.setAttribute('contenteditable', 'true');  /* v35 */
     /* Range 를 잘라서 뒷부분 추출 */
     const postRange = range.cloneRange();
     postRange.setEnd(cur, cur.childNodes.length);
