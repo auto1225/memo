@@ -216,6 +216,11 @@ fn main() {
             MacosLauncher::LaunchAgent,
             Some(vec!["--autostart"]),
         ))
+        // v1.0.35: 네이티브 파일 대화상자 + 임의 경로 파일 쓰기 (WebView2 의
+        // showSaveFilePicker 폴더 드롭다운 제약을 우회해 실제 Windows 탐색기
+        // 로 저장 경로 선택 가능).
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
         .setup(|app| {
             // 포스트잇 저장소 초기화 + state 로 등록
             let store = PostitStore::new(app.handle());
@@ -467,6 +472,8 @@ fn run_postit_mode(
     tauri::Builder::default()
         .plugin(tauri_plugin_log::Builder::default().build())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
         .invoke_handler(tauri::generate_handler![
             // postit.html 이 호출하는 3 가지 커맨드 — 아래 self 버전으로 연결.
             // (메인 프로세스의 postit_update/postit_close 와 이름만 다름.

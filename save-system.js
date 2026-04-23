@@ -271,6 +271,29 @@
   // 로 띄워서 사용자가 저장 경로·파일명을 직접 선택할 수 있게 함. 지원 안 될
   // 때만 기본 다운로드 폴더로 떨어뜨림.
   async function downloadFallback(filename, blob) {
+    // 0) Tauri 데스크톱 네이티브 dialog.save — 실제 Windows 탐색기가 열려
+    // WebView2 의 showSaveFilePicker 제약(폴더 드롭다운) 우회
+    try {
+      const tauri = window.__TAURI__;
+      if (tauri && tauri.dialog && tauri.fs && typeof tauri.dialog.save === 'function' && typeof tauri.fs.writeFile === 'function') {
+        const ext = (filename.split('.').pop() || '').toLowerCase();
+        const path = await tauri.dialog.save({
+          defaultPath: filename,
+          filters: ext ? [{ name: ext.toUpperCase(), extensions: [ext] }] : undefined,
+        });
+        if (!path) {
+          toast('저장 취소됨');
+          return { success: false, cancelled: true };
+        }
+        const buf = await blob.arrayBuffer();
+        await tauri.fs.writeFile(path, new Uint8Array(buf));
+        toast(`저장됨: ${path}`);
+        return { success: true, picker: true, path, method: 'tauri' };
+      }
+    } catch (e) {
+      console.warn('[save-system downloadFallback Tauri 실패 → FSA]', e);
+    }
+
     // 1) File System Access API — WebView2/Chromium 지원
     if (typeof window.showSaveFilePicker === 'function') {
       try {

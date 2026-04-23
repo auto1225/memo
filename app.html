@@ -4483,7 +4483,137 @@ window.renderPage = renderPage;
 window.renderTabs = renderTabs;
 window.renderSidebar = renderSidebar;
 window.setActive = setActive;
-// 탭 내용을 사용자가 선택한 위치에 저장 (showSaveFilePicker 또는 <a download> 폴백)
+// ──────────────────────────────────────────────────────────────────────────
+// JANSave — 통합 저장 유틸 (v1.0.35+)
+// Tauri 데스크톱 앱에선 네이티브 dialog.save 로 실제 Windows 탐색기가 열려
+// 임의 폴더 선택 가능. 웹/폴백 환경에선 기존 showSaveFilePicker → <a download>
+// 순서로 폴백. 모든 저장 경로는 이 유틸을 거치도록 교체.
+//
+// 호출:
+//   JANSave.saveWithDialog(data, suggestedName, mime, formatLabel, ext)
+//     data: string 또는 Blob
+//     suggestedName: 기본 파일명 (확장자 포함)
+//     mime: 'text/html;charset=utf-8' 같은 MIME 문자열
+//     formatLabel: dialog 필터 설명 (예: 'HTML (.html)')
+//     ext: 확장자 (점 제외, 예: 'html')
+//   returns: { success: boolean, cancelled?: boolean, path?: string, method: 'tauri'|'fsa'|'legacy' }
+// ──────────────────────────────────────────────────────────────────────────
+window.JANSave = (function(){
+  const TEXT_EXTS = new Set(['html','htm','md','txt','csv','json','svg','xml','js','css','log','doc']);
+
+  async function blobToUint8Array(blob){
+    if (blob && typeof blob.arrayBuffer === 'function') {
+      const ab = await blob.arrayBuffer();
+      return new Uint8Array(ab);
+    }
+    return new Uint8Array(0);
+  }
+
+  async function trySaveWithTauri(data, suggestedName, formatLabel, ext){
+    try {
+      const tauri = window.__TAURI__;
+      if (!tauri) return { attempted: false };
+      const dlg = tauri.dialog;
+      const fs  = tauri.fs;
+      if (!dlg || !fs || typeof dlg.save !== 'function') return { attempted: false };
+
+      const filters = [{ name: (formatLabel || ext || 'file'), extensions: [ext] }];
+      const path = await dlg.save({ defaultPath: suggestedName, filters });
+      if (!path) return { attempted: true, cancelled: true };
+
+      // data 가 Blob 이면 바이너리로, 문자열이면 텍스트로 기록
+      if (typeof data === 'string' && TEXT_EXTS.has((ext||'').toLowerCase())) {
+        if (typeof fs.writeTextFile !== 'function') throw new Error('fs.writeTextFile unavailable');
+        await fs.writeTextFile(path, data);
+      } else {
+        // Blob or binary
+        let bytes;
+        if (data instanceof Blob) bytes = await blobToUint8Array(data);
+        else if (data instanceof Uint8Array) bytes = data;
+        else if (data instanceof ArrayBuffer) bytes = new Uint8Array(data);
+        else if (typeof data === 'string') {
+          // 문자열인데 바이너리 확장자 — UTF-8 인코딩
+          bytes = new TextEncoder().encode(data);
+        } else {
+          throw new Error('unsupported data type for binary write');
+        }
+        if (typeof fs.writeFile === 'function') {
+          await fs.writeFile(path, bytes);
+        } else if (typeof fs.writeTextFile === 'function') {
+          // 최후 폴백 — 텍스트로 (안 될 수도 있음)
+          await fs.writeTextFile(path, typeof data === 'string' ? data : '');
+        } else {
+          throw new Error('fs.writeFile unavailable');
+        }
+      }
+      return { attempted: true, success: true, path, method: 'tauri' };
+    } catch (e) {
+      console.warn('[JANSave.tauri 실패 → FSA]', e);
+      return { attempted: true, error: e };
+    }
+  }
+
+  async function trySaveWithFSA(data, suggestedName, mime, formatLabel, ext){
+    if (typeof window.showSaveFilePicker !== 'function') return { attempted: false };
+    try {
+      const mimeKey = (mime || 'application/octet-stream').split(';')[0];
+      const startInHint = (function(){
+        try {
+          const h = localStorage.getItem('jan.io.lastFolderHint');
+          if (['desktop','documents','downloads','music','pictures','videos'].includes(h)) return h;
+        } catch {}
+        return 'documents';
+      })();
+      const handle = await window.showSaveFilePicker({
+        suggestedName,
+        startIn: startInHint,
+        types: [{ description: formatLabel || ext || 'file', accept: { [mimeKey]: ['.' + ext] } }],
+      });
+      const w = await handle.createWritable();
+      const blob = (data instanceof Blob) ? data : new Blob([data], { type: mime || 'text/plain;charset=utf-8' });
+      await w.write(blob);
+      await w.close();
+      return { attempted: true, success: true, path: handle.name || suggestedName, method: 'fsa' };
+    } catch (e) {
+      if (e && (e.name === 'AbortError' || e.code === 20)) {
+        return { attempted: true, cancelled: true };
+      }
+      console.warn('[JANSave.fsa 실패 → legacy]', e);
+      return { attempted: true, error: e };
+    }
+  }
+
+  function saveWithLegacyDownload(data, suggestedName, mime){
+    const blob = (data instanceof Blob) ? data : new Blob([data], { type: mime || 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = suggestedName;
+    a.setAttribute('data-jnp-bypass','1');
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+    return { success: true, path: suggestedName, method: 'legacy' };
+  }
+
+  async function saveWithDialog(data, suggestedName, mime, formatLabel, ext){
+    // Tauri 네이티브 대화상자가 최우선 — 실제 Windows 탐색기 열림
+    const r1 = await trySaveWithTauri(data, suggestedName, formatLabel, ext);
+    if (r1.cancelled) return { success: false, cancelled: true, method: 'tauri' };
+    if (r1.success)   return r1;
+
+    // 폴백 1: FSA showSaveFilePicker (브라우저·웹 환경)
+    const r2 = await trySaveWithFSA(data, suggestedName, mime, formatLabel, ext);
+    if (r2.cancelled) return { success: false, cancelled: true, method: 'fsa' };
+    if (r2.success)   return r2;
+
+    // 폴백 2: <a download>
+    return saveWithLegacyDownload(data, suggestedName, mime);
+  }
+
+  return { saveWithDialog };
+})();
+
+// 탭 내용을 사용자가 선택한 위치에 저장 — JANSave.saveWithDialog 사용
+// (Tauri 네이티브 dialog → showSaveFilePicker → <a download> 3단계 폴백)
 // 반환: true = 저장 성공, false = 저장 실패·취소
 async function saveTabToFile(tab) {
   if (!tab) return false;
@@ -4532,39 +4662,15 @@ async function saveTabToFile(tab) {
   const safeName = (tab.name || '메모').replace(/[\\/:*?"<>|]/g, '_');
   const fname = `${safeName}.${ext}`;
 
-  // 1) showSaveFilePicker — 사용자가 폴더 + 파일명 선택
-  if (typeof window.showSaveFilePicker === 'function') {
-    try {
-      const startInHint = localStorage.getItem('jan.io.lastFolderHint');
-      const validHints = ['desktop','documents','downloads','music','pictures','videos'];
-      const startIn = validHints.includes(startInHint) ? startInHint : 'documents';
-      const handle = await window.showSaveFilePicker({
-        suggestedName: fname,
-        startIn,
-        types: [{ description: fmt, accept: { [mime.split(';')[0]]: ['.' + ext] } }],
-      });
-      const w = await handle.createWritable();
-      await w.write(new Blob([data], { type: mime }));
-      await w.close();
-      toast(`저장됨: ${handle.name || fname}`);
-      return true;
-    } catch (e) {
-      if (e && (e.name === 'AbortError' || e.code === 20)) {
-        toast('저장 취소됨');
-        return false;
-      }
-      console.warn('[saveTabToFile FSA → 레거시]', e);
-    }
+  // Tauri 네이티브 dialog → showSaveFilePicker → <a download> 순서로 시도
+  const res = await JANSave.saveWithDialog(data, fname, mime, fmt, ext);
+  if (res && res.cancelled) { toast('저장 취소됨'); return false; }
+  if (res && res.success) {
+    if (res.method === 'legacy') toast(`다운로드됨: ${res.path || fname}`);
+    else toast(`저장됨: ${res.path || fname}`);
+    return true;
   }
-  // 2) 레거시 폴백: <a download>
-  const blob = new Blob([data], { type: mime });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = fname;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-  toast(`다운로드됨: ${fname}`);
-  return true;
+  return false;
 }
 async function closeTab(id) {
   const t = state.tabs.find(t => t.id === id);
@@ -14091,30 +14197,13 @@ const Paint = (function() {
       for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
       const blob = new Blob([bytes], { type: 'image/png' });
 
-      if (typeof window.showSaveFilePicker === 'function') {
-        try {
-          const startInHint = localStorage.getItem('jan.io.lastFolderHint');
-          const validHints = ['desktop','documents','downloads','music','pictures','videos'];
-          const startIn = validHints.includes(startInHint) ? startInHint : 'pictures';
-          const handle = await window.showSaveFilePicker({
-            suggestedName: fname,
-            startIn,
-            types: [{ description:'PNG 이미지', accept:{'image/png':['.png']} }]
-          });
-          const w = await handle.createWritable();
-          await w.write(blob); await w.close();
-          toast(`저장됨: ${handle.name || fname}`);
-          return;
-        } catch (e) {
-          if (e && (e.name === 'AbortError' || e.code === 20)) { toast('저장 취소됨'); return; }
-          console.warn('[paintQuickSave FSA → 레거시]', e);
-        }
+      // JANSave → Tauri 네이티브 dialog 우선, FSA picker 폴백, <a download> 최종 폴백
+      const res = await JANSave.saveWithDialog(blob, fname, 'image/png', 'PNG 이미지', 'png');
+      if (res && res.cancelled) { toast('저장 취소됨'); return; }
+      if (res && res.success) {
+        if (res.method === 'legacy') toast('빠른 PNG 저장 완료');
+        else toast(`저장됨: ${res.path || fname}`);
       }
-      // 레거시 폴백
-      const a = document.createElement('a');
-      a.href = url; a.download = fname;
-      document.body.appendChild(a); a.click(); a.remove();
-      toast('빠른 PNG 저장 완료');
     });
     $('paintInsert').addEventListener('click', () => {
       const url = compositeToDataURL('image/png');
@@ -14888,38 +14977,14 @@ const ImageConverter = (function() {
         blob = new Blob([decodeURIComponent(body)], { type: mime });
       }
 
-      // 1) showSaveFilePicker (네이티브 "다른 이름으로 저장" 대화상자)
-      if (typeof window.showSaveFilePicker === 'function') {
-        try {
-          const startInHint = localStorage.getItem('jan.io.lastFolderHint');
-          const validHints = ['desktop','documents','downloads','music','pictures','videos'];
-          const startIn = validHints.includes(startInHint) ? startInHint : 'pictures';
-          const types = [{
-            description: state.format.split('/')[1].toUpperCase() + ' 이미지',
-            accept: { [mime]: ['.' + ext] }
-          }];
-          const handle = await window.showSaveFilePicker({
-            suggestedName: fname, startIn, types
-          });
-          const w = await handle.createWritable();
-          await w.write(blob);
-          await w.close();
-          toast(`저장됨: ${handle.name || fname} · ${formatBytes(blob.size)}`);
-          return;
-        } catch (e) {
-          if (e && (e.name === 'AbortError' || e.code === 20)) {
-            toast('저장 취소됨');
-            return;
-          }
-          console.warn('[icDownload FSA 실패 → 레거시]', e);
-        }
+      // JANSave → Tauri 네이티브 dialog 우선, FSA picker → <a download> 폴백
+      const formatLabel = state.format.split('/')[1].toUpperCase() + ' 이미지';
+      const res = await JANSave.saveWithDialog(blob, fname, mime, formatLabel, ext);
+      if (res && res.cancelled) { toast('저장 취소됨'); return; }
+      if (res && res.success) {
+        if (res.method === 'legacy') toast('다운로드됨 · ' + formatBytes(blob.size));
+        else toast(`저장됨: ${res.path || fname} · ${formatBytes(blob.size)}`);
       }
-      // 2) 레거시 폴백 — 브라우저 기본 다운로드 폴더
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fname;
-      document.body.appendChild(a); a.click(); a.remove();
-      toast('다운로드됨 · ' + formatBytes(dataUrlBytes(url)));
     });
 
     // 메모 삽입
@@ -20445,9 +20510,9 @@ if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
 <!-- JustANotepad storage quota patch (v1.3.0) — stops dialog loop + hard-slim state -->
 <script src="/storage-quota-patch.js?v=5"></script>
 <!-- JustANotepad unified file I/O helper (FSA wrapper) — used by other scripts too -->
-<script src="/jan-fileio.js?v=1"></script>
+<script src="/jan-fileio.js?v=2"></script>
 <!-- JustANotepad unified save system (v1.1) — global folder + FSA fallback + auto-categorization -->
-<script src="/save-system.js?v=6"></script>
+<script src="/save-system.js?v=7"></script>
 <!-- JustANotepad image converter UX upgrades (v1.0) — non-blocking panel + zoom -->
 <script src="/img-converter-upgrades.js?v=1"></script>
 <!-- JustANotepad media upgrades (v1.0) — rec/speak/image UX fixes -->

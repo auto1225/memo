@@ -76,10 +76,56 @@
     try { localStorage.setItem(LS_LAST_DIR_HINT, name); } catch {}
   }
 
+  // Tauri v2 네이티브 dialog + fs 우선 — WebView2 의 showSaveFilePicker 가
+  // 보여주는 폴더 드롭다운(OneDrive/최근 경로)을 우회해 실제 Windows 파일
+  // 탐색기를 열어 임의 폴더 선택 가능.
+  async function trySaveBlobWithTauri(blob, suggestedName, filters) {
+    try {
+      const tauri = window.__TAURI__;
+      if (!tauri) return null;
+      const dlg = tauri.dialog;
+      const fs  = tauri.fs;
+      if (!dlg || !fs || typeof dlg.save !== 'function' || typeof fs.writeFile !== 'function') return null;
+
+      // filters(FSA shape) → Tauri shape
+      const tauriFilters = [];
+      for (const f of (filters || [])) {
+        const exts = [];
+        for (const mime of Object.keys(f.accept || {})) {
+          for (const e of (f.accept[mime] || [])) {
+            exts.push(e.replace(/^\./,''));
+          }
+        }
+        if (exts.length) tauriFilters.push({ name: f.description || 'file', extensions: exts });
+      }
+
+      const path = await dlg.save({
+        defaultPath: suggestedName,
+        filters: tauriFilters.length ? tauriFilters : undefined,
+      });
+      if (!path) return { cancelled: true };
+
+      const buf = await blob.arrayBuffer();
+      await fs.writeFile(path, new Uint8Array(buf));
+      return { name: path, method: 'tauri' };
+    } catch (e) {
+      console.warn('[jnpIO.saveBlob Tauri 실패 → FSA]', e);
+      return null;
+    }
+  }
+
   // ---- SAVE ------------------------------------------------------------
   async function saveBlob(blob, suggestedName, filters) {
     filters = filters || [{ description: '모든 파일', accept: { '*/*': ['*'] } }];
     const ext = extOf(suggestedName);
+
+    // 0) Tauri 네이티브 save 다이얼로그 (데스크톱 앱 전용, 최우선)
+    const tauriResult = await trySaveBlobWithTauri(blob, suggestedName, filters);
+    if (tauriResult) {
+      if (tauriResult.cancelled) return null;
+      if (ext) setLastFileName(ext, suggestedName);
+      return tauriResult;
+    }
 
     // 1) FSA
     if (hasFSA) {
