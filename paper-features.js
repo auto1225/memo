@@ -802,8 +802,48 @@
     try { refreshNumbering(); } catch (e) {}
     try { renumberFootnotes(); } catch (e) {}
     try { renumberCitations(); } catch (e) {}
+    // KaTeX 렌더 — 템플릿 figure.jan-math 들이 data-latex 만 들고 있으므로 수동 렌더
+    (async function renderPaperMath() {
+      try {
+        if (!window.JANDiagrams) return;
+        const figs = page.querySelectorAll('figure.jan-math[data-latex]');
+        for (const f of figs) {
+          if (f.querySelector('.katex, .katex-display')) continue; // 이미 렌더됨
+          const enc = f.getAttribute('data-latex');
+          // data-latex 가 base64 면 디코딩, 아니면 그대로
+          let latex = enc;
+          try { latex = decodeURIComponent(escape(atob(enc))); } catch {} // base64 시도
+          if (!latex || /^\s*$/.test(latex)) latex = enc;
+          try {
+            const html = await window.JANDiagrams.renderLatexHtml(latex);
+            if (html) {
+              // figcaption 은 보존, 본문만 교체
+              const cap = f.querySelector('figcaption');
+              f.innerHTML = html;
+              if (cap) f.appendChild(cap);
+            }
+          } catch (e) { console.warn('[paper] 수식 렌더 실패', latex, e); }
+        }
+        // Mermaid placeholder — data-mermaid 있으면 렌더
+        const diags = page.querySelectorAll('figure.jan-diagram[data-mermaid-code]:not(:has(svg))');
+        for (const d of diags) {
+          const code = (d.getAttribute('data-mermaid-code') || '');
+          let mm = code;
+          try { mm = decodeURIComponent(escape(atob(code))); } catch {}
+          if (!mm) continue;
+          try {
+            const svg = await window.JANDiagrams.renderMermaid(mm);
+            if (svg) {
+              const cap = d.querySelector('figcaption');
+              d.innerHTML = svg;
+              if (cap) d.appendChild(cap);
+            }
+          } catch (e) { console.warn('[paper] Mermaid 렌더 실패', e); }
+        }
+      } catch (e) { console.warn('[paper] 후처리 실패', e); }
+    })();
     try { if (typeof window.scheduleSave === 'function') window.scheduleSave(); } catch (e) {}
-    notify('논문 샘플 삽입 완료');
+    notify('논문 샘플 삽입 완료 — 수식 렌더링 중…');
   }
 
   /* 논문 요소 서브메뉴 (툴바 버튼 클릭 시 작은 드롭다운) */
