@@ -222,7 +222,19 @@
     backdrop.querySelector('.ob-close').addEventListener('click', close);
     backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
     body.addEventListener('click', onAction);
+    // ESC 로 모달 닫기 (다른 모달이 열려있을 때도 동기화 모달이 맨 앞이면 닫도록)
+    document.addEventListener('keydown', escHandler);
     return backdrop;
+  }
+
+  function escHandler(e) {
+    if (e.key !== 'Escape') return;
+    const bd = document.getElementById(MODAL_ID + '-backdrop');
+    if (!bd || !bd.classList.contains('open')) return;
+    // command palette 가 열려 있으면 팔레트를 먼저 닫게 양보
+    const palEl = document.querySelector('.jnp-palette-backdrop');
+    if (palEl && getComputedStyle(palEl).display !== 'none') return;
+    close();
   }
 
   function currentProviderLabel() {
