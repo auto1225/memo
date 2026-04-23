@@ -3242,7 +3242,8 @@
       sheets.setAttribute('aria-hidden', 'true');
       page.insertBefore(sheets, page.firstChild);
     }
-    /* sheets 를 .page 의 padding 영역을 포함해서 전체 범위로 확장 */
+    /* sheets 를 .page 의 padding 영역을 포함해서 전체 범위로 확장.
+       v21-fix: z-index 제거, DOM 순서로 콘텐츠 뒤에 렌더되도록 함 */
     const padLeft = parseFloat(getComputedStyle(page).paddingLeft) || 0;
     const padTop_p = parseFloat(getComputedStyle(page).paddingTop) || 0;
     const padRight = parseFloat(getComputedStyle(page).paddingRight) || 0;
@@ -3255,7 +3256,7 @@
     sheets.style.margin = '0';
     sheets.style.height = totalH + 'px';
     sheets.style.pointerEvents = 'none';
-    sheets.style.zIndex = '-1'; /* 콘텐츠 뒤로 */
+    sheets.style.zIndex = '0';   /* 기본 stacking — DOM 순서로 뒤 */
 
     const existingN = sheets.querySelectorAll('.jan-sheet').length;
     if (existingN !== nPages) {
