@@ -173,9 +173,9 @@
         border: 0 !important;
         border-radius: 0 !important;
         box-shadow: none !important;
-        overflow-x: visible;
+        overflow: visible;               /* 큰 행렬·분수가 잘리지 않게 */
         color: inherit;
-        line-height: 1;                  /* figure 자체 높이 타이트하게 */
+        line-height: normal;             /* 수식 높이만큼 줄 확장 — 잘림 방지 */
       }
       figure.jan-math .katex-display {
         margin: 0 !important;
@@ -196,7 +196,7 @@
       }
       figure.jan-math .katex {
         font-size: 1em !important;        /* 주변 텍스트 크기와 정확히 맞춤 */
-        line-height: 1.2;
+        line-height: normal;              /* KaTeX 자체 레이아웃 존중 */
         vertical-align: middle;
       }
       /* KaTeX 분수/근호 줄긋기만 색 따로 (원래 currentColor 이지만 보장) */
