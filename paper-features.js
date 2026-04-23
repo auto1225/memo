@@ -3219,6 +3219,10 @@
       return;
     }
 
+    /* v26-fix: 이전 min-height 를 먼저 리셋해야 실제 콘텐츠 높이 측정 가능.
+       (chicken-and-egg: min-height=2270 이면 scrollHeight=2270 → 항상 2페이지로 오인) */
+    page.style.removeProperty('min-height');
+
     /* === v19: 콘텐츠 블록들을 페이지 경계 기준으로 재배치 === */
     rebalanceContentToPages(page);
 
@@ -3227,7 +3231,7 @@
     const pageHmm = parseFloat(computed.getPropertyValue('--page-h')) || 297;
     const pageHpx = mmToPx(pageHmm);
 
-    /* 재배치 후 최종 콘텐츠 높이 측정 */
+    /* 재배치 후 실제 콘텐츠 높이 측정 (min-height 리셋됐으므로 natural height 반환) */
     const contentH = page.scrollHeight;
     /* 페이지 수 = ceil(콘텐츠 / (pageH + gap)), 최소 1.
        실제 레이아웃에서는 블록이 gap 에 안 빠지도록 rebalance 후 높이 기준. */
@@ -3248,14 +3252,18 @@
     const innerSheets = page.querySelector(':scope > .jan-page-sheets');
     if (innerSheets) innerSheets.remove();
 
-    /* Overlay — 각 페이지 경계에 divider line + Page N 라벨 */
+    /* Overlay — 각 페이지 경계에 divider line + Page N 라벨.
+       v26-fix: labels 를 LAST child 로 배치 (first child 면 초기 커서 위치에 영향) */
     let labels = page.querySelector(':scope > .jan-page-labels');
     if (!labels) {
       labels = document.createElement('div');
       labels.className = 'jan-page-labels';
       labels.setAttribute('contenteditable', 'false');
       labels.setAttribute('aria-hidden', 'true');
-      page.insertBefore(labels, page.firstChild);
+      page.appendChild(labels);
+    } else if (labels !== page.lastElementChild) {
+      /* 이미 존재하지만 첫 자식이면 마지막으로 이동 */
+      page.appendChild(labels);
     }
     const padLeftPx = parseFloat(computed.paddingLeft) || 0;
     const padRightPx = parseFloat(computed.paddingRight) || 0;
@@ -3268,10 +3276,16 @@
     labels.style.pointerEvents = 'none';
     labels.style.zIndex = '3';
 
-    /* 내용 재생성 — 각 페이지 경계에 뚜렷한 divider + 라벨 + 여백 영역 표시 */
-    labels.innerHTML = '';
+    /* v26-fix: 페이지 수 / pageH / margin 이 바뀌지 않았으면 재생성 스킵.
+       매번 innerHTML 리셋 시 cursor 이탈 및 타이핑 방해 발생. */
     const padBottomPx = parseFloat(computed.paddingBottom) || 0;
-    const padTopPxLbl = padTopPx; // 이미 위에서 계산
+    const padTopPxLbl = padTopPx;
+    const cacheKey = nPages + '|' + pageHpx + '|' + padTopPxLbl + '|' + padBottomPx;
+    if (labels._janCache === cacheKey) {
+      return;  /* 변경 없음 — DOM 재구성 스킵 */
+    }
+    labels._janCache = cacheKey;
+    labels.innerHTML = '';
     for (let i = 0; i < nPages; i++) {
       /* 페이지 번호 라벨 (2페이지 이상일 때만) */
       if (nPages >= 2) {
@@ -3393,17 +3407,32 @@
     });
   }
 
-  /* MutationObserver — #page 내용 변경 시 디바운스로 sheet 재계산 */
+  /* MutationObserver — #page 내용 변경 시 디바운스로 sheet 재계산.
+     v26-fix: IME composition 중엔 건드리지 않음 (타이핑 방해 방지), debounce 400ms */
   let _sheetsObserver = null;
   let _sheetsDebounceTimer = null;
+  let _isComposing = false;
+  let _lastNPages = -1;
   function setupSheetsObserver() {
     const page = getPageEl();
     if (!page || _sheetsObserver) return;
+    /* IME composition 감지 */
+    page.addEventListener('compositionstart', () => { _isComposing = true; });
+    page.addEventListener('compositionend', () => {
+      _isComposing = false;
+      /* composition 끝나면 한 번 재계산 */
+      if (page.classList.contains('jan-paged')) {
+        if (_sheetsDebounceTimer) clearTimeout(_sheetsDebounceTimer);
+        _sheetsDebounceTimer = setTimeout(() => updatePageSheets(), 300);
+      }
+    });
     _sheetsObserver = new MutationObserver(() => {
+      /* IME composition 중엔 무시 — 타이핑 방해 방지 */
+      if (_isComposing) return;
       if (_sheetsDebounceTimer) clearTimeout(_sheetsDebounceTimer);
       _sheetsDebounceTimer = setTimeout(() => {
         if (page.classList.contains('jan-paged')) updatePageSheets();
-      }, 180);
+      }, 400);
     });
     _sheetsObserver.observe(page, {
       childList: true, subtree: true, characterData: true, attributes: false
