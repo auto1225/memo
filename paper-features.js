@@ -634,77 +634,114 @@
         background: var(--accent, #D97757) !important;
         color: #fff !important;
       }
+      /* 드롭다운 컨테이너 — 흰 배경 고정 (노트의 핑크 배경 변수와 분리) */
       .menu-drop {
         position: fixed;
         z-index: 10000;
-        min-width: 340px;
-        max-height: 70vh;
+        min-width: 260px;
+        max-width: 300px;
+        max-height: 560px;
         overflow-y: auto;
-        background: var(--paper, #fff);
-        border: 1px solid var(--paper-edge, #d0d0d0);
+        background: #ffffff;
+        border: 1px solid rgba(0,0,0,0.1);
         border-radius: 10px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+        box-shadow: 0 6px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.06);
         padding: 6px 0;
-        color: var(--ink, #1c1c1c);
+        color: #1c1c1c;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
       }
+      /* 섹션 제목 — 작은 회색 대문자 */
       .menu-drop .menu-group-title {
         font-size: 10px;
-        font-weight: 700;
-        color: var(--ink-soft, #888);
+        font-weight: 600;
+        color: #999;
         text-transform: uppercase;
-        letter-spacing: 0.06em;
-        padding: 8px 14px 4px;
-        margin-top: 2px;
+        letter-spacing: 0.05em;
+        padding: 10px 14px 4px;
+        margin: 0;
       }
+      .menu-drop .menu-group-title:first-child {
+        padding-top: 4px;
+      }
+      /* 아이템 — 1줄 컴팩트, 아이콘 + 라벨만 */
       .menu-drop .menu-item-btn {
         display: flex;
-        align-items: flex-start;
+        align-items: center;
         gap: 10px;
         width: 100%;
-        padding: 8px 14px;
+        padding: 6px 14px;
         background: none;
         border: 0;
         cursor: pointer;
         text-align: left;
         border-radius: 0;
-        color: var(--ink, #1c1c1c);
+        color: #1c1c1c;
         font-family: inherit;
+        font-size: 13px;
+        line-height: 1.4;
+        transition: background 0.08s;
       }
       .menu-drop .menu-item-btn:hover {
-        background: color-mix(in srgb, var(--accent, #D97757) 12%, transparent);
+        background: #f3f4f6;
       }
+      .menu-drop .menu-item-btn:active {
+        background: #e8eaed;
+      }
+      /* 아이콘 — 회색 (호버시 다크 그레이) */
       .menu-drop .menu-item-btn .ico {
-        width: 18px;
-        height: 18px;
+        width: 16px;
+        height: 16px;
         flex-shrink: 0;
-        margin-top: 2px;
-        color: var(--accent, #D97757);
+        color: #777;
         stroke: currentColor;
         fill: none;
         stroke-width: 2;
       }
+      .menu-drop .menu-item-btn:hover .ico {
+        color: #333;
+      }
       .menu-drop .menu-item-btn .mi-text {
         flex: 1;
         min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
+      /* 라벨만 노출, 설명은 툴팁(title 속성)으로 */
       .menu-drop .menu-item-btn .mi-label {
         font-size: 13px;
-        color: var(--ink, #1c1c1c);
-        font-weight: 500;
-        display: block;
-        line-height: 1.3;
+        color: #1c1c1c;
+        font-weight: 400;
+        display: inline;
       }
+      /* 설명 숨김 — 기본적으로 안 보이되 접근성을 위해 DOM 유지 */
       .menu-drop .menu-item-btn .mi-desc {
-        font-size: 11px;
-        color: var(--ink-soft, #888);
-        display: block;
-        margin-top: 2px;
-        line-height: 1.3;
+        display: none;
       }
+      /* 구분선 — 미묘한 실선 */
       .menu-drop .menu-sep {
         height: 1px;
-        background: var(--paper-edge, #e6e6e6);
-        margin: 6px 0;
+        background: rgba(0,0,0,0.08);
+        margin: 4px 0;
+      }
+      /* 단축키 힌트 (우측 정렬 회색) — 추후 추가 가능 */
+      .menu-drop .menu-item-btn .mi-kbd {
+        font-size: 11px;
+        color: #aaa;
+        margin-left: auto;
+        flex-shrink: 0;
+        font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+      }
+      /* 스크롤바 스타일 */
+      .menu-drop::-webkit-scrollbar {
+        width: 6px;
+      }
+      .menu-drop::-webkit-scrollbar-thumb {
+        background: rgba(0,0,0,0.2);
+        border-radius: 3px;
+      }
+      .menu-drop::-webkit-scrollbar-track {
+        background: transparent;
       }
     `;
     document.head.appendChild(css);
@@ -1275,19 +1312,17 @@
       }
     ];
 
-    /* HTML 조립 */
+    /* HTML 조립 — 1줄 아이템, 설명은 title 속성(툴팁) 으로 */
+    const esc = (s) => String(s).replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const parts = [];
     sections.forEach((sec, i) => {
       if (i > 0) parts.push('<div class="menu-sep"></div>');
-      parts.push('<div class="menu-group-title">' + sec.title + '</div>');
+      parts.push('<div class="menu-group-title">' + esc(sec.title) + '</div>');
       sec.items.forEach((it) => {
         parts.push(
-          '<button class="menu-item-btn" data-paper-act="' + it.act + '" type="button">' +
-            '<svg class="ico"><use href="#' + it.icon + '"/></svg>' +
-            '<span class="mi-text">' +
-              '<span class="mi-label">' + it.label + '</span>' +
-              '<span class="mi-desc">' + it.desc + '</span>' +
-            '</span>' +
+          '<button class="menu-item-btn" data-paper-act="' + esc(it.act) + '" type="button" title="' + esc(it.desc) + '">' +
+            '<svg class="ico"><use href="#' + esc(it.icon) + '"/></svg>' +
+            '<span class="mi-text"><span class="mi-label">' + esc(it.label) + '</span></span>' +
           '</button>'
         );
       });
@@ -1295,12 +1330,9 @@
     /* 도움말 */
     parts.push('<div class="menu-sep"></div>');
     parts.push(
-      '<button class="menu-item-btn" data-paper-act="help" type="button">' +
+      '<button class="menu-item-btn" data-paper-act="help" type="button" title="사용법 한눈에 보기">' +
         '<svg class="ico"><use href="#i-help"/></svg>' +
-        '<span class="mi-text">' +
-          '<span class="mi-label">논문 기능 도움말</span>' +
-          '<span class="mi-desc">사용법 한눈에 보기</span>' +
-        '</span>' +
+        '<span class="mi-text"><span class="mi-label">논문 기능 도움말</span></span>' +
       '</button>'
     );
     drop.innerHTML = parts.join('');
