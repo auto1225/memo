@@ -3227,7 +3227,7 @@
     const totalH = nPages * pageHpx + (nPages - 1) * SHEET_GAP;
     page.style.minHeight = totalH + 'px';
 
-    /* 시트 오버레이 생성/갱신 */
+    /* 시트 오버레이 생성/갱신 — v19-fix: .page 의 실제 offsetLeft/Top/Width 에 맞춰 JS 로 위치 */
     let sheets = wrap.querySelector('.jan-page-sheets');
     if (!sheets) {
       sheets = document.createElement('div');
@@ -3239,6 +3239,13 @@
       }
       wrap.insertBefore(sheets, page);
     }
+    /* v19-fix: 시트 위치를 page 엘리먼트와 정확히 일치시킴 */
+    sheets.style.left = page.offsetLeft + 'px';
+    sheets.style.top = page.offsetTop + 'px';
+    sheets.style.width = page.offsetWidth + 'px';
+    sheets.style.right = 'auto';
+    sheets.style.maxWidth = 'none';
+    sheets.style.margin = '0';
     sheets.style.height = totalH + 'px';
 
     const existingN = sheets.querySelectorAll('.jan-sheet').length;
