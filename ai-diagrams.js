@@ -257,25 +257,25 @@
         vertical-align: middle;
         cursor: pointer;
         line-height: 1;
-        padding: 0 !important; border: 0; background: transparent; border-radius: 0;
-        margin: 0 !important;              /* 주변 글자와 곧장 붙도록 여백 제거 */
+        padding: 0; border: 0; background: transparent; border-radius: 0;
+        margin: 0;                         /* 래퍼 마진 0 — 주변 글자에 곧장 붙게 */
         color: inherit;
         font-weight: inherit;
         font-style: inherit;
         transition: background 0.12s;
         white-space: nowrap;               /* 수식 중간에 줄바꿈 안 되게 */
       }
-      /* KaTeX 내부 전체를 주변 텍스트 서식으로 강제 상속 — 색/크기/굵기 모두.
-         .katex 와 .katex-html 은 기본적으로 좌우 margin 을 약간 주는데, 이로 인해
-         주변 한국어 글자와 공백이 생겨 보여서 모두 0 으로 고정. */
+      /* KaTeX 내부는 색/크기만 상속받게 하고 margin/padding 은 건들지 않는다.
+         (내부 margin 을 0 으로 밀면 분수선·근호 위치가 깨져 √ 가 사라짐) */
       .jan-math-inline .katex,
-      .jan-math-inline .katex-html,
-      .jan-math-inline .katex-display,
       .jan-math-inline .katex * {
         font-size: inherit !important;
         color: inherit !important;
-        margin: 0 !important;
-        padding: 0 !important;
+      }
+      /* .katex 래퍼 자체의 좌우 margin 만 정리 — 주변 글자와의 공백 제거 */
+      .jan-math-inline > .katex {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
       }
       .jan-math-inline .katex .mord,
       .jan-math-inline .katex .mbin,
@@ -764,7 +764,13 @@
       '<div style="font-size:12px; color:#666; margin-bottom:6px;">LaTeX 한 줄을 수정하세요.</div>' +
       '<textarea id="janMathInlineTa" rows="2" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; font-family:Consolas,monospace; font-size:13px;"></textarea>' +
       '<div id="janMathInlinePreview" style="margin-top:10px; padding:10px; background:#fffdf7; border:1px dashed #eee; border-radius:6px; min-height:28px;"></div>' +
-      '<div style="margin-top:8px;"><button type="button" id="janInlineConvertBlock" style="padding:4px 10px; font-size:11px; border:1px solid #ddd; background:#fff; border-radius:4px; cursor:pointer;">블록 모드로 변환</button> <button type="button" id="janInlineDelete" style="padding:4px 10px; font-size:11px; border:1px solid #C0392B; color:#C0392B; background:#fff; border-radius:4px; cursor:pointer;">삭제</button></div>';
+      '<div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">' +
+        '<button type="button" id="janInlineCopy" style="padding:4px 10px; font-size:11px; border:1px solid #ddd; background:#fff; border-radius:4px; cursor:pointer;">복사</button>' +
+        '<button type="button" id="janInlineCut" style="padding:4px 10px; font-size:11px; border:1px solid #ddd; background:#fff; border-radius:4px; cursor:pointer;">잘라내기</button>' +
+        '<button type="button" id="janInlineCopyLatex" style="padding:4px 10px; font-size:11px; border:1px solid #ddd; background:#fff; border-radius:4px; cursor:pointer;">LaTeX 복사</button>' +
+        '<button type="button" id="janInlineConvertBlock" style="padding:4px 10px; font-size:11px; border:1px solid #ddd; background:#fff; border-radius:4px; cursor:pointer;">블록 모드로 변환</button>' +
+        '<button type="button" id="janInlineDelete" style="padding:4px 10px; font-size:11px; border:1px solid #C0392B; color:#C0392B; background:#fff; border-radius:4px; cursor:pointer;">삭제</button>' +
+      '</div>';
     const ta = document.getElementById('janMathInlineTa');
     const preview = document.getElementById('janMathInlinePreview');
     ta.value = latex;
@@ -793,6 +799,44 @@
       okBtn.textContent = '확인';
       cancelBtn.textContent = '취소';
     }
+    // 인라인 수식 복사 — 내부에서 임시 block figure 만들어 copyFigureForWord 호출.
+    // 클립보드에 jan-figure meta + PNG + LaTeX 세 포맷이 모두 담겨 다른 노트에 붙여넣기 가능.
+    async function copyInlineToClipboard() {
+      try {
+        const html = await renderLatexHtml(latex);  // block 용 display 렌더 (PNG 용)
+        const tmp = document.createElement('div');
+        tmp.style.position = 'fixed';
+        tmp.style.left = '-10000px';
+        tmp.innerHTML = buildMathFigureHtml(html, latex, '수식');
+        document.body.appendChild(tmp);
+        try {
+          await copyFigureForWord(tmp.firstChild);
+        } finally {
+          tmp.remove();
+        }
+        return true;
+      } catch (e) {
+        notify('복사 실패: ' + e.message);
+        return false;
+      }
+    }
+    document.getElementById('janInlineCopy').onclick = async () => {
+      if (await copyInlineToClipboard()) cleanup();
+    };
+    document.getElementById('janInlineCut').onclick = async () => {
+      if (await copyInlineToClipboard()) {
+        span.remove();
+        try { if (typeof window.scheduleSave === 'function') window.scheduleSave(); } catch {}
+        notify('잘라냈습니다 — 원하는 곳에 Ctrl+V');
+        cleanup();
+      }
+    };
+    document.getElementById('janInlineCopyLatex').onclick = () => {
+      navigator.clipboard.writeText(latex).then(
+        () => { notify('LaTeX 복사됨'); cleanup(); },
+        () => notify('복사 실패')
+      );
+    };
     document.getElementById('janInlineConvertBlock').onclick = async () => {
       const newLatex = ta.value.trim();
       if (!newLatex) return;
