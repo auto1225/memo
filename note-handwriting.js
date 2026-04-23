@@ -840,6 +840,8 @@
     overlayEl.classList.add('open');
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
+    // document + window 모두 capture 단계에 등록 — 앱 전역에 있는 다른 keydown 리스너보다 먼저 동작
+    document.addEventListener('keydown', onKeyDown, true);
     window.addEventListener('keydown', onKeyDown, true);
     // 기존 pen-surface Alt+P 리스너가 openPaint 를 호출하지 않도록 — 우리가 capture 단계에서 가로챔
   }
@@ -849,6 +851,7 @@
     Sfx.stop();
     overlayEl.classList.remove('open');
     window.removeEventListener('resize', resizeCanvas);
+    document.removeEventListener('keydown', onKeyDown, true);
     window.removeEventListener('keydown', onKeyDown, true);
     S.strokes = [];
     S.redo = [];
@@ -858,12 +861,15 @@
 
   function onKeyDown(e) {
     if (!S.open) return;
-    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); return; }
+    if (e.key === 'Escape') {
+      e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+      close(); return;
+    }
     if ((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key === 'z' || e.key === 'Z')) {
-      e.preventDefault(); e.stopPropagation(); undo(); return;
+      e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); undo(); return;
     }
     if ((e.ctrlKey || e.metaKey) && ((e.shiftKey && (e.key === 'Z' || e.key === 'z')) || e.key === 'y' || e.key === 'Y')) {
-      e.preventDefault(); e.stopPropagation(); redo(); return;
+      e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); redo(); return;
     }
   }
 
