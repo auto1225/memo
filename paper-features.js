@@ -1,5 +1,5 @@
 /* ============================================================
-   paper-features.js — 논문 작성 기능 팩 (v4)
+   paper-features.js — 논문 작성 기능 팩 (v5)
    ------------------------------------------------------------
    JustANotepad 에 논문 작성에 필요한 4개 기능을 추가:
 
@@ -275,9 +275,11 @@
       }
 
       /* ===== @print — 진짜 페이지 분할 =====
-         앱의 스크롤 컨테이너(.page-wrap, .tabs 등) 가 기본적으로
-         overflow:hidden / max-height 로 1페이지만 보이게 하므로,
-         인쇄 시에는 이를 모두 해제해 .jan-page 가 각자 한 장씩 분리되도록. */
+         앱 컨테이너들(.pad, .page-container, .page-wrap, .page) 이 기본적으로
+         fixed/scroll 로 1 뷰포트만 보이게 하므로, 인쇄 시에는 이를 모두
+         static + overflow visible 로 풀어 .jan-page 가 각자 한 장씩 분리되도록.
+         app.html 에도 기본 @media print 이 있지만 .page-wrap 을 놓쳐
+         내용이 잘리는 문제가 있었음 → 여기서 보강. */
       @media print {
         html, body {
           margin: 0 !important;
@@ -287,31 +289,35 @@
           max-height: none !important;
           background: #fff !important;
         }
-        /* 앱 전반의 스크롤/오버플로우 제한 해제 */
-        .page-wrap,
-        .tabs,
-        .page,
-        #page,
-        .note-area,
-        .editor,
-        .editor-wrap,
-        main,
-        section,
-        article {
+        /* 앱 전반의 스크롤/오버플로우/크기 제한 해제. position:fixed 인
+           .pad 도 static 으로. 이러면 내부 .jan-page 가 인쇄 흐름에 참여. */
+        body, .pad, #pad,
+        .page-container, .page-wrap, .page, #page,
+        .note-area, .editor, .editor-wrap,
+        main, section.page, article {
+          position: static !important;
           overflow: visible !important;
           max-height: none !important;
           height: auto !important;
           min-height: 0 !important;
+          width: auto !important;
+          transform: none !important;
         }
-        /* 앱 UI (툴바·사이드바·탭 등) 숨김 — .page-wrap / #page / .jan-paper 만 노출 */
-        body > *:not(.page-wrap):not(#page):not(.jan-paper):not(style):not(script):not(link) {
+        /* 논문 샘플과 무관한 앱 UI 숨김 — 툴바·탭·검색바·모달·토스트 등 */
+        .topbar, .tabs, .toolbar, .searchbar, .statusbar, .sidebar,
+        .floating-toolbar, .tool-group, .modal-backdrop, .modal, .toast,
+        .split-close, .toc-panel, [id*="onboard"], #jan-paper-onboarding,
+        .popover, .menu-dropdown {
           display: none !important;
         }
-        /* 편집 영역 자체의 padding 제거 */
+        /* 편집 영역 자체의 padding / 배경 제거 */
         .page, #page {
           padding: 0 !important;
           margin: 0 !important;
           box-shadow: none !important;
+          background: none !important;
+          background-image: none !important;
+          border: 0 !important;
         }
         /* 논문 컨테이너 자체도 box-shadow / margin 제거 */
         .jan-paper {
@@ -320,6 +326,7 @@
           box-shadow: none !important;
           background: #fff !important;
           gap: 0 !important;
+          display: block !important;
         }
         /* 각 .jan-page 가 A4 한 장씩 분리되도록 강제 */
         .jan-paper .jan-page,
@@ -330,6 +337,7 @@
           break-inside: avoid-page !important;
           box-shadow: none !important;
           margin: 0 !important;
+          display: block !important;
         }
         .jan-paper .jan-page:last-child,
         .jan-page:last-child {
@@ -347,10 +355,10 @@
           page-break-after: always;
           break-after: page;
         }
-      }
-      @page {
-        size: A4;
-        margin: 0;
+        @page {
+          size: A4;
+          margin: 0;
+        }
       }
     `;
     document.head.appendChild(css);
@@ -432,11 +440,28 @@
     if (!page) return;
     // 본문에 등장하는 순서대로 fn-ref 를 번호 부여,
     // 동시에 각주 ol 의 li 순서도 같은 순서로 재정렬
+    //
+    // 주의: 이 함수는 '사용자가 JANPaper.insertFootnote 로 만든' 동적
+    // 각주(= data-fn-id 를 가진 ref/li) 만 재정렬한다. 논문 템플릿이
+    // 수작업으로 작성한 .jan-footnotes (li id="fn1" + <a href="#fnref1">↩</a>)
+    // 는 건드리지 않는다. (그렇지 않으면 템플릿 각주 컨테이너가
+    // 통째로 제거되는 버그가 발생한다 — QA T7 실패 원인)
     const refs = Array.from(page.querySelectorAll('sup.jan-fn-ref[data-fn-id]'));
-    const box = page.querySelector('.jan-footnotes');
-    const ol = box ? box.querySelector('ol') : null;
+    // 동적 각주용 container 는 data-fn-id 를 가진 li 가 있는 .jan-footnotes.
+    // (여러 개일 수 있으므로 모두 수집하고, 첫 번째가 있으면 그걸 사용)
+    const allBoxes = Array.from(page.querySelectorAll('.jan-footnotes'));
+    const dynamicBox = allBoxes.find(b => b.querySelector('ol > li[data-fn-id]'))
+      || allBoxes.find(b => {
+        // 빈 상태의 동적 컨테이너 — insertFootnote 가 방금 만들고
+        // renumberFootnotes 를 호출한 경우
+        const lis = b.querySelectorAll('ol > li');
+        return lis.length === 0 || Array.from(lis).every(li => li.hasAttribute('data-fn-id'));
+      });
+    const ol = dynamicBox ? dynamicBox.querySelector('ol') : null;
     if (!ol) {
-      // 각주 컨테이너가 없는데 ref 만 남은 경우 → ref 도 정리
+      // 동적 ref 도 없으면 아무 작업 안 함
+      if (!refs.length) return;
+      // ref 만 남은 경우 → ref 도 정리
       refs.forEach(r => { r.textContent = '[?]'; });
       return;
     }
@@ -458,16 +483,25 @@
         fragment.appendChild(li);
       }
     });
-    // ref 가 사라진 항목은 제거
+    // ref 가 사라진 항목은 제거 (data-fn-id 기준 — 템플릿 li 는 건드리지 않음)
     items.forEach(li => {
       const id = li.getAttribute('data-fn-id');
       if (!seen.has(id)) li.remove();
     });
-    // 순서대로 ol 재구성
-    ol.innerHTML = '';
-    ol.appendChild(fragment);
-    // 각주 ol 이 비면 컨테이너 통째 제거
-    if (!ol.children.length && box) box.remove();
+    // ol 에 정적(템플릿) li 가 섞여 있으면 그대로 유지, 동적 li 만 순서대로 뒤에
+    // 붙인다. 그 외 요소 (텍스트 노드 등) 도 건드리지 않음.
+    const staticLis = Array.from(ol.querySelectorAll(':scope > li:not([data-fn-id])'));
+    if (staticLis.length === 0) {
+      // 순수 동적 컨테이너 — 전체 재구성 가능
+      ol.innerHTML = '';
+      ol.appendChild(fragment);
+      // 각주 ol 이 비면 동적 컨테이너만 제거
+      if (!ol.children.length && dynamicBox) dynamicBox.remove();
+    } else {
+      // 템플릿 li 와 섞여 있음 — 동적 li 만 추가/재배치
+      // (매우 드문 케이스: 템플릿 로드 후 insertFootnote 사용)
+      Array.from(fragment.children).forEach(li => ol.appendChild(li));
+    }
   }
 
   /* ============================================================
