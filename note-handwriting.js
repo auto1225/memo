@@ -842,8 +842,17 @@
     S.current = null;
     overlayEl.classList.add('open');
     resizeCanvas();
+    // 열기 전에 현재 포커스 element 의 blur 를 강제 — 한글 IME 가
+    // 활성화되어 있으면 ESC 가 'Process' 로 들어가 막히기 때문.
+    try {
+      const active = document.activeElement;
+      if (active && typeof active.blur === 'function' &&
+          active !== document.body && active !== canvasEl) {
+        active.blur();
+      }
+    } catch {}
     // canvas 에 포커스 — ESC 등 키보드 이벤트가 다른 앱 모듈보다 먼저 도달하도록
-    try { canvasEl.focus(); } catch {}
+    try { canvasEl.focus({ preventScroll: true }); } catch { try { canvasEl.focus(); } catch {} }
     window.addEventListener('resize', resizeCanvas);
     // keydown 리스너는 초기 boot 에 document 에 이미 등록했으므로 여기서 재등록 안 함
     // (다른 앱 리스너보다 먼저 실행되기 위함)
@@ -863,15 +872,18 @@
   function onKeyDown(e) {
     if (!S.open) return;
     // DEBUG: 사용자가 문제 추적할 수 있도록 window 에 마지막 키 이벤트 저장
-    try { window.__hwLastKey = { key: e.key, t: Date.now(), phase: e.eventPhase, target: (e.target && e.target.tagName) || '?' }; } catch {}
-    if (e.key === 'Escape') {
+    try { window.__hwLastKey = { key: e.key, code: e.code, kc: e.keyCode, t: Date.now(), phase: e.eventPhase, composing: e.isComposing, target: (e.target && e.target.tagName) || '?' }; } catch {}
+    // ESC — 한글 IME 조합 중에는 e.key 가 'Process' 가 되는 경우가 있어
+    // 물리적 키 코드(e.code / keyCode)도 함께 체크한다.
+    const isEsc = e.key === 'Escape' || e.code === 'Escape' || e.keyCode === 27;
+    if (isEsc) {
       e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
       close(); return;
     }
-    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key === 'z' || e.key === 'Z')) {
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key === 'z' || e.key === 'Z' || e.code === 'KeyZ')) {
       e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); undo(); return;
     }
-    if ((e.ctrlKey || e.metaKey) && ((e.shiftKey && (e.key === 'Z' || e.key === 'z')) || e.key === 'y' || e.key === 'Y')) {
+    if ((e.ctrlKey || e.metaKey) && ((e.shiftKey && (e.key === 'Z' || e.key === 'z' || e.code === 'KeyZ')) || e.key === 'y' || e.key === 'Y' || e.code === 'KeyY')) {
       e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); redo(); return;
     }
   }
@@ -978,6 +990,17 @@
     // 여기서 미리 등록해 두면 후속으로 등록되는 앱 리스너보다 우선권 확보
     document.addEventListener('keydown', onKeyDown, true);
     window.addEventListener('keydown', onKeyDown, true);
+    // keyup 백업 — 한글 IME 조합 상태에서 keydown 이 'Process' 로 막혀도
+    // keyup 은 정상 발생하므로 ESC 를 확실히 잡을 수 있게 한다.
+    const keyUpEsc = function (e) {
+      if (!S.open) return;
+      if (e.key === 'Escape' || e.code === 'Escape' || e.keyCode === 27) {
+        e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+        close();
+      }
+    };
+    document.addEventListener('keyup', keyUpEsc, true);
+    window.addEventListener('keyup', keyUpEsc, true);
   }
 
   if (document.readyState === 'loading') {
