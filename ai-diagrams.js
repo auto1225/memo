@@ -158,27 +158,38 @@
         fill: #555 !important;
         stroke: #555 !important;
       }
-      /* 수식 figure */
+      /* 수식 figure — 노트에 자연스러운 텍스트처럼 보이도록 박스·배경 제거.
+         hover/focus 시에만 편집 툴바 표시. */
       figure.jan-math {
-        margin: 12px auto;
+        margin: 0.4em auto;
         max-width: 100%;
         text-align: center;
-        padding: 10px 14px;
-        background: #fffdf7;
-        border: 1px solid rgba(0,0,0,0.06);
-        border-radius: 8px;
+        padding: 0;
+        background: transparent;
+        border: 0;
         overflow-x: auto;
+        color: inherit;
       }
-      figure.jan-math .katex-display { margin: 0 !important; }
+      figure.jan-math .katex-display { margin: 0 !important; color: inherit; }
+      figure.jan-math .katex { color: inherit; }
       figure.jan-math figcaption {
-        margin-top: 6px;
+        margin-top: 2px;
         font-size: 11px;
-        color: #999;
+        color: #bbb;
         font-style: italic;
         display: flex;
         align-items: center;
         justify-content: center;
         gap: 6px;
+        opacity: 0;                   /* 기본은 숨김 — 이미지 같은 느낌 제거 */
+        transition: opacity 0.15s;
+        pointer-events: none;
+      }
+      figure.jan-math:hover figcaption,
+      figure.jan-math:focus-within figcaption,
+      figure.jan-math.jan-focus figcaption {
+        opacity: 1;
+        pointer-events: auto;
       }
       figure.jan-math .jan-math-tools { display: inline-flex; gap: 4px; margin-left: 8px; }
       figure.jan-math .jan-math-tools button {
