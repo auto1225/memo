@@ -1,5 +1,5 @@
 /* ============================================================
-   paper-features.js — 논문 작성 기능 팩 (v3)
+   paper-features.js — 논문 작성 기능 팩 (v4)
    ------------------------------------------------------------
    JustANotepad 에 논문 작성에 필요한 4개 기능을 추가:
 
@@ -274,8 +274,69 @@
         padding-top: 6px;
       }
 
-      /* ===== @print — 진짜 페이지 분할 ===== */
+      /* ===== @print — 진짜 페이지 분할 =====
+         앱의 스크롤 컨테이너(.page-wrap, .tabs 등) 가 기본적으로
+         overflow:hidden / max-height 로 1페이지만 보이게 하므로,
+         인쇄 시에는 이를 모두 해제해 .jan-page 가 각자 한 장씩 분리되도록. */
       @media print {
+        html, body {
+          margin: 0 !important;
+          padding: 0 !important;
+          overflow: visible !important;
+          height: auto !important;
+          max-height: none !important;
+          background: #fff !important;
+        }
+        /* 앱 전반의 스크롤/오버플로우 제한 해제 */
+        .page-wrap,
+        .tabs,
+        .page,
+        #page,
+        .note-area,
+        .editor,
+        .editor-wrap,
+        main,
+        section,
+        article {
+          overflow: visible !important;
+          max-height: none !important;
+          height: auto !important;
+          min-height: 0 !important;
+        }
+        /* 앱 UI (툴바·사이드바·탭 등) 숨김 — .page-wrap / #page / .jan-paper 만 노출 */
+        body > *:not(.page-wrap):not(#page):not(.jan-paper):not(style):not(script):not(link) {
+          display: none !important;
+        }
+        /* 편집 영역 자체의 padding 제거 */
+        .page, #page {
+          padding: 0 !important;
+          margin: 0 !important;
+          box-shadow: none !important;
+        }
+        /* 논문 컨테이너 자체도 box-shadow / margin 제거 */
+        .jan-paper {
+          margin: 0 !important;
+          padding: 0 !important;
+          box-shadow: none !important;
+          background: #fff !important;
+          gap: 0 !important;
+        }
+        /* 각 .jan-page 가 A4 한 장씩 분리되도록 강제 */
+        .jan-paper .jan-page,
+        .jan-page {
+          page-break-after: always !important;
+          break-after: page !important;
+          page-break-inside: avoid !important;
+          break-inside: avoid-page !important;
+          box-shadow: none !important;
+          margin: 0 !important;
+        }
+        .jan-paper .jan-page:last-child,
+        .jan-page:last-child {
+          page-break-after: auto !important;
+          break-after: auto !important;
+        }
+        /* 수동 페이지 구분도 유지 */
         .page .jan-page-break {
           border: 0 !important;
           background: transparent !important;
@@ -286,21 +347,10 @@
           page-break-after: always;
           break-after: page;
         }
-        .page .jan-header {
-          position: running(pageHeader);
-        }
-        .page .jan-footer {
-          position: running(pageFooter);
-        }
-        @page {
-          margin: 22mm 18mm 26mm 18mm;
-          @top-center { content: element(pageHeader); }
-          @bottom-center {
-            content: counter(page) " / " counter(pages);
-            font-size: 10px;
-            color: #666;
-          }
-        }
+      }
+      @page {
+        size: A4;
+        margin: 0;
       }
     `;
     document.head.appendChild(css);
@@ -810,8 +860,57 @@
     }
   }
 
-  /* 완성된 Science 포맷 물리학 논문 샘플 3페이지를 현재 노트 끝에 삽입 */
-  function loadPaperSample() {
+  /* 템플릿 내 data-latex / data-mermaid-code figure 들을 모두 렌더.
+     모든 Promise 를 await 하여 완전 렌더 완료 시점에 resolve. */
+  async function renderAllPaperFigures(page) {
+    if (!page) return;
+    if (!window.JANDiagrams) return;
+    try {
+      // 1) KaTeX 수식
+      const figs = Array.from(page.querySelectorAll('figure.jan-math[data-latex]'));
+      const mathTasks = figs.map(async (f) => {
+        if (f.querySelector('.katex, .katex-display')) return; // 이미 렌더됨
+        const enc = f.getAttribute('data-latex');
+        let latex = enc;
+        try { latex = decodeURIComponent(escape(atob(enc))); } catch {} // base64 시도
+        if (!latex || /^\s*$/.test(latex)) latex = enc;
+        try {
+          const html = await window.JANDiagrams.renderLatexHtml(latex);
+          if (html) {
+            const cap = f.querySelector('figcaption');
+            f.innerHTML = html;
+            if (cap) f.appendChild(cap);
+          }
+        } catch (e) { console.warn('[paper] 수식 렌더 실패', latex, e); }
+      });
+
+      // 2) Mermaid placeholder
+      const diags = Array.from(page.querySelectorAll('figure.jan-diagram[data-mermaid-code]'));
+      const diagTasks = diags.map(async (d) => {
+        if (d.querySelector('svg')) return; // 이미 렌더됨
+        const code = (d.getAttribute('data-mermaid-code') || '');
+        let mm = code;
+        try { mm = decodeURIComponent(escape(atob(code))); } catch {}
+        if (!mm) return;
+        try {
+          const svg = await window.JANDiagrams.renderMermaid(mm);
+          if (svg) {
+            const cap = d.querySelector('figcaption');
+            d.innerHTML = svg;
+            if (cap) d.appendChild(cap);
+          }
+        } catch (e) { console.warn('[paper] Mermaid 렌더 실패', e); }
+      });
+
+      await Promise.all([...mathTasks, ...diagTasks]);
+    } catch (e) {
+      console.warn('[paper] 후처리 실패', e);
+    }
+  }
+
+  /* 완성된 Science 포맷 물리학 논문 샘플 3페이지를 현재 노트 끝에 삽입.
+     async — 수식·Mermaid 렌더가 모두 끝날 때까지 기다린 후 resolve. */
+  async function loadPaperSample() {
     var tpl = window.JANPaperTemplate && window.JANPaperTemplate.physicsScience;
     if (!tpl) { notify('논문 템플릿이 로드되지 않았습니다'); return; }
     if (!window.confirm('현재 노트에 Science 포맷 물리학 논문 샘플 3페이지를 삽입합니다. 기존 내용은 유지됩니다. 계속하시겠습니까?')) return;
@@ -821,50 +920,13 @@
     try { refreshNumbering(); } catch (e) {}
     try { renumberFootnotes(); } catch (e) {}
     try { renumberCitations(); } catch (e) {}
-    // KaTeX 렌더 — 템플릿 figure.jan-math 들이 data-latex 만 들고 있으므로 수동 렌더
-    (async function renderPaperMath() {
-      try {
-        if (!window.JANDiagrams) return;
-        const figs = page.querySelectorAll('figure.jan-math[data-latex]');
-        for (const f of figs) {
-          if (f.querySelector('.katex, .katex-display')) continue; // 이미 렌더됨
-          const enc = f.getAttribute('data-latex');
-          // data-latex 가 base64 면 디코딩, 아니면 그대로
-          let latex = enc;
-          try { latex = decodeURIComponent(escape(atob(enc))); } catch {} // base64 시도
-          if (!latex || /^\s*$/.test(latex)) latex = enc;
-          try {
-            const html = await window.JANDiagrams.renderLatexHtml(latex);
-            if (html) {
-              // figcaption 은 보존, 본문만 교체
-              const cap = f.querySelector('figcaption');
-              f.innerHTML = html;
-              if (cap) f.appendChild(cap);
-            }
-          } catch (e) { console.warn('[paper] 수식 렌더 실패', latex, e); }
-        }
-        // Mermaid placeholder — data-mermaid 있으면 렌더
-        const diags = page.querySelectorAll('figure.jan-diagram[data-mermaid-code]:not(:has(svg))');
-        for (const d of diags) {
-          const code = (d.getAttribute('data-mermaid-code') || '');
-          let mm = code;
-          try { mm = decodeURIComponent(escape(atob(code))); } catch {}
-          if (!mm) continue;
-          try {
-            const svg = await window.JANDiagrams.renderMermaid(mm);
-            if (svg) {
-              const cap = d.querySelector('figcaption');
-              d.innerHTML = svg;
-              if (cap) d.appendChild(cap);
-            }
-          } catch (e) { console.warn('[paper] Mermaid 렌더 실패', e); }
-        }
-      } catch (e) { console.warn('[paper] 후처리 실패', e); }
-    })();
-    try { if (typeof window.scheduleSave === 'function') window.scheduleSave(); } catch (e) {}
     notify('논문 샘플 삽입 완료 — 수식 렌더링 중…');
+    // 모든 수식·다이어그램 렌더가 끝날 때까지 기다림
+    await renderAllPaperFigures(page);
+    try { if (typeof window.scheduleSave === 'function') window.scheduleSave(); } catch (e) {}
     // 첫 사용자 대상 온보딩 배너 (localStorage 로 1회만)
     try { showPaperOnboardingBanner(); } catch (e) { console.warn('[JANPaper] 온보딩 배너 실패', e); }
+    notify('논문 샘플 삽입 완료');
   }
 
   /* 논문 기능 도움말 모달 — 사용법 요약표 */
@@ -1036,6 +1098,7 @@
     refreshNumbering,
     openPaperMenu,
     loadPaperSample,
+    renderAllPaperFigures,
     openPaperHelp,
     showPaperOnboardingBanner
   };
