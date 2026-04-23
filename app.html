@@ -4425,6 +4425,8 @@ function setActive(id) {
   renderPage();
   pageEl.focus();
 }
+// 홈 허브·외부 스크립트에서 탭 전환할 때 사용
+window.JANSetActiveTab = (id) => { try { setActive(id); } catch {} };
 function syncPageToState() {
   const t = currentTab();
   if (!t || t.locked) return;

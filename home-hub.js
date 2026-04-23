@@ -195,17 +195,26 @@
           <div class="jan-hub-section">
             <h3>최근 탭</h3>
             ${localState.recent.slice(0, 5).map(t => `
-              <div class="jan-hub-item" style="cursor:default;">
+              <button type="button" class="jan-hub-item jan-hub-tab-item" data-tab-id="${escape(t.id)}" style="width:100%;text-align:left;background:none;border:0;font:inherit;color:inherit;cursor:pointer;">
                 ${t.starred ? '<span style="color:#eab308;">★</span>' : ''}
                 <div class="t">${escape(t.name || '(무제)')}</div>
                 <div class="d">${t.tag ? `#${escape(t.tag)}` : ''}</div>
-              </div>`).join('')}
+              </button>`).join('')}
           </div>` : ''}
       `;
       bd.querySelector('#jan-hub-btn-tpl')?.addEventListener('click', (e) => {
         e.preventDefault();
         if (window.JANTemplatePicker) window.JANTemplatePicker.open({
           onPick: (tpl) => document.dispatchEvent(new CustomEvent('jan:template-selected', { detail: tpl })),
+        });
+      });
+      bd.querySelectorAll('.jan-hub-tab-item').forEach(el => {
+        el.addEventListener('click', () => {
+          const id = el.getAttribute('data-tab-id');
+          if (id && typeof window.JANSetActiveTab === 'function') {
+            window.JANSetActiveTab(id);
+            toggleDrawer(false);
+          }
         });
       });
     };
@@ -299,11 +308,11 @@
         <div class="jan-hub-section">
           <h3>최근 탭</h3>
           ${localState.recent.slice(0, 5).map(t => `
-            <div class="jan-hub-item" style="cursor:default;">
+            <button type="button" class="jan-hub-item jan-hub-tab-item" data-tab-id="${escape(t.id)}" style="width:100%;text-align:left;background:none;border:0;font:inherit;color:inherit;cursor:pointer;">
               ${t.starred ? '<span style="color:#eab308;">★</span>' : ''}
               <div class="t">${escape(t.name || '(무제)')}</div>
               <div class="d">${t.tag ? `#${escape(t.tag)}` : ''}</div>
-            </div>`).join('')}
+            </button>`).join('')}
         </div>` : ''}
 
       <div class="jan-hub-section">
@@ -342,6 +351,17 @@
       alert('공유 링크가 생성되고 클립보드에 복사되었습니다:\n' + url);
       loaded = false;
       loadData();
+    });
+
+    // 최근 탭 클릭 → 해당 탭 활성화 + drawer 닫기
+    bd.querySelectorAll('.jan-hub-tab-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const id = el.getAttribute('data-tab-id');
+        if (id && typeof window.JANSetActiveTab === 'function') {
+          window.JANSetActiveTab(id);
+          toggleDrawer(false);
+        }
+      });
     });
   }
 
