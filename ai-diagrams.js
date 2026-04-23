@@ -217,6 +217,12 @@
         background: #FFF0F4;
       }
       .jan-math-inline .katex { font-size: 1.05em; }
+      /* figure 선택(focus) 하이라이트 — Ctrl+C 복사 가능함을 시각적으로 */
+      figure.jan-diagram.jan-focus,
+      figure.jan-math.jan-focus {
+        outline: 2px solid #D97757;
+        outline-offset: 2px;
+      }
     `;
     document.head.appendChild(css);
   })();
@@ -354,10 +360,11 @@
     const tools =
       '<span class="jan-diagram-tools" contenteditable="false">' +
         (mermaidCode ? '<button type="button" data-diag-act="edit">편집</button>' : '') +
+        '<button type="button" data-diag-act="copy" title="Word · 한글 · 메일에 이미지로 붙여넣기">복사</button>' +
         '<button type="button" data-diag-act="delete" class="danger">삭제</button>' +
       '</span>';
     return (
-      '<figure class="jan-diagram" contenteditable="false"' +
+      '<figure class="jan-diagram" contenteditable="false" tabindex="0"' +
       (enc ? ' data-mermaid-code="' + enc + '"' : '') + '>' +
         '<div class="jan-diagram-body">' + svgOrHtml + '</div>' +
         '<figcaption>' + escapeHtml(caption || '') + tools + '</figcaption>' +
@@ -370,11 +377,12 @@
     const tools =
       '<span class="jan-math-tools" contenteditable="false">' +
         '<button type="button" data-math-act="edit">편집</button>' +
-        '<button type="button" data-math-act="copy">복사</button>' +
+        '<button type="button" data-math-act="copy" title="Word · 한글 · 메일에 이미지로 붙여넣기">복사</button>' +
+        '<button type="button" data-math-act="copy-latex" title="LaTeX 텍스트만 복사">LaTeX</button>' +
         '<button type="button" data-math-act="delete" class="danger">삭제</button>' +
       '</span>';
     return (
-      '<figure class="jan-math" contenteditable="false"' +
+      '<figure class="jan-math" contenteditable="false" tabindex="0"' +
       (enc ? ' data-latex="' + enc + '"' : '') + '>' +
         html +
         '<figcaption>' + escapeHtml(caption || '수식') + tools + '</figcaption>' +
@@ -492,11 +500,19 @@
       notify('삭제됨');
       return;
     }
-    if (act === 'copy') {
+    if (act === 'copy-latex') {
       const enc = fig.getAttribute('data-latex') || '';
       const latex = b64dec(enc);
       try { navigator.clipboard.writeText(latex); notify('LaTeX 복사됨'); }
       catch { notify('복사 실패'); }
+      return;
+    }
+    if (act === 'copy') {
+      // Word·한글·메일 호환 복사 (PNG + plain text)
+      copyFigureForWord(fig).catch(err => {
+        console.error('[copyFigure]', err);
+        notify('복사 실패: ' + err.message);
+      });
       return;
     }
     if (act === 'edit') {
@@ -508,6 +524,43 @@
     }
   }
   document.addEventListener('click', onDocClickForFigures, true);
+
+  /* ---------- figure 포커스/Ctrl+C 지원 ---------- */
+  function onFigureFocus(ev) {
+    const fig = ev.target.closest && ev.target.closest('figure.jan-diagram, figure.jan-math');
+    if (!fig) return;
+    document.querySelectorAll('figure.jan-diagram.jan-focus, figure.jan-math.jan-focus')
+      .forEach(f => { if (f !== fig) f.classList.remove('jan-focus'); });
+    fig.classList.add('jan-focus');
+  }
+  function onFigureBlur(ev) {
+    const fig = ev.target.closest && ev.target.closest('figure.jan-diagram, figure.jan-math');
+    if (fig) fig.classList.remove('jan-focus');
+  }
+  document.addEventListener('focusin', onFigureFocus);
+  document.addEventListener('focusout', onFigureBlur);
+  // Ctrl+C — 포커스된 figure 가 있으면 Word 호환 복사
+  document.addEventListener('keydown', (ev) => {
+    if (!(ev.key === 'c' || ev.key === 'C') || !(ev.ctrlKey || ev.metaKey)) return;
+    const fig = document.querySelector('figure.jan-diagram.jan-focus, figure.jan-math.jan-focus');
+    if (!fig) return;
+    // 텍스트 선택이 있는 경우엔 일반 복사 존중
+    const sel = window.getSelection();
+    if (sel && sel.toString()) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    copyFigureForWord(fig).catch(() => {});
+  }, true);
+  // Delete/Backspace — 포커스된 figure 삭제
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key !== 'Delete' && ev.key !== 'Backspace') return;
+    const fig = document.querySelector('figure.jan-diagram.jan-focus, figure.jan-math.jan-focus');
+    if (!fig) return;
+    ev.preventDefault();
+    fig.remove();
+    try { if (typeof window.scheduleSave === 'function') window.scheduleSave(); } catch {}
+    notify('삭제됨');
+  });
 
   /* ---------- 편집 모달: 다이어그램 ---------- */
   function openDiagramEditor(fig) {
@@ -1065,6 +1118,160 @@
     }
   }
 
+  /* ---------- Word 호환 복사 (PNG + plain text) ---------- */
+  // 이미지(img) 를 PNG blob 으로 (이미 raster 라서 재인코딩만)
+  function imageToBlob(img, scale = 2) {
+    return new Promise((resolve, reject) => {
+      try {
+        const w = img.naturalWidth || img.width;
+        const h = img.naturalHeight || img.height;
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.ceil(w * scale);
+        canvas.height = Math.ceil(h * scale);
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(b => b ? resolve(b) : reject(new Error('toBlob 실패')), 'image/png');
+      } catch (e) { reject(e); }
+    });
+  }
+
+  // SVG element → PNG blob
+  function svgToPngBlob(svgEl, scale = 2) {
+    return new Promise((resolve, reject) => {
+      try {
+        const bbox = svgEl.getBoundingClientRect();
+        let w = bbox.width, h = bbox.height;
+        const vb = svgEl.getAttribute('viewBox');
+        if (vb) {
+          const p = vb.split(/\s+/).map(Number);
+          if (p.length === 4 && p[2] > 0 && p[3] > 0) {
+            w = w || p[2]; h = h || p[3];
+          }
+        }
+        if (!w || !h) { w = 400; h = 300; }
+        const clone = svgEl.cloneNode(true);
+        if (!clone.getAttribute('xmlns')) clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+        clone.setAttribute('width', w);
+        clone.setAttribute('height', h);
+        // 흰 배경 (Word 에서 투명 검은배경 방지)
+        const bgRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        bgRect.setAttribute('x', '0'); bgRect.setAttribute('y', '0');
+        bgRect.setAttribute('width', '100%'); bgRect.setAttribute('height', '100%');
+        bgRect.setAttribute('fill', '#ffffff');
+        clone.insertBefore(bgRect, clone.firstChild);
+        const xml = new XMLSerializer().serializeToString(clone);
+        const svg64 = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(xml);
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.ceil(w * scale);
+          canvas.height = Math.ceil(h * scale);
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob(b => b ? resolve(b) : reject(new Error('canvas.toBlob 실패')), 'image/png');
+        };
+        img.onerror = () => reject(new Error('SVG → Image 로드 실패'));
+        img.src = svg64;
+      } catch (e) { reject(e); }
+    });
+  }
+
+  // HTML element (KaTeX 등) → PNG blob (foreignObject SVG 기법)
+  function htmlToPngBlob(el, scale = 2) {
+    return new Promise((resolve, reject) => {
+      try {
+        const rect = el.getBoundingClientRect();
+        const w = Math.max(1, Math.ceil(rect.width));
+        const h = Math.max(1, Math.ceil(rect.height));
+        const clone = el.cloneNode(true);
+        const katexCss = '<style>@import url("https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css");</style>';
+        const xml =
+          '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '">' +
+            '<foreignObject width="100%" height="100%">' +
+              '<div xmlns="http://www.w3.org/1999/xhtml" style="margin:0; padding:0; background:#fff; font-family:KaTeX_Main,Times,serif;">' +
+                katexCss +
+                clone.outerHTML +
+              '</div>' +
+            '</foreignObject>' +
+          '</svg>';
+        const svg64 = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(xml);
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.ceil(w * scale);
+          canvas.height = Math.ceil(h * scale);
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob(b => b ? resolve(b) : reject(new Error('canvas.toBlob 실패')), 'image/png');
+        };
+        img.onerror = () => reject(new Error('HTML → Image 로드 실패 (foreignObject CORS 가능성)'));
+        img.src = svg64;
+      } catch (e) { reject(e); }
+    });
+  }
+
+  async function rasterizeFigure(fig) {
+    // 우선순위: <img> (이미 raster) → <svg> (다이어그램) → KaTeX HTML
+    const imgEl = fig.querySelector('img');
+    if (imgEl && imgEl.complete && imgEl.naturalWidth > 0) {
+      return imageToBlob(imgEl);
+    }
+    const svg = fig.querySelector('svg');
+    if (svg) return svgToPngBlob(svg);
+    const katex = fig.querySelector('.katex-display, .katex');
+    if (katex) return htmlToPngBlob(katex);
+    return htmlToPngBlob(fig);
+  }
+
+  async function copyFigureForWord(fig) {
+    if (!fig) throw new Error('figure 가 없습니다');
+    notify('복사 준비 중…');
+    let pngBlob = null;
+    try {
+      pngBlob = await rasterizeFigure(fig);
+    } catch (e) {
+      console.warn('[copyFigure] raster 실패, 폴백 시도:', e);
+      try { pngBlob = await htmlToPngBlob(fig); } catch (e2) {
+        throw new Error('이미지 변환 실패: ' + (e2.message || e.message));
+      }
+    }
+    // plain text — LaTeX or Mermaid code
+    let plainText = '';
+    const latexEnc = fig.getAttribute('data-latex') || '';
+    const mermaidEnc = fig.getAttribute('data-mermaid-code') || '';
+    if (latexEnc) plainText = b64dec(latexEnc);
+    else if (mermaidEnc) plainText = b64dec(mermaidEnc);
+    else plainText = (fig.textContent || '').trim();
+
+    try {
+      if (window.ClipboardItem && navigator.clipboard && navigator.clipboard.write) {
+        const items = { 'image/png': pngBlob };
+        if (plainText) items['text/plain'] = new Blob([plainText], { type: 'text/plain' });
+        await navigator.clipboard.write([new ClipboardItem(items)]);
+        notify('복사됨 · Word · 한글 · 메일에 붙여넣기 하세요');
+        return true;
+      }
+    } catch (e) {
+      console.warn('[copyFigure] clipboard.write 실패, 폴백:', e);
+    }
+    // 폴백 — text 만이라도 복사
+    try {
+      await navigator.clipboard.writeText(plainText || '');
+      notify('이미지 복사 실패 — 텍스트만 복사됨 (브라우저 제한)');
+      return true;
+    } catch (e) {
+      throw new Error('클립보드 접근 거부됨');
+    }
+  }
+
   /* 현재 커서(또는 미리 캡처한 range) 위치에 노드를 그대로 삽입 — 원본 선택 텍스트 덮어쓰기 안 함 */
   function insertInlineAtCursor(node) {
     const pageEl = document.getElementById('page') || document.querySelector('[contenteditable="true"]');
@@ -1105,6 +1312,7 @@
     convertTextToMath,
     insertMathFromLatex,
     insertMathInline,
+    copyFigureForWord,
     insertFigure,
     insertFigureAfterSelection,
     captureRangeNow,
@@ -1118,5 +1326,5 @@
     _b64dec: b64dec,
   };
 
-  console.log('[JANDiagrams v3] ready — inline math support');
+  console.log('[JANDiagrams v3] ready — inline math + word-compatible copy');
 })();
