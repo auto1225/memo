@@ -1,5 +1,8 @@
 /* ============================================================
-   paper-features.js — 논문 작성 기능 팩 (v10)
+   paper-features.js — 논문 작성 기능 팩 (v11)
+   v11: 툴바에 "논문" 드롭다운 메뉴 추가 (paperMenuBtn2 + paperMenuDrop).
+        빠른 시작 · 구성 요소 · 레이아웃 · 참조 & 인용 4섹션 16항목.
+        구형 paperMenuBtn 은 숨김 유지 (호환용).
    v10: 원자 기능 8종 (atoms.*) + convertToSciencePaper 템플릿 마법사
         로 재레이블. CSS 보강: jan-two-col, jan-authors, jan-affil,
         jan-corresponding, jan-abstract, jan-keywords, jan-toc, jan-ack
@@ -606,6 +609,103 @@
         margin-right: 6px;
       }
       .page .jan-ack > p { margin: 4px 0 0; }
+
+      /* ===== v11: "논문" 드롭다운 메뉴 (툴바) ===== */
+      .paper-menu-btn {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 2px !important;
+        min-width: auto !important;
+        padding: 0 8px !important;
+        height: 28px !important;
+        border: 1px solid var(--paper-edge, #d0d0d0) !important;
+        border-radius: 6px !important;
+        background: color-mix(in srgb, var(--accent, #D97757) 8%, transparent) !important;
+        color: var(--ink, #1c1c1c) !important;
+        cursor: pointer;
+        font-size: 13px;
+        white-space: nowrap;
+      }
+      .paper-menu-btn:hover {
+        background: color-mix(in srgb, var(--accent, #D97757) 20%, transparent) !important;
+        color: var(--accent, #D97757) !important;
+      }
+      .paper-menu-btn[aria-expanded="true"] {
+        background: var(--accent, #D97757) !important;
+        color: #fff !important;
+      }
+      .menu-drop {
+        position: fixed;
+        z-index: 10000;
+        min-width: 340px;
+        max-height: 70vh;
+        overflow-y: auto;
+        background: var(--paper, #fff);
+        border: 1px solid var(--paper-edge, #d0d0d0);
+        border-radius: 10px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+        padding: 6px 0;
+        color: var(--ink, #1c1c1c);
+      }
+      .menu-drop .menu-group-title {
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--ink-soft, #888);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        padding: 8px 14px 4px;
+        margin-top: 2px;
+      }
+      .menu-drop .menu-item-btn {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        width: 100%;
+        padding: 8px 14px;
+        background: none;
+        border: 0;
+        cursor: pointer;
+        text-align: left;
+        border-radius: 0;
+        color: var(--ink, #1c1c1c);
+        font-family: inherit;
+      }
+      .menu-drop .menu-item-btn:hover {
+        background: color-mix(in srgb, var(--accent, #D97757) 12%, transparent);
+      }
+      .menu-drop .menu-item-btn .ico {
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+        margin-top: 2px;
+        color: var(--accent, #D97757);
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 2;
+      }
+      .menu-drop .menu-item-btn .mi-text {
+        flex: 1;
+        min-width: 0;
+      }
+      .menu-drop .menu-item-btn .mi-label {
+        font-size: 13px;
+        color: var(--ink, #1c1c1c);
+        font-weight: 500;
+        display: block;
+        line-height: 1.3;
+      }
+      .menu-drop .menu-item-btn .mi-desc {
+        font-size: 11px;
+        color: var(--ink-soft, #888);
+        display: block;
+        margin-top: 2px;
+        line-height: 1.3;
+      }
+      .menu-drop .menu-sep {
+        height: 1px;
+        background: var(--paper-edge, #e6e6e6);
+        margin: 6px 0;
+      }
     `;
     document.head.appendChild(css);
   })();
@@ -1128,11 +1228,175 @@
   }
 
   /* ============================================================
+     v11: "논문" 드롭다운 메뉴 — 툴바에서 모든 논문 기능을 한눈에
+     ============================================================ */
+  function buildPaperDropdownMenu() {
+    const drop = document.getElementById('paperMenuDrop');
+    if (!drop || drop._janBuilt) return drop;
+    drop._janBuilt = true;
+
+    /* 메뉴 구조: [section-title, ...items] 반복, items 는 {act, icon, label, desc} */
+    const sections = [
+      {
+        title: '빠른 시작',
+        items: [
+          { act: 'load-sample',   icon: 'i-book',      label: '논문 시작 (Science 포맷 샘플)', desc: '완성된 물리학 논문 3페이지를 현재 노트 끝에 삽입' },
+          { act: 'convert',       icon: 'i-wand',      label: '논문 포맷으로 자동 변환',         desc: '현재 노트를 3페이지 2단 Science 레이아웃으로' },
+          { act: 'undo',          icon: 'i-undo',      label: '변환 되돌리기',                   desc: '최근 10회까지 파괴적 연산을 역순 복원' }
+        ]
+      },
+      {
+        title: '논문 구성 요소',
+        items: [
+          { act: 'atom-authors',  icon: 'i-users',     label: '저자 · 소속 · 교신 블록',          desc: '자동 슈퍼스크립트 + 소속 리스트' },
+          { act: 'atom-abstract', icon: 'i-clipboard', label: 'Abstract 박스',                  desc: '좌측 strip 박스, 선택 영역도 감쌀 수 있음' },
+          { act: 'atom-keywords', icon: 'i-tag',       label: 'Keywords 블록',                  desc: 'KEYWORDS: 키워드1, 키워드2...' },
+          { act: 'atom-toc',      icon: 'i-list',      label: 'TOC (목차) 자동 생성',            desc: 'h2/h3/h4 스캔 → 클릭 링크 목차' },
+          { act: 'atom-ack',      icon: 'i-heart',     label: 'Acknowledgments (감사의 말)',     desc: '감사 박스 — 연구비·기관 명시' }
+        ]
+      },
+      {
+        title: '레이아웃',
+        items: [
+          { act: 'atom-2col',     icon: 'i-columns',   label: '2단 레이아웃 토글',               desc: '선택 영역을 Science 저널식 2단으로' },
+          { act: 'page-break',    icon: 'i-pages',     label: '페이지 구분 삽입',               desc: '인쇄 시 여기서 새 페이지' },
+          { act: 'atom-wrap-page',icon: 'i-pages',     label: '페이지로 감싸기',                 desc: '선택 영역을 .jan-page 로 wrap' },
+          { act: 'atom-headers',  icon: 'i-bookmark',  label: '러닝 헤더 · 꼬리말 설정',          desc: '모든 페이지 반복 헤더/푸터' }
+        ]
+      },
+      {
+        title: '참조 & 인용',
+        items: [
+          { act: 'footnote',      icon: 'i-sup',       label: '각주 삽입',                       desc: '본문 커서 위치에 번호 + 페이지 하단 문구' },
+          { act: 'citation',      icon: 'i-quote',     label: '인용 삽입',                       desc: '[N] 참고문헌 번호 자동' },
+          { act: 'bib-add',       icon: 'i-book',      label: '참고문헌 항목 추가',              desc: 'IEEE 스타일, 자동 번호' },
+          { act: 'renumber',      icon: 'i-refresh',   label: '번호 재정렬',                     desc: '각주·인용·그림·표 전체 재번호' }
+        ]
+      }
+    ];
+
+    /* HTML 조립 */
+    const parts = [];
+    sections.forEach((sec, i) => {
+      if (i > 0) parts.push('<div class="menu-sep"></div>');
+      parts.push('<div class="menu-group-title">' + sec.title + '</div>');
+      sec.items.forEach((it) => {
+        parts.push(
+          '<button class="menu-item-btn" data-paper-act="' + it.act + '" type="button">' +
+            '<svg class="ico"><use href="#' + it.icon + '"/></svg>' +
+            '<span class="mi-text">' +
+              '<span class="mi-label">' + it.label + '</span>' +
+              '<span class="mi-desc">' + it.desc + '</span>' +
+            '</span>' +
+          '</button>'
+        );
+      });
+    });
+    /* 도움말 */
+    parts.push('<div class="menu-sep"></div>');
+    parts.push(
+      '<button class="menu-item-btn" data-paper-act="help" type="button">' +
+        '<svg class="ico"><use href="#i-help"/></svg>' +
+        '<span class="mi-text">' +
+          '<span class="mi-label">논문 기능 도움말</span>' +
+          '<span class="mi-desc">사용법 한눈에 보기</span>' +
+        '</span>' +
+      '</button>'
+    );
+    drop.innerHTML = parts.join('');
+
+    /* 항목 클릭 라우터 */
+    drop.addEventListener('click', (ev) => {
+      const btn = ev.target.closest('[data-paper-act]');
+      if (!btn) return;
+      const act = btn.getAttribute('data-paper-act');
+      closePaperDropdown();
+      try {
+        switch (act) {
+          case 'load-sample':    loadPaperSample(); break;
+          case 'convert':        convertToSciencePaper(); break;
+          case 'undo':           paperUndo(); break;
+          case 'atom-authors':   insertAuthorsBlock(); break;
+          case 'atom-abstract':  insertAbstractBox(); break;
+          case 'atom-keywords':  insertKeywordsBlock(); break;
+          case 'atom-toc':       generateTOC(); break;
+          case 'atom-ack':       insertAcknowledgments(); break;
+          case 'atom-2col':      toggleTwoColumn(); break;
+          case 'page-break':     insertPageBreak(); break;
+          case 'atom-wrap-page': wrapAsPage(); break;
+          case 'atom-headers':   configureHeaderFooter(); break;
+          case 'footnote':       insertFootnote(); break;
+          case 'citation':       insertCitation(); break;
+          case 'bib-add':        addBibEntry(); break;
+          case 'renumber':
+            try { renumberFootnotes(); } catch {}
+            try { renumberCitations(); } catch {}
+            try { refreshNumbering(); } catch {}
+            notify('번호 재정렬 완료');
+            break;
+          case 'help':
+            if (typeof openPaperHelp === 'function') openPaperHelp();
+            else alert('논문 기능 도움말 — Ctrl+K 명령 팔레트에서 "논문"으로 검색하세요.');
+            break;
+        }
+      } catch (e) {
+        console.warn('[JANPaper] 메뉴 액션 실패', act, e);
+      }
+    });
+    return drop;
+  }
+
+  function openPaperDropdown(triggerBtn) {
+    const drop = buildPaperDropdownMenu();
+    if (!drop) return;
+    /* 다른 드롭다운 닫기 */
+    document.querySelectorAll('.menu-drop').forEach((d) => { if (d !== drop) d.style.display = 'none'; });
+    drop.style.display = 'block';
+    triggerBtn.setAttribute('aria-expanded', 'true');
+    /* 위치 조정 (버튼 아래, 뷰포트 안쪽) */
+    const rect = triggerBtn.getBoundingClientRect();
+    const vw = window.innerWidth || document.documentElement.clientWidth;
+    drop.style.top = (rect.bottom + 4) + 'px';
+    const desiredLeft = rect.left;
+    const maxLeft = vw - drop.offsetWidth - 8;
+    drop.style.left = Math.max(8, Math.min(desiredLeft, maxLeft)) + 'px';
+  }
+
+  function closePaperDropdown() {
+    const drop = document.getElementById('paperMenuDrop');
+    if (drop) drop.style.display = 'none';
+    const btn = document.getElementById('paperMenuBtn2');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+  }
+
+  /* ============================================================
      초기화
      ============================================================ */
   function init() {
     attachObserver();
-    // 툴바 버튼 (app.html 에 추가한 #paperMenuBtn) 이벤트 바인딩
+
+    /* v11: 새 "논문" 드롭다운 버튼 (paperMenuBtn2) 우선 바인딩 */
+    const btn2 = document.getElementById('paperMenuBtn2');
+    if (btn2 && !btn2._janBound) {
+      btn2._janBound = true;
+      btn2.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        const drop = document.getElementById('paperMenuDrop');
+        const isOpen = drop && drop.style.display === 'block';
+        if (isOpen) closePaperDropdown();
+        else openPaperDropdown(btn2);
+      });
+      /* 바깥 클릭 시 닫기 */
+      document.addEventListener('click', (ev) => {
+        if (!ev.target.closest('#paperMenuWrapper')) closePaperDropdown();
+      });
+      /* ESC 로 닫기 */
+      document.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Escape') closePaperDropdown();
+      });
+    }
+
+    /* 구형 paperMenuBtn (숨겨져 있음) — 호환용 바인딩 유지. 클릭 안 일어남. */
     const btn = document.getElementById('paperMenuBtn');
     if (btn && !btn._janBound) {
       btn._janBound = true;

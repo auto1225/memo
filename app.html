@@ -2011,7 +2011,16 @@
     <button id="loadFontsBtn" title="시스템 폰트 가져오기 (Chrome/Edge 권한 필요)"><svg class="ico"><use href="#i-refresh"/></svg></button>
     <button id="charBtn" title="특수 문자 삽입" style="font-family:serif; font-weight:700;">Ω</button>
     <button id="mathBtn" title="수식 삽입" style="font-family:serif; font-style:italic; font-weight:700;">∫</button>
-    <button id="paperMenuBtn" title="논문 요소 (각주·인용·참고문헌·페이지 구분)" aria-haspopup="menu"><svg class="ico"><use href="#i-clipboard"/></svg></button>
+    <div class="paper-menu-wrapper" id="paperMenuWrapper" style="position:relative; display:inline-flex;">
+      <button id="paperMenuBtn2" class="paper-menu-btn" title="논문 작성 기능 (저자·Abstract·TOC·2단·각주·인용 등)" aria-haspopup="menu" aria-expanded="false">
+        <svg class="ico" style="width:14px;height:14px;"><use href="#i-book"/></svg>
+        <span style="font-weight:600; margin:0 4px;">논문</span>
+        <span style="font-size:10px; line-height:1;">▾</span>
+      </button>
+      <div class="menu-drop" id="paperMenuDrop" role="menu" style="display:none;"></div>
+    </div>
+    <!-- 구형 paperMenuBtn (v10 이하, paper-features.js init 호환용) — 숨김. 새 paperMenuBtn2 가 대체. -->
+    <button id="paperMenuBtn" aria-hidden="true" style="display:none !important;" tabindex="-1"></button>
     <button id="paperStyleBtn" title="배경 스타일 (줄/모눈/점격/오선지 등)"><svg class="ico"><use href="#i-pages"/></svg></button>
     <button id="attachFileBtn" title="파일 첨부"><svg class="ico"><use href="#i-paperclip"/></svg></button>
     <button id="audioRecordBtn" title="음성 녹음"><svg class="ico"><use href="#i-record"/></svg></button>
@@ -20424,7 +20433,7 @@ if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
 <!-- JustANotepad AI 다이어그램 생성 (구성도/순서도/인포그래픽) — Mermaid + AI -->
 <script src="/ai-diagrams.js?v=9"></script>
 <!-- JustANotepad 논문 작성 기능 (각주·인용·번호·페이지 구분) -->
-<script src="/paper-features.js?v=10"></script>
+<script src="/paper-features.js?v=11"></script>
 <!-- JustANotepad 논문 샘플 템플릿 데이터 (Science 포맷 물리학 논문 3페이지) -->
 <script src="/paper-template-data.js?v=3"></script>
 <!-- JustANotepad CAR-T ALL 바이오 논문 나머지 본문 (2.3 ~ Conclusion + Refs) -->
