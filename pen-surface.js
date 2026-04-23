@@ -7,7 +7,7 @@
  * know it's there — the only entry is a small #paintTopBtn icon.
  *
  * This script:
- *   1. Adds a large, friendly "✍️ 손글씨" floating action button (FAB) so
+ *   1. Adds a large, friendly "손글씨" floating action button (FAB) so
  *      the feature is immediately discoverable on phones and tablets.
  *   2. Auto-detects stylus / pen input (PointerEvent.pointerType === 'pen')
  *      and offers "펜 모드로 전환하시겠어요?" toast when the user scribbles
@@ -183,7 +183,7 @@
         window.justanotepadPalette.register({
           id: 'hide-pen-fab',
           title: '손글씨 플로팅 버튼 숨기기',
-          hint: '우하단 ✎ 버튼을 안 보이게 합니다 (명령 팔레트로 다시 켤 수 있어요)',
+          hint: '우하단 펜 버튼을 안 보이게 합니다 (명령 팔레트로 다시 켤 수 있어요)',
           keywords: ['hide', 'pen', 'fab', '숨기기', '펜', '손글씨'],
           run: () => {
             try { localStorage.setItem('jnp.penFab.hidden', '1'); } catch {}

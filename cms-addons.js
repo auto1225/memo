@@ -202,7 +202,7 @@
     qb.className = 'jnp-pen-quickbar';
     qb.innerHTML = `
       <div class="qb-label">펜 · 손글씨</div>
-      <button class="qb-btn primary" data-a="open">✍️ 손글씨 시작</button>
+      <button class="qb-btn primary" data-a="open">손글씨 시작</button>
       <div class="qb-label">AI 인식 (열고 시작)</div>
       <div class="qb-row">
         <button class="qb-btn" data-a="ocr">텍스트</button>
