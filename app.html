@@ -4474,6 +4474,89 @@ window.renderPage = renderPage;
 window.renderTabs = renderTabs;
 window.renderSidebar = renderSidebar;
 window.setActive = setActive;
+// 탭 내용을 사용자가 선택한 위치에 저장 (showSaveFilePicker 또는 <a download> 폴백)
+// 반환: true = 저장 성공, false = 저장 실패·취소
+async function saveTabToFile(tab) {
+  if (!tab) return false;
+  const fmt = await pickList('저장 형식 선택', [
+    'HTML (.html)',
+    'Word (.doc)',
+    '마크다운 (.md)',
+    '일반 텍스트 (.txt)',
+  ]);
+  if (!fmt) return false;
+  const extMap = { 'HTML (.html)':'html', 'Word (.doc)':'doc', '마크다운 (.md)':'md', '일반 텍스트 (.txt)':'txt' };
+  const mimeMap = { html:'text/html;charset=utf-8', doc:'application/msword', md:'text/markdown;charset=utf-8', txt:'text/plain;charset=utf-8' };
+  const ext = extMap[fmt];
+  const mime = mimeMap[ext];
+
+  // 데이터 조립
+  let data;
+  const html = tab.html || '';
+  if (ext === 'html') {
+    // buildExportHTML 재사용 (스타일 포함)
+    try { data = buildExportHTML(tab, false); }
+    catch { data = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escapeHtml(tab.name)}</title></head><body><h1>${escapeHtml(tab.name)}</h1>${html}</body></html>`; }
+  } else if (ext === 'doc') {
+    const styles = `body{font-family:'Malgun Gothic','맑은 고딕',sans-serif;font-size:11pt;line-height:1.7;}
+      h1{font-size:20pt;color:#4b2e7f;border-bottom:2px solid #FAE100;padding-bottom:6pt;}
+      h2{font-size:16pt;color:#5e35b1;} h3{font-size:13pt;}
+      table{border-collapse:collapse;} td,th{border:1px solid #888;padding:5pt 10pt;} th{background:#ede7f6;}
+      blockquote{border-left:3px solid #FAE100;padding:5pt 12pt;color:#555;}
+      pre{background:#f4f4f4;padding:8pt;font-family:'Courier New',monospace;}`;
+    data = '\ufeff<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">'
+      + `<head><meta charset="utf-8"><title>${escapeHtml(tab.name)}</title><style>${styles}</style></head>`
+      + `<body><h1>${escapeHtml(tab.name)}</h1>${html}</body></html>`;
+  } else if (ext === 'md') {
+    let md = '';
+    try { md = htmlToMarkdownFull(html); }
+    catch {
+      const tmp = document.createElement('div'); tmp.innerHTML = html;
+      md = tmp.textContent || '';
+    }
+    data = `# ${tab.name}\n\n${md}`;
+  } else { // txt
+    const tmp = document.createElement('div'); tmp.innerHTML = html;
+    data = (tmp.textContent || '').trim();
+  }
+
+  const safeName = (tab.name || '메모').replace(/[\\/:*?"<>|]/g, '_');
+  const fname = `${safeName}.${ext}`;
+
+  // 1) showSaveFilePicker — 사용자가 폴더 + 파일명 선택
+  if (typeof window.showSaveFilePicker === 'function') {
+    try {
+      const startInHint = localStorage.getItem('jan.io.lastFolderHint');
+      const validHints = ['desktop','documents','downloads','music','pictures','videos'];
+      const startIn = validHints.includes(startInHint) ? startInHint : 'documents';
+      const handle = await window.showSaveFilePicker({
+        suggestedName: fname,
+        startIn,
+        types: [{ description: fmt, accept: { [mime.split(';')[0]]: ['.' + ext] } }],
+      });
+      const w = await handle.createWritable();
+      await w.write(new Blob([data], { type: mime }));
+      await w.close();
+      toast(`저장됨: ${handle.name || fname}`);
+      return true;
+    } catch (e) {
+      if (e && (e.name === 'AbortError' || e.code === 20)) {
+        toast('저장 취소됨');
+        return false;
+      }
+      console.warn('[saveTabToFile FSA → 레거시]', e);
+    }
+  }
+  // 2) 레거시 폴백: <a download>
+  const blob = new Blob([data], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = fname;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast(`다운로드됨: ${fname}`);
+  return true;
+}
 async function closeTab(id) {
   const t = state.tabs.find(t => t.id === id);
   if (!t) return;
@@ -4482,13 +4565,19 @@ async function closeTab(id) {
     toast('현재 워크스페이스의 마지막 탭입니다');
     return;
   }
-  // 실수로 닫히는 것을 막기 위한 확인 다이얼로그
+  // 실수로 닫히는 것을 막기 위한 확인 다이얼로그 (3-버튼)
   const tmp = document.createElement('div');
   tmp.innerHTML = t.html || '';
   const preview = (tmp.textContent || '').trim().slice(0, 60);
-  const msg = `"${t.name}" 탭을 닫을까요?\n\n${preview ? `내용 미리보기: ${preview}${preview.length >= 60 ? '…' : ''}\n\n` : ''}휴지통으로 이동되며 나중에 복구할 수 있습니다.`;
-  const ok = await confirm2('탭 닫기 확인', msg, '닫기 (휴지통행)', '취소');
-  if (!ok) return;
+  const msg = `"${t.name}" 탭을 닫을까요?\n\n${preview ? `내용 미리보기: ${preview}${preview.length >= 60 ? '…' : ''}\n\n` : ''}[저장 후 닫기] 원하는 폴더에 파일로 저장한 뒤 닫습니다.\n[그대로 닫기] 휴지통으로 이동 — 나중에 복구 가능.`;
+  const choice = await confirm3('탭 닫기 확인', msg, '저장 후 닫기', '그대로 닫기', '취소');
+  if (!choice) return; // 취소
+
+  // [저장 후 닫기] — 저장 다이얼로그 → 성공 시에만 탭 제거
+  if (choice === 'alt') {
+    const saved = await saveTabToFile(t);
+    if (!saved) return; // 저장 실패·취소 → 탭 유지
+  }
 
   state.trash.unshift({ ...t, deletedAt: Date.now() });
   if (state.trash.length > 50) state.trash = state.trash.slice(0, 50);
@@ -4500,7 +4589,11 @@ async function closeTab(id) {
     state.activeId = ws.length ? ws[0].id : (state.tabs[0] && state.tabs[0].id);
   }
   save(); renderTabs(); renderPage(); renderSidebar();
-  toast(`"${t.name}" 휴지통으로 이동됨 (복구 가능)`);
+  if (choice === 'alt') {
+    toast(`"${t.name}" 저장 후 닫기 완료 (복구 가능)`);
+  } else {
+    toast(`"${t.name}" 휴지통으로 이동됨 (복구 가능)`);
+  }
 }
 async function renameTab(id) {
   const t = state.tabs.find(t => t.id === id);
@@ -7187,6 +7280,57 @@ function confirm2(title, message, okLabel = '확인', cancelLabel = '취소') {
     $('modalCancel').addEventListener('click', cancel);
     document.addEventListener('keydown', kh);
     $('modalCancel').focus();
+  });
+}
+// 3-버튼 확인 다이얼로그 — 취소 / 중간 (대안) / 확인 (위험 액션)
+// 반환: 'ok' (주 액션), 'alt' (중간 액션), null (취소)
+function confirm3(title, message, altLabel, okLabel, cancelLabel = '취소') {
+  return new Promise(resolve => {
+    modalTitle.textContent = title;
+    modalBody.innerHTML = `<div style="padding:4px 0 6px; font-size:13px; line-height:1.6; color:#333;">${escapeHtml(message).replace(/\n/g, '<br>')}</div>`;
+    // 중간 버튼을 actions 영역에 동적으로 삽입
+    const actions = modal.querySelector('.actions');
+    let altBtn = document.getElementById('modalAlt');
+    if (!altBtn) {
+      altBtn = document.createElement('button');
+      altBtn.id = 'modalAlt';
+      // cancel 다음, ok 앞에 배치 (flex-end 기준으로 순서: cancel | alt | ok)
+      actions.insertBefore(altBtn, $('modalOk'));
+    }
+    altBtn.textContent = altLabel;
+    // 중간 강조 스타일: 액센트 보더 + 배경은 흰색
+    altBtn.style.cssText = 'padding:6px 14px; border-radius:8px; border:1px solid var(--accent); background:#fff; color:var(--accent); font-size:13px; font-weight:600; cursor:pointer;';
+    altBtn.onmouseover = () => { altBtn.style.background = 'var(--accent)'; altBtn.style.color = '#fff'; };
+    altBtn.onmouseout  = () => { altBtn.style.background = '#fff'; altBtn.style.color = 'var(--accent)'; };
+    $('modalOk').textContent = okLabel;
+    $('modalCancel').textContent = cancelLabel;
+    $('modalOk').onclick = null;
+    $('modalCancel').onclick = null;
+    modal.classList.add('open');
+    const ok = () => { cleanup(); resolve('ok'); };
+    const alt = () => { cleanup(); resolve('alt'); };
+    const cancel = () => { cleanup(); resolve(null); };
+    const kh = e => {
+      if (e.key === 'Enter') alt(); // Enter = 저장 후 닫기 (가장 안전한 기본)
+      if (e.key === 'Escape') cancel();
+      if (e.key === 'Delete') ok();
+    };
+    function cleanup() {
+      modal.classList.remove('open');
+      $('modalOk').removeEventListener('click', ok);
+      $('modalCancel').removeEventListener('click', cancel);
+      altBtn.removeEventListener('click', alt);
+      document.removeEventListener('keydown', kh);
+      // 중간 버튼 제거 (다른 다이얼로그에 영향 없도록)
+      if (altBtn.parentNode) altBtn.parentNode.removeChild(altBtn);
+      $('modalOk').textContent = '확인';
+      $('modalCancel').textContent = '취소';
+    }
+    $('modalOk').addEventListener('click', ok);
+    $('modalCancel').addEventListener('click', cancel);
+    altBtn.addEventListener('click', alt);
+    document.addEventListener('keydown', kh);
+    altBtn.focus(); // Enter 기본 = 저장 후 닫기
   });
 }
 // 아이콘이 있는 선택 리스트
