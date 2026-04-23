@@ -3268,8 +3268,10 @@
     labels.style.pointerEvents = 'none';
     labels.style.zIndex = '3';
 
-    /* 내용 재생성 — 각 페이지 경계에 뚜렷한 divider + 라벨 */
+    /* 내용 재생성 — 각 페이지 경계에 뚜렷한 divider + 라벨 + 여백 영역 표시 */
     labels.innerHTML = '';
+    const padBottomPx = parseFloat(computed.paddingBottom) || 0;
+    const padTopPxLbl = padTopPx; // 이미 위에서 계산
     for (let i = 0; i < nPages; i++) {
       /* 페이지 번호 라벨 (2페이지 이상일 때만) */
       if (nPages >= 2) {
@@ -3281,25 +3283,43 @@
         lbl.style.top = (i * cycle + 10) + 'px';
         labels.appendChild(lbl);
       }
-      /* 페이지 경계 divider (i > 0 인 경우만 — 첫 페이지 위엔 없음) */
+      /* 페이지 경계 divider (i > 0 인 경우만) — 이전 페이지 하단 여백 + gap + 다음 페이지 상단 여백 한 덩어리로 표시 */
       if (i > 0) {
+        /* 전체 no-write zone 높이: 이전 페이지 bottom margin + gap + 이번 페이지 top margin */
+        const noWriteStart = i * cycle - padBottomPx;
+        const noWriteHeight = padBottomPx + SHEET_GAP + padTopPxLbl;
         const div = document.createElement('div');
         div.className = 'jan-page-divider';
         div.style.cssText =
           'position:absolute;left:0;right:0;' +
-          'top:' + (i * cycle - SHEET_GAP / 2) + 'px;' +
-          'height:' + SHEET_GAP + 'px;' +
+          'top:' + noWriteStart + 'px;' +
+          'height:' + noWriteHeight + 'px;' +
           'background:repeating-linear-gradient(45deg,' +
-          ' rgba(217,119,87,0.15) 0, rgba(217,119,87,0.15) 8px,' +
-          ' transparent 8px, transparent 16px);' +
-          'border-top:2px dashed rgba(217,119,87,0.6);' +
-          'border-bottom:2px dashed rgba(217,119,87,0.6);' +
+          ' rgba(217,119,87,0.10) 0, rgba(217,119,87,0.10) 10px,' +
+          ' transparent 10px, transparent 20px);' +
+          'border-top:1px dashed rgba(217,119,87,0.35);' +
+          'border-bottom:1px dashed rgba(217,119,87,0.35);' +
           'display:flex;align-items:center;justify-content:center;' +
           'color:#8B4513;font-size:10.5px;font-weight:700;letter-spacing:1px;';
         div.innerHTML =
-          '<span style="background:#fff;padding:2px 10px;border-radius:10px;border:1px solid rgba(217,119,87,0.4);">' +
+          '<span style="background:#fff;padding:3px 14px;border-radius:12px;border:1px solid rgba(217,119,87,0.4); box-shadow:0 2px 6px rgba(0,0,0,0.08);">' +
           '— 페이지 ' + (i + 1) + ' 시작 —</span>';
         labels.appendChild(div);
+      }
+      /* 첫 페이지 하단 margin / 마지막 페이지 하단 margin 도 은은하게 표시 (선택) */
+      if (i === nPages - 1 && padBottomPx > 0) {
+        /* 마지막 페이지 bottom margin */
+        const lastMargin = document.createElement('div');
+        lastMargin.className = 'jan-page-margin-bottom';
+        lastMargin.style.cssText =
+          'position:absolute;left:0;right:0;' +
+          'top:' + (i * cycle + pageHpx - padBottomPx) + 'px;' +
+          'height:' + padBottomPx + 'px;' +
+          'background:repeating-linear-gradient(45deg,' +
+          ' rgba(217,119,87,0.06) 0, rgba(217,119,87,0.06) 10px,' +
+          ' transparent 10px, transparent 20px);' +
+          'border-top:1px dashed rgba(217,119,87,0.2);';
+        labels.appendChild(lastMargin);
       }
     }
   }
@@ -3318,7 +3338,15 @@
     const computed = getComputedStyle(page);
     const pageHpx = mmToPx(parseFloat(computed.getPropertyValue('--page-h')) || 297);
     const padTop = parseFloat(computed.paddingTop) || 0;
+    const padBottom = parseFloat(computed.paddingBottom) || 0;
     const cycle = pageHpx + SHEET_GAP;
+    /* v26: 페이지 내부 여백 (top/bottom) 도 "no-write zone" 으로 간주.
+       safe zone per page (0-indexed within cycle) = [top_margin, pageH - bottom_margin].
+       padTop/padBottom 을 각 페이지의 내부 여백으로 재사용. */
+    const MARGIN_TOP = padTop;
+    const MARGIN_BOTTOM = padBottom;
+    const safeEndInCycle = pageHpx - MARGIN_BOTTOM;    // 콘텐츠가 여기까지 올 수 있음
+    const safeStartNextPage = MARGIN_TOP;              // 다음 페이지는 여기서 콘텐츠 시작
     /* 1단계: 기존 shift 복원 — sheets/labels 는 제외 */
     const children = Array.from(page.children).filter(c => {
       return c.nodeType === Node.ELEMENT_NODE
@@ -3338,25 +3366,23 @@
     const pageRect = page.getBoundingClientRect();
     children.forEach(c => {
       const rect = c.getBoundingClientRect();
-      const top = rect.top - pageRect.top - padTop;       // 블록 상단 (콘텐츠 기준)
-      const bottom = top + rect.height;                   // 블록 하단
-      if (bottom <= 0) return;                            // 위로 넘어간 블록 (음수)
-      /* 블록 시작 페이지 / 끝 페이지 (0-indexed) */
+      /* top/bottom 은 콘텐츠 영역 기준 (padding 제거, 0 = 첫 페이지 top_margin 안쪽) */
+      const top = rect.top - pageRect.top - padTop;
+      const bottom = top + rect.height;
+      if (bottom <= 0) return;
       const startPage = Math.floor(top / cycle);
-      /* 블록 하단이 페이지 콘텐츠 영역 (pageH) 안쪽인지 확인.
-         cycle 안에서 pageH 이후는 gap 영역 → 다음 페이지로 푸시 */
       const topInCycle = top - startPage * cycle;
       const bottomInCycle = topInCycle + rect.height;
-      /* 블록이 페이지 경계를 넘는 경우:
-         - 블록이 gap 영역 안에 시작 (topInCycle >= pageHpx)
-         - 블록 높이가 pageH 이하이면서 끝이 페이지 밖 (bottomInCycle > pageHpx) */
-      if (rect.height > pageHpx * 0.95) return;  /* 한 페이지보다 큰 블록은 건드리지 않음 */
-      if (topInCycle >= pageHpx || bottomInCycle > pageHpx) {
-        /* 다음 페이지 시작점 = (startPage + 1) * cycle */
-        const nextPageStart = (startPage + 1) * cycle;
-        const shift = nextPageStart - top;
-        if (shift > 0 && shift < cycle) {
-          /* 원래 marginTop 을 저장 */
+      /* 한 페이지보다 큰 블록은 건드리지 않음 */
+      if (rect.height > pageHpx - MARGIN_TOP - MARGIN_BOTTOM) return;
+      /* v26: safe zone = [0, safeEndInCycle] 밖에 걸치면 다음 페이지 safe start 로 push.
+         - topInCycle >= safeEndInCycle: 블록이 bottom margin 또는 gap 영역에 시작
+         - bottomInCycle > safeEndInCycle: 블록 끝이 bottom margin 또는 gap 을 넘음 */
+      if (topInCycle >= safeEndInCycle || bottomInCycle > safeEndInCycle) {
+        /* 다음 페이지 safe 시작점 = (startPage + 1) * cycle + MARGIN_TOP */
+        const nextPageSafeStart = (startPage + 1) * cycle + safeStartNextPage;
+        const shift = nextPageSafeStart - top;
+        if (shift > 0 && shift < cycle + safeStartNextPage) {
           const origMt = c.style.marginTop || '';
           const curMt = parseFloat(getComputedStyle(c).marginTop) || 0;
           c.dataset.janPgOrigMt = origMt;
