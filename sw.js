@@ -20,7 +20,13 @@ self.addEventListener('activate', (event) => {
         keys
           .filter(k => k !== CACHE_NAME)
           .map(k => caches.delete(k))
-      ))
+      )),
+      // 활성화 시 모든 열린 클라이언트에 핫리로드 힌트
+      self.clients.matchAll({ includeUncontrolled: true }).then(clients => {
+        clients.forEach(c => {
+          try { c.postMessage({ type: 'JAN_RELOAD_HINT', ts: Date.now() }); } catch {}
+        });
+      })
     ])
   );
 });

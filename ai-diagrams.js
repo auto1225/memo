@@ -56,6 +56,22 @@
     }
   }
 
+  // Mermaid 파서 오류를 사용자 친화 힌트로 변환.
+  // 원문 에러도 details 안에서 열람 가능하도록 별도 getter.
+  function humanizeMermaidError(err) {
+    const msg = String(err && err.message || err);
+    const tips = [
+      { re: /Parse error on line/i, hint: '문법 오류 — 줄 시작에 `flowchart TD` 또는 `flowchart LR` 이 한 줄만 있어야 합니다. 중복된 ``` 코드블록 기호가 있으면 제거하세요.' },
+      { re: /Expecting.*got '?GRAPH'?/i, hint: '`graph` 키워드가 예상치 않은 위치에 있습니다. 첫 줄만 `flowchart TD` 로 시작하세요.' },
+      { re: /Expecting.*got .*?['"]?-{2,}-{2,}['"]?/i, hint: '화살표 문법 — `A --> B` 처럼 공백을 넣으세요 (양쪽에).' },
+      { re: /Cannot read propert/i, hint: 'Mermaid 라이브러리가 아직 로드되지 않았습니다. 잠시 후 재시도하세요.' },
+      { re: /Lexical error/i, hint: '특수문자 (괄호·콜론·세미콜론) 가 노드명 안에 있을 때는 대괄호 `[...]` 로 감싸세요.' },
+      { re: /Unknown arrow /i, hint: '지원되는 화살표: `-->`, `---`, `-.->`, `==>`' },
+    ];
+    for (const t of tips) if (t.re.test(msg)) return t.hint;
+    return '알 수 없는 Mermaid 오류입니다. 코드 문법을 확인하세요.';
+  }
+
   // AI 응답에서 코드블록/설명문을 걷어내고 실제 코드만 추출
   function stripCodeFence(txt, hintLang) {
     if (!txt) return '';
@@ -125,6 +141,39 @@
         background: #FFD9D9;
         border-color: #C0392B;
         color: #C0392B;
+      }
+      /* Mermaid 편집 모달 에러 박스 (사용자 친화 메시지 + 원문 상세) */
+      .jan-mermaid-err {
+        background: #FFF4F0;
+        border: 1px solid #E89B85;
+        border-radius: 8px;
+        padding: 10px 12px;
+        color: #8B3A1F;
+        font-size: 12.5px;
+        line-height: 1.55;
+      }
+      .jan-mermaid-err strong {
+        display: block;
+        font-size: 13px;
+        margin-bottom: 4px;
+        color: #B23A4C;
+      }
+      .jan-mermaid-err .hint { white-space: pre-wrap; }
+      .jan-mermaid-err details {
+        margin-top: 6px;
+        font-size: 11px;
+        color: #666;
+      }
+      .jan-mermaid-err details summary { cursor: pointer; }
+      .jan-mermaid-err details pre {
+        background: #fff;
+        border: 1px solid #eee;
+        padding: 6px 8px;
+        border-radius: 4px;
+        overflow: auto;
+        font-size: 11px;
+        margin-top: 4px;
+        max-height: 120px;
       }
       /* 다크모드/검정배경에서도 가독성 보장 — Mermaid SVG 내부 강제 색 */
       figure.jan-diagram svg .node rect,
@@ -715,7 +764,14 @@
         const svg = await renderMermaid(ta.value.trim());
         preview.innerHTML = svg;
       } catch (e) {
-        preview.innerHTML = '<div style="color:#c00; font-size:12px;">오류: ' + escapeHtml(e.message) + '</div>';
+        const hint = humanizeMermaidError(e);
+        preview.classList.remove('jan-diagram');
+        preview.innerHTML =
+          '<div class="jan-mermaid-err">' +
+            '<strong>오류가 있어요</strong>' +
+            '<div class="hint">' + escapeHtml(hint) + '</div>' +
+            '<details><summary>개발자 원문 보기</summary><pre>' + escapeHtml(String(e && e.message || e)) + '</pre></details>' +
+          '</div>';
       }
     }
     ta.addEventListener('input', () => {
@@ -744,7 +800,7 @@
         notify('다이어그램 갱신 완료');
         cleanup();
       } catch (e) {
-        notify('렌더 실패: ' + e.message);
+        notify('렌더 실패: ' + humanizeMermaidError(e));
       }
     };
     cancelBtn.onclick = cleanup;
@@ -1033,12 +1089,61 @@
     return c;
   }
 
+  /* ---------- 선택 범위 해석기 (공용) ----------
+     호출 시점에 selection 을 확인.
+       - 있으면: 그대로 사용 + toast
+       - 없으면: 커서 주변 블록(p/li/heading) 의 textContent 를 기본 소스로
+     반환: { text, fromSelection: boolean }
+     selectedText 인자가 이미 넘어오면 그걸 존중 (명령 팔레트/선택 메뉴 경로).
+  */
+  function resolveSourceText(argText, kindLabel) {
+    const argTrim = (argText || '').trim();
+    if (argTrim) {
+      // 외부에서 이미 추출된 텍스트: argText 가 selection 이었는지는
+      // 여기서 재확인 불가 → 우선 live selection 을 먼저 체크
+      try {
+        const liveSel = (window.getSelection && window.getSelection().toString().trim()) || '';
+        if (liveSel && argTrim === liveSel) {
+          notify('선택된 ' + liveSel.length + '자로 ' + kindLabel + ' 생성 중…');
+          return { text: liveSel, fromSelection: true };
+        }
+      } catch {}
+      notify('선택된 텍스트가 없어서 현재 문단으로 ' + kindLabel + ' 생성. (특정 내용만 변환하려면 먼저 선택)');
+      return { text: argTrim, fromSelection: false };
+    }
+    try {
+      const liveSel = (window.getSelection && window.getSelection().toString().trim()) || '';
+      if (liveSel) {
+        notify('선택된 ' + liveSel.length + '자로 ' + kindLabel + ' 생성 중…');
+        return { text: liveSel, fromSelection: true };
+      }
+      // 커서가 속한 블록 탐색
+      const sel = window.getSelection && window.getSelection();
+      if (sel && sel.anchorNode) {
+        let node = sel.anchorNode;
+        if (node.nodeType === 3) node = node.parentElement;
+        while (node && node !== document.body) {
+          const tag = (node.tagName || '').toLowerCase();
+          if (/^(p|li|h1|h2|h3|h4|h5|h6|blockquote|pre|td|th)$/.test(tag)) {
+            const t = (node.textContent || '').trim();
+            if (t) {
+              notify('선택된 텍스트가 없어서 현재 문단으로 ' + kindLabel + ' 생성. (특정 내용만 변환하려면 먼저 선택)');
+              return { text: t, fromSelection: false };
+            }
+          }
+          node = node.parentElement;
+        }
+      }
+    } catch {}
+    return { text: '', fromSelection: false };
+  }
+
   /* ---------- Org Chart (구성도) ---------- */
   async function buildOrgChart(selectedText) {
-    const text = (selectedText || '').trim();
-    if (!text) { notify('선택된 텍스트가 없습니다'); return null; }
+    const res = resolveSourceText(selectedText, '구성도');
+    const text = res.text;
+    if (!text) { notify('변환할 텍스트가 없습니다 (선택 또는 현재 문단)'); return null; }
     captureRangeNow();  // 현재 선택 위치를 고정 (AI 대기 중 selection 손실 방어)
-    notify('구성도를 생성 중…');
     const resp = await aiCall(ORG_SYS, text);
     if (!resp) return null;
     const code = sanitizeMermaid(stripCodeFence(resp, 'mermaid'), 'org');
@@ -1061,10 +1166,10 @@
 
   /* ---------- Flowchart (순서도) ---------- */
   async function buildFlowchart(selectedText) {
-    const text = (selectedText || '').trim();
-    if (!text) { notify('선택된 텍스트가 없습니다'); return null; }
+    const res = resolveSourceText(selectedText, '순서도');
+    const text = res.text;
+    if (!text) { notify('변환할 텍스트가 없습니다 (선택 또는 현재 문단)'); return null; }
     captureRangeNow();
-    notify('순서도를 생성 중…');
     const resp = await aiCall(FLOW_SYS, text);
     if (!resp) return null;
     const code = sanitizeMermaid(stripCodeFence(resp, 'mermaid'), 'flow');
@@ -1209,10 +1314,10 @@
   }
 
   async function buildInfographic(selectedText) {
-    const text = (selectedText || '').trim();
-    if (!text) { notify('선택된 텍스트가 없습니다'); return null; }
+    const res = resolveSourceText(selectedText, '인포그래픽');
+    const text = res.text;
+    if (!text) { notify('변환할 텍스트가 없습니다 (선택 또는 현재 문단)'); return null; }
     captureRangeNow();
-    notify('인포그래픽 데이터를 추출 중…');
     const resp = await aiCall(INFO_SYS, text);
     if (!resp) return null;
     const items = parseInfoJson(resp);
@@ -1543,6 +1648,7 @@
     buildDiagramFigureHtml,
     buildMathFigureHtml,
     sanitizeLatex,
+    humanizeMermaidError,
     // 내부 테스트용
     _parseInfoJson: parseInfoJson,
     _stripCodeFence: stripCodeFence,

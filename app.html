@@ -1983,6 +1983,10 @@
     <button id="speakBtn" title="읽어주기"><svg class="ico"><use href="#i-speaker"/></svg></button>
     <button id="imgUploadBtn" title="이미지 업로드 (파일 선택)"><svg class="ico"><use href="#i-image"/></svg></button>
     <button id="captureBtn" title="화면 캡쳐"><svg class="ico"><use href="#i-camera"/></svg></button>
+    <button id="paperMathBtn" title="수식 삽입 (논문 요소)" style="font-family:serif; font-style:italic; font-weight:700;">∫</button>
+    <button id="paperOrgBtn" title="구성도 (AI) — 선택한 텍스트를 조직도(Mermaid) 로 변환"><svg class="ico"><use href="#i-diagram"/></svg></button>
+    <button id="paperFlowBtn" title="순서도 (AI) — 선택한 텍스트의 절차를 순서도(Mermaid) 로 변환"><svg class="ico"><use href="#i-flowchart"/></svg></button>
+    <button id="paperInfoBtn" title="인포그래픽 (AI) — 수치를 바차트·KPI 카드 SVG 로 변환"><svg class="ico"><use href="#i-infographic"/></svg></button>
     <div class="sep"></div>
     <button id="templateBtn" title="템플릿"><svg class="ico"><use href="#i-clipboard"/></svg></button>
     <button id="pomoBtn" title="포모도로"><svg class="ico"><use href="#i-timer"/></svg></button>
@@ -7358,6 +7362,52 @@ $('mathBtn').addEventListener('click', () => {
   $('mathPreview').innerHTML = '<span style="color:#aaa; font-size:13px;">템플릿을 선택하세요</span>';
   $('mathModal').classList.add('open');
 });
+
+/* 논문 요소 (Media 메뉴) — paperMathBtn 은 mathBtn 과 동일 동작 */
+(function wirePaperMediaButtons() {
+  const pm = document.getElementById('paperMathBtn');
+  if (pm) pm.addEventListener('click', () => document.getElementById('mathBtn').click());
+  function getSelOrBlockText() {
+    try {
+      const sel = window.getSelection && window.getSelection().toString().trim();
+      if (sel) return sel;
+    } catch {}
+    // fallback: 현재 탭 본문 (JANDiagrams 내부에서 블록 탐색도 함)
+    try {
+      if (typeof currentTab === 'function') {
+        const t = currentTab();
+        if (t && t.html) {
+          const d = document.createElement('div'); d.innerHTML = t.html;
+          return (d.textContent || '').trim();
+        }
+      }
+    } catch {}
+    return '';
+  }
+  async function runDiag(kind) {
+    if (!window.JANDiagrams) { toast('다이어그램 모듈 로드 중…'); return; }
+    if (typeof getActiveProvider === 'function' && !getActiveProvider()) {
+      toast('AI 계정을 먼저 연결하세요');
+      try { openAiKeyPanel(); $('aiModal').classList.add('open'); } catch {}
+      return;
+    }
+    const text = getSelOrBlockText();
+    try {
+      if (kind === 'org')  await window.JANDiagrams.buildOrgChart(text);
+      if (kind === 'flow') await window.JANDiagrams.buildFlowchart(text);
+      if (kind === 'info') await window.JANDiagrams.buildInfographic(text);
+    } catch (err) {
+      console.error(err);
+      toast('다이어그램 생성 실패: ' + (err && err.message || err));
+    }
+  }
+  const po = document.getElementById('paperOrgBtn');
+  const pf = document.getElementById('paperFlowBtn');
+  const pi = document.getElementById('paperInfoBtn');
+  if (po) po.addEventListener('click', () => runDiag('org'));
+  if (pf) pf.addEventListener('click', () => runDiag('flow'));
+  if (pi) pi.addEventListener('click', () => runDiag('info'));
+})();
 $('mathClose').addEventListener('click', () => $('mathModal').classList.remove('open'));
 $('mathInsertBtn').addEventListener('click', () => {
   if (!currentMathTmpl) { toast('먼저 수식 템플릿을 선택하세요'); return; }
@@ -11635,7 +11685,14 @@ function compactifyToolbar() {
       ['label', '파일 & 음성'],
       ['sel', '#attachFileBtn'], ['sel', '#audioRecordBtn'],
       ['sel', '#meetingNoteBtn'],
-      ['sel', '#voiceBtn'], ['sel', '#speakBtn']
+      ['sel', '#voiceBtn'], ['sel', '#speakBtn'],
+      ['sep'],
+      ['label', '학술 요소'],
+      ['desc', '선택한 텍스트 또는 현재 문단을 변환'],
+      ['sel', '#paperMathBtn'],
+      ['sel', '#paperOrgBtn'],
+      ['sel', '#paperFlowBtn'],
+      ['sel', '#paperInfoBtn']
     ]},
     { label: '도구', items: [
       ['label', '편집 & 검색'],
@@ -11691,6 +11748,12 @@ function compactifyToolbar() {
         l.className = 'label';
         l.textContent = arg;
         panel.appendChild(l);
+      } else if (type === 'desc') {
+        const d = document.createElement('div');
+        d.className = 'desc';
+        d.textContent = arg;
+        d.style.cssText = 'font-size:12px; color:#888; padding:2px 10px 6px; line-height:1.4;';
+        panel.appendChild(d);
       } else if (type === 'sep') {
         const s = document.createElement('div');
         s.className = 'sep';
@@ -12180,6 +12243,52 @@ init();
       banner.remove();
     });
   }
+})();
+
+/* ============================================================
+   핫 리로드 감지 (F5 없이 즉시 반영 유도)
+   ------------------------------------------------------------
+   (a) SW activate 시 JAN_RELOAD_HINT 메시지 → 토스트
+   (b) 창 포커스 / 1분 주기마다 /app.html HEAD → Last-Modified/ETag
+       이 baseline 과 다르면 토스트
+   ============================================================ */
+function showReloadToast() {
+  if (document.getElementById('jan-reload-banner')) return;
+  const el = document.createElement('div');
+  el.id = 'jan-reload-banner';
+  el.style.cssText = 'position:fixed; bottom:16px; right:16px; z-index:99999; background:#fff; border:1px solid var(--accent, #D97757); border-radius:10px; padding:12px 16px; box-shadow:0 6px 22px rgba(0,0,0,0.15); font-size:13px; display:flex; align-items:center; gap:10px;';
+  el.innerHTML =
+    '<span>새 버전이 준비됐습니다.</span>' +
+    '<button style="background:var(--accent, #D97757); color:#fff; border:0; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:12px;" onclick="location.reload()">새로고침</button>' +
+    '<button style="background:none; border:0; cursor:pointer; color:#888; font-size:18px; line-height:1;" onclick="this.parentNode.remove()">&times;</button>';
+  document.body.appendChild(el);
+}
+
+(function autoReloadWatcher() {
+  // SW 메시지로도 토스트 트리거
+  try {
+    if (navigator.serviceWorker) {
+      navigator.serviceWorker.addEventListener('message', ev => {
+        if (ev && ev.data && ev.data.type === 'JAN_RELOAD_HINT') showReloadToast();
+      });
+    }
+  } catch {}
+
+  let baseline = null;
+  async function check() {
+    try {
+      const r = await fetch('/app.html', { method: 'HEAD', cache: 'no-store' });
+      const lm = r.headers.get('last-modified') || r.headers.get('etag');
+      if (lm && baseline && lm !== baseline) {
+        showReloadToast();
+      }
+      if (lm && !baseline) baseline = lm;
+    } catch {}
+  }
+  window.addEventListener('focus', check);
+  setInterval(check, 60000); // 1분마다도
+  // 초기 baseline 설정 (첫 체크는 baseline 만 저장)
+  setTimeout(check, 2000);
 })();
 
 // 입력이 생기면 스트릭 업데이트
@@ -20035,9 +20144,9 @@ if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
       if (kind === 'info') await window.JANDiagrams.buildInfographic(text);
     } catch (err) { console.error(err); toast('다이어그램 생성 실패: ' + err.message); }
   };
-  add({ ico:'i-diagram', name:'다이어그램: 구성도로 변환', desc:'선택/본문을 AI가 조직도(Mermaid)로 변환', keywords:['org','chart','구성도','조직도','mermaid','diagram'], run:_runDiag('org') });
-  add({ ico:'i-flowchart', name:'다이어그램: 순서도로 변환', desc:'선택/본문의 절차를 순서도(Mermaid)로', keywords:['flow','flowchart','순서도','프로세스','mermaid'], run:_runDiag('flow') });
-  add({ ico:'i-infographic', name:'다이어그램: 인포그래픽 생성', desc:'텍스트의 수치를 바차트·KPI 카드 SVG로', keywords:['info','infographic','인포','차트','chart','kpi'], run:_runDiag('info') });
+  add({ ico:'i-diagram', name:'다이어그램: 구성도로 변환', desc:'선택한 텍스트 또는 현재 문단을 AI 조직도(Mermaid)로 변환', keywords:['org','chart','구성도','조직도','mermaid','diagram'], run:_runDiag('org') });
+  add({ ico:'i-flowchart', name:'다이어그램: 순서도로 변환', desc:'선택한 텍스트 또는 현재 문단을 AI 순서도(Mermaid)로 변환', keywords:['flow','flowchart','순서도','프로세스','mermaid'], run:_runDiag('flow') });
+  add({ ico:'i-infographic', name:'다이어그램: 인포그래픽 생성', desc:'선택한 텍스트 또는 현재 문단의 수치를 바차트·KPI 카드 SVG로 변환', keywords:['info','infographic','인포','차트','chart','kpi'], run:_runDiag('info') });
   add({ ico:'i-globe', name:'웹 검색 (in-app 브라우저)', desc:'앱 안에서 검색', hint:'Ctrl+Shift+F', run:clickIf('webBtn') });
   add({ ico:'i-globe', name:'웹 브라우저 열기', desc:'in-app 인앱 브라우저 열기', keywords:['web','browser','인앱'], run:clickIf('webBtn') });
   // ─── 웹 연구 도구 (v1.0.34) ────────────────────────────
