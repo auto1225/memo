@@ -1,5 +1,5 @@
 /* ============================================================
-   paper-features.js — 논문 작성 기능 팩 (v5)
+   paper-features.js — 논문 작성 기능 팩 (v6)
    ------------------------------------------------------------
    JustANotepad 에 논문 작성에 필요한 4개 기능을 추가:
 
@@ -328,9 +328,15 @@
           gap: 0 !important;
           display: block !important;
         }
-        /* 각 .jan-page 가 A4 한 장씩 분리되도록 강제 */
+        /* 각 .jan-page 가 A4 한 장씩 분리되도록 강제. 높이를 A4 로 고정해
+           내부 콘텐츠가 넘쳐도 한 장에 담기도록 overflow:hidden. */
         .jan-paper .jan-page,
         .jan-page {
+          width: 210mm !important;
+          height: 297mm !important;
+          min-height: 297mm !important;
+          max-height: 297mm !important;
+          overflow: hidden !important;
           page-break-after: always !important;
           break-after: page !important;
           page-break-inside: avoid !important;
