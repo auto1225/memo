@@ -1,5 +1,12 @@
 /* ============================================================
-   paper-features.js — 논문 작성 기능 팩 (v11)
+   paper-features.js — 논문 작성 기능 팩 (v13)
+   v13: 논문 서브 모달 5종 전면 재디자인.
+        - openPaperHelp: 표 → 카드 섹션 + kbd + code 태그.
+        - insertAuthorsBlock / insertKeywordsBlock /
+          configureHeaderFooter / insertAcknowledgments:
+          브라우저 기본 prompt() → 공용 커스텀 폼 모달
+          (paperPromptForm) 교체. 힌트·placeholder·기본값 유지.
+        - 명칭 통일: "논문 요소" → "논문"
    v11: 툴바에 "논문" 드롭다운 메뉴 추가 (paperMenuBtn2 + paperMenuDrop).
         빠른 시작 · 구성 요소 · 레이아웃 · 참조 & 인용 4섹션 16항목.
         구형 paperMenuBtn 은 숨김 유지 (호환용).
@@ -742,6 +749,154 @@
       }
       .menu-drop::-webkit-scrollbar-track {
         background: transparent;
+      }
+
+      /* ===== v13: 논문 기능 도움말 모달 (카드 섹션) ===== */
+      .jan-help {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+        color: #1c1c1c;
+        max-width: 560px;
+      }
+      .jan-help .jh-intro {
+        font-size: 13.5px;
+        line-height: 1.6;
+        color: #333;
+        margin-bottom: 18px;
+        padding: 12px 14px;
+        background: #f8f9fa;
+        border-left: 3px solid var(--accent, #d97757);
+        border-radius: 0 6px 6px 0;
+      }
+      .jan-help .jh-sec { margin-bottom: 18px; }
+      .jan-help .jh-sec h4 {
+        font-size: 11px;
+        font-weight: 700;
+        color: #999;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin: 0 0 8px;
+        padding-bottom: 4px;
+        border-bottom: 1px solid rgba(0,0,0,0.06);
+      }
+      .jan-help .jh-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .jan-help .jh-list li {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        padding: 6px 2px;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      .jan-help .jh-list li + li {
+        border-top: 1px dashed rgba(0,0,0,0.06);
+      }
+      .jan-help .jh-label {
+        flex: 0 0 130px;
+        font-weight: 500;
+        color: #1c1c1c;
+      }
+      .jan-help .jh-how {
+        flex: 1;
+        color: #555;
+      }
+      .jan-help .jh-how em {
+        font-style: normal;
+        font-weight: 500;
+        color: #1c1c1c;
+      }
+      .jan-help .jh-hint {
+        color: #888;
+        font-size: 11.5px;
+      }
+      .jan-help kbd {
+        display: inline-block;
+        padding: 1px 6px;
+        font-size: 11.5px;
+        font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+        background: #f3f4f6;
+        border: 1px solid #d0d0d0;
+        border-bottom-width: 2px;
+        border-radius: 4px;
+        color: #333;
+        white-space: nowrap;
+      }
+      .jan-help code {
+        font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+        font-size: 11.5px;
+        background: #f3f4f6;
+        padding: 1px 5px;
+        border-radius: 3px;
+        color: #c85a3f;
+      }
+      .jan-help .jh-tip {
+        margin-top: 20px;
+        padding: 12px 14px;
+        background: #fff9ec;
+        border: 1px solid #ffe3a1;
+        border-radius: 6px;
+        font-size: 12.5px;
+        line-height: 1.55;
+        color: #5a4800;
+      }
+
+      /* ===== v13: 공용 논문 입력 폼 (paperPromptForm) ===== */
+      .paper-form {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+        max-width: 520px;
+      }
+      .paper-form-intro {
+        font-size: 12.5px;
+        line-height: 1.55;
+        color: #555;
+        margin: 0 0 14px;
+        padding: 10px 12px;
+        background: #f8f9fa;
+        border-left: 3px solid var(--accent, #d97757);
+        border-radius: 0 5px 5px 0;
+      }
+      .paper-form-field { margin-bottom: 14px; }
+      .paper-form-field label {
+        display: block;
+        font-size: 12px;
+        font-weight: 600;
+        color: #555;
+        margin-bottom: 6px;
+        letter-spacing: 0.02em;
+      }
+      .paper-form-field input,
+      .paper-form-field textarea {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 9px 12px;
+        border: 1px solid #d0d0d0;
+        border-radius: 6px;
+        font-family: inherit;
+        font-size: 13px;
+        background: #fafafa;
+        color: #1c1c1c;
+        transition: border-color 0.12s, background 0.12s, box-shadow 0.12s;
+      }
+      .paper-form-field input:focus,
+      .paper-form-field textarea:focus {
+        outline: none;
+        border-color: var(--accent, #d97757);
+        background: #fff;
+        box-shadow: 0 0 0 3px rgba(217, 119, 87, 0.12);
+      }
+      .paper-form-field textarea {
+        resize: vertical;
+        min-height: 60px;
+        line-height: 1.5;
+      }
+      .paper-form-hint {
+        font-size: 11px;
+        color: #888;
+        margin-top: 4px;
+        line-height: 1.45;
       }
     `;
     document.head.appendChild(css);
@@ -1966,40 +2121,260 @@
     showUndoToast('Science 3페이지 변환 완료');
   }
 
-  /* 논문 기능 도움말 모달 — 사용법 요약표 */
+  /* 논문 기능 도움말 모달 — v13: 카드 섹션 + kbd/code + [닫기] 버튼 단일 */
   function openPaperHelp() {
     const html =
-      '<div style="padding:4px 2px 8px; font-size:13px; line-height:1.55; color:#222;">' +
-        '<p style="margin:0 0 10px;">논문 작성에 필요한 요소들은 아래 방식으로 빠르게 삽입할 수 있습니다.</p>' +
-        '<table style="width:100%; border-collapse:collapse; font-size:12.5px;">' +
-          '<thead>' +
-            '<tr style="background:#f6f8fb; border-bottom:1px solid #dbe0e7;">' +
-              '<th style="text-align:left; padding:6px 8px; font-weight:700;">기능</th>' +
-              '<th style="text-align:left; padding:6px 8px; font-weight:700;">방법</th>' +
-            '</tr>' +
-          '</thead>' +
-          '<tbody>' +
-            '<tr style="border-bottom:1px solid #eef0f3;"><td style="padding:6px 8px;">논문 샘플 불러오기</td><td style="padding:6px 8px;">툴바 "논문 요소" 메뉴 → <em>논문 샘플 불러오기</em></td></tr>' +
-            '<tr style="border-bottom:1px solid #eef0f3;"><td style="padding:6px 8px;">각주 삽입</td><td style="padding:6px 8px;">Ctrl+K → <em>각주 삽입</em>, 또는 "논문 요소" 메뉴</td></tr>' +
-            '<tr style="border-bottom:1px solid #eef0f3;"><td style="padding:6px 8px;">인용 삽입</td><td style="padding:6px 8px;">Ctrl+K → <em>인용 삽입</em> (먼저 참고문헌 항목이 있어야 함)</td></tr>' +
-            '<tr style="border-bottom:1px solid #eef0f3;"><td style="padding:6px 8px;">참고문헌 항목 추가</td><td style="padding:6px 8px;">"논문 요소" 메뉴 → <em>참고문헌 항목 추가</em> (IEEE 스타일 텍스트)</td></tr>' +
-            '<tr style="border-bottom:1px solid #eef0f3;"><td style="padding:6px 8px;">페이지 구분 삽입</td><td style="padding:6px 8px;">Ctrl+K → <em>페이지 구분</em>. 인쇄 시 한 장씩 나눠짐</td></tr>' +
-            '<tr style="border-bottom:1px solid #eef0f3;"><td style="padding:6px 8px;">수식 번호 (1)(2)…</td><td style="padding:6px 8px;"><code>&lt;figure class="jan-math"&gt;</code> 자동 카운터</td></tr>' +
-            '<tr style="border-bottom:1px solid #eef0f3;"><td style="padding:6px 8px;">Figure 번호</td><td style="padding:6px 8px;"><code>&lt;figure class="jan-fig"&gt;</code> 안에 <code>&lt;figcaption&gt;</code></td></tr>' +
-            '<tr style="border-bottom:1px solid #eef0f3;"><td style="padding:6px 8px;">Table 번호</td><td style="padding:6px 8px;"><code>&lt;figure class="jan-tbl"&gt;</code> 안에 <code>&lt;table&gt;</code> + <code>&lt;figcaption&gt;</code></td></tr>' +
-            '<tr style="border-bottom:1px solid #eef0f3;"><td style="padding:6px 8px;">Mermaid 다이어그램</td><td style="padding:6px 8px;"><code>&lt;figure class="jan-diagram" data-mermaid-code="BASE64"&gt;</code> — 샘플 로드 시 자동 렌더</td></tr>' +
-            '<tr><td style="padding:6px 8px;">번호 재정렬</td><td style="padding:6px 8px;">"논문 요소" → <em>번호 재정렬</em> (자동 실행되지만 수동 트리거)</td></tr>' +
-          '</tbody>' +
-        '</table>' +
-        '<p style="margin:10px 0 0; font-size:12px; color:#666;">각주·인용·목차 링크는 클릭하면 해당 위치로 스크롤합니다.</p>' +
+      '<div class="jan-help">' +
+        '<div class="jh-intro">' +
+          '논문 작성에 필요한 모든 요소를 <strong>툴바 &ldquo;논문&rdquo; 메뉴</strong> 또는 ' +
+          '<kbd>Ctrl</kbd>+<kbd>K</kbd> 로 빠르게 삽입할 수 있습니다.' +
+        '</div>' +
+
+        '<section class="jh-sec">' +
+          '<h4>빠른 시작</h4>' +
+          '<ul class="jh-list">' +
+            '<li>' +
+              '<span class="jh-label">논문 샘플 불러오기</span>' +
+              '<span class="jh-how">툴바 <em>논문 &rsaquo; 빠른 시작 &rsaquo; 논문 샘플 불러오기</em></span>' +
+            '</li>' +
+            '<li>' +
+              '<span class="jh-label">자동 변환 마법사</span>' +
+              '<span class="jh-how">툴바 <em>논문 &rsaquo; 빠른 시작 &rsaquo; 논문 템플릿 마법사</em></span>' +
+            '</li>' +
+          '</ul>' +
+        '</section>' +
+
+        '<section class="jh-sec">' +
+          '<h4>참조 &amp; 인용</h4>' +
+          '<ul class="jh-list">' +
+            '<li>' +
+              '<span class="jh-label">각주 삽입</span>' +
+              '<span class="jh-how"><kbd>Ctrl</kbd>+<kbd>K</kbd> &rarr; &ldquo;각주 삽입&rdquo;</span>' +
+            '</li>' +
+            '<li>' +
+              '<span class="jh-label">인용 삽입</span>' +
+              '<span class="jh-how"><kbd>Ctrl</kbd>+<kbd>K</kbd> &rarr; &ldquo;인용 삽입&rdquo; <span class="jh-hint">(먼저 참고문헌 추가)</span></span>' +
+            '</li>' +
+            '<li>' +
+              '<span class="jh-label">참고문헌 항목</span>' +
+              '<span class="jh-how">툴바 <em>논문 &rsaquo; 참조 &amp; 인용 &rsaquo; 참고문헌 항목 추가</em> <span class="jh-hint">(IEEE 스타일)</span></span>' +
+            '</li>' +
+          '</ul>' +
+        '</section>' +
+
+        '<section class="jh-sec">' +
+          '<h4>자동 번호 매기기</h4>' +
+          '<ul class="jh-list">' +
+            '<li>' +
+              '<span class="jh-label">수식 번호 (1)(2)&hellip;</span>' +
+              '<span class="jh-how">태그 <code>&lt;figure class="jan-math"&gt;</code></span>' +
+            '</li>' +
+            '<li>' +
+              '<span class="jh-label">Figure 번호</span>' +
+              '<span class="jh-how">태그 <code>&lt;figure class="jan-fig"&gt;</code> + <code>&lt;figcaption&gt;</code></span>' +
+            '</li>' +
+            '<li>' +
+              '<span class="jh-label">Table 번호</span>' +
+              '<span class="jh-how">태그 <code>&lt;figure class="jan-tbl"&gt;</code> + <code>&lt;table&gt;</code> + <code>&lt;figcaption&gt;</code></span>' +
+            '</li>' +
+            '<li>' +
+              '<span class="jh-label">번호 재정렬</span>' +
+              '<span class="jh-how">툴바 <em>논문 &rsaquo; 번호 재정렬</em> <span class="jh-hint">(자동 실행, 수동 트리거도 가능)</span></span>' +
+            '</li>' +
+          '</ul>' +
+        '</section>' +
+
+        '<section class="jh-sec">' +
+          '<h4>페이지 &middot; 레이아웃</h4>' +
+          '<ul class="jh-list">' +
+            '<li>' +
+              '<span class="jh-label">페이지 구분</span>' +
+              '<span class="jh-how">툴바 <em>논문 &rsaquo; 페이지 구분 삽입</em></span>' +
+            '</li>' +
+            '<li>' +
+              '<span class="jh-label">2단 레이아웃</span>' +
+              '<span class="jh-how">선택 영역을 <em>논문 &rsaquo; 2단 레이아웃 토글</em></span>' +
+            '</li>' +
+            '<li>' +
+              '<span class="jh-label">러닝 헤더</span>' +
+              '<span class="jh-how">모든 페이지 상단 반복 &mdash; <em>러닝 헤더 &middot; 꼬리말 설정</em></span>' +
+            '</li>' +
+          '</ul>' +
+        '</section>' +
+
+        '<section class="jh-sec">' +
+          '<h4>다이어그램</h4>' +
+          '<ul class="jh-list">' +
+            '<li>' +
+              '<span class="jh-label">Mermaid 자동 렌더</span>' +
+              '<span class="jh-how">태그 <code>&lt;figure class="jan-diagram" data-mermaid-code="BASE64"&gt;</code></span>' +
+            '</li>' +
+            '<li>' +
+              '<span class="jh-label">AI 구성도 &middot; 순서도</span>' +
+              '<span class="jh-how">툴바 <em>미디어 &rsaquo; 학술 요소</em> &rarr; 선택 텍스트 자동 변환</span>' +
+            '</li>' +
+          '</ul>' +
+        '</section>' +
+
+        '<div class="jh-tip">' +
+          '<strong>팁.</strong> 각주 &middot; 인용 &middot; 목차 링크는 클릭하면 해당 위치로 부드럽게 스크롤됩니다. ' +
+          '실수로 파괴적 변환을 했으면 <kbd>Ctrl</kbd>+<kbd>Z</kbd> 로 최대 10단계까지 되돌릴 수 있습니다.' +
+        '</div>' +
       '</div>';
-    if (typeof window.showModalHtml === 'function') {
-      window.showModalHtml('논문 기능 도움말', html);
-    } else {
-      // fallback — 창 띄우기
-      const w = window.open('', '_blank');
-      if (w) { w.document.write('<h2>논문 기능 도움말</h2>' + html); w.document.close(); }
+
+    /* 공용 #modal 을 직접 조작 — OK 버튼 숨김 + Cancel 을 "닫기" 로 */
+    const modal = document.getElementById('modal');
+    const title = document.getElementById('modalTitle');
+    const body = document.getElementById('modalBody');
+    const ok = document.getElementById('modalOk');
+    const cancel = document.getElementById('modalCancel');
+
+    if (!modal || !title || !body || !ok || !cancel) {
+      // fallback — 공용 showModalHtml
+      if (typeof window.showModalHtml === 'function') {
+        window.showModalHtml('논문 기능 도움말', html);
+      } else {
+        const w = window.open('', '_blank');
+        if (w) { w.document.write('<h2>논문 기능 도움말</h2>' + html); w.document.close(); }
+      }
+      return;
     }
+
+    // 기존 핸들러 해제 (충돌 방지)
+    ok.onclick = null;
+    cancel.onclick = null;
+
+    // 원래 상태 보존
+    const origOkDisplay = ok.style.display;
+    const origCancelText = cancel.textContent;
+    const origOkText = ok.textContent;
+
+    title.textContent = '논문 기능 도움말';
+    body.innerHTML = html;
+    ok.style.display = 'none';
+    cancel.textContent = '닫기';
+
+    const close = () => {
+      modal.classList.remove('open');
+      ok.style.display = origOkDisplay;
+      cancel.textContent = origCancelText;
+      ok.textContent = origOkText;
+      ok.onclick = null;
+      cancel.onclick = null;
+      document.removeEventListener('keydown', escHandler);
+    };
+    const escHandler = (e) => { if (e.key === 'Escape') close(); };
+
+    cancel.onclick = close;
+    document.addEventListener('keydown', escHandler);
+    modal.classList.add('open');
+  }
+
+  /* ============================================================
+     v13 — 공용 커스텀 입력 폼 모달 (prompt() 대체)
+     fields: [{ key, label, placeholder, type: 'text'|'textarea',
+                default, hint }]
+     반환: { key: value, ... } 또는 null (취소)
+     ============================================================ */
+  function paperPromptForm(title, fields, opts) {
+    opts = opts || {};
+    return new Promise((resolve) => {
+      const modal = document.getElementById('modal');
+      const titleEl = document.getElementById('modalTitle');
+      const body = document.getElementById('modalBody');
+      const ok = document.getElementById('modalOk');
+      const cancel = document.getElementById('modalCancel');
+
+      if (!modal || !titleEl || !body || !ok || !cancel) {
+        // fallback — 기본 prompt 연쇄
+        const out = {};
+        for (const f of fields) {
+          const v = window.prompt(f.label + (f.hint ? ' (' + f.hint + ')' : ''), f.default || '');
+          if (v === null) { resolve(null); return; }
+          out[f.key] = v.trim();
+        }
+        resolve(out);
+        return;
+      }
+
+      // 기존 핸들러 해제
+      ok.onclick = null;
+      cancel.onclick = null;
+
+      // 원래 상태 보존
+      const origOkDisplay = ok.style.display;
+      const origOkText = ok.textContent;
+      const origCancelText = cancel.textContent;
+
+      titleEl.textContent = title;
+      const introHtml = opts.intro
+        ? '<div class="paper-form-intro">' + escapeHtml(opts.intro) + '</div>'
+        : '';
+      const fieldsHtml = fields.map(f => {
+        const k = escapeHtml(f.key);
+        const lbl = escapeHtml(f.label);
+        const ph = escapeHtml(f.placeholder || '');
+        const dv = escapeHtml(f.default || '');
+        const hintHtml = f.hint
+          ? '<div class="paper-form-hint">' + escapeHtml(f.hint) + '</div>'
+          : '';
+        const inputHtml = f.type === 'textarea'
+          ? '<textarea data-k="' + k + '" placeholder="' + ph + '" rows="3">' + dv + '</textarea>'
+          : '<input type="text" data-k="' + k + '" placeholder="' + ph + '" value="' + dv + '">';
+        return '' +
+          '<div class="paper-form-field">' +
+            '<label>' + lbl + '</label>' +
+            inputHtml +
+            hintHtml +
+          '</div>';
+      }).join('');
+
+      body.innerHTML = '<div class="paper-form">' + introHtml + fieldsHtml + '</div>';
+      ok.style.display = '';
+      ok.textContent = opts.okLabel || '삽입';
+      cancel.textContent = '취소';
+
+      const restore = () => {
+        modal.classList.remove('open');
+        ok.style.display = origOkDisplay;
+        ok.textContent = origOkText;
+        cancel.textContent = origCancelText;
+        ok.onclick = null;
+        cancel.onclick = null;
+        document.removeEventListener('keydown', kh);
+      };
+
+      const confirmIt = () => {
+        const vals = {};
+        body.querySelectorAll('[data-k]').forEach(el => {
+          vals[el.dataset.k] = (el.value || '').trim();
+        });
+        restore();
+        resolve(vals);
+      };
+      const cancelIt = () => { restore(); resolve(null); };
+      const kh = (e) => {
+        if (e.key === 'Escape') { e.preventDefault(); cancelIt(); }
+        else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault(); confirmIt();
+        }
+        // 단일행 input 에서 Enter -> 확인 (textarea 는 제외)
+        else if (e.key === 'Enter' && e.target && e.target.tagName === 'INPUT') {
+          e.preventDefault(); confirmIt();
+        }
+      };
+
+      ok.onclick = confirmIt;
+      cancel.onclick = cancelIt;
+      document.addEventListener('keydown', kh);
+      modal.classList.add('open');
+      setTimeout(() => {
+        const first = body.querySelector('[data-k]');
+        if (first) {
+          try { first.focus(); if (first.select) first.select(); } catch (e) {}
+        }
+      }, 30);
+    });
   }
 
   /* 첫 사용자 온보딩 배너 — 논문 샘플 로드 직후 한 번만 노출 */
@@ -2020,7 +2395,7 @@
     banner.innerHTML =
       '<div style="flex:1 1 auto;">' +
         '<strong style="display:block; margin-bottom:3px; color:var(--accent, #1a4b8c);">논문 샘플이 삽입되었습니다</strong>' +
-        '<span>팁: 각주·인용·참고문헌은 툴바 "논문 요소" 메뉴 또는 ' +
+        '<span>팁: 각주·인용·참고문헌은 툴바 "논문" 메뉴 또는 ' +
         '<kbd style="background:#f2f4f7; border:1px solid #ddd; border-radius:3px; padding:0 4px; font-size:11px;">Ctrl+K</kbd> ' +
         '&rarr; "논문" 검색으로 사용할 수 있어요.</span>' +
         '<div style="margin-top:8px;"><button type="button" id="jan-paper-onboarding-help" ' +
@@ -2043,7 +2418,7 @@
     setTimeout(() => { if (banner.isConnected) banner.remove(); }, 45000);
   }
 
-  /* 논문 요소 서브메뉴 (툴바 버튼 클릭 시 작은 드롭다운) */
+  /* 논문 서브메뉴 (툴바 버튼 클릭 시 작은 드롭다운) */
   function openPaperMenu(ev) {
     const old = document.getElementById('jan-paper-menu');
     if (old) { old.remove(); return; }
@@ -2229,7 +2604,7 @@
     }
   }
 
-  /* --- 2. 러닝 헤더/꼬리말 설정 --- */
+  /* --- 2. 러닝 헤더/꼬리말 설정 --- v13: prompt → paperPromptForm */
   async function configureHeaderFooter() {
     const page = getPageEl();
     if (!page) { notify('편집 영역을 찾을 수 없습니다'); return; }
@@ -2239,7 +2614,6 @@
       return;
     }
 
-    // 간단 모달 — prompt 4번. 빈 문자열이면 해당 슬롯 건너뜀(기존 유지).
     const curTitle = (document.title || '').replace(' — JustANotepad', '') ||
                      (page.querySelector('h1,h2') && page.querySelector('h1,h2').textContent) || 'Untitled';
     const defaults = {
@@ -2248,14 +2622,32 @@
       ftrL: 'DOI: 10.xxxx/placeholder',
       ftrR: 'Page N of M'
     };
-    const hdrL = prompt('좌측 헤더 (러닝 타이틀)', defaults.hdrL);
-    if (hdrL === null) return;
-    const hdrR = prompt('우측 헤더 (저널명 등)', defaults.hdrR);
-    if (hdrR === null) return;
-    const ftrL = prompt('좌측 푸터 (DOI 등)', defaults.ftrL);
-    if (ftrL === null) return;
-    const ftrR = prompt('우측 푸터 ("Page N of M" 고정)', defaults.ftrR);
-    if (ftrR === null) return;
+
+    const vals = await paperPromptForm('러닝 헤더 · 꼬리말 설정', [
+      { key: 'hdrL', label: '좌측 헤더 (러닝 타이틀)',
+        placeholder: '논문 제목',
+        default: defaults.hdrL,
+        hint: '모든 페이지 상단 왼쪽에 반복 표시됩니다.' },
+      { key: 'hdrR', label: '우측 헤더 (저널명 등)',
+        placeholder: 'Nature, Science, ...',
+        default: defaults.hdrR,
+        hint: '저널명 · 권호 · 초안 표식 등' },
+      { key: 'ftrL', label: '좌측 푸터 (DOI 등)',
+        placeholder: 'DOI: 10.xxxx/...',
+        default: defaults.ftrL,
+        hint: 'DOI · 저작권 · 라이선스 표기' },
+      { key: 'ftrR', label: '우측 푸터 (페이지 번호 패턴)',
+        placeholder: 'Page N of M',
+        default: defaults.ftrR,
+        hint: 'N → 현재 페이지 번호, M → 총 페이지 수로 자동 치환' }
+    ], { okLabel: '적용',
+         intro: pages.length + '개 페이지에 헤더 · 꼬리말을 일괄 적용합니다. 기존 헤더 · 꼬리말은 교체됩니다.' });
+
+    if (!vals) return;
+    const hdrL = vals.hdrL || '';
+    const hdrR = vals.hdrR || '';
+    const ftrL = vals.ftrL || '';
+    const ftrR = vals.ftrR || 'Page N of M';
 
     pushPaperUndo('configure-headers');
     const total = pages.length;
@@ -2288,17 +2680,31 @@
     showUndoToast('헤더 · 꼬리말');
   }
 
-  /* --- 3. 저자 · 소속 · 교신 블록 --- */
-  function insertAuthorsBlock() {
+  /* --- 3. 저자 · 소속 · 교신 블록 --- v13: prompt → paperPromptForm */
+  async function insertAuthorsBlock() {
     const page = getPageEl();
     if (!page) { notify('편집 영역을 찾을 수 없습니다'); return; }
-    const authorsStr = prompt('저자 이름 (쉼표 구분)', 'Hong Gildong, Kim Cheolsoo, Lee Yeonghui');
-    if (authorsStr === null) return;
-    const affilStr = prompt('소속 (줄바꿈 구분 — 여러 개면 " | " 로 구분)',
-      'Dept. of Physics, Seoul National Univ. | Dept. of Chemistry, KAIST');
-    if (affilStr === null) return;
-    const email = prompt('교신저자 이메일', 'corresponding@univ.ac.kr');
-    if (email === null) return;
+
+    const vals = await paperPromptForm('저자 · 소속 · 교신 정보', [
+      { key: 'authors', label: '저자',
+        placeholder: 'Hong Gildong, Kim Cheolsoo, Lee Yeonghui',
+        default: 'Hong Gildong, Kim Cheolsoo, Lee Yeonghui',
+        hint: '쉼표(,) 로 구분. 순서대로 1, 2, 3 ... 슈퍼스크립트를 자동 부여합니다.' },
+      { key: 'affils', label: '소속', type: 'textarea',
+        placeholder: 'Dept. of Physics, SNU | Dept. of Chemistry, KAIST',
+        default: 'Dept. of Physics, Seoul National Univ. | Dept. of Chemistry, KAIST',
+        hint: '파이프(|) 또는 줄바꿈으로 구분. 저자 순서에 맞게 1, 2, 3 ...' },
+      { key: 'email', label: '교신저자 이메일',
+        placeholder: 'author@univ.ac.kr',
+        default: 'corresponding@univ.ac.kr',
+        hint: '비워두면 Corresponding 줄은 생략됩니다.' }
+    ], { okLabel: '삽입',
+         intro: '저자명(슈퍼스크립트 자동 부여) · 소속 · 교신저자 이메일 블록을 커서 위치에 삽입합니다.' });
+
+    if (!vals) return;
+    const authorsStr = vals.authors || '';
+    const affilStr = vals.affils || '';
+    const email = vals.email || '';
 
     const authors = authorsStr.split(',').map(s => s.trim()).filter(Boolean);
     const affils = affilStr.split(/\s*\|\s*|\n/).map(s => s.trim()).filter(Boolean);
@@ -2356,12 +2762,22 @@
     showUndoToast('Abstract');
   }
 
-  /* --- 5. Keywords --- */
-  function insertKeywordsBlock() {
+  /* --- 5. Keywords --- v13: prompt → paperPromptForm */
+  async function insertKeywordsBlock() {
     const page = getPageEl();
     if (!page) { notify('편집 영역을 찾을 수 없습니다'); return; }
-    const kws = prompt('키워드 (쉼표 구분)', 'quantum entanglement, superconductor, Bell inequality');
-    if (kws === null || !kws.trim()) return;
+
+    const vals = await paperPromptForm('Keywords 삽입', [
+      { key: 'kws', label: '키워드', type: 'textarea',
+        placeholder: 'quantum entanglement, superconductor, Bell inequality',
+        default: 'quantum entanglement, superconductor, Bell inequality',
+        hint: '쉼표(,) 로 구분. 보통 3 ~ 6 개 권장.' }
+    ], { okLabel: '삽입',
+         intro: '초록 아래 Keywords 한 줄을 커서 위치에 삽입합니다.' });
+
+    if (!vals) return;
+    const kws = vals.kws || '';
+    if (!kws.trim()) { notify('키워드가 비어 있습니다'); return; }
     const list = kws.split(',').map(s => s.trim()).filter(Boolean).map(escapeHtml).join(', ');
     const html = '<p class="jan-keywords"><strong>Keywords:</strong> ' + list + '</p>';
     pushPaperUndo('insert-keywords');
@@ -2475,17 +2891,37 @@
     showUndoToast('페이지 래퍼 (전체)');
   }
 
-  /* --- 8. 감사의 말 박스 --- */
-  function insertAcknowledgments() {
+  /* --- 8. 감사의 말 박스 --- v13: 선택 없으면 커스텀 폼 모달 */
+  async function insertAcknowledgments() {
     const page = getPageEl();
     if (!page) { notify('편집 영역을 찾을 수 없습니다'); return; }
     const r = getActiveRange();
-    let body = '여기에 감사 내용을 작성하세요 — 자금 지원, 자료 제공, 토론에 도움 준 분들.';
+
+    let body;
     let replace = false;
+
     if (r && !r.collapsed) {
       const txt = r.toString().trim();
       if (txt) { body = escapeHtml(txt); replace = true; }
     }
+
+    if (!body) {
+      // 선택 없음 → 커스텀 폼 모달로 내용 입력 받기
+      const vals = await paperPromptForm('감사의 말 (Acknowledgments)', [
+        { key: 'body', label: '감사 내용', type: 'textarea',
+          placeholder: '본 연구는 XX재단의 지원(과제번호 ...)을 받아 수행되었습니다. ...',
+          default: '본 연구는 [기관명]의 지원(과제번호 [번호])을 받아 수행되었습니다. 저자들은 유익한 토론을 해주신 [이름] 박사님께 감사드립니다.',
+          hint: '자금 지원 · 데이터 제공 · 토론에 도움 준 분들을 적습니다. 비워두면 플레이스홀더 문장이 들어갑니다.' }
+      ], { okLabel: '삽입',
+           intro: '감사의 말 박스를 커서 위치에 삽입합니다. 본문에서 먼저 텍스트를 선택하고 실행하면 해당 텍스트가 사용됩니다.' });
+
+      if (!vals) return;
+      const raw = (vals.body || '').trim();
+      body = raw
+        ? escapeHtml(raw)
+        : '여기에 감사 내용을 작성하세요 &mdash; 자금 지원, 자료 제공, 토론에 도움 준 분들.';
+    }
+
     const html =
       '<div class="jan-ack">' +
         '<strong>Acknowledgments.</strong>' +
@@ -2540,6 +2976,7 @@
     convertToSciencePaper,
     renderAllPaperFigures,
     openPaperHelp,
+    paperPromptForm,
     showPaperOnboardingBanner,
     /* v8 — 되돌리기 지원 */
     paperUndo,
