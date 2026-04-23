@@ -257,17 +257,25 @@
         vertical-align: middle;
         cursor: pointer;
         line-height: 1;
-        padding: 0; border: 0; background: transparent; border-radius: 0;
+        padding: 0 !important; border: 0; background: transparent; border-radius: 0;
+        margin: 0 !important;              /* 주변 글자와 곧장 붙도록 여백 제거 */
         color: inherit;
         font-weight: inherit;
         font-style: inherit;
         transition: background 0.12s;
+        white-space: nowrap;               /* 수식 중간에 줄바꿈 안 되게 */
       }
-      /* KaTeX 내부 전체를 주변 텍스트 서식으로 강제 상속 — 색/크기/굵기 모두 */
+      /* KaTeX 내부 전체를 주변 텍스트 서식으로 강제 상속 — 색/크기/굵기 모두.
+         .katex 와 .katex-html 은 기본적으로 좌우 margin 을 약간 주는데, 이로 인해
+         주변 한국어 글자와 공백이 생겨 보여서 모두 0 으로 고정. */
       .jan-math-inline .katex,
+      .jan-math-inline .katex-html,
+      .jan-math-inline .katex-display,
       .jan-math-inline .katex * {
         font-size: inherit !important;
         color: inherit !important;
+        margin: 0 !important;
+        padding: 0 !important;
       }
       .jan-math-inline .katex .mord,
       .jan-math-inline .katex .mbin,
