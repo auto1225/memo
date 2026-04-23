@@ -159,10 +159,11 @@
         stroke: #555 !important;
       }
       /* 수식 figure — 문장 사이에 끼어들어갈 수 있게 inline-block.
+         텍스트와 크기·세로 정렬 맞추어 '한 줄의 일부' 처럼 보이게.
          배경·패딩·보더 완전 투명. KaTeX 내부의 기본 흰 배경까지 모두 제거. */
       figure.jan-math {
-        display: inline-block !important;   /* 문단 안에서 텍스트 흐름 따라감 */
-        vertical-align: middle;
+        display: inline-block !important;
+        vertical-align: middle;          /* 주변 텍스트 가운데 기준 정렬 */
         margin: 0 0.15em;
         max-width: 100%;
         text-align: center;
@@ -174,7 +175,7 @@
         box-shadow: none !important;
         overflow-x: visible;
         color: inherit;
-        line-height: 1.3;
+        line-height: 1;                  /* figure 자체 높이 타이트하게 */
       }
       figure.jan-math .katex-display {
         margin: 0 !important;
@@ -182,7 +183,9 @@
         background: transparent !important;
         color: inherit;
         display: inline-block !important;
+        vertical-align: middle;
       }
+      /* KaTeX 의 기본 1.21em 폰트 크기 오버라이드 — 주변 텍스트와 동일 크기로 */
       figure.jan-math .katex,
       figure.jan-math .katex *,
       figure.jan-math .katex-html,
@@ -191,10 +194,21 @@
         background-color: transparent !important;
         color: inherit !important;
       }
+      figure.jan-math .katex {
+        font-size: 1em !important;        /* 주변 텍스트 크기와 정확히 맞춤 */
+        line-height: 1.2;
+        vertical-align: middle;
+      }
       /* KaTeX 분수/근호 줄긋기만 색 따로 (원래 currentColor 이지만 보장) */
       figure.jan-math .katex .frac-line,
       figure.jan-math .katex .sqrt-line {
         border-color: currentColor !important;
+      }
+      /* 인라인 수식 span 도 KaTeX 크기 고정 + 가운데 정렬 */
+      .jan-math-inline .katex {
+        font-size: 1em !important;
+        line-height: 1.2;
+        vertical-align: middle;
       }
       figure.jan-math figcaption {
         margin-top: 2px;
