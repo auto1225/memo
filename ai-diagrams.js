@@ -473,16 +473,21 @@
       return;
     }
 
-    // 캡처해 둔 range 우선, 없으면 현재 selection 복원 시도
+    // 우선순위:
+    // 1) 캡처해둔 _preservedRange (한 번만 소비)
+    // 2) 현재 selection 이 pageEl 안에 있으면 그대로 — 루프 내 연속 호출 시 이전 삽입 뒤를 유지
+    // 3) 그 외에는 복원된 saved selection
     let range = _preservedRange;
     _preservedRange = null; // 1회성
+    const sel = window.getSelection();
+    if (!range && sel && sel.rangeCount > 0 && pageEl.contains(sel.anchorNode)) {
+      // 이미 pageEl 안에 유효한 커서 — 복원하지 말고 그대로 사용
+      range = sel.getRangeAt(0).cloneRange();
+    }
     if (!range) {
       try {
         if (typeof window.restorePageSel === 'function') window.restorePageSel();
       } catch {}
-    }
-    const sel = window.getSelection();
-    if (!range) {
       if (sel && sel.rangeCount > 0 && pageEl.contains(sel.anchorNode)) {
         range = sel.getRangeAt(0).cloneRange();
       }
