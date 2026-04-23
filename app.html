@@ -99,7 +99,41 @@
 <script src="/adapters/gdrive.js"></script>
 <script src="/adapters/onedrive.js"></script>
 <script src="/adapters/supabase-legacy.js"></script>
+<script src="/storage-onboarding.js"></script>
 <script src="/sync.js" defer></script>
+<script>
+  /* Dropbox OAuth callback 진입 처리
+     Redirect URI: /oauth/dropbox/callback?code=...&state=... */
+  (function () {
+    try {
+      const p = location.pathname || '';
+      if (p === '/oauth/dropbox/callback' || p.endsWith('/oauth/dropbox/callback')) {
+        const handle = async () => {
+          try {
+            // JANSync init 완료 대기
+            if (window.JANSync && window.JANSync.ready) { try { await window.JANSync.ready(); } catch {} }
+            if (!window.JANSync || !window.JANSync.handleDropboxCallback) {
+              document.body && (document.body.innerHTML = '<div style="padding:40px;font-family:sans-serif">Dropbox 연결 처리 중 오류: 어댑터 로딩 실패</div>');
+              return;
+            }
+            await window.JANSync.handleDropboxCallback(location.search);
+            // 활성 provider = dropbox 로 전환
+            await window.JANStorage.setActive('dropbox');
+            // 성공 시 메인 앱으로 리다이렉트
+            location.replace('/app.html');
+          } catch (e) {
+            document.body && (document.body.innerHTML =
+              '<div style="padding:40px;font-family:sans-serif">' +
+              '<h2>Dropbox 연결 실패</h2><p>' + (e && e.message || e) + '</p>' +
+              '<p><a href="/app.html">앱으로 돌아가기</a></p></div>');
+          }
+        };
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', handle);
+        else handle();
+      }
+    } catch {}
+  })();
+</script>
 <!-- 로컬 IndexedDB blob 저장소 — 이미지/첨부를 localStorage에서 분리해 디바이스 용량만큼 사용
      100% on-device, 네트워크 통신 없음, 외부 서버 접근 없음. -->
 <script src="/idb-store.js"></script>
@@ -11487,6 +11521,11 @@ init();
             매직 링크 전송
           </button>
           <small style="color:var(--ink-soft); font-size:10px; margin-top:4px;">비밀번호 없이 이메일 링크로 로그인</small>
+          <div style="text-align:center; color:var(--ink-soft); font-size:11px; margin:14px 0 4px;">— 또는 —</div>
+          <button id="loginByoc" style="background:#fff; border:1px solid var(--paper-edge); padding:10px 14px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600; color:#2f6feb;">
+            내 클라우드 (Dropbox·폴더) 로 저장하기
+          </button>
+          <small style="color:var(--ink-soft); font-size:10px; margin-top:4px;">서버 계정 없이 내가 직접 저장 위치를 지정합니다</small>
         </div>
         <div style="margin-top:20px; padding:10px; background:#f9f5ff; border-radius:6px; font-size:11px; color:var(--ink-soft); text-align:left;">
           <b>미설정 오류 시:</b> 관리자가 Supabase에서 해당 Provider를 활성화해야 합니다. Authentication → Providers 확인.
@@ -11507,6 +11546,18 @@ init();
           toast(email + '로 매직 링크 전송됨. 메일 확인!', 6000);
         }
       });
+      // BYOC 진입
+      try {
+        const byoc = $('loginByoc');
+        if (byoc) byoc.addEventListener('click', () => {
+          $('modal').classList.remove('open');
+          if (window.JANStorageOnboarding && window.JANStorageOnboarding.open) {
+            window.JANStorageOnboarding.open();
+          } else {
+            toast('온보딩 모듈 로딩 실패', 3000);
+          }
+        });
+      } catch {}
     }, 50);
   }
 
@@ -11523,6 +11574,13 @@ init();
         </div>
 
         <div style="max-width:380px; margin:0 auto; display:flex; flex-direction:column; gap:12px;">
+
+          <div style="border:1px solid var(--line); border-radius:10px; padding:10px 12px;">
+            <button id="acctChangeProvider" style="width:100%; padding:10px; background:#fff; color:var(--ink); border:1px solid var(--line); border-radius:6px; cursor:pointer; font-weight:600;">동기화 방식 바꾸기…</button>
+            <div id="acctProviderLabel" style="font-size:11.5px; color:var(--ink-soft); margin-top:6px; line-height:1.5;">
+              현재: <b>—</b>
+            </div>
+          </div>
 
           <div style="border:1px solid var(--line); border-radius:10px; padding:10px 12px;">
             <button id="acctSyncNow" style="width:100%; padding:10px; background:var(--accent); color:#111; border:none; border-radius:6px; cursor:pointer; font-weight:700;">지금 동기화</button>
@@ -11558,6 +11616,30 @@ init();
             : '마지막 동기화: 기록 없음 (아직 동기화 안 함)';
         }
       } catch {}
+
+      // 동기화 방식 바꾸기 버튼
+      try {
+        const pBtn = $('acctChangeProvider');
+        const pLbl = $('acctProviderLabel');
+        if (pLbl && window.JANStorage) {
+          const name = window.JANStorage.getActiveName();
+          const a = window.JANStorage.getActive();
+          const st = a && a.getStatus && a.getStatus();
+          const label = name === 'none' ? '오프라인만'
+                     : name === 'supabase' ? 'Supabase (서버)'
+                     : name === 'local' ? '내 PC 폴더' + (st && st.identity ? ' · ' + st.identity : '')
+                     : name === 'dropbox' ? 'Dropbox' + (st && st.identity ? ' · ' + st.identity : '')
+                     : name;
+          pLbl.innerHTML = '현재: <b>' + label + '</b>';
+        }
+        if (pBtn) pBtn.addEventListener('click', () => {
+          if (window.JANStorageOnboarding && window.JANStorageOnboarding.open) {
+            window.JANStorageOnboarding.open();
+          } else {
+            toast('온보딩 모듈 로딩 실패', 3000);
+          }
+        });
+      } catch (e) { console.warn('[Account] provider UI err', e); }
 
       $('acctSyncNow').addEventListener('click', async () => {
         toast('동기화 중…');
@@ -11609,6 +11691,18 @@ init();
 
   window.addEventListener('jan-auth-change', update);
   setTimeout(update, 1000);
+
+  // BYOC 온보딩 자동 노출 — 세션 없고 provider 미선택 시 1회
+  setTimeout(() => {
+    try {
+      if (!window.JANStorageOnboarding) return;
+      const sess = window.JANSync && window.JANSync.getSession && window.JANSync.getSession();
+      const name = window.JANStorage && window.JANStorage.getActiveName && window.JANStorage.getActiveName();
+      if (!sess && (!name || name === 'none')) {
+        window.JANStorageOnboarding.openIfFirstRun();
+      }
+    } catch {}
+  }, 2500);
 
   // 랜딩페이지에서 ?signup=1, ?signin=1, ?download=1 쿼리로 진입 시 자동 처리
   function handleLandingIntent() {
