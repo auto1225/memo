@@ -3427,11 +3427,8 @@
             cursorPage = cursorPage.parentElement;
           }
           if (cursorPage && cursorPage.classList && cursorPage.classList.contains('jan-doc-page')) {
-            /* v38: 페이지 명시적 focus — contenteditable 이 다른 페이지일 수 있어 강제 */
-            try { cursorPage.focus({ preventScroll: true }); } catch { try { cursorPage.focus(); } catch {} }
-            /* selection 재적용 (focus 후 sel 가 리셋될 수 있음) */
-            sel2.removeAllRanges();
-            sel2.addRange(savedRange);
+            /* v40: focus() 호출 제거 — typing 도중 selection 리셋 방지.
+               selection 은 이미 위에서 setRange 로 복원됨. */
             /* 화면 밖이면 스크롤 */
             const rect = cursorPage.getBoundingClientRect();
             const viewH = window.innerHeight;
@@ -3696,18 +3693,20 @@
     return true;
   }
 
-  /* v39: Enter 직후 즉시 split — 디바운스 없이 다음 frame 에 실행 */
+  /* v40: Enter 직후 즉시 split — focus() 제거 (typing 방해).
+     autoSplit 만 실행하고 커서는 자연스럽게 따라가도록 (live Range). */
   function handleEnterImmediateSplit() {
     requestAnimationFrame(() => {
       try {
+        /* split 전 커서가 속한 dp 기억 */
+        const beforeDp = _getCursorDocPage();
         autoSplitOverflowingPages();
-        /* split 후 커서가 새 페이지에 갔는지 확인 + 강제 focus */
-        const dp = _getCursorDocPage();
-        if (dp) {
-          try { dp.focus({ preventScroll: true }); } catch {}
-          const r = dp.getBoundingClientRect();
+        /* split 후 dp 가 바뀌었으면 (= 커서가 새 페이지로 이동) 스크롤만 */
+        const afterDp = _getCursorDocPage();
+        if (afterDp && afterDp !== beforeDp) {
+          const r = afterDp.getBoundingClientRect();
           if (r.top < 60 || r.top > window.innerHeight * 0.85) {
-            dp.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            afterDp.scrollIntoView({ behavior: 'smooth', block: 'center' });
           }
         }
       } catch (err) { /* silent */ }
