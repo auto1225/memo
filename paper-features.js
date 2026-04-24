@@ -3791,7 +3791,23 @@
     if (paraRect.height <= 0 || paraRect.height > pageHpx * 0.9) return false;
     if (paraRect.bottom < dpRect.top || paraRect.top > dpRect.bottom) return false;
     const lineHeight = Math.min(paraRect.height, 50);
-    if (paraRect.bottom + lineHeight <= safeBottom + 2) return false;
+    /* v49: 페이지 끝점 + 자리 남았으면 명시적으로 새 paragraph 삽입 (default Enter 의존 X). */
+    if (paraRect.bottom + lineHeight <= safeBottom + 2) {
+      e.preventDefault();
+      try { pushPaperUndo('enter-new-line'); } catch {}
+      const newTag = (pn.tagName === 'DIV') ? 'div' : 'p';
+      const newP = document.createElement(newTag);
+      newP.appendChild(document.createElement('br'));
+      pn.parentNode.insertBefore(newP, pn.nextSibling);
+      const newRange = document.createRange();
+      newRange.setStart(newP, 0);
+      newRange.collapse(true);
+      const selNew = window.getSelection();
+      selNew.removeAllRanges();
+      selNew.addRange(newRange);
+      scheduleSave();
+      return true;
+    }
 
     e.preventDefault();
     try { pushPaperUndo('page-enter-split'); } catch {}
