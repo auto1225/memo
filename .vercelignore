@@ -1,0 +1,14 @@
+# Source and build artifacts not needed on static deploy
+v2/
+src-tauri/
+build/
+dist-windows/
+android-build/
+node_modules/
+*.apk
+*.aab
+*.ipa
+*.dmg
+*.msi
+*.AppImage
+*.deb
