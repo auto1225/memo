@@ -12199,7 +12199,12 @@ function compactifyToolbar() {
       ['sep'],
       ['label', '여백'],
       ['action', { icon:'i-pages', label:'페이지 여백 설정 (mm)', tip:'상·우·하·좌 4방향 mm 단위 커스텀',
-        onclick:() => { try { window.JANWordFeatures.openPageMargins(); } catch(e){} } }]
+        onclick:() => { try { window.JANWordFeatures.openPageMargins(); } catch(e){} } }],
+      ['sep'],
+      ['label', '인쇄 & PDF (Paged.js)'],
+      ['desc', '편집 화면은 contenteditable, 인쇄는 W3C CSS Paged Media 표준으로 픽셀 퍼펙트 분할'],
+      ['action', { icon:'i-printer', label:'인쇄 미리보기 (Paged.js)', tip:'정확한 페이지 분할 + 머리글/번호 + PDF 저장',
+        onclick:() => { try { window.JANPagedPreview.open(); } catch(e){ alert('Paged.js 미리보기 로드 실패 — 새로고침 후 재시도'); } } }]
     ]},
     { label: '미디어', items: [
       ['label', '이미지 & 캡쳐'],
@@ -20776,6 +20781,8 @@ if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
 <script src="/ms-word-shortcuts.js?v=1"></script>
 <!-- v20: MS Word 공통 기능 10종 (자간·장평·들여쓰기·단락간격·여백·책갈피·텍스트박스 등) -->
 <script src="/word-features.js?v=2"></script>
+<!-- v37: Paged.js 인쇄 미리보기 (W3C CSS Paged Media 표준) — 픽셀 퍼펙트 페이지 분할 -->
+<script src="/paged-preview.js?v=1"></script>
 <!-- JustANotepad CAR-T ALL 바이오 논문 나머지 본문 (2.3 ~ Conclusion + Refs) -->
 <script src="/bio-paper-rest-data.js?v=1"></script>
 <!-- JustANotepad home hub — dashboard drawer with recent activity -->
