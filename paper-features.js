@@ -3712,6 +3712,93 @@
     });
   }
 
+  /* v42: Backspace 의 mirror — Enter 가 페이지 끝점에서 눌렸거나
+     페이지가 거의 가득 찬 상태에서 눌리면, 즉시 다음 페이지 만들고
+     cursor 를 거기 첫 paragraph 로 이동.
+     이렇게 해야 "엔터도 문자처럼" 페이지를 넘어가는 동작이 됨.
+     반환 true 이면 e.preventDefault() 처리됨 (default Enter 안 함). */
+  function handleEnterMaybeNewPage(e) {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return false;
+    const range = sel.getRangeAt(0);
+    if (!range.collapsed) return false;
+
+    const curDp = _getCursorDocPage();
+    if (!curDp) return false;
+
+    const page = getPageEl();
+    if (!page) return false;
+    const computed = getComputedStyle(page);
+    const pageHmm = parseFloat(computed.getPropertyValue('--page-h')) || 297;
+    const pageHpx = mmToPx(pageHmm);
+    const dpComputed = getComputedStyle(curDp);
+    const padBottom = parseFloat(dpComputed.paddingBottom) || 0;
+
+    let cursorRect;
+    try {
+      cursorRect = range.getBoundingClientRect();
+      if (cursorRect.height === 0) {
+        let n = range.startContainer;
+        if (n.nodeType === Node.TEXT_NODE) n = n.parentElement;
+        if (n) cursorRect = n.getBoundingClientRect();
+      }
+    } catch { return false; }
+    if (!cursorRect) return false;
+
+    const dpRect = curDp.getBoundingClientRect();
+    const safeBottom = dpRect.top + (pageHpx - padBottom);
+    const lineHeight = cursorRect.height || 24;
+    const trigger = (cursorRect.bottom + lineHeight) > safeBottom;
+
+    const isAtEnd = _isAtPageEnd(range, curDp);
+    if (!trigger && !isAtEnd) return false;
+
+    e.preventDefault();
+    try { pushPaperUndo('page-enter-split'); } catch {}
+
+    let nextDp = curDp.nextElementSibling;
+    if (!nextDp || !nextDp.classList || !nextDp.classList.contains('jan-doc-page')) {
+      nextDp = document.createElement('div');
+      nextDp.className = 'jan-doc-page';
+      nextDp.setAttribute('contenteditable', 'true');
+      nextDp.innerHTML = '<p><br></p>';
+      curDp.parentNode.insertBefore(nextDp, curDp.nextSibling);
+    } else {
+      const first = nextDp.firstElementChild;
+      const firstEmpty = first && first.tagName === 'P' &&
+        first.childNodes.length === 1 && first.firstChild &&
+        first.firstChild.nodeName === 'BR';
+      if (!firstEmpty) {
+        const newP = document.createElement('p');
+        newP.appendChild(document.createElement('br'));
+        nextDp.insertBefore(newP, nextDp.firstChild);
+      }
+    }
+
+    const targetP = nextDp.firstElementChild;
+    try { nextDp.focus({ preventScroll: true }); } catch {}
+    const newRange = document.createRange();
+    if (targetP) {
+      newRange.setStart(targetP, 0);
+    } else {
+      newRange.setStart(nextDp, 0);
+    }
+    newRange.collapse(true);
+    const sel2 = window.getSelection();
+    sel2.removeAllRanges();
+    sel2.addRange(newRange);
+
+    try {
+      const r = nextDp.getBoundingClientRect();
+      if (r.top < 60 || r.top > window.innerHeight * 0.85) {
+        nextDp.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    } catch {}
+
+    scheduleSave();
+    return true;
+  }
+
   /* 편집 이벤트 리스너 — scheduleAutoSplit 트리거.
      v33: ResizeObserver 로 .jan-doc-page 높이 변화를 직접 감지 → 더 빠른 반응. */
   let _resizeObserver = null;
@@ -3732,9 +3819,16 @@
     page.addEventListener('keydown', (e) => {
       if (!page.classList.contains('jan-paged')) return;
       if (_isComposingSplit) return;  /* IME 조합 중에는 가만히 둠 */
-      /* Enter — 기본 동작 후 즉시 split + 커서 따라가기 */
-      if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) {
-        /* Shift+Enter 는 줄바꿈 — 그대로 두지만 split 도 검사 */
+      /* Enter — v42: 페이지 끝/거의 가득 차면 직접 다음 페이지 만들기 */
+      if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) {
+        /* 1) 다음 페이지로 직접 이동이 가능한 상황인지 시도 */
+        if (handleEnterMaybeNewPage(e)) return;
+        /* 2) 그게 아니면 default Enter (새 paragraph) + 즉시 split 보정 */
+        handleEnterImmediateSplit();
+        return;
+      }
+      /* Shift+Enter 는 줄바꿈 — split 만 검사 */
+      if (e.key === 'Enter' && e.shiftKey && !e.ctrlKey && !e.metaKey) {
         handleEnterImmediateSplit();
         return;
       }
