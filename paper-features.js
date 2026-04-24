@@ -3440,9 +3440,13 @@
     }
   }
 
-  /* v39: 페이지가 비어있는지 판정 — 이미지·테이블 등 콘텐츠 없으면 빈 페이지 */
+  /* v39: 페이지가 비어있는지 판정 — 이미지·테이블 등 콘텐츠 없으면 빈 페이지.
+     v43: 사용자가 Enter 로 직접 만든 페이지(marker 있음)는 비어있어도
+     "사용자 의도" 로 간주 → 자동 삭제 안 함. */
   function isPageEmpty(dp) {
     if (!dp) return true;
+    /* v43: 사용자 marker 있으면 비어있지 않음 */
+    if (dp.querySelector('[data-jan-marker="enter"]')) return false;
     /* 텍스트 있으면 비어있지 않음 */
     const text = (dp.textContent || '').trim();
     if (text) return false;
@@ -3761,7 +3765,8 @@
       nextDp = document.createElement('div');
       nextDp.className = 'jan-doc-page';
       nextDp.setAttribute('contenteditable', 'true');
-      nextDp.innerHTML = '<p><br></p>';
+      /* v43: data-jan-marker=enter — isPageEmpty 가 살려둠 + ¶ CSS 표시 anchor */
+      nextDp.innerHTML = '<p data-jan-marker="enter"><br></p>';
       curDp.parentNode.insertBefore(nextDp, curDp.nextSibling);
     } else {
       const first = nextDp.firstElementChild;
@@ -3770,8 +3775,11 @@
         first.firstChild.nodeName === 'BR';
       if (!firstEmpty) {
         const newP = document.createElement('p');
+        newP.setAttribute('data-jan-marker', 'enter');
         newP.appendChild(document.createElement('br'));
         nextDp.insertBefore(newP, nextDp.firstChild);
+      } else if (first && !first.hasAttribute('data-jan-marker')) {
+        first.setAttribute('data-jan-marker', 'enter');
       }
     }
 
@@ -4308,6 +4316,21 @@
   /* ============================================================
      공개 API
      ============================================================ */
+  /* v43: 엔터(¶) 표시 토글 — body class 로 제어, localStorage 에 저장 */
+  function togglePilcrow() {
+    const body = document.body;
+    const on = body.classList.toggle('jan-show-pilcrow');
+    try { localStorage.setItem('jan-show-pilcrow', on ? '1' : '0'); } catch {}
+    notify(on ? '엔터 표시 켬' : '엔터 표시 끔');
+    return on;
+  }
+  /* 초기 상태 복원 */
+  try {
+    if (localStorage.getItem('jan-show-pilcrow') === '1') {
+      document.body.classList.add('jan-show-pilcrow');
+    }
+  } catch {}
+
   window.JANPaper = {
     insertFootnote,
     renumberFootnotes,
@@ -4330,6 +4353,8 @@
     showUndoToast,
     _paperUndoStack,
     /* v10 — 원자 기능 8종 */
-    atoms: paperAtoms
+    atoms: paperAtoms,
+    /* v43 — 엔터 표시 토글 */
+    togglePilcrow
   };
 })();

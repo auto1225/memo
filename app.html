@@ -1398,6 +1398,24 @@
   }
   /* v38: 사용자 요청 — Page N 라벨 제거 (편집 화면 깔끔하게) */
   .page.jan-paged .jan-doc-page::before { content: none !important; display: none !important; }
+  /* v43: 엔터(¶) 표시 — body.jan-show-pilcrow 일 때만 빈 paragraph 끝에 표시. */
+  body.jan-show-pilcrow .page.jan-paged .jan-doc-page p[data-jan-marker="enter"]::after,
+  body.jan-show-pilcrow .page.jan-paged .jan-doc-page p:empty::after {
+    content: '¶';
+    color: #c8a890;
+    opacity: 0.5;
+    font-weight: normal;
+    font-size: 0.9em;
+    pointer-events: none;
+    user-select: none;
+  }
+  @media print {
+    body.jan-show-pilcrow .page.jan-paged .jan-doc-page p[data-jan-marker="enter"]::after,
+    body.jan-show-pilcrow .page.jan-paged .jan-doc-page p:empty::after {
+      content: none !important;
+      display: none !important;
+    }
+  }
   /* 모든 overlay 잔재 숨김 (이전 버전 호환) */
   .jan-page-sheets, .jan-sheet, .jan-page-labels, .jan-page-divider, .jan-page-margin-bottom { display:none !important; }
   /* 페이지 번호 pill 라벨 — 페이지 시트 내부 absolute */
@@ -12181,6 +12199,10 @@ function compactifyToolbar() {
       ['action', { icon:'i-pages', label:'페이지 여백 설정 (mm)', tip:'상·우·하·좌 4방향 mm 단위 커스텀',
         onclick:() => { try { window.JANWordFeatures.openPageMargins(); } catch(e){} } }],
       ['sep'],
+      ['label', '편집 보조'],
+      ['action', { icon:'i-bookmark', label:'엔터 표시(¶) 켬/끔', tip:'빈 단락 끝에 ¶ 표시 (편집 화면만, 인쇄 시 숨김)',
+        onclick:() => { try { window.JANPaper.togglePilcrow(); } catch(e){} } }],
+      ['sep'],
       ['label', '인쇄 & PDF (Paged.js)'],
       ['desc', '편집 화면은 contenteditable, 인쇄는 W3C CSS Paged Media 표준으로 픽셀 퍼펙트 분할'],
       ['action', { icon:'i-printer', label:'인쇄 미리보기 (Paged.js)', tip:'정확한 페이지 분할 + 머리글/번호 + PDF 저장',
@@ -20752,7 +20774,7 @@ if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
 <!-- JustANotepad AI 다이어그램 생성 (구성도/순서도/인포그래픽) — Mermaid + AI -->
 <script src="/ai-diagrams.js?v=9"></script>
 <!-- JustANotepad 논문 작성 기능 (각주·인용·번호·페이지 구분) -->
-<script src="/paper-features.js?v=42"></script>
+<script src="/paper-features.js?v=43"></script>
 <!-- JustANotepad 논문 샘플 템플릿 데이터 (Science 포맷 물리학 논문 3페이지) -->
 <script src="/paper-template-data.js?v=3"></script>
 <!-- v15: 분야별 예시 논문 스켈레톤 (생물·의학 / CS / 공학 / 경제학 / 물리학 경량) -->
