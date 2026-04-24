@@ -3410,15 +3410,16 @@
     /* 빈 페이지 (마지막 제외) 제거 + 여유 있는 페이지에 다음 페이지 콘텐츠 당기기 (선택적, 보수적) */
     consolidateDocPages(page, pageHpx);
 
-    /* v33: 저장된 selection 복원 — DOM 조작으로 sel 이 이탈했으면 재적용.
-       + 커서가 다른 페이지로 이동했으면 scrollIntoView 로 보이게. */
+    /* v38: 저장된 selection 복원 + 커서 따라 이동 + 새 페이지로 강제 focus.
+       Range 는 라이브이므로 노드가 다른 페이지로 이동해도 자동 따라감.
+       단, contenteditable focus 가 부모 페이지 변경 시 빠질 수 있어 명시적으로 focus + scroll. */
     if (savedRange) {
       try {
         const sel2 = window.getSelection();
         if (savedRange.startContainer && page.contains(savedRange.startContainer)) {
           sel2.removeAllRanges();
           sel2.addRange(savedRange);
-          /* 커서가 있는 블록의 부모 .jan-doc-page 찾아서 화면에 보이게 */
+          /* 커서가 있는 블록의 부모 .jan-doc-page 찾기 */
           let cursorPage = savedRange.startContainer;
           if (cursorPage.nodeType === Node.TEXT_NODE) cursorPage = cursorPage.parentElement;
           while (cursorPage && cursorPage !== page) {
@@ -3426,11 +3427,16 @@
             cursorPage = cursorPage.parentElement;
           }
           if (cursorPage && cursorPage.classList && cursorPage.classList.contains('jan-doc-page')) {
-            /* 커서가 화면 밖에 있으면 스크롤 */
+            /* v38: 페이지 명시적 focus — contenteditable 이 다른 페이지일 수 있어 강제 */
+            try { cursorPage.focus({ preventScroll: true }); } catch { try { cursorPage.focus(); } catch {} }
+            /* selection 재적용 (focus 후 sel 가 리셋될 수 있음) */
+            sel2.removeAllRanges();
+            sel2.addRange(savedRange);
+            /* 화면 밖이면 스크롤 */
             const rect = cursorPage.getBoundingClientRect();
             const viewH = window.innerHeight;
-            if (rect.top < 0 || rect.top > viewH * 0.8) {
-              cursorPage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            if (rect.top < 60 || rect.top > viewH * 0.85) {
+              cursorPage.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
           }
         }
