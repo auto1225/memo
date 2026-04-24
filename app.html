@@ -1398,20 +1398,34 @@
   }
   /* v38: 사용자 요청 — Page N 라벨 제거 (편집 화면 깔끔하게) */
   .page.jan-paged .jan-doc-page::before { content: none !important; display: none !important; }
-  /* v43: 엔터(¶) 표시 — body.jan-show-pilcrow 일 때만 빈 paragraph 끝에 표시. */
-  body.jan-show-pilcrow .page.jan-paged .jan-doc-page p[data-jan-marker="enter"]::after,
-  body.jan-show-pilcrow .page.jan-paged .jan-doc-page p:empty::after {
-    content: '¶';
+  /* v44: 엔터(¶) 표시 — 모든 paragraph 끝에 표시 (Word 동작). */
+  body.jan-show-pilcrow .page.jan-paged .jan-doc-page p::after,
+  body.jan-show-pilcrow .page.jan-paged .jan-doc-page h1::after,
+  body.jan-show-pilcrow .page.jan-paged .jan-doc-page h2::after,
+  body.jan-show-pilcrow .page.jan-paged .jan-doc-page h3::after,
+  body.jan-show-pilcrow .page.jan-paged .jan-doc-page h4::after,
+  body.jan-show-pilcrow .page.jan-paged .jan-doc-page h5::after,
+  body.jan-show-pilcrow .page.jan-paged .jan-doc-page h6::after,
+  body.jan-show-pilcrow .page.jan-paged .jan-doc-page li::after,
+  body.jan-show-pilcrow .page.jan-paged .jan-doc-page blockquote::after {
+    content: ' ¶';
     color: #c8a890;
-    opacity: 0.5;
+    opacity: 0.55;
     font-weight: normal;
     font-size: 0.9em;
     pointer-events: none;
     user-select: none;
   }
   @media print {
-    body.jan-show-pilcrow .page.jan-paged .jan-doc-page p[data-jan-marker="enter"]::after,
-    body.jan-show-pilcrow .page.jan-paged .jan-doc-page p:empty::after {
+    body.jan-show-pilcrow .page.jan-paged .jan-doc-page p::after,
+    body.jan-show-pilcrow .page.jan-paged .jan-doc-page h1::after,
+    body.jan-show-pilcrow .page.jan-paged .jan-doc-page h2::after,
+    body.jan-show-pilcrow .page.jan-paged .jan-doc-page h3::after,
+    body.jan-show-pilcrow .page.jan-paged .jan-doc-page h4::after,
+    body.jan-show-pilcrow .page.jan-paged .jan-doc-page h5::after,
+    body.jan-show-pilcrow .page.jan-paged .jan-doc-page h6::after,
+    body.jan-show-pilcrow .page.jan-paged .jan-doc-page li::after,
+    body.jan-show-pilcrow .page.jan-paged .jan-doc-page blockquote::after {
       content: none !important;
       display: none !important;
     }
@@ -20774,7 +20788,7 @@ if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
 <!-- JustANotepad AI 다이어그램 생성 (구성도/순서도/인포그래픽) — Mermaid + AI -->
 <script src="/ai-diagrams.js?v=9"></script>
 <!-- JustANotepad 논문 작성 기능 (각주·인용·번호·페이지 구분) -->
-<script src="/paper-features.js?v=43"></script>
+<script src="/paper-features.js?v=44"></script>
 <!-- JustANotepad 논문 샘플 템플릿 데이터 (Science 포맷 물리학 논문 3페이지) -->
 <script src="/paper-template-data.js?v=3"></script>
 <!-- v15: 분야별 예시 논문 스켈레톤 (생물·의학 / CS / 공학 / 경제학 / 물리학 경량) -->

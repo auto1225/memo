@@ -3730,32 +3730,12 @@
     const curDp = _getCursorDocPage();
     if (!curDp) return false;
 
-    const page = getPageEl();
-    if (!page) return false;
-    const computed = getComputedStyle(page);
-    const pageHmm = parseFloat(computed.getPropertyValue('--page-h')) || 297;
-    const pageHpx = mmToPx(pageHmm);
-    const dpComputed = getComputedStyle(curDp);
-    const padBottom = parseFloat(dpComputed.paddingBottom) || 0;
-
-    let cursorRect;
-    try {
-      cursorRect = range.getBoundingClientRect();
-      if (cursorRect.height === 0) {
-        let n = range.startContainer;
-        if (n.nodeType === Node.TEXT_NODE) n = n.parentElement;
-        if (n) cursorRect = n.getBoundingClientRect();
-      }
-    } catch { return false; }
-    if (!cursorRect) return false;
-
-    const dpRect = curDp.getBoundingClientRect();
-    const safeBottom = dpRect.top + (pageHpx - padBottom);
-    const lineHeight = cursorRect.height || 24;
-    const trigger = (cursorRect.bottom + lineHeight) > safeBottom;
-
-    const isAtEnd = _isAtPageEnd(range, curDp);
-    if (!trigger && !isAtEnd) return false;
+    /* v44: cursor 가 페이지 끝점일 때만 직접 다음 페이지로 이동.
+       페이지 중간에서 Enter 는 default 동작 (해당 위치에 빈 줄 삽입) +
+       autoSplit 이 overflow 시 텍스트만 다음 페이지로 이동 — Word 동작.
+       이전 v42 의 "거의 가득 차면 trigger" 는 cursor 위치 무시하고
+       무조건 점프시켜서 사용자가 의도한 줄바꿈을 망가뜨림. */
+    if (!_isAtPageEnd(range, curDp)) return false;
 
     e.preventDefault();
     try { pushPaperUndo('page-enter-split'); } catch {}
