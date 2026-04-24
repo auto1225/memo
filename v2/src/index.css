@@ -1,0 +1,153 @@
+@import "tailwindcss";
+
+:root {
+  --jan-bg: #ffeef2;
+  --jan-bg-alt: #fff4f7;
+  --jan-fg: #2a2a2a;
+  --jan-accent: #d97757;
+  --jan-accent-2: #c8a890;
+  --jan-paper: #ffffff;
+  --page-w: 210mm;
+  --page-h: 297mm;
+  --page-margin: 20mm;
+  --page-margin-x: 22mm;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: var(--jan-bg);
+  color: var(--jan-fg);
+  font-family: 'Noto Sans KR', 'Malgun Gothic', -apple-system, sans-serif;
+  font-size: 11pt;
+  line-height: 1.65;
+}
+
+.jan-editor-wrap {
+  min-height: 100vh;
+  padding: 24px 0 80px;
+  overflow-y: auto;
+}
+
+.jan-page {
+  width: 100%;
+  max-width: var(--page-w);
+  min-height: var(--page-h);
+  margin: 0 auto 24px;
+  padding: var(--page-margin) var(--page-margin-x);
+  background: var(--jan-paper);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05), 0 12px 28px rgba(0,0,0,0.10);
+  box-sizing: border-box;
+  position: relative;
+  outline: none;
+}
+
+.jan-page:focus, .jan-page:focus-visible {
+  outline: none;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05), 0 12px 28px rgba(0,0,0,0.10), 0 0 0 2px rgba(217,119,87,0.25);
+}
+
+.ProseMirror {
+  outline: none;
+  min-height: calc(var(--page-h) - var(--page-margin) * 2);
+}
+
+.ProseMirror p { margin: 0.5em 0; }
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: #b8a89a;
+  pointer-events: none;
+  height: 0;
+  float: left;
+}
+
+body.jan-show-pilcrow .ProseMirror p::after {
+  content: ' \00b6';
+  color: var(--jan-accent-2);
+  opacity: 0.55;
+  font-size: 0.9em;
+  pointer-events: none;
+  user-select: none;
+}
+
+@media print {
+  body.jan-show-pilcrow .ProseMirror p::after { content: none !important; }
+  .jan-page { box-shadow: none; margin: 0; page-break-after: always; }
+  .jan-editor-wrap { background: white; padding: 0; }
+}
+
+.jan-titlebar {
+  position: sticky; top: 0; z-index: 11;
+  background: var(--jan-bg-alt);
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+  padding: 8px 16px;
+  display: flex; gap: 8px; align-items: center;
+}
+
+.jan-title-input {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 4px;
+  background: var(--jan-paper);
+  color: var(--jan-fg);
+  font-size: 14px;
+  font-weight: 500;
+  outline: none;
+}
+
+.jan-title-input:focus {
+  border-color: var(--jan-accent);
+  box-shadow: 0 0 0 2px rgba(217,119,87,0.15);
+}
+
+.jan-titlebar button {
+  padding: 6px 12px;
+  background: var(--jan-paper);
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--jan-fg);
+}
+
+.jan-titlebar button:hover { background: var(--jan-bg); }
+
+.jan-statusbar {
+  position: sticky; bottom: 0; z-index: 10;
+  background: var(--jan-bg-alt);
+  border-top: 1px solid rgba(0,0,0,0.05);
+  padding: 6px 16px;
+  display: flex; gap: 8px; align-items: center;
+  font-size: 12px;
+  color: #666;
+}
+
+.jan-statusbar .divider { width: 1px; height: 12px; background: rgba(0,0,0,0.1); margin: 0 4px; }
+.jan-statusbar .flex-spacer { flex: 1; }
+.jan-statusbar .hint { opacity: 0.6; font-size: 11px; }
+
+.jan-toolbar {
+  position: sticky; top: 50px; z-index: 10;
+  background: var(--jan-bg-alt);
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+  padding: 8px 16px;
+  display: flex; gap: 8px; align-items: center;
+  flex-wrap: wrap;
+}
+
+.jan-toolbar button {
+  padding: 4px 10px;
+  background: var(--jan-paper);
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--jan-fg);
+}
+
+.jan-toolbar button:hover { background: var(--jan-bg); }
+.jan-toolbar button.is-active { background: var(--jan-accent); color: white; border-color: var(--jan-accent); }
+.jan-toolbar .divider { width: 1px; height: 20px; background: rgba(0,0,0,0.1); margin: 0 4px; }
