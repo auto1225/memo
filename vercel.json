@@ -89,6 +89,11 @@
   ],
   "rewrites": [
     { "source": "/app", "destination": "/app.html" },
+    { "source": "/v2", "destination": "/dist-v2/index.html" },
+    { "source": "/v2/", "destination": "/dist-v2/index.html" },
+    { "source": "/v2/assets/:path+", "destination": "/dist-v2/assets/:path+" },
+    { "source": "/v2/favicon.svg", "destination": "/dist-v2/favicon.svg" },
+    { "source": "/v2/icons.svg", "destination": "/dist-v2/icons.svg" },
     { "source": "/admin", "destination": "/admin.html" },
     { "source": "/home", "destination": "/home.html" },
     { "source": "/postit", "destination": "/postit.html" },
