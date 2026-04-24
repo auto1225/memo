@@ -3444,6 +3444,36 @@
     }
   }
 
+  /* v39: 페이지가 비어있는지 판정 — 이미지·테이블 등 콘텐츠 없으면 빈 페이지 */
+  function isPageEmpty(dp) {
+    if (!dp) return true;
+    /* 텍스트 있으면 비어있지 않음 */
+    const text = (dp.textContent || '').trim();
+    if (text) return false;
+    /* 미디어/표/HR 등 콘텐츠 있으면 비어있지 않음 */
+    if (dp.querySelector('img,table,video,iframe,audio,hr,canvas,svg.jan-content')) return false;
+    return true;
+  }
+
+  /* v39: 빈 마지막 페이지 자동 삭제 (단 최소 1페이지는 유지).
+     MS Word 처럼 — 마지막 빈 페이지(들)는 유지할 의미가 없으므로 제거.
+     중간 빈 페이지는 사용자가 의도해 만든 것일 수 있으므로 건드리지 않음. */
+  function removeEmptyTrailingPages(page) {
+    const docPages = Array.from(page.querySelectorAll(':scope > .jan-doc-page'));
+    if (docPages.length <= 1) return false;
+    let removed = false;
+    for (let i = docPages.length - 1; i >= 1; i--) {
+      const dp = docPages[i];
+      if (isPageEmpty(dp)) {
+        dp.remove();
+        removed = true;
+      } else {
+        break;
+      }
+    }
+    return removed;
+  }
+
   /* 페이지들 사이 콘텐츠 밸런싱: 이전 페이지에 여유 있으면 다음 페이지 첫 블록 당김 */
   function consolidateDocPages(page, pageHpx) {
     let changed = true;
@@ -3456,11 +3486,16 @@
         const nextDp = docPages[i + 1];
         /* 다음 페이지 첫 블록을 가져왔을 때 현재 페이지가 pageH 이하로 유지되면 당김 */
         const firstNext = nextDp.firstElementChild;
-        if (!firstNext) continue;
+        if (!firstNext) {
+          /* v39: 다음 페이지 자체가 비어있으면 즉시 삭제 — 마지막 한 페이지는 유지 */
+          if (i + 1 < docPages.length - 1 || docPages.length > 1) {
+            nextDp.remove();
+            changed = true;
+          }
+          continue;
+        }
         const nextFirstRect = firstNext.getBoundingClientRect();
         if (nextFirstRect.height > pageHpx * 0.95) continue;  /* 거대 블록은 skip */
-        /* 시뮬레이션: 현재 페이지 하단에 추가했을 때 높이 */
-        const dpBottom = dp.getBoundingClientRect().bottom;
         /* 현재 페이지가 이미 pageH 에 꽉 차면 skip */
         if (dp.offsetHeight > pageHpx * 0.92) continue;
         /* 여유 공간이 블록 높이보다 큼 — 당겨오기 */
@@ -3468,13 +3503,215 @@
         if (spare > nextFirstRect.height + 10) {
           dp.appendChild(firstNext);
           changed = true;
-          /* 다음 페이지가 비었으면 삭제 (마지막 페이지면 유지) */
-          if (nextDp.children.length === 0 && i + 1 < docPages.length - 1) {
+          /* 다음 페이지가 비었으면 삭제 (마지막 한 페이지는 유지) */
+          if (nextDp.children.length === 0 && (i + 1 < docPages.length - 1 || docPages.length > 1)) {
             nextDp.remove();
           }
         }
       }
     }
+    /* v39: 마지막 빈 페이지(들) 자동 삭제 */
+    removeEmptyTrailingPages(page);
+  }
+
+  /* v39: 노드 트리에서 마지막 텍스트 leaf 찾기 */
+  function _findLastTextLeaf(root) {
+    if (!root) return null;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let last = null;
+    while (walker.nextNode()) last = walker.currentNode;
+    return last;
+  }
+
+  /* v39: 커서를 특정 페이지의 끝점에 위치 */
+  function _placeCursorAtPageEnd(dp) {
+    try { dp.focus({ preventScroll: true }); } catch {}
+    const sel = window.getSelection();
+    const range = document.createRange();
+    const lastEl = dp.lastElementChild;
+    const lastText = _findLastTextLeaf(lastEl || dp);
+    if (lastText) {
+      range.setStart(lastText, lastText.textContent.length);
+    } else if (lastEl) {
+      range.setStart(lastEl, lastEl.childNodes.length);
+    } else {
+      range.setStart(dp, 0);
+    }
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+
+  /* v39: 커서를 특정 노드의 끝점에 위치 (merge 후 경계점) */
+  function _placeCursorAtNodeEnd(node) {
+    try {
+      const dp = (function find(n){ while(n && !(n.classList && n.classList.contains('jan-doc-page'))) n = n.parentNode; return n; })(node);
+      if (dp) try { dp.focus({ preventScroll: true }); } catch {}
+    } catch {}
+    const sel = window.getSelection();
+    const range = document.createRange();
+    const lastText = _findLastTextLeaf(node);
+    if (lastText) {
+      range.setStart(lastText, lastText.textContent.length);
+    } else {
+      range.setStart(node, node.childNodes.length || 0);
+    }
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+
+  /* v39: 현재 Range 가 .jan-doc-page 의 시작점인지 판정 */
+  function _isAtPageStart(range, dp) {
+    if (!range || !dp || !range.collapsed) return false;
+    if (range.startOffset !== 0) return false;
+    let n = range.startContainer;
+    while (n && n !== dp) {
+      if (n.previousSibling) return false;
+      n = n.parentNode;
+    }
+    return n === dp;
+  }
+
+  /* v39: 현재 커서가 속한 .jan-doc-page 찾기 */
+  function _getCursorDocPage() {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return null;
+    let n = sel.getRangeAt(0).startContainer;
+    if (n && n.nodeType === Node.TEXT_NODE) n = n.parentElement;
+    while (n) {
+      if (n.classList && n.classList.contains('jan-doc-page')) return n;
+      n = n.parentElement;
+    }
+    return null;
+  }
+
+  /* v39: Backspace 가 페이지 시작에서 눌렸을 때 — 앞 페이지로 merge.
+     반환 true 이면 e.preventDefault() 처리됨. */
+  function handleBackspaceMerge(e) {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return false;
+    const range = sel.getRangeAt(0);
+    if (!range.collapsed) return false;  /* selection 있으면 정상 삭제 */
+
+    const curDp = _getCursorDocPage();
+    if (!curDp) return false;
+
+    /* 현재 페이지의 시작점인지 확인 */
+    if (!_isAtPageStart(range, curDp)) return false;
+
+    /* 이전 페이지 찾기 */
+    const prevDp = curDp.previousElementSibling;
+    if (!prevDp || !prevDp.classList || !prevDp.classList.contains('jan-doc-page')) return false;
+
+    e.preventDefault();
+    try { pushPaperUndo('page-merge'); } catch {}
+
+    /* prev 의 마지막 자식 기억 — merge 후 그 끝에 커서 */
+    const prevOldLast = prevDp.lastElementChild;
+
+    if (isPageEmpty(curDp)) {
+      /* 현재 페이지가 비었음 — 그냥 제거 */
+      curDp.remove();
+    } else {
+      /* prev 마지막에 콘텐츠 이동 */
+      while (curDp.firstChild) prevDp.appendChild(curDp.firstChild);
+      curDp.remove();
+    }
+
+    /* 커서 위치: prev 의 옛 마지막 자식의 끝 (merge 경계점) */
+    if (prevOldLast && prevDp.contains(prevOldLast)) {
+      _placeCursorAtNodeEnd(prevOldLast);
+    } else {
+      _placeCursorAtPageEnd(prevDp);
+    }
+
+    /* 화면 스크롤 */
+    try {
+      const r2 = window.getSelection().getRangeAt(0).getBoundingClientRect();
+      if (r2.top < 60 || r2.top > window.innerHeight * 0.85) {
+        prevDp.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    } catch {}
+
+    scheduleSave();
+    return true;
+  }
+
+  /* v39: 현재 Range 가 .jan-doc-page 의 끝점인지 판정 */
+  function _isAtPageEnd(range, dp) {
+    if (!range || !dp || !range.collapsed) return false;
+    let n = range.startContainer;
+    let off = range.startOffset;
+    if (n.nodeType === Node.TEXT_NODE) {
+      if (off !== n.textContent.length) return false;
+    } else if (n.nodeType === Node.ELEMENT_NODE) {
+      if (off !== n.childNodes.length) return false;
+    } else {
+      return false;
+    }
+    /* 부모 거슬러 올라가며 nextSibling 이 있으면 false */
+    while (n && n !== dp) {
+      if (n.nextSibling) return false;
+      n = n.parentNode;
+    }
+    return n === dp;
+  }
+
+  /* v39: Delete 가 페이지 끝에서 눌렸을 때 — 다음 페이지 merge */
+  function handleDeleteMerge(e) {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return false;
+    const range = sel.getRangeAt(0);
+    if (!range.collapsed) return false;
+
+    const curDp = _getCursorDocPage();
+    if (!curDp) return false;
+
+    if (!_isAtPageEnd(range, curDp)) return false;
+
+    const nextDp = curDp.nextElementSibling;
+    if (!nextDp || !nextDp.classList || !nextDp.classList.contains('jan-doc-page')) return false;
+
+    e.preventDefault();
+    try { pushPaperUndo('page-merge'); } catch {}
+
+    /* 커서 위치 기억 */
+    const curOldLast = curDp.lastElementChild;
+
+    if (isPageEmpty(nextDp)) {
+      nextDp.remove();
+    } else {
+      while (nextDp.firstChild) curDp.appendChild(nextDp.firstChild);
+      nextDp.remove();
+    }
+
+    if (curOldLast && curDp.contains(curOldLast)) {
+      _placeCursorAtNodeEnd(curOldLast);
+    } else {
+      _placeCursorAtPageEnd(curDp);
+    }
+
+    scheduleSave();
+    return true;
+  }
+
+  /* v39: Enter 직후 즉시 split — 디바운스 없이 다음 frame 에 실행 */
+  function handleEnterImmediateSplit() {
+    requestAnimationFrame(() => {
+      try {
+        autoSplitOverflowingPages();
+        /* split 후 커서가 새 페이지에 갔는지 확인 + 강제 focus */
+        const dp = _getCursorDocPage();
+        if (dp) {
+          try { dp.focus({ preventScroll: true }); } catch {}
+          const r = dp.getBoundingClientRect();
+          if (r.top < 60 || r.top > window.innerHeight * 0.85) {
+            dp.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }
+      } catch (err) { /* silent */ }
+    });
   }
 
   /* 편집 이벤트 리스너 — scheduleAutoSplit 트리거.
@@ -3492,6 +3729,27 @@
     page.addEventListener('input', () => {
       if (!page.classList.contains('jan-paged')) return;
       scheduleAutoSplit();
+    });
+    /* v39: Enter/Backspace 즉시 처리 — 디바운스 없이 페이지 이동 */
+    page.addEventListener('keydown', (e) => {
+      if (!page.classList.contains('jan-paged')) return;
+      if (_isComposingSplit) return;  /* IME 조합 중에는 가만히 둠 */
+      /* Enter — 기본 동작 후 즉시 split + 커서 따라가기 */
+      if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) {
+        /* Shift+Enter 는 줄바꿈 — 그대로 두지만 split 도 검사 */
+        handleEnterImmediateSplit();
+        return;
+      }
+      /* Backspace — 페이지 시작점에서는 앞 페이지 merge */
+      if (e.key === 'Backspace' && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) {
+        handleBackspaceMerge(e);
+        return;
+      }
+      /* Delete — 페이지 끝점에서는 다음 페이지 merge (대칭성) */
+      if (e.key === 'Delete' && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) {
+        handleDeleteMerge(e);
+        return;
+      }
     });
     /* v33: ResizeObserver — 각 .jan-doc-page 높이 변화 직접 관찰 */
     if (typeof ResizeObserver !== 'undefined') {
