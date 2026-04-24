@@ -3440,19 +3440,17 @@
     }
   }
 
-  /* v39: 페이지가 비어있는지 판정 — 이미지·테이블 등 콘텐츠 없으면 빈 페이지.
-     v43: 사용자가 Enter 로 직접 만든 페이지(marker 있음)는 비어있어도
-     "사용자 의도" 로 간주 → 자동 삭제 안 함. */
+  /* v45: 순수 "빈 페이지" 판정 — marker 무시. Backspace merge 시점에는 marker 무시. */
   function isPageEmpty(dp) {
     if (!dp) return true;
-    /* v43: 사용자 marker 있으면 비어있지 않음 */
-    if (dp.querySelector('[data-jan-marker="enter"]')) return false;
-    /* 텍스트 있으면 비어있지 않음 */
     const text = (dp.textContent || '').trim();
     if (text) return false;
-    /* 미디어/표/HR 등 콘텐츠 있으면 비어있지 않음 */
     if (dp.querySelector('img,table,video,iframe,audio,hr,canvas,svg.jan-content')) return false;
     return true;
+  }
+  /* v45: marker 가 있는 페이지 — autoSplit 의 빈 페이지 자동 삭제에서 보호 */
+  function isPageMarked(dp) {
+    return !!(dp && dp.querySelector('[data-jan-marker="enter"]'));
   }
 
   /* v39: 빈 마지막 페이지 자동 삭제 (단 최소 1페이지는 유지).
@@ -3464,6 +3462,8 @@
     let removed = false;
     for (let i = docPages.length - 1; i >= 1; i--) {
       const dp = docPages[i];
+      /* v45: marker 있으면 사용자가 의도한 빈 페이지 → 보존 */
+      if (isPageMarked(dp)) break;
       if (isPageEmpty(dp)) {
         dp.remove();
         removed = true;
@@ -3486,6 +3486,8 @@
         const nextDp = docPages[i + 1];
         /* 다음 페이지 첫 블록을 가져왔을 때 현재 페이지가 pageH 이하로 유지되면 당김 */
         const firstNext = nextDp.firstElementChild;
+        /* v45: marker 페이지는 사용자가 의도한 빈 페이지 → 건드리지 않음 */
+        if (isPageMarked(nextDp)) continue;
         if (!firstNext) {
           /* v39: 다음 페이지 자체가 비어있으면 즉시 삭제 — 마지막 한 페이지는 유지 */
           if (i + 1 < docPages.length - 1 || docPages.length > 1) {
@@ -3611,13 +3613,32 @@
     const prevOldLast = prevDp.lastElementChild;
 
     if (isPageEmpty(curDp)) {
-      /* 현재 페이지가 비었음 — 그냥 제거 */
+      /* v45: marker 무시 — 빈 페이지면 그냥 제거 */
       curDp.remove();
     } else {
-      /* prev 마지막에 콘텐츠 이동 */
-      while (curDp.firstChild) prevDp.appendChild(curDp.firstChild);
+      /* v45: prev 마지막에 콘텐츠 이동 — 옮기는 paragraph 의 marker 제거 */
+      while (curDp.firstChild) {
+        const child = curDp.firstChild;
+        if (child.nodeType === Node.ELEMENT_NODE && child.removeAttribute) {
+          try { child.removeAttribute('data-jan-marker'); } catch {}
+        }
+        prevDp.appendChild(child);
+      }
       curDp.remove();
     }
+
+    /* v45: prev 페이지의 빈 marker paragraph 정리 */
+    try {
+      const stale = prevDp.querySelectorAll('p[data-jan-marker="enter"]');
+      stale.forEach(p => {
+        if (!p.textContent.trim() &&
+            (p.childNodes.length === 0 ||
+             (p.childNodes.length === 1 && p.firstChild.nodeName === 'BR'))) {
+          if (p !== prevDp.lastElementChild) p.remove();
+          else p.removeAttribute('data-jan-marker');
+        }
+      });
+    } catch {}
 
     /* 커서 위치: prev 의 옛 마지막 자식의 끝 (merge 경계점) */
     if (prevOldLast && prevDp.contains(prevOldLast)) {
@@ -3682,7 +3703,14 @@
     if (isPageEmpty(nextDp)) {
       nextDp.remove();
     } else {
-      while (nextDp.firstChild) curDp.appendChild(nextDp.firstChild);
+      /* v45: 옮기는 paragraph 의 marker 제거 */
+      while (nextDp.firstChild) {
+        const child = nextDp.firstChild;
+        if (child.nodeType === Node.ELEMENT_NODE && child.removeAttribute) {
+          try { child.removeAttribute('data-jan-marker'); } catch {}
+        }
+        curDp.appendChild(child);
+      }
       nextDp.remove();
     }
 
@@ -3730,12 +3758,30 @@
     const curDp = _getCursorDocPage();
     if (!curDp) return false;
 
-    /* v44: cursor 가 페이지 끝점일 때만 직접 다음 페이지로 이동.
-       페이지 중간에서 Enter 는 default 동작 (해당 위치에 빈 줄 삽입) +
-       autoSplit 이 overflow 시 텍스트만 다음 페이지로 이동 — Word 동작.
-       이전 v42 의 "거의 가득 차면 trigger" 는 cursor 위치 무시하고
-       무조건 점프시켜서 사용자가 의도한 줄바꿈을 망가뜨림. */
+    /* v45: 두 조건 모두 만족할 때만 다음 페이지로 점프 (Word 동작).
+       1) cursor 가 페이지 마지막 paragraph 끝점
+       2) 새 빈 줄 추가하면 page padding 침범 (= 페이지 가득 참) */
     if (!_isAtPageEnd(range, curDp)) return false;
+
+    const page = getPageEl();
+    if (!page) return false;
+    const pageHmm = parseFloat(getComputedStyle(page).getPropertyValue('--page-h')) || 297;
+    const pageHpx = mmToPx(pageHmm);
+    const padBottom = parseFloat(getComputedStyle(curDp).paddingBottom) || 0;
+    const dpRect = curDp.getBoundingClientRect();
+    const safeBottom = dpRect.top + (pageHpx - padBottom);
+    let cursorRect;
+    try {
+      cursorRect = range.getBoundingClientRect();
+      if (cursorRect.height === 0) {
+        let n = range.startContainer;
+        if (n.nodeType === Node.TEXT_NODE) n = n.parentElement;
+        if (n) cursorRect = n.getBoundingClientRect();
+      }
+    } catch { return false; }
+    if (!cursorRect) return false;
+    const lineHeight = cursorRect.height || 24;
+    if (cursorRect.bottom + lineHeight <= safeBottom + 2) return false;
 
     e.preventDefault();
     try { pushPaperUndo('page-enter-split'); } catch {}

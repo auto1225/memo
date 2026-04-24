@@ -1398,6 +1398,14 @@
   }
   /* v38: 사용자 요청 — Page N 라벨 제거 (편집 화면 깔끔하게) */
   .page.jan-paged .jan-doc-page::before { content: none !important; display: none !important; }
+  /* v45: 빈 paragraph (br only) 의 br 숨기고 paragraph 에 min-height 부여 — ¶ 가 cursor 같은 줄에. */
+  .page.jan-paged .jan-doc-page p:has(> br:only-child) {
+    min-height: 1.5em;
+    line-height: 1.5;
+  }
+  .page.jan-paged .jan-doc-page p:has(> br:only-child) > br {
+    display: none;
+  }
   /* v44: 엔터(¶) 표시 — 모든 paragraph 끝에 표시 (Word 동작). */
   body.jan-show-pilcrow .page.jan-paged .jan-doc-page p::after,
   body.jan-show-pilcrow .page.jan-paged .jan-doc-page h1::after,
@@ -20788,7 +20796,7 @@ if (typeof COMMANDS !== 'undefined' && Array.isArray(COMMANDS)) {
 <!-- JustANotepad AI 다이어그램 생성 (구성도/순서도/인포그래픽) — Mermaid + AI -->
 <script src="/ai-diagrams.js?v=9"></script>
 <!-- JustANotepad 논문 작성 기능 (각주·인용·번호·페이지 구분) -->
-<script src="/paper-features.js?v=44"></script>
+<script src="/paper-features.js?v=45"></script>
 <!-- JustANotepad 논문 샘플 템플릿 데이터 (Science 포맷 물리학 논문 3페이지) -->
 <script src="/paper-template-data.js?v=3"></script>
 <!-- v15: 분야별 예시 논문 스켈레톤 (생물·의학 / CS / 공학 / 경제학 / 물리학 경량) -->
