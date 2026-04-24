@@ -3486,11 +3486,11 @@
         const nextDp = docPages[i + 1];
         /* 다음 페이지 첫 블록을 가져왔을 때 현재 페이지가 pageH 이하로 유지되면 당김 */
         const firstNext = nextDp.firstElementChild;
-        /* v45: marker 페이지는 사용자가 의도한 빈 페이지 → 건드리지 않음 */
-        if (isPageMarked(nextDp)) continue;
+        /* v47: marker 검사 제거 — consolidate 는 자유롭게 끌어와야 자연스러움.
+           사용자가 페이지 1 에서 Backspace/Delete 로 빈 줄 삭제하면 페이지 2 의
+           ¶ 들이 위로 따라 올라와야 함. paragraph 가 marker 유지한 채 옮겨감. */
         if (!firstNext) {
-          /* v39: 다음 페이지 자체가 비어있으면 즉시 삭제 — 마지막 한 페이지는 유지 */
-          if (i + 1 < docPages.length - 1 || docPages.length > 1) {
+          if (!isPageMarked(nextDp) && (i + 1 < docPages.length - 1 || docPages.length > 1)) {
             nextDp.remove();
             changed = true;
           }
@@ -3656,6 +3656,8 @@
     } catch {}
 
     scheduleSave();
+    /* v47: Backspace merge 후 즉시 consolidate 실행 — 다음 페이지 ¶ 가 위로 따라옴 */
+    scheduleAutoSplit();
     return true;
   }
 
@@ -3721,6 +3723,8 @@
     }
 
     scheduleSave();
+    /* v47: Delete merge 후 즉시 consolidate 실행 — 다음 페이지 ¶ 가 위로 따라옴 */
+    scheduleAutoSplit();
     return true;
   }
 
