@@ -3840,6 +3840,11 @@
     const page = getPageEl();
     if (!page || page._autoSplitBound) return;
     page._autoSplitBound = true;
+    /* v46: contenteditable 의 기본 paragraph separator 를 <p> 로 강제.
+       기본은 <div> 라서 selector 일관성 깨지고 ¶ 누락 발생.
+       이 호출은 1회만 — execCommand 는 deprecated 지만 paragraph separator
+       설정용으로는 모든 Chromium 에서 작동. */
+    try { document.execCommand('defaultParagraphSeparator', false, 'p'); } catch {}
     page.addEventListener('compositionstart', () => { _isComposingSplit = true; });
     page.addEventListener('compositionend', () => {
       _isComposingSplit = false;
