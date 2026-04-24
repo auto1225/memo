@@ -3774,18 +3774,24 @@
     const padBottom = parseFloat(getComputedStyle(curDp).paddingBottom) || 0;
     const dpRect = curDp.getBoundingClientRect();
     const safeBottom = dpRect.top + (pageHpx - padBottom);
-    let cursorRect;
-    try {
-      cursorRect = range.getBoundingClientRect();
-      if (cursorRect.height === 0) {
-        let n = range.startContainer;
-        if (n.nodeType === Node.TEXT_NODE) n = n.parentElement;
-        if (n) cursorRect = n.getBoundingClientRect();
-      }
-    } catch { return false; }
-    if (!cursorRect) return false;
-    const lineHeight = cursorRect.height || 24;
-    if (cursorRect.bottom + lineHeight <= safeBottom + 2) return false;
+    /* v48: cursor 가 속한 paragraph 의 rect 사용 — range.getBoundingClientRect 가
+       빈 paragraph 에서 0,0,0,0 또는 fallback 으로 .jan-doc-page 전체 rect 잡혀서
+       lineHeight 가 1100 같은 비정상 값 → false trigger 발생.
+       해결: cursor 가 속한 가장 가까운 block paragraph 의 rect 사용 + 검증. */
+    let pn = range.startContainer;
+    if (pn && pn.nodeType === Node.TEXT_NODE) pn = pn.parentElement;
+    while (pn && pn !== curDp) {
+      const tag = (pn.tagName || '').toLowerCase();
+      if (tag === 'p' || tag === 'div' || tag === 'li' || tag === 'blockquote' ||
+          (tag.length === 2 && tag[0] === 'h')) break;
+      pn = pn.parentElement;
+    }
+    if (!pn || pn === curDp) return false;
+    const paraRect = pn.getBoundingClientRect();
+    if (paraRect.height <= 0 || paraRect.height > pageHpx * 0.9) return false;
+    if (paraRect.bottom < dpRect.top || paraRect.top > dpRect.bottom) return false;
+    const lineHeight = Math.min(paraRect.height, 50);
+    if (paraRect.bottom + lineHeight <= safeBottom + 2) return false;
 
     e.preventDefault();
     try { pushPaperUndo('page-enter-split'); } catch {}
