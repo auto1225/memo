@@ -3351,13 +3351,12 @@
       const docPages = Array.from(page.querySelectorAll(':scope > .jan-doc-page'));
       for (let i = 0; i < docPages.length; i++) {
         const dp = docPages[i];
-        const dpHeight = dp.offsetHeight;
         const dpComputed = getComputedStyle(dp);
         const padBottom = parseFloat(dpComputed.paddingBottom) || 0;
         const safeBottomInPage = pageHpx - padBottom;
 
-        /* 페이지가 pageH + 몇 px 이하면 skip */
-        if (dpHeight <= pageHpx + 4) continue;
+        /* v41: dp.offsetHeight 체크 제거 — min-height + box-sizing:border-box 때문에
+           offsetHeight 가 항상 pageHpx 라서 skip 됨. children rect 로 판단. */
 
         const dpRect = dp.getBoundingClientRect();
         const allowBottom = dpRect.top + safeBottomInPage;
