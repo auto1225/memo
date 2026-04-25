@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import type { Editor } from '@tiptap/react'
 import { useMemosStore } from '../store/memosStore'
+import { useUIStore } from '../store/uiStore'
 
 interface Command {
   id: string
@@ -17,7 +18,8 @@ export function CommandPalette({ editor }: CommandPaletteProps) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState(0)
-  const { newMemo } = useMemosStore()
+  const { newMemo, duplicate, currentId, togglePin } = useMemosStore()
+  const { toggleFocus, zoomIn, zoomOut, zoomReset } = useUIStore()
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -94,7 +96,7 @@ export function CommandPalette({ editor }: CommandPaletteProps) {
         if (url) (editor.chain() as any).focus().setEmbed(url).run()
       }},
     ]
-  }, [editor, newMemo])
+  }, [editor, newMemo, currentId, togglePin, duplicate, toggleFocus, zoomIn, zoomOut, zoomReset])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()

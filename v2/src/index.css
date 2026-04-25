@@ -509,3 +509,43 @@ ul[data-type="taskList"] li[data-checked="true"] > div{text-decoration:line-thro
 /* collab cursor (Yjs CollaborationCursor) */
 .collaboration-cursor__caret{position:relative;margin-left:-1px;margin-right:-1px;border-left:1px solid #0d0d0d;border-right:1px solid #0d0d0d;word-break:normal;pointer-events:none;}
 .collaboration-cursor__label{position:absolute;top:-1.4em;left:-1px;font-size:10px;font-style:normal;font-weight:600;line-height:normal;user-select:none;color:#fff;padding:0 4px;border-radius:3px 3px 3px 0;white-space:nowrap;}
+
+/* ==================== Phase 10 — Sidebar 강화 ==================== */
+.jan-sidebar-head{display:flex;flex-direction:column;gap:6px;padding:8px;}
+.jan-sidebar-sort{padding:4px 8px;border:1px solid #ccc;border-radius:4px;font-size:12px;background:#fff;}
+.jan-theme-dark .jan-sidebar-sort{background:#1e1e1e;color:#e0e0e0;border-color:#444;}
+.jan-sidebar-row{display:flex;align-items:center;gap:6px;}
+.jan-sidebar-pin{background:none;border:0;cursor:pointer;font-size:14px;padding:0;color:#bbb;line-height:1;}
+.jan-sidebar-pin.is-on{color:#FFA000;}
+.jan-sidebar-item.is-pinned{background:rgba(255,160,0,0.06);border-left:3px solid #FFA000;}
+.jan-sidebar-act{background:none;border:0;cursor:pointer;color:#888;font-size:13px;padding:0 4px;}
+.jan-sidebar-act:hover{color:#D97757;}
+.jan-sidebar-foot{padding:8px;border-top:1px solid var(--border,#eee);}
+.jan-sidebar-trash{width:100%;padding:6px 10px;background:transparent;border:1px solid #ccc;border-radius:4px;cursor:pointer;font-size:12px;color:#666;}
+.jan-sidebar-trash:hover{background:rgba(0,0,0,0.04);}
+.jan-theme-dark .jan-sidebar-trash{border-color:#444;color:#bbb;}
+.flex-spacer{flex:1;}
+
+/* ==================== Phase 10 — Trash modal ==================== */
+.jan-trash-modal{width:min(560px,92vw);}
+.jan-trash-empty{padding:32px;text-align:center;color:#999;}
+.jan-trash-list{list-style:none;padding:0;margin:0 0 12px;max-height:50vh;overflow-y:auto;}
+.jan-trash-item{padding:8px 10px;border-bottom:1px solid #eee;}
+.jan-trash-title{font-weight:600;font-size:13px;}
+.jan-trash-meta{font-size:11px;color:#888;margin:2px 0;}
+.jan-trash-actions{display:flex;gap:6px;margin-top:4px;}
+.jan-trash-actions button{padding:3px 10px;border:1px solid #ccc;background:#fff;cursor:pointer;font-size:12px;border-radius:4px;}
+.jan-trash-empty-btn{width:100%;padding:8px;background:#D32F2F;color:#fff;border:0;border-radius:6px;cursor:pointer;font-weight:600;}
+
+/* ==================== Phase 10 — Focus mode ==================== */
+body.jan-focus-mode .jan-sidebar{display:none !important;}
+body.jan-focus-mode .jan-titlebar{opacity:0.4;transition:opacity 0.2s;}
+body.jan-focus-mode .jan-titlebar:hover{opacity:1;}
+body.jan-focus-mode .jan-toolbar{opacity:0.4;transition:opacity 0.2s;}
+body.jan-focus-mode .jan-toolbar:hover{opacity:1;}
+body.jan-focus-mode .jan-tagsbar{display:none;}
+body.jan-focus-mode .jan-statusbar{opacity:0.4;}
+.jan-focus-exit{position:fixed;top:8px;right:8px;z-index:5000;width:36px;height:36px;border-radius:50%;border:1px solid #ccc;background:rgba(255,255,255,0.9);cursor:pointer;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,0.1);}
+
+/* ==================== Phase 10 — Page zoom ==================== */
+.jan-editor-pages{font-size:calc(1em * var(--jan-zoom, 1));}

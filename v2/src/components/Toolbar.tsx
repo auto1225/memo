@@ -1,6 +1,8 @@
 import type { Editor } from '@tiptap/react'
 import { downloadHwpx } from '../lib/hwpxExport'
 import { downloadMd } from '../lib/markdownIO'
+import { VoiceButton } from './VoiceButton'
+import { TTSButton } from './TTSButton'
 import { useThemeStore } from '../store/themeStore'
 
 interface ToolbarProps {
@@ -108,7 +110,9 @@ export function Toolbar({
         <span className="divider" />
         <button onClick={cycleTheme} title={`테마: ${theme}`}>{theme === 'dark' ? '☾' : theme === 'auto' ? 'A' : '☀'}</button>
         <button onClick={onHelp} title="F1 단축키 도움말">?</button>
-        <button onClick={onAbout} title="버전 / 변경 내역">v</button>
+        <VoiceButton editor={editor} />
+        <TTSButton editor={editor} />
+                <button onClick={onAbout} title="버전 / 변경 내역">v</button>
       </div>
       <div className="jan-toolbar">
         <button onClick={() => editor.chain().focus().toggleBold().run()} className={editor.isActive('bold') ? 'is-active' : ''} title="Ctrl+B 굵게"><b>B</b></button>

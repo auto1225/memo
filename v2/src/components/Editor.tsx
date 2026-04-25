@@ -36,6 +36,7 @@ import { Callout } from '../extensions/Callout'
 import { Embed } from '../extensions/Embed'
 import { useCollab } from '../hooks/useCollab'
 import { useImageDropPaste } from '../hooks/useImageDropPaste'
+import { useAutoSave } from '../hooks/useAutoSave'
 
 const AiHelper = lazy(() => import('./AiHelper').then((m) => ({ default: m.AiHelper })))
 const SettingsModal = lazy(() => import('./SettingsModal').then((m) => ({ default: m.SettingsModal })))
@@ -146,6 +147,7 @@ export function Editor() {
   )
 
   useImageDropPaste(editor)
+  useAutoSave(editor, title)
 
   useEffect(() => {
     if (editor) setEditor(editor)

@@ -1,0 +1,71 @@
+name: v2 CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'v2/**'
+      - 'dist-v2/**'
+      - '.github/workflows/v2-ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'v2/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: v2
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: v2/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check + build
+        run: npm run build
+
+      - name: Unit tests (Vitest)
+        run: npm test
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-v2
+          path: v2/dist
+          retention-days: 7
+
+  e2e:
+    needs: test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: v2
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: v2/package-lock.json
+
+      - run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E (against live)
+        env:
+          E2E_BASE_URL: https://justanotepad.com/v2/
+        run: npm run e2e
+        continue-on-error: true # 라이브 의존 — 실패해도 빌드는 통과
