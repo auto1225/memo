@@ -1,0 +1,62 @@
+import { useEffect, useState } from 'react'
+import type { Editor } from '@tiptap/react'
+
+interface TableMenuProps {
+  editor: Editor | null
+}
+
+/**
+ * Phase 11 — 표 인라인 도구 메뉴.
+ * 커서가 표 안에 있을 때 우상단에 떠다니는 작은 버튼 셋:
+ * 행 추가/삭제 + 열 추가/삭제 + 표 삭제.
+ */
+export function TableMenu({ editor }: TableMenuProps) {
+  const [show, setShow] = useState(false)
+  const [pos, setPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
+
+  useEffect(() => {
+    if (!editor) return
+    function update() {
+      if (!editor) return
+      const inTable = editor.isActive('table')
+      if (!inTable) { setShow(false); return }
+      try {
+        const { from } = editor.state.selection
+        const coords = editor.view.coordsAtPos(from)
+        // 약간 위쪽
+        setPos({ x: coords.left, y: Math.max(coords.top - 38, 8) })
+        setShow(true)
+      } catch {
+        setShow(false)
+      }
+    }
+    editor.on('selectionUpdate', update)
+    editor.on('update', update)
+    return () => {
+      editor.off('selectionUpdate', update)
+      editor.off('update', update)
+    }
+  }, [editor])
+
+  if (!show || !editor) return null
+
+  return (
+    <div
+      className="jan-table-menu"
+      style={{ position: 'fixed', left: pos.x, top: pos.y, zIndex: 500 }}
+      onMouseDown={(e) => e.preventDefault()}
+    >
+      <button onClick={() => editor.chain().focus().addRowBefore().run()} title="위 행 추가">↑+</button>
+      <button onClick={() => editor.chain().focus().addRowAfter().run()} title="아래 행 추가">↓+</button>
+      <button onClick={() => editor.chain().focus().deleteRow().run()} title="현재 행 삭제">행×</button>
+      <span className="divider" />
+      <button onClick={() => editor.chain().focus().addColumnBefore().run()} title="왼쪽 열 추가">←+</button>
+      <button onClick={() => editor.chain().focus().addColumnAfter().run()} title="오른쪽 열 추가">→+</button>
+      <button onClick={() => editor.chain().focus().deleteColumn().run()} title="현재 열 삭제">열×</button>
+      <span className="divider" />
+      <button onClick={() => editor.chain().focus().toggleHeaderRow().run()} title="헤더 행 토글">H</button>
+      <button onClick={() => editor.chain().focus().mergeOrSplit().run()} title="셀 병합/분리">⊞</button>
+      <button onClick={() => { if (confirm('표 전체 삭제?')) editor.chain().focus().deleteTable().run() }} title="표 삭제">표×</button>
+    </div>
+  )
+}

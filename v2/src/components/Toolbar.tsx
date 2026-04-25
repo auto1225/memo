@@ -1,6 +1,7 @@
 import type { Editor } from '@tiptap/react'
 import { downloadHwpx } from '../lib/hwpxExport'
 import { downloadMd } from '../lib/markdownIO'
+import { exportToPdf } from '../lib/pdfExport'
 import { VoiceButton } from './VoiceButton'
 import { TTSButton } from './TTSButton'
 import { useThemeStore } from '../store/themeStore'
@@ -22,12 +23,15 @@ interface ToolbarProps {
   onToggleOutline: () => void
   outlineOpen: boolean
   onAbout: () => void
+  onVersions: () => void
+  onMdPreview: () => void
+  onShare: () => void
 }
 
 export function Toolbar({
   editor, title, onTitleChange, onSave, onOpen,
   onPrintPreview, onAi, onRoles, onPaper, onPostit,
-  onSearch, onPaint, onHelp, onToggleOutline, outlineOpen, onAbout,
+  onSearch, onPaint, onHelp, onToggleOutline, outlineOpen, onAbout, onVersions, onMdPreview, onShare,
 }: ToolbarProps) {
   const theme = useThemeStore((s) => s.theme)
   const setTheme = useThemeStore((s) => s.setTheme)
@@ -70,6 +74,12 @@ export function Toolbar({
     }
   }
 
+  const exportPdf = async () => {
+    if (!editor) return
+    try { await exportToPdf(editor.getHTML(), title || '메모') }
+    catch (e: any) { alert('PDF export 실패: ' + (e.message || e)) }
+  }
+
   const exportMd = () => {
     try {
       downloadMd(editor.getHTML(), title || '메모')
@@ -99,6 +109,9 @@ export function Toolbar({
         <button onClick={() => window.print()} title="Ctrl+P 인쇄">인쇄</button>
         <button onClick={exportHwpx} title="HWPX (한글) 내보내기">HWPX</button>
         <button onClick={exportMd} title="Markdown 내보내기">MD</button>
+        <button onClick={exportPdf} title="PDF 내보내기">PDF</button>
+        <button onClick={onMdPreview} title="Markdown 미리보기">MD↔</button>
+        <button onClick={onShare} title="공유 링크">공유</button>
         <span className="divider" />
         <button onClick={onSearch} title="Ctrl+Shift+F 전체 검색">검색</button>
         <button onClick={onAi} title="Ctrl+/ AI 도우미">AI</button>
@@ -109,6 +122,7 @@ export function Toolbar({
         <button onClick={onToggleOutline} className={outlineOpen ? 'is-active' : ''} title="목차 패널">목차</button>
         <span className="divider" />
         <button onClick={cycleTheme} title={`테마: ${theme}`}>{theme === 'dark' ? '☾' : theme === 'auto' ? 'A' : '☀'}</button>
+        <button onClick={onVersions} title="버전 히스토리">⟲</button>
         <button onClick={onHelp} title="F1 단축키 도움말">?</button>
         <VoiceButton editor={editor} />
         <TTSButton editor={editor} />

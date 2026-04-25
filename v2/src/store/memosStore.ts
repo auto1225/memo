@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-export type SortMode = 'recent' | 'title' | 'created'
+export type SortMode = 'recent' | 'title' | 'created' | 'manual'
 
 export interface MemoSummary {
   id: string
@@ -42,6 +42,7 @@ interface MemosState {
   emptyTrash: () => void
   purgeOldTrash: () => void // 30일 지난 것 자동 정리
   setSortMode: (m: SortMode) => void
+  reorder: (fromId: string, toId: string) => void
   list: () => MemoSummary[]
   trashedList: () => TrashedMemo[]
   current: () => Memo | null
@@ -187,6 +188,17 @@ export const useMemosStore = create<MemosState>()(
 
       setSortMode: (m) => set({ sortMode: m }),
 
+      reorder: (fromId, toId) => {
+        set((s) => {
+          const arr = [...s.order]
+          const fi = arr.indexOf(fromId), ti = arr.indexOf(toId)
+          if (fi < 0 || ti < 0 || fi === ti) return s
+          arr.splice(fi, 1)
+          arr.splice(ti, 0, fromId)
+          return { order: arr, sortMode: 'manual' as const }
+        })
+      },
+
       list: () => {
         const s = get()
         const summaries: MemoSummary[] = s.order
@@ -211,6 +223,8 @@ export const useMemosStore = create<MemosState>()(
                 const bm = s.memos[b.id]
                 return (bm?.createdAt || 0) - (am?.createdAt || 0)
               }
+            case 'manual':
+              return () => 0 // 핀 정렬만, 나머지 order 유지
             default: // recent
               return (a: MemoSummary, b: MemoSummary) => b.updatedAt - a.updatedAt
           }

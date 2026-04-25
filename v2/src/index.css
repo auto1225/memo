@@ -549,3 +549,52 @@ body.jan-focus-mode .jan-statusbar{opacity:0.4;}
 
 /* ==================== Phase 10 — Page zoom ==================== */
 .jan-editor-pages{font-size:calc(1em * var(--jan-zoom, 1));}
+
+/* ==================== Phase 11 — Versions ==================== */
+.jan-versions-modal{width:min(820px,94vw);max-height:80vh;}
+.jan-versions-body{display:flex;gap:0;padding:0 !important;}
+.jan-versions-list{width:240px;flex-shrink:0;border-right:1px solid var(--border,#ddd);padding:6px 0;overflow-y:auto;max-height:60vh;}
+.jan-versions-item{display:block;width:100%;padding:8px 12px;border:0;background:transparent;text-align:left;cursor:pointer;border-left:3px solid transparent;}
+.jan-versions-item.is-active{background:rgba(217,119,87,0.08);border-left-color:#D97757;}
+.jan-versions-item:hover{background:rgba(0,0,0,0.04);}
+.jan-versions-time{font-size:12px;font-weight:600;}
+.jan-versions-size{font-size:11px;color:#888;margin-top:2px;}
+.jan-versions-empty{padding:20px;color:#999;font-size:12px;}
+.jan-versions-clear{margin:8px 12px;padding:6px 10px;background:#fff;border:1px solid #ccc;border-radius:4px;cursor:pointer;font-size:11px;width:calc(100% - 24px);}
+.jan-versions-preview{flex:1;padding:14px;overflow-y:auto;}
+.jan-versions-meta{font-size:13px;margin-bottom:10px;color:#555;}
+.jan-versions-text{font-size:13px;line-height:1.6;background:#fafafa;padding:12px;border-radius:6px;max-height:40vh;overflow-y:auto;white-space:pre-wrap;}
+.jan-versions-actions{display:flex;gap:6px;margin-top:10px;}
+.jan-versions-actions button{padding:6px 12px;border:1px solid #ccc;background:#fff;cursor:pointer;border-radius:4px;font-size:12px;}
+.jan-versions-actions button:first-child{background:#D97757;color:#fff;border-color:#D97757;}
+
+/* ==================== Phase 11 — Markdown preview ==================== */
+.jan-mdpreview-modal{width:min(1100px,96vw);max-height:88vh;}
+.jan-mdpreview-body{display:flex;gap:8px;padding:8px !important;height:70vh;}
+.jan-mdpreview-side{flex:1;display:flex;flex-direction:column;border:1px solid var(--border,#ddd);border-radius:6px;overflow:hidden;}
+.jan-mdpreview-label{padding:6px 10px;font-size:12px;font-weight:600;color:#555;background:rgba(0,0,0,0.03);border-bottom:1px solid var(--border,#eee);display:flex;align-items:center;}
+.jan-mdpreview-label button{padding:2px 8px;border:1px solid #ccc;background:#fff;cursor:pointer;border-radius:3px;font-size:11px;}
+.jan-mdpreview-html{flex:1;padding:12px;overflow:auto;}
+.jan-mdpreview-md{flex:1;margin:0;padding:12px;font-family:"D2Coding",monospace;font-size:12px;line-height:1.6;white-space:pre-wrap;overflow:auto;background:#fafafa;}
+
+/* ==================== Phase 11 — Share modal ==================== */
+.jan-share-modal{width:min(640px,92vw);}
+.jan-share-url{width:100%;box-sizing:border-box;font-family:"D2Coding",monospace;font-size:11px;padding:8px;border:1px solid #ccc;border-radius:4px;resize:vertical;}
+.jan-share-stats{font-size:11px;color:#888;margin:4px 0 8px;}
+
+/* ==================== Phase 11 — Share view (read-only) ==================== */
+.jan-share-view{background:#FFF8F1;}
+.jan-share-page{max-width:800px;margin:40px auto;padding:32px;background:#fff;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.08);}
+.jan-share-header{padding-bottom:16px;border-bottom:1px solid #eee;margin-bottom:24px;}
+.jan-share-header h1{margin:0 0 8px;font-size:24pt;color:#5D4037;}
+.jan-share-meta{font-size:12px;color:#888;}
+.jan-share-edit{display:inline-block;margin-top:12px;padding:6px 14px;background:#D97757;color:#fff;text-decoration:none;border-radius:6px;font-size:13px;}
+.jan-share-content{font-family:"Noto Sans KR","Malgun Gothic",sans-serif;line-height:1.7;}
+
+/* ==================== Phase 11 — Table inline menu ==================== */
+.jan-table-menu{display:flex;gap:4px;padding:4px 6px;background:#fff;border:1px solid #ddd;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.12);font-size:11px;}
+.jan-table-menu button{padding:3px 8px;border:1px solid #ddd;background:#fff;cursor:pointer;border-radius:3px;font-size:11px;}
+.jan-table-menu button:hover{background:rgba(217,119,87,0.1);border-color:#D97757;}
+.jan-table-menu .divider{width:1px;background:#ddd;margin:0 2px;}
+.jan-theme-dark .jan-table-menu{background:#252525;border-color:#444;}
+.jan-theme-dark .jan-table-menu button{background:#1e1e1e;color:#e0e0e0;border-color:#444;}

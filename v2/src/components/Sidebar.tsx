@@ -11,7 +11,7 @@ const TrashModal = lazy(() => import('./TrashModal').then((m) => ({ default: m.T
  * - 휴지통 모달
  */
 export function Sidebar() {
-  const { newMemo, setCurrent, deleteMemo, currentId, list, sortMode, setSortMode, togglePin, duplicate, trashedList, purgeOldTrash } = useMemosStore()
+  const { newMemo, setCurrent, deleteMemo, currentId, list, sortMode, setSortMode, togglePin, duplicate, trashedList, purgeOldTrash, reorder } = useMemosStore()
   const memos = list()
   const [showTrash, setShowTrash] = useState(false)
   const trashCount = trashedList().length
@@ -31,6 +31,7 @@ export function Sidebar() {
           title="정렬 방식"
         >
           <option value="recent">최근 수정순</option>
+          <option value="manual">수동 (드래그)</option>
           <option value="title">제목순</option>
           <option value="created">생성순</option>
         </select>
@@ -44,6 +45,10 @@ export function Sidebar() {
             key={m.id}
             className={'jan-sidebar-item' + (m.id === currentId ? ' is-active' : '') + (m.pinned ? ' is-pinned' : '')}
             onClick={() => setCurrent(m.id)}
+            draggable={sortMode === 'manual'}
+            onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', m.id) }}
+            onDragOver={(e) => { if (sortMode === 'manual') e.preventDefault() }}
+            onDrop={(e) => { e.preventDefault(); const fromId = e.dataTransfer.getData('text/plain'); if (fromId && fromId !== m.id) reorder(fromId, m.id) }}
           >
             <div className="jan-sidebar-row">
               <button

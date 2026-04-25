@@ -67,6 +67,12 @@ export function AiHelper({ editor, onClose }: AiHelperProps) {
     onClose()
   }
 
+  function replaceSelection() {
+    if (!output || !editor || !hasSelection) return
+    editor.chain().focus().deleteSelection().insertContent(output).run()
+    onClose()
+  }
+
   const configured = aiConfigured()
 
   return (
@@ -105,7 +111,7 @@ export function AiHelper({ editor, onClose }: AiHelperProps) {
           {output && (
             <>
               <div className="jan-ai-output" style={{ whiteSpace: 'pre-wrap' }}>{output}</div>
-              <button className="jan-ai-apply" onClick={applyToEditor}>문서에 삽입</button>
+              <div style={{display:'flex',gap:6}}><button className="jan-ai-apply" onClick={applyToEditor}>문서에 추가</button>{hasSelection && <button className="jan-ai-apply" onClick={replaceSelection} style={{background:'#5D4037'}}>선택 영역 교체</button>}</div>
             </>
           )}
         </div>

@@ -37,6 +37,8 @@ import { Embed } from '../extensions/Embed'
 import { useCollab } from '../hooks/useCollab'
 import { useImageDropPaste } from '../hooks/useImageDropPaste'
 import { useAutoSave } from '../hooks/useAutoSave'
+import { useVersionsStore } from '../store/versionsStore'
+import { TableMenu } from './TableMenu'
 
 const AiHelper = lazy(() => import('./AiHelper').then((m) => ({ default: m.AiHelper })))
 const SettingsModal = lazy(() => import('./SettingsModal').then((m) => ({ default: m.SettingsModal })))
@@ -48,6 +50,9 @@ const SearchPanel = lazy(() => import('./SearchPanel').then((m) => ({ default: m
 const PaintCanvas = lazy(() => import('./PaintCanvas').then((m) => ({ default: m.PaintCanvas })))
 const KeyboardHelp = lazy(() => import('./KeyboardHelp').then((m) => ({ default: m.KeyboardHelp })))
 const AboutModal = lazy(() => import('./AboutModal').then((m) => ({ default: m.AboutModal })))
+const VersionsPanel = lazy(() => import('./VersionsPanel').then((m) => ({ default: m.VersionsPanel })))
+const MarkdownPreview = lazy(() => import('./MarkdownPreview').then((m) => ({ default: m.MarkdownPreview })))
+const ShareModal = lazy(() => import('./ShareModal').then((m) => ({ default: m.ShareModal })))
 
 const Loading = () => (
   <div className="jan-modal-overlay">
@@ -76,6 +81,9 @@ export function Editor() {
   const [showHelp, setShowHelp] = useState(false)
   const [showOutline, setShowOutline] = useState(false)
   const [showAbout, setShowAbout] = useState(false)
+  const [showVersions, setShowVersions] = useState(false)
+  const [showMd, setShowMd] = useState(false)
+  const [showShare, setShowShare] = useState(false)
 
   const initialContent = memo?.content || '<p></p>'
   const title = memo?.title || '새 메모'
@@ -148,6 +156,15 @@ export function Editor() {
 
   useImageDropPaste(editor)
   useAutoSave(editor, title)
+  // 5분 / 1KB 단위 자동 버전 스냅샷
+  const takeSnapshot = useVersionsStore((s) => s.takeSnapshot)
+  useEffect(() => {
+    if (!editor || !memo) return
+    const t = setInterval(() => {
+      if (editor && memo) takeSnapshot(memo.id, memo.title, editor.getHTML())
+    }, 60000)
+    return () => clearInterval(t)
+  }, [editor, memo?.id, takeSnapshot])
 
   useEffect(() => {
     if (editor) setEditor(editor)
@@ -240,6 +257,9 @@ export function Editor() {
         onPaint={() => setShowPaint(true)}
         onHelp={() => setShowHelp(true)}
         onAbout={() => setShowAbout(true)}
+        onVersions={() => setShowVersions(true)}
+        onMdPreview={() => setShowMd(true)}
+        onShare={() => setShowShare(true)}
         onToggleOutline={() => setShowOutline((v) => !v)}
         outlineOpen={showOutline}
       />
@@ -253,6 +273,7 @@ export function Editor() {
       <StatusBar editor={editor} />
       <CommandPalette editor={editor} />
       <SlashMenu editor={editor} />
+      <TableMenu editor={editor} />
       <Suspense fallback={<Loading />}>
         {showAi && <AiHelper editor={editor} onClose={() => setShowAi(false)} />}
         {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
@@ -266,6 +287,9 @@ export function Editor() {
         {showPaint && <PaintCanvas editor={editor} onClose={() => setShowPaint(false)} />}
         {showHelp && <KeyboardHelp onClose={() => setShowHelp(false)} />}
         {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
+        {showVersions && <VersionsPanel onClose={() => setShowVersions(false)} />}
+        {showMd && <MarkdownPreview editor={editor} onClose={() => setShowMd(false)} />}
+        {showShare && <ShareModal onClose={() => setShowShare(false)} />}
       </Suspense>
     </div>
   )

@@ -24,4 +24,4 @@ img{max-width:100%;height:auto;}
 <div id="content">${e}</div>
 <script src="${a}"><\/script>
 </body></html>`}export{o as PrintPreview};
-//# sourceMappingURL=PrintPreview-mj9Txoh6.js.map
+//# sourceMappingURL=PrintPreview-hFe-cLms.js.map
