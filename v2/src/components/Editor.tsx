@@ -51,6 +51,12 @@ import { BubbleToolbar } from './BubbleToolbar'
 import { ImageMenu } from './ImageMenu'
 import { Lightbox } from './Lightbox'
 import { useHeadingAnchors } from '../hooks/useHeadingAnchors'
+import { useFormatPainter } from '../hooks/useFormatPainter'
+import { useCursorMemory } from '../hooks/useCursorMemory'
+import { useWheelZoom } from '../hooks/useWheelZoom'
+// useWritingGoalStore moved to inline call in onUpdate via dynamic import
+import { useWritingGoalStore } from '../store/writingGoalStore'
+import { SmartTypography } from '../extensions/Typography'
 import { TextStyle } from '@tiptap/extension-text-style'
 import { Color } from '@tiptap/extension-color'
 import { ModalSkeleton } from './ModalSkeleton'
@@ -167,6 +173,7 @@ export function Editor() {
       Highlight.configure({ multicolor: true }),
       TextStyle,
       Color,
+      SmartTypography,
       TaskList,
       TaskItem.configure({ nested: true }),
       PaginationPlus.configure({
@@ -201,9 +208,14 @@ export function Editor() {
       editorProps: {
         attributes: { class: 'ProseMirror', spellcheck: 'false' },
       },
-      onUpdate: ({ editor }) => {
+      onUpdate: ({ editor, transaction }) => {
         const html = editor.getHTML()
         updateCurrent({ content: html })
+        let inserted = 0
+        transaction.steps.forEach((step: any) => {
+          if (step.slice && step.slice.size > 0) inserted += step.slice.size
+        })
+        if (inserted > 0) useWritingGoalStore.getState().addChars(inserted)
       },
     },
     [editorExtensions]
@@ -213,6 +225,9 @@ export function Editor() {
   useMacroExpansion(editor)
   useAiAutocomplete(editor, aiAuto)
   useHeadingAnchors(editor)
+  useFormatPainter(editor)
+  useCursorMemory(editor, currentId)
+  useWheelZoom()
   useAutoSave(editor, title)
   // 5분 / 1KB 단위 자동 버전 스냅샷
   const takeSnapshot = useVersionsStore((s) => s.takeSnapshot)
@@ -274,6 +289,12 @@ export function Editor() {
         const pinned = useMemosStore.getState().list().filter((m) => m.pinned)
         const idx = parseInt(e.key, 10) - 1
         if (pinned[idx]) useMemosStore.getState().setCurrent(pinned[idx].id)
+      } else if (e.key === 'F3' && !e.shiftKey) {
+        e.preventDefault(); setShowFind(true)
+      } else if (ctrl && !e.shiftKey && !e.altKey && e.key === 'Enter') {
+        // 강제 페이지 분할
+        e.preventDefault()
+        if (editor) editor.chain().focus().insertContent('<div style="page-break-before:always;break-before:page;height:0;"></div><p></p>').run()
       } else if (e.key === 'F1' || (ctrl && e.shiftKey && e.key === '?')) {
         e.preventDefault(); setShowHelp(true); trackEvent('open_help')
       }

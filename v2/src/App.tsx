@@ -7,7 +7,7 @@ import { useUIStore } from './store/uiStore'
 
 function App() {
   const lang = useI18nStore((s) => s.lang)
-  const { focusMode, toggleFocus, zoom, zoomIn, zoomOut, zoomReset, headingNumbers } = useUIStore()
+  const { focusMode, toggleFocus, zoom, zoomIn, zoomOut, zoomReset, headingNumbers, readingMode, toggleReading, spellCheck } = useUIStore()
 
   if (typeof window !== 'undefined') {
     try {
@@ -22,16 +22,19 @@ function App() {
   useEffect(() => {
     document.body.classList.toggle('jan-focus-mode', focusMode)
     document.body.classList.toggle('jan-heading-numbers', headingNumbers)
+    document.body.classList.toggle('jan-reading-mode', readingMode)
     document.documentElement.style.setProperty('--jan-zoom', String(zoom))
-  }, [focusMode, zoom, headingNumbers])
+    document.querySelectorAll('.ProseMirror').forEach((el) => el.setAttribute('spellcheck', spellCheck ? 'true' : 'false'))
+  }, [focusMode, zoom, headingNumbers, readingMode, spellCheck])
 
   // F11 포커스 모드, Ctrl+= / Ctrl+- 줌
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.isComposing || e.keyCode === 229) return
       if (e.key === 'F11' && !e.ctrlKey && !e.altKey) {
-        e.preventDefault()
-        toggleFocus()
+        e.preventDefault(); toggleFocus()
+      } else if (e.key === 'F11' && e.shiftKey) {
+        e.preventDefault(); toggleReading()
       }
       const ctrl = e.ctrlKey || e.metaKey
       if (ctrl && !e.shiftKey && (e.key === '=' || e.key === '+')) {
@@ -47,7 +50,7 @@ function App() {
     }
     document.addEventListener('keydown', onKey, true)
     return () => document.removeEventListener('keydown', onKey, true)
-  }, [toggleFocus, zoomIn, zoomOut, zoomReset])
+  }, [toggleFocus, zoomIn, zoomOut, zoomReset, toggleReading])
 
   const { currentId, newMemo, list } = useMemosStore()
 

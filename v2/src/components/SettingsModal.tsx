@@ -6,6 +6,8 @@ import { downloadNotionZip } from '../lib/notionExport'
 import { useMemosStore } from '../store/memosStore'
 import { useI18nStore } from '../lib/i18n'
 import { useThemeStore } from '../store/themeStore'
+import { useUIStore } from '../store/uiStore'
+import { useWritingGoalStore } from '../store/writingGoalStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { syncNow, syncConfigured } from '../lib/supabaseSync'
 
@@ -21,6 +23,8 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
   const setLang = useI18nStore((s) => s.setLang)
   const accent = useThemeStore((s) => s.accent)
   const setAccent = useThemeStore((s) => s.setAccent)
+  const ui = useUIStore()
+  const goal = useWritingGoalStore()
 
   function handleV1Import() {
     const result = importV1FromLocalStorage()
@@ -341,6 +345,30 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                   setStatus('ZIP 실패: ' + (e?.message || e))
                 }
               }}>ZIP 다운로드</button>
+            </div>
+          </section>
+
+                    <section className="jan-settings-section">
+            <h4>편집 환경</h4>
+            <div className="jan-settings-row">
+              <label>
+                <input type="checkbox" checked={ui.spellCheck} onChange={() => ui.toggleSpellCheck()} />
+                {' '}맞춤법 검사 (브라우저 spellcheck)
+              </label>
+            </div>
+            <div className="jan-settings-row">
+              <label>일일 작성 목표 (자):</label>
+              <input
+                type="number"
+                min={0}
+                step={100}
+                value={goal.dailyTarget}
+                onChange={(e) => goal.setTarget(Number(e.target.value) || 0)}
+                style={{ width: 100, padding: 4, border: '1px solid #ccc', borderRadius: 4 }}
+              />
+              <span style={{ fontSize: 11, color: '#888' }}>
+                오늘 {goal.todayCount}자 · {goal.totalDays}일 달성
+              </span>
             </div>
           </section>
 

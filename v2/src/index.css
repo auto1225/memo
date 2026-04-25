@@ -872,3 +872,14 @@ mark{padding:1px 2px;border-radius:2px;}
 .ProseMirror img[width="400px"]{width:400px;height:auto;}
 .ProseMirror img[width="600px"]{width:600px;height:auto;}
 .ProseMirror img[width="100%"]{width:100%;height:auto;}
+
+/* ==================== Phase 17 — Reading mode (집중 읽기) ==================== */
+body.jan-reading-mode .jan-sidebar{display:none !important;}
+body.jan-reading-mode .jan-titlebar,body.jan-reading-mode .jan-toolbar,body.jan-reading-mode .jan-tagsbar,body.jan-reading-mode .jan-statusbar{display:none !important;}
+body.jan-reading-mode .ProseMirror{max-width:680px;margin:0 auto;padding:60px 20px;font-size:18px;line-height:1.85;}
+body.jan-reading-mode .ProseMirror h1{font-size:32pt;}
+body.jan-reading-mode .ProseMirror h2{font-size:22pt;}
+
+/* ==================== Phase 17 — Page break visual ==================== */
+.ProseMirror div[style*="page-break-before"]{display:block;height:8px;background:repeating-linear-gradient(90deg,#D97757 0,#D97757 6px,transparent 6px,transparent 12px);margin:16px 0;border-radius:2px;position:relative;}
+.ProseMirror div[style*="page-break-before"]::after{content:"⤓ 페이지 분할";position:absolute;right:0;top:-16px;font-size:9px;color:#D97757;font-weight:600;}
