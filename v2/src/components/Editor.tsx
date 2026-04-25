@@ -39,7 +39,7 @@ import { useImageDropPaste } from '../hooks/useImageDropPaste'
 import { useAutoSave } from '../hooks/useAutoSave'
 import { useVersionsStore } from '../store/versionsStore'
 import { TableMenu } from './TableMenu'
-// import { useMacroExpansion } from '../hooks/useMacroExpansion'
+import { useMacroExpansion } from '../hooks/useMacroExpansion'
 import { LinkCard } from '../extensions/LinkCard'
 import { AudioNode, VideoNode } from '../extensions/Media'
 import Highlight from '@tiptap/extension-highlight'
@@ -51,7 +51,7 @@ import { BubbleToolbar } from './BubbleToolbar'
 import { ImageMenu } from './ImageMenu'
 import { Lightbox } from './Lightbox'
 // import { useHeadingAnchors } from '../hooks/useHeadingAnchors'
-// import { useFormatPainter } from '../hooks/useFormatPainter'
+import { useFormatPainter } from '../hooks/useFormatPainter'
 // import { useCursorMemory } from '../hooks/useCursorMemory'
 import { useWheelZoom } from '../hooks/useWheelZoom'
 // useWritingGoalStore moved to inline call in onUpdate via dynamic import
@@ -222,10 +222,10 @@ export function Editor() {
   )
 
   useImageDropPaste(editor)
-  // useMacroExpansion(editor) // disabled for debugging
+  useMacroExpansion(editor)
   // useAiAutocomplete(editor, aiAuto) // disabled
   // useHeadingAnchors(editor) // disabled
-  // useFormatPainter(editor) // disabled
+  useFormatPainter(editor)
   // useCursorMemory(editor, currentId) // disabled
   useWheelZoom()
   useAutoSave(editor, title)
