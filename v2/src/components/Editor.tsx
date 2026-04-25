@@ -16,11 +16,17 @@ import TaskList from '@tiptap/extension-task-list'
 import TaskItem from '@tiptap/extension-task-item'
 import { useEffect, useState, lazy, Suspense, useMemo } from 'react'
 import { Toolbar } from './Toolbar'
+import { AppHeader } from './AppHeader'
+import { MemoTabs } from './MemoTabs'
 import { StatusBar } from './StatusBar'
 import { CommandPalette } from './CommandPalette'
 import { TagsBar } from './TagsBar'
 import { OutlinePanel } from './OutlinePanel'
 import { SlashMenu } from './SlashMenu'
+import { TableMenu } from './TableMenu'
+import { BubbleToolbar } from './BubbleToolbar'
+import { ImageMenu } from './ImageMenu'
+import { ModalSkeleton } from './ModalSkeleton'
 import { useDocStore } from '../store/docStore'
 import { useMemosStore } from '../store/memosStore'
 import { useThemeStore } from '../store/themeStore'
@@ -38,28 +44,24 @@ import { useCollab } from '../hooks/useCollab'
 import { useImageDropPaste } from '../hooks/useImageDropPaste'
 import { useAutoSave } from '../hooks/useAutoSave'
 import { useVersionsStore } from '../store/versionsStore'
-import { TableMenu } from './TableMenu'
 import { useMacroExpansion } from '../hooks/useMacroExpansion'
-import { LinkCard } from '../extensions/LinkCard'
-import { AudioNode, VideoNode } from '../extensions/Media'
-import Highlight from '@tiptap/extension-highlight'
-import { useTypographyStore } from '../store/typographyStore'
 import { useAiAutocomplete } from '../hooks/useAiAutocomplete'
-import { useSettingsStore } from '../store/settingsStore'
-import { dispatchWebhook } from '../lib/webhooks'
-import { BubbleToolbar } from './BubbleToolbar'
-import { ImageMenu } from './ImageMenu'
-import { Lightbox } from './Lightbox'
 import { useHeadingAnchors } from '../hooks/useHeadingAnchors'
 import { useFormatPainter } from '../hooks/useFormatPainter'
 import { useCursorMemory } from '../hooks/useCursorMemory'
 import { useWheelZoom } from '../hooks/useWheelZoom'
-// useWritingGoalStore moved to inline call in onUpdate via dynamic import
 import { useWritingGoalStore } from '../store/writingGoalStore'
+import { useSettingsStore } from '../store/settingsStore'
+import { dispatchWebhook } from '../lib/webhooks'
+import { useUIStore } from '../store/uiStore'
+import { useTypographyStore } from '../store/typographyStore'
 import { SmartTypography } from '../extensions/Typography'
 import { TextStyle } from '@tiptap/extension-text-style'
 import { Color } from '@tiptap/extension-color'
-import { ModalSkeleton } from './ModalSkeleton'
+import { LinkCard } from '../extensions/LinkCard'
+import { AudioNode, VideoNode } from '../extensions/Media'
+import Highlight from '@tiptap/extension-highlight'
+import { Lightbox } from './Lightbox'
 
 const AiHelper = lazy(() => import('./AiHelper').then((m) => ({ default: m.AiHelper })))
 const SettingsModal = lazy(() => import('./SettingsModal').then((m) => ({ default: m.SettingsModal })))
@@ -93,17 +95,12 @@ const TranslateModal = lazy(() => import('./TranslateModal').then((m) => ({ defa
 const TemplatesModal = lazy(() => import('./TemplatesModal').then((m) => ({ default: m.TemplatesModal })))
 const GistModal = lazy(() => import('./GistModal').then((m) => ({ default: m.GistModal })))
 
-// 모달 lazy load 중 skeleton
-
-/**
- * JustANotepad v2 — Phase 9 통합.
- */
 export function Editor() {
   const { fileHandle, setFileHandle, setSavedAt, setEditor } = useDocStore()
   const { currentId, current, updateCurrent } = useMemosStore()
   const applyTheme = useThemeStore((s) => s.apply)
   const applyTypo = useTypographyStore((s) => s.apply)
-  const aiAuto = useSettingsStore((s) => s.aiAutocomplete)
+  const aiAuto = useSettingsStore((s) => s.aiAutocomplete); void aiAuto
   const collab = useCollab()
   const memo = current()
   const [, setTick] = useState(0)
@@ -143,13 +140,11 @@ export function Editor() {
   const initialContent = memo?.content || '<p></p>'
   const title = memo?.title || '새 메모'
 
-  // 협업 활성 시 Collaboration extension 추가, 비활성 시 표준 모드.
-  // editor 가 ydoc 변경에 따라 재구성 — collab.ydoc 을 deps 에.
   const editorExtensions = useMemo(() => {
     const base = [
       StarterKit.configure({
         heading: { levels: [1, 2, 3, 4, 5, 6] },
-        undoRedo: collab.ydoc ? false : undefined, // collab 모드에서는 Yjs history 사용
+        undoRedo: collab.ydoc ? false : undefined,
       }),
       Placeholder.configure({
         placeholder: '여기에 메모를 적어보세요... (/ 슬래시 명령, F1 단축키)',
@@ -206,7 +201,7 @@ export function Editor() {
       extensions: editorExtensions,
       content: collab.ydoc ? '' : initialContent,
       editorProps: {
-        attributes: { class: 'ProseMirror', spellcheck: 'false' },
+        attributes: { class: 'ProseMirror', spellcheck: useUIStore.getState().spellCheck ? 'true' : 'false' },
       },
       onUpdate: ({ editor, transaction }) => {
         const html = editor.getHTML()
@@ -229,7 +224,7 @@ export function Editor() {
   useCursorMemory(editor, currentId)
   useWheelZoom()
   useAutoSave(editor, title)
-  // 5분 / 1KB 단위 자동 버전 스냅샷
+
   const takeSnapshot = useVersionsStore((s) => s.takeSnapshot)
   useEffect(() => {
     if (!editor || !memo) return
@@ -249,7 +244,7 @@ export function Editor() {
 
   useEffect(() => {
     if (!editor || !memo) return
-    if (collab.ydoc) return // collab 모드에서는 ydoc 가 source of truth
+    if (collab.ydoc) return
     const cur = editor.getHTML()
     if (cur !== memo.content) {
       editor.commands.setContent(memo.content, { emitUpdate: false })
@@ -292,7 +287,6 @@ export function Editor() {
       } else if (e.key === 'F3' && !e.shiftKey) {
         e.preventDefault(); setShowFind(true)
       } else if (ctrl && !e.shiftKey && !e.altKey && e.key === 'Enter') {
-        // 강제 페이지 분할
         e.preventDefault()
         if (editor) editor.chain().focus().insertContent('<div style="page-break-before:always;break-before:page;height:0;"></div><p></p>').run()
       } else if (e.key === 'F1' || (ctrl && e.shiftKey && e.key === '?')) {
@@ -314,7 +308,6 @@ export function Editor() {
         pushOne(currentId).catch(() => {})
       }
       trackEvent('save_file')
-      // Phase 15 — webhook
       if (memo) dispatchWebhook({ type: 'memo-saved', memoId: memo.id, title: memo.title, charCount: editor.state.doc.textContent.length }).catch(() => {})
     } else if (result.error !== '취소됨') {
       alert('저장 실패: ' + result.error)
@@ -333,10 +326,31 @@ export function Editor() {
 
   return (
     <div className="jan-editor-wrap">
+      <AppHeader
+        onCmdK={() => {}}
+        onCmdPalette={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }))}
+        onSearch={() => setShowSearch(true)}
+        onLanguage={() => setShowSettings(true)}
+        onCalendar={() => setShowQuick(true)}
+        onOcr={() => setShowOcr(true)}
+        onChat={() => setShowChat(true)}
+        onShare={() => setShowShare(true)}
+        onSettings={() => setShowSettings(true)}
+        onHelp={() => setShowHelp(true)}
+        onAbout={() => setShowAbout(true)}
+      />
+      <MemoTabs />
+      <div className="jan-titlebar">
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => updateCurrent({ title: e.target.value })}
+          placeholder="제목"
+          className="jan-title-input"
+        />
+      </div>
       <Toolbar
         editor={editor}
-        title={title}
-        onTitleChange={(t) => updateCurrent({ title: t })}
         onSave={handleSave}
         onOpen={handleOpen}
         onPrintPreview={() => setShowPrint(true)}
@@ -344,9 +358,7 @@ export function Editor() {
         onRoles={() => setShowRoles(true)}
         onPaper={() => setShowPaper(true)}
         onPostit={() => setShowPostit(true)}
-        onSearch={() => setShowSearch(true)}
         onPaint={() => setShowPaint(true)}
-        onHelp={() => setShowHelp(true)}
         onAbout={() => setShowAbout(true)}
         onVersions={() => setShowVersions(true)}
         onMdPreview={() => setShowMd(true)}
@@ -357,10 +369,8 @@ export function Editor() {
         onMindMap={() => setShowMindMap(true)}
         onMacros={() => setShowMacros(true)}
         onDiff={() => setShowDiff(true)}
-        onOcr={() => setShowOcr(true)}
         onSnippets={() => setShowSnippets(true)}
         onLinkCheck={() => setShowLinkCheck(true)}
-        onChat={() => setShowChat(true)}
         onFind={() => setShowFind(true)}
         onTypo={() => setShowTypo(true)}
         onInfo={() => setShowInfo(true)}
@@ -388,9 +398,7 @@ export function Editor() {
       <Suspense fallback={<ModalSkeleton />}>
         {showAi && <AiHelper editor={editor} onClose={() => setShowAi(false)} />}
         {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
-        {showPrint && editor && (
-          <PrintPreview html={editor.getHTML()} title={title} onClose={() => setShowPrint(false)} />
-        )}
+        {showPrint && editor && <PrintPreview html={editor.getHTML()} title={title} onClose={() => setShowPrint(false)} />}
         {showRoles && <RolesPanel editor={editor} onClose={() => setShowRoles(false)} />}
         {showPaper && <PaperPanel editor={editor} onClose={() => setShowPaper(false)} />}
         {showPostit && <PostitPanel onClose={() => setShowPostit(false)} />}
