@@ -1,0 +1,6 @@
+import{n as e,t}from"./state-BirzICza.js";var n=[{trigger:`;today`,expansion:`{{date}}`,description:`오늘 날짜 (예: 2026. 4. 25.)`},{trigger:`;now`,expansion:`{{datetime}}`,description:`날짜 + 시간`},{trigger:`;time`,expansion:`{{time}}`,description:`현재 시간`},{trigger:`;sig`,expansion:`
+
+--
+작성자: 이름
+`,description:`서명 블록`},{trigger:`;todo`,expansion:`☐ 할 일: `,description:`체크박스 + 라벨`},{trigger:`;lorem`,expansion:`Lorem ipsum dolor sit amet, consectetur adipiscing elit.`,description:`플레이스홀더 텍스트`}],r=e()(t(e=>({macros:n,add:t=>e(e=>({macros:[...e.macros.filter(e=>e.trigger!==t.trigger),t]})),remove:t=>e(e=>({macros:e.macros.filter(e=>e.trigger!==t)})),update:(t,n)=>e(e=>({macros:e.macros.map(e=>e.trigger===t?{...e,...n}:e)}))}),{name:`jan-v2-macros`}));function i(e){let t=new Date;return e.replace(/\{\{date\}\}/g,t.toLocaleDateString(`ko-KR`)).replace(/\{\{time\}\}/g,t.toLocaleTimeString(`ko-KR`,{hour:`2-digit`,minute:`2-digit`})).replace(/\{\{datetime\}\}/g,t.toLocaleString(`ko-KR`)).replace(/\{\{user\}\}/g,`사용자`)}export{r as n,i as t};
+//# sourceMappingURL=macrosStore-Duqv8aOI.js.map

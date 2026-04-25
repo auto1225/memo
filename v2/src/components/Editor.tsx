@@ -39,20 +39,20 @@ import { useImageDropPaste } from '../hooks/useImageDropPaste'
 import { useAutoSave } from '../hooks/useAutoSave'
 import { useVersionsStore } from '../store/versionsStore'
 import { TableMenu } from './TableMenu'
-import { useMacroExpansion } from '../hooks/useMacroExpansion'
+// import { useMacroExpansion } from '../hooks/useMacroExpansion'
 import { LinkCard } from '../extensions/LinkCard'
 import { AudioNode, VideoNode } from '../extensions/Media'
 import Highlight from '@tiptap/extension-highlight'
 import { useTypographyStore } from '../store/typographyStore'
-import { useAiAutocomplete } from '../hooks/useAiAutocomplete'
+// import { useAiAutocomplete } from '../hooks/useAiAutocomplete'
 import { useSettingsStore } from '../store/settingsStore'
 import { dispatchWebhook } from '../lib/webhooks'
 import { BubbleToolbar } from './BubbleToolbar'
 import { ImageMenu } from './ImageMenu'
 import { Lightbox } from './Lightbox'
-import { useHeadingAnchors } from '../hooks/useHeadingAnchors'
-import { useFormatPainter } from '../hooks/useFormatPainter'
-import { useCursorMemory } from '../hooks/useCursorMemory'
+// import { useHeadingAnchors } from '../hooks/useHeadingAnchors'
+// import { useFormatPainter } from '../hooks/useFormatPainter'
+// import { useCursorMemory } from '../hooks/useCursorMemory'
 import { useWheelZoom } from '../hooks/useWheelZoom'
 // useWritingGoalStore moved to inline call in onUpdate via dynamic import
 import { useWritingGoalStore } from '../store/writingGoalStore'
@@ -103,7 +103,7 @@ export function Editor() {
   const { currentId, current, updateCurrent } = useMemosStore()
   const applyTheme = useThemeStore((s) => s.apply)
   const applyTypo = useTypographyStore((s) => s.apply)
-  const aiAuto = useSettingsStore((s) => s.aiAutocomplete)
+  const aiAuto = useSettingsStore((s) => s.aiAutocomplete); void aiAuto
   const collab = useCollab()
   const memo = current()
   const [, setTick] = useState(0)
@@ -222,11 +222,11 @@ export function Editor() {
   )
 
   useImageDropPaste(editor)
-  useMacroExpansion(editor)
-  useAiAutocomplete(editor, aiAuto)
-  useHeadingAnchors(editor)
-  useFormatPainter(editor)
-  useCursorMemory(editor, currentId)
+  // useMacroExpansion(editor) // disabled for debugging
+  // useAiAutocomplete(editor, aiAuto) // disabled
+  // useHeadingAnchors(editor) // disabled
+  // useFormatPainter(editor) // disabled
+  // useCursorMemory(editor, currentId) // disabled
   useWheelZoom()
   useAutoSave(editor, title)
   // 5분 / 1KB 단위 자동 버전 스냅샷
