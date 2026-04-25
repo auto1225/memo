@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Editor } from '@tiptap/react'
+import { aggregateColumn, tableToCsv, csvToRows, rowsToTableHtml } from '../lib/tableUtils'
 
 interface TableMenuProps {
   editor: Editor | null
@@ -57,6 +58,24 @@ export function TableMenu({ editor }: TableMenuProps) {
       <button onClick={() => editor.chain().focus().toggleHeaderRow().run()} title="헤더 행 토글">H</button>
       <button onClick={() => editor.chain().focus().mergeOrSplit().run()} title="셀 병합/분리">⊞</button>
       <button onClick={() => { if (confirm('표 전체 삭제?')) editor.chain().focus().deleteTable().run() }} title="표 삭제">표×</button>
+      <span className="divider" />
+      <button onClick={() => aggregateColumn(editor, 'sum')} title="현재 열 합계">Σ</button>
+      <button onClick={() => aggregateColumn(editor, 'avg')} title="현재 열 평균">x̄</button>
+      <button onClick={() => aggregateColumn(editor, 'min')} title="최소">↓</button>
+      <button onClick={() => aggregateColumn(editor, 'max')} title="최대">↑</button>
+      <span className="divider" />
+      <button onClick={() => {
+        const csv = tableToCsv(editor)
+        if (!csv) return
+        navigator.clipboard.writeText(csv).then(() => alert('CSV 클립보드 복사'))
+      }} title="표를 CSV로">CSV→</button>
+      <button onClick={() => {
+        const csv = window.prompt('CSV 텍스트를 붙여넣으세요:')
+        if (!csv) return
+        const rows = csvToRows(csv)
+        if (rows.length === 0) return
+        editor.chain().focus().deleteTable().insertContent(rowsToTableHtml(rows)).run()
+      }} title="CSV → 표">→CSV</button>
     </div>
   )
 }

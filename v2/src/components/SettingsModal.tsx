@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { importV1FromLocalStorage, exportV2ToJson, importV2FromJson } from '../lib/v1Import'
+import { importMarkdownFiles } from '../lib/bulkImport'
 import { useMemosStore } from '../store/memosStore'
 import { useI18nStore } from '../lib/i18n'
+import { useThemeStore } from '../store/themeStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { syncNow, syncConfigured } from '../lib/supabaseSync'
 
@@ -15,6 +17,8 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
   const settings = useSettingsStore()
   const lang = useI18nStore((s) => s.lang)
   const setLang = useI18nStore((s) => s.setLang)
+  const accent = useThemeStore((s) => s.accent)
+  const setAccent = useThemeStore((s) => s.setAccent)
 
   function handleV1Import() {
     const result = importV1FromLocalStorage()
@@ -176,6 +180,28 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
           </section>
 
           <section className="jan-settings-section">
+            <h4>Markdown 일괄 가져오기</h4>
+            <div className="jan-settings-info">
+              .md 파일들을 선택하면 각 파일이 별도 메모로 추가됩니다. 첫 줄 # 제목이 있으면 자동 인식.
+            </div>
+            <div className="jan-settings-actions">
+              <button onClick={async () => {
+                const input = document.createElement('input')
+                input.type = 'file'
+                input.multiple = true
+                input.accept = '.md,text/markdown'
+                input.onchange = async (e) => {
+                  const files = Array.from((e.target as HTMLInputElement).files || [])
+                  if (files.length === 0) return
+                  const r = await importMarkdownFiles(files)
+                  setStatus(`Markdown 가져오기: 가져옴 ${r.imported}, 건너뜀 ${r.skipped}, 오류 ${r.errors.length}`)
+                }
+                input.click()
+              }}>Markdown 파일 선택</button>
+            </div>
+          </section>
+
+          <section className="jan-settings-section">
             <h4>v1 메모 가져오기</h4>
             <div className="jan-settings-info">
               이전 버전 (justanotepad.com/legacy) 의 메모를 v2 로 변환합니다.
@@ -213,6 +239,17 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
               <button onClick={() => { settings.setKey('collabEnabled', !settings.collabEnabled); setStatus(settings.collabEnabled ? '협업 중지 — 새로고침 후 적용' : '협업 시작 — 새로고침 후 적용') }}>
                 {settings.collabEnabled ? '협업 중지' : '협업 시작'}
               </button>
+            </div>
+          </section>
+
+                    <section className="jan-settings-section">
+            <h4>액센트 색상</h4>
+            <div className="jan-settings-info">기본 #D97757 (테라코타) 또는 사용자 색상.</div>
+            <div className="jan-settings-actions">
+              {(['#D97757','#1976D2','#388E3C','#7B1FA2','#FBC02D','#E91E63','#5D4037','#00838F'] as string[]).map((c) => (
+                <button key={c} onClick={() => setAccent(c)} style={{ width: 28, height: 28, borderRadius: '50%', background: c, border: accent === c ? '3px solid #333' : '1px solid #ccc', cursor: 'pointer', padding: 0 }} aria-label={c} />
+              ))}
+              <input type="color" value={accent} onChange={(e) => setAccent(e.target.value)} style={{ width: 32, height: 28, padding: 0, border: '1px solid #ccc', borderRadius: 4 }} />
             </div>
           </section>
 

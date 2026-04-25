@@ -40,6 +40,8 @@ import { useAutoSave } from '../hooks/useAutoSave'
 import { useVersionsStore } from '../store/versionsStore'
 import { TableMenu } from './TableMenu'
 import { useMacroExpansion } from '../hooks/useMacroExpansion'
+import { LinkCard } from '../extensions/LinkCard'
+import { ModalSkeleton } from './ModalSkeleton'
 
 const AiHelper = lazy(() => import('./AiHelper').then((m) => ({ default: m.AiHelper })))
 const SettingsModal = lazy(() => import('./SettingsModal').then((m) => ({ default: m.SettingsModal })))
@@ -58,12 +60,10 @@ const AttachmentsPanel = lazy(() => import('./AttachmentsPanel').then((m) => ({ 
 const LockModal = lazy(() => import('./LockModal').then((m) => ({ default: m.LockModal })))
 const StatsDashboard = lazy(() => import('./StatsDashboard').then((m) => ({ default: m.StatsDashboard })))
 const MindMap = lazy(() => import('./MindMap').then((m) => ({ default: m.MindMap })))
+const MacrosModal = lazy(() => import('./MacrosModal').then((m) => ({ default: m.MacrosModal })))
+const DiffModal = lazy(() => import('./DiffModal').then((m) => ({ default: m.DiffModal })))
 
-const Loading = () => (
-  <div className="jan-modal-overlay">
-    <div className="jan-modal" style={{ padding: 24, textAlign: 'center' }}>로딩 중...</div>
-  </div>
-)
+// 모달 lazy load 중 skeleton
 
 /**
  * JustANotepad v2 — Phase 9 통합.
@@ -93,6 +93,8 @@ export function Editor() {
   const [showLock, setShowLock] = useState(false)
   const [showStats, setShowStats] = useState(false)
   const [showMindMap, setShowMindMap] = useState(false)
+  const [showMacros, setShowMacros] = useState(false)
+  const [showDiff, setShowDiff] = useState(false)
 
   const initialContent = memo?.content || '<p></p>'
   const title = memo?.title || '새 메모'
@@ -121,6 +123,7 @@ export function Editor() {
       MentionExt,
       Callout,
       Embed,
+      LinkCard,
       TaskList,
       TaskItem.configure({ nested: true }),
       PaginationPlus.configure({
@@ -274,6 +277,8 @@ export function Editor() {
         onLock={() => setShowLock(true)}
         onStats={() => setShowStats(true)}
         onMindMap={() => setShowMindMap(true)}
+        onMacros={() => setShowMacros(true)}
+        onDiff={() => setShowDiff(true)}
         onToggleOutline={() => setShowOutline((v) => !v)}
         outlineOpen={showOutline}
       />
@@ -288,7 +293,7 @@ export function Editor() {
       <CommandPalette editor={editor} />
       <SlashMenu editor={editor} />
       <TableMenu editor={editor} />
-      <Suspense fallback={<Loading />}>
+      <Suspense fallback={<ModalSkeleton />}>
         {showAi && <AiHelper editor={editor} onClose={() => setShowAi(false)} />}
         {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
         {showPrint && editor && (
@@ -308,6 +313,8 @@ export function Editor() {
         {showLock && <LockModal editor={editor} onClose={() => setShowLock(false)} />}
         {showStats && <StatsDashboard onClose={() => setShowStats(false)} />}
         {showMindMap && <MindMap editor={editor} onClose={() => setShowMindMap(false)} />}
+        {showMacros && <MacrosModal onClose={() => setShowMacros(false)} />}
+        {showDiff && <DiffModal onClose={() => setShowDiff(false)} />}
       </Suspense>
     </div>
   )

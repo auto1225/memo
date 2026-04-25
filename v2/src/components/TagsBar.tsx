@@ -1,6 +1,8 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { useTagsStore } from '../store/tagsStore'
 import { useMemosStore } from '../store/memosStore'
+import { suggestTags } from '../lib/aiTagSuggest'
+import { aiConfigured } from '../lib/aiApi'
 
 /**
  * Phase 6 — 현재 메모의 태그 표시·편집 + 태그 클릭 시 필터.
@@ -25,6 +27,23 @@ export function TagsBar() {
     if (e.key === 'Enter' || e.key === ',') {
       e.preventDefault()
       commit()
+    }
+  }
+
+  async function suggest() {
+    if (!currentId) return
+    if (!aiConfigured()) {
+      alert('설정에서 AI 키 또는 프록시를 활성화하세요.')
+      return
+    }
+    const memo = memos[currentId]
+    if (!memo) return
+    try {
+      const tags = await suggestTags(memo.content)
+      tags.forEach((t) => addTag(currentId, t))
+      if (tags.length === 0) alert('추천 태그가 없습니다.')
+    } catch (e: any) {
+      alert('AI 호출 실패: ' + (e?.message || e))
     }
   }
 
@@ -55,6 +74,7 @@ export function TagsBar() {
           onBlur={commit}
           onKeyDown={onKey}
         />
+        <button className="jan-tagsbar-toggle" onClick={suggest} title="AI 가 추천하는 태그를 추가" style={{borderColor:'#D97757',color:'#D97757'}}>AI 추천</button>
         {all.length > 0 && (
           <button
             className="jan-tagsbar-toggle"

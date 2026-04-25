@@ -30,12 +30,14 @@ interface ToolbarProps {
   onLock: () => void
   onStats: () => void
   onMindMap: () => void
+  onMacros: () => void
+  onDiff: () => void
 }
 
 export function Toolbar({
   editor, title, onTitleChange, onSave, onOpen,
   onPrintPreview, onAi, onRoles, onPaper, onPostit,
-  onSearch, onPaint, onHelp, onToggleOutline, outlineOpen, onAbout, onVersions, onMdPreview, onShare, onAtt, onLock, onStats, onMindMap,
+  onSearch, onPaint, onHelp, onToggleOutline, outlineOpen, onAbout, onVersions, onMdPreview, onShare, onAtt, onLock, onStats, onMindMap, onMacros, onDiff,
 }: ToolbarProps) {
   const theme = useThemeStore((s) => s.theme)
   const setTheme = useThemeStore((s) => s.setTheme)
@@ -120,6 +122,8 @@ export function Toolbar({
         <button onClick={onLock} title="비밀번호 보호">잠금</button>
         <button onClick={onStats} title="메모 통계">통계</button>
         <button onClick={onMindMap} title="마인드맵 자동 생성">마인드맵</button>
+        <button onClick={onMacros} title="매크로 (자동완성 단축어)">매크로</button>
+        <button onClick={onDiff} title="메모 비교 (diff)">비교</button>
         <span className="divider" />
         <button onClick={onSearch} title="Ctrl+Shift+F 전체 검색">검색</button>
         <button onClick={onAi} title="Ctrl+/ AI 도우미">AI</button>

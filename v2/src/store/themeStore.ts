@@ -9,7 +9,9 @@ export type Theme = 'light' | 'dark' | 'auto'
 
 interface ThemeState {
   theme: Theme
+  accent: string
   setTheme: (t: Theme) => void
+  setAccent: (c: string) => void
   apply: () => void
 }
 
@@ -18,22 +20,28 @@ function detectAuto(): 'light' | 'dark' {
   return window.matchMedia?.('(prefers-color-scheme: dark)')?.matches ? 'dark' : 'light'
 }
 
-function applyClass(t: Theme) {
+function applyClass(t: Theme, accent?: string) {
   if (typeof document === 'undefined') return
   const effective = t === 'auto' ? detectAuto() : t
   document.body.classList.toggle('jan-theme-dark', effective === 'dark')
   document.body.classList.toggle('jan-theme-light', effective === 'light')
+  if (accent) document.documentElement.style.setProperty('--jan-accent', accent)
 }
 
 export const useThemeStore = create<ThemeState>()(
   persist(
     (set, get) => ({
       theme: 'light' as Theme,
+      accent: '#D97757',
       setTheme: (t) => {
         set({ theme: t })
-        applyClass(t)
+        applyClass(t, get().accent)
       },
-      apply: () => applyClass(get().theme),
+      setAccent: (c) => {
+        set({ accent: c })
+        applyClass(get().theme, c)
+      },
+      apply: () => applyClass(get().theme, get().accent),
     }),
     { name: 'jan-v2-theme' }
   )
