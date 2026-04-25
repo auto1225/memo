@@ -2,38 +2,30 @@ import { useEffect } from 'react'
 import { useUIStore } from '../store/uiStore'
 
 /**
- * Phase 17 — Ctrl+휠 줌 (호환성 강화).
+ * Phase 17 — Ctrl+휠 줌.
  *
- * 1. document/window capture phase + 양쪽 등록 → ProseMirror stopPropagation 회피
- * 2. CSS 변수 + 인라인 style 동시 적용 → CSS cascade/specificity 우회
- * 3. zoom 속성 (Chromium/Edge/Firefox126+/Safari18+) + transform:scale fallback (구버전)
+ * 적용 방식:
+ *   - 인라인 `zoom` 속성 (Chromium/Edge 전체, Firefox 126+, Safari 18+)
+ *   - 인라인 style 직접 적용으로 CSS cascade 회피
+ *   - 인라인이 stylesheet 보다 우선이라 어떤 라이브러리도 막을 수 없음
+ *
+ * 이벤트:
+ *   - document capture phase + window 양쪽 등록
+ *   - ProseMirror/PaginationPlus 가 stopPropagation 해도 우리가 먼저 받음
  */
 function applyZoom(zoom: number) {
-  const root = document.documentElement
-  root.style.setProperty('--jan-zoom', String(zoom))
-  // 인라인 style 직접 적용 — 가장 높은 specificity
+  document.documentElement.style.setProperty('--jan-zoom', String(zoom))
   document.querySelectorAll<HTMLElement>('.jan-editor-pages').forEach((el) => {
-    // zoom 속성 (모던 브라우저)
     el.style.zoom = String(zoom)
-    // transform fallback (구버전)
-    el.style.transformOrigin = 'top center'
-    el.style.transform = `scale(${zoom})`
-    // 너비 보정 (transform 은 layout 영향 X)
-    if (zoom !== 1) {
-      el.style.width = `${100 / zoom}%`
-    } else {
-      el.style.width = ''
-    }
   })
 }
 
 export function useWheelZoom() {
-  // 줌 변경 시 즉시 적용
+  // store 변경 시 즉시 적용 (App.tsx 의 useEffect 와 별도 — 더 빠른 반응)
   useEffect(() => {
     const unsub = useUIStore.subscribe((state) => {
       applyZoom(state.zoom)
     })
-    // 초기 적용
     applyZoom(useUIStore.getState().zoom)
     return unsub
   }, [])

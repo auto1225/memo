@@ -887,4 +887,4 @@ body.jan-reading-mode .ProseMirror h2{font-size:22pt;}
 /* ==================== Phase 17b — Zoom override (transform 기반) ==================== */
 /* font-size 만 바꾸던 기존 방식 → transform: scale 로 페이지 자체 확대/축소 */
 /* Phase 17b — page zoom (zoom property: works in Chromium + 모던 Firefox/Safari) */
-.jan-editor-pages{zoom:var(--jan-zoom, 1);}
+/* zoom 은 useWheelZoom hook 이 인라인으로 직접 적용 */
