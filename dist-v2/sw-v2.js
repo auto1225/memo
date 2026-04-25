@@ -1,11 +1,11 @@
-/**
+﻿/**
  * Phase 7 — JustANotepad v2 Service Worker.
  * 정적 자산 cache-first, HTML stale-while-revalidate.
  * 오프라인에서도 v2 앱 동작.
  *
  * 캐시 키는 /v2/* 만 — v1 (/app, /home) 은 영향 X.
  */
-const VERSION = 'jan-v2-sw-v4-zoom'
+const VERSION = 'jan-v2-sw-v5-yellow-v1theme'
 const STATIC_CACHE = `${VERSION}-static`
 
 const PRECACHE = [
