@@ -1776,3 +1776,300 @@ body, html, .ProseMirror, .jan-app * {
 }
 
 /* End of Phase 20.1 */
+
+
+/* =========================================================
+ * Phase 21 — v1 디자인 정확히 복제 (포스트잇 노랑 테마)
+ * v1 (app.html) 의 design tokens 그대로 옮김
+ *   --paper #FFFFFF, --paper-edge #E5E5E5
+ *   --ink #191919, --ink-soft #333333
+ *   --accent #FAE100 (포스트잇 노랑)
+ *   --bg #F7F7F7
+ *   --bar-grad #FAE100 (topbar 노랑)
+ *   --tab-inactive #F7F7F7, --tab-hover #FFFBE5
+ * ========================================================= */
+
+:root {
+  --paper:        #FFFFFF;
+  --paper-edge:   #E5E5E5;
+  --ink:          #191919;
+  --ink-soft:     #333333;
+  --accent:       #FAE100;
+  --accent-2:     #FFF2A0;
+  --bar-grad:     #FAE100;
+  --tab-inactive: #F7F7F7;
+  --tab-hover:    #FFFBE5;
+
+  --jan-bg:        #F7F7F7;
+  --jan-bg-alt:    #FFFFFF;
+  --jan-paper:     #FFFFFF;
+  --jan-fg:        #191919;
+  --jan-fg-muted:  #333333;
+  --jan-border:    #E5E5E5;
+  --jan-border-2:  #D4D4D4;
+  --jan-hover:     #FFFBE5;
+  --jan-active:    #FFF2A0;
+  --jan-accent:    #FAE100;
+  --jan-accent-hi: #FFF2A0;
+  --jan-page-bg:   #F7F7F7;
+}
+
+html, body, #root {
+  background: var(--jan-bg) !important;
+  color: var(--jan-fg) !important;
+}
+
+/* --- 1) AppHeader = v1 의 .topbar (노랑 바, 흰 텍스트) --- */
+.jan-app-header {
+  background: var(--bar-grad) !important;
+  border-bottom: 1px solid #d4be00 !important;
+  color: #ffffff !important;
+  height: 44px !important;
+  padding: 0 10px !important;
+  z-index: 30 !important;
+  user-select: none;
+}
+.jan-app-header .jan-hdr-logo {
+  color: #ffffff !important;
+  font-weight: 700;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.06);
+}
+.jan-app-header .jan-hdr-btn {
+  background: rgba(0,0,0,0.08) !important;
+  border: 1px solid rgba(255,255,255,0.18) !important;
+  color: #ffffff !important;
+  border-radius: 6px;
+  width: 30px; height: 30px;
+}
+.jan-app-header .jan-hdr-btn:hover {
+  background: rgba(255,255,255,0.22) !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.jan-app-header .jan-hdr-btn .ico,
+.jan-app-header .jan-hdr-btn svg {
+  stroke: #ffffff !important;
+}
+.jan-app-header .jan-hdr-btn.is-active {
+  background: rgba(255,255,255,0.28) !important;
+  color: #fff !important;
+}
+
+/* --- 2) 메모 탭 = v1 의 .tabs (paper bg, 종이-가장자리 border) --- */
+.jan-memo-tabs {
+  background: var(--paper) !important;
+  border-bottom: 1px solid var(--paper-edge) !important;
+  padding: 6px 8px 0 !important;
+  gap: 4px !important;
+  height: 36px !important;
+  align-items: flex-end !important;
+}
+.jan-memo-tab {
+  background: var(--tab-inactive) !important;
+  color: var(--ink-soft) !important;
+  border: 1px solid var(--paper-edge) !important;
+  border-bottom: 0 !important;
+  border-radius: 6px 6px 0 0 !important;
+  padding: 6px 10px 7px !important;
+  height: 30px !important;
+  margin-top: 0 !important;
+  font-size: 12px;
+  position: relative;
+  top: 1px;
+}
+.jan-memo-tab:hover {
+  background: var(--tab-hover) !important;
+}
+.jan-memo-tab.is-active {
+  background: var(--paper) !important;
+  color: var(--ink) !important;
+  font-weight: 600 !important;
+  top: 0 !important;
+  border-color: var(--paper-edge) !important;
+  border-bottom-color: var(--paper) !important;
+  margin-bottom: -1px !important;
+}
+.jan-memo-tab .jan-tab-dot {
+  background: var(--accent) !important;
+}
+.jan-memo-tab-new {
+  background: transparent !important;
+  color: var(--ink-soft) !important;
+  border-radius: 4px;
+}
+.jan-memo-tab-new:hover {
+  background: var(--tab-hover) !important;
+  color: var(--ink) !important;
+}
+
+/* --- 3) 타이틀바 (제목 입력) --- */
+.jan-titlebar {
+  background: var(--paper) !important;
+  border-bottom: 1px solid var(--paper-edge) !important;
+}
+.jan-title-input {
+  color: var(--ink) !important;
+}
+.jan-title-input:hover {
+  background: var(--tab-hover) !important;
+}
+.jan-title-input:focus {
+  border-color: var(--accent) !important;
+  background: var(--paper) !important;
+  box-shadow: 0 0 0 3px var(--accent-2) !important;
+}
+
+/* --- 4) 툴바 = v1 의 .toolbar (paper bg, paper-edge border) --- */
+.jan-toolbar-row {
+  background: var(--paper) !important;
+  border-bottom: 1px solid var(--paper-edge) !important;
+  padding: 6px 8px !important;
+  height: auto !important;
+  min-height: 40px;
+}
+.jan-toolbar-row button,
+.jan-toolbar-row .jan-tb-btn {
+  color: var(--ink) !important;
+  background: transparent !important;
+  min-width: 30px;
+  height: 28px;
+  border-radius: 4px;
+}
+.jan-toolbar-row button:hover,
+.jan-toolbar-row .jan-tb-btn:hover {
+  background: var(--tab-hover) !important;
+}
+.jan-toolbar-row button.is-active,
+.jan-toolbar-row .jan-tb-btn.is-active {
+  background: var(--accent) !important;
+  color: #333 !important;
+}
+.jan-toolbar-row .jan-tb-sep {
+  background: var(--paper-edge) !important;
+  margin: 4px 3px;
+}
+.jan-toolbar-select {
+  background: transparent !important;
+  border: 1px solid var(--paper-edge) !important;
+  color: var(--ink) !important;
+  height: 28px;
+}
+.jan-toolbar-select:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 2px var(--accent-2) !important;
+}
+
+/* 카테고리 메뉴 버튼 */
+.jan-menu-btn {
+  color: var(--ink) !important;
+  background: transparent !important;
+}
+.jan-menu-btn:hover {
+  background: var(--tab-hover) !important;
+}
+.jan-menu-btn.is-open {
+  background: var(--accent) !important;
+  color: #333 !important;
+}
+.jan-menu-dropdown {
+  background: var(--paper) !important;
+  border: 1px solid var(--paper-edge) !important;
+}
+.jan-menu-item {
+  color: var(--ink) !important;
+}
+.jan-menu-item:hover {
+  background: var(--tab-hover) !important;
+  color: var(--accent) !important;
+}
+.jan-menu-divider {
+  color: var(--ink-soft) !important;
+  border-top-color: var(--paper-edge) !important;
+}
+
+/* --- 5) 태그 바 --- */
+.jan-tagsbar {
+  background: var(--paper) !important;
+  border-bottom: 1px solid var(--paper-edge) !important;
+  color: var(--ink-soft) !important;
+}
+
+/* --- 6) 사이드바 = v1 의 .sidebar (paper bg, 190px) --- */
+.jan-sidebar {
+  background: var(--paper) !important;
+  border-right: 1px solid var(--paper-edge) !important;
+  width: 200px !important;
+  box-shadow: 4px 0 12px rgba(0,0,0,0.05);
+}
+.jan-sidebar.is-collapsed { width: 0 !important; box-shadow: none; }
+.jan-sidebar h4,
+.jan-sidebar h3 {
+  color: var(--ink-soft) !important;
+}
+.jan-sidebar .item:hover,
+.jan-sidebar button:hover {
+  background: var(--tab-hover) !important;
+}
+.jan-sidebar .item.active,
+.jan-sidebar button.is-active {
+  background: var(--accent) !important;
+  color: #333 !important;
+}
+
+/* --- 7) 본문 / 페이지 --- */
+.jan-editor-main {
+  background: var(--jan-bg) !important;
+  padding: 24px 0;
+}
+.ProseMirror {
+  background: var(--paper) !important;
+  color: var(--ink) !important;
+  border: 1px solid var(--paper-edge) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+.jan-page {
+  background: var(--paper) !important;
+  border: 1px solid var(--paper-edge) !important;
+}
+
+/* --- 8) 상태바 = v1 의 .statusbar (작은 회색 텍스트) --- */
+.jan-statusbar {
+  background: color-mix(in srgb, var(--paper) 90%, var(--paper-edge)) !important;
+  border-top: 1px solid var(--paper-edge) !important;
+  color: var(--ink-soft) !important;
+  font-size: 11px !important;
+  height: 22px !important;
+  padding: 0 10px !important;
+}
+
+/* --- 9) 다크 모드 (v1 의 dark theme) --- */
+.jan-theme-dark {
+  --paper:        #1f1f20;
+  --paper-edge:   #3a3a3d;
+  --ink:          #e5e5e5;
+  --ink-soft:     #aaaaaa;
+  --accent:       #FAE100;
+  --accent-2:     #f0d880;
+  --bar-grad:     linear-gradient(180deg,#3d355f,#2a2740);
+  --tab-inactive: #39335a;
+  --tab-hover:    #473f6e;
+  --jan-bg:        #16151c;
+  --jan-bg-alt:    #1f1f20;
+  --jan-paper:     #1f1f20;
+  --jan-fg:        #e5e5e5;
+  --jan-fg-muted:  #aaaaaa;
+  --jan-border:    #3a3a3d;
+  --jan-page-bg:   #16151c;
+}
+.jan-theme-dark .jan-app-header { color: #fff !important; }
+
+/* --- 10) Phase 20 의 회색조 / 파랑 잔재 강제 제거 --- */
+.jan-app, .jan-editor-wrap {
+  background: var(--jan-bg) !important;
+}
+.jan-toolbar-row button.is-active {
+  /* Phase 20 의 #2563EB 파랑 강제 제거 */
+  background: var(--accent) !important;
+  color: #333 !important;
+}
+
+/* End of Phase 21 — v1 design replica */
