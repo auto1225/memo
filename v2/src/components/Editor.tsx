@@ -50,9 +50,9 @@ import { dispatchWebhook } from '../lib/webhooks'
 import { BubbleToolbar } from './BubbleToolbar'
 import { ImageMenu } from './ImageMenu'
 import { Lightbox } from './Lightbox'
-// import { useHeadingAnchors } from '../hooks/useHeadingAnchors'
+import { useHeadingAnchors } from '../hooks/useHeadingAnchors'
 import { useFormatPainter } from '../hooks/useFormatPainter'
-// import { useCursorMemory } from '../hooks/useCursorMemory'
+import { useCursorMemory } from '../hooks/useCursorMemory'
 import { useWheelZoom } from '../hooks/useWheelZoom'
 // useWritingGoalStore moved to inline call in onUpdate via dynamic import
 import { useWritingGoalStore } from '../store/writingGoalStore'
@@ -224,9 +224,9 @@ export function Editor() {
   useImageDropPaste(editor)
   useMacroExpansion(editor)
   // useAiAutocomplete(editor, aiAuto) // disabled
-  // useHeadingAnchors(editor) // disabled
+  useHeadingAnchors(editor)
   useFormatPainter(editor)
-  // useCursorMemory(editor, currentId) // disabled
+  useCursorMemory(editor, currentId)
   useWheelZoom()
   useAutoSave(editor, title)
   // 5분 / 1KB 단위 자동 버전 스냅샷
