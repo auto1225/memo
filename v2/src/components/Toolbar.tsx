@@ -36,12 +36,16 @@ interface ToolbarProps {
   onSnippets: () => void
   onLinkCheck: () => void
   onChat: () => void
+  onFind: () => void
+  onTypo: () => void
+  onInfo: () => void
+  onHeatmap: () => void
 }
 
 export function Toolbar({
   editor, title, onTitleChange, onSave, onOpen,
   onPrintPreview, onAi, onRoles, onPaper, onPostit,
-  onSearch, onPaint, onHelp, onToggleOutline, outlineOpen, onAbout, onVersions, onMdPreview, onShare, onAtt, onLock, onStats, onMindMap, onMacros, onDiff, onOcr, onSnippets, onLinkCheck, onChat,
+  onSearch, onPaint, onHelp, onToggleOutline, outlineOpen, onAbout, onVersions, onMdPreview, onShare, onAtt, onLock, onStats, onMindMap, onMacros, onDiff, onOcr, onSnippets, onLinkCheck, onChat, onFind, onTypo, onInfo, onHeatmap,
 }: ToolbarProps) {
   const theme = useThemeStore((s) => s.theme)
   const setTheme = useThemeStore((s) => s.setTheme)
@@ -132,6 +136,10 @@ export function Toolbar({
         <button onClick={onSnippets} title="스니펫 라이브러리">스니펫</button>
         <button onClick={onLinkCheck} title="링크 검사">링크</button>
         <button onClick={onChat} title="AI 챗 사이드 패널">챗</button>
+        <button onClick={onFind} title="Ctrl+H 찾기/바꾸기">찾기</button>
+        <button onClick={onTypo} title="타이포그래피">글꼴</button>
+        <button onClick={onInfo} title="메모 정보">정보</button>
+        <button onClick={onHeatmap} title="활동 히트맵">히트맵</button>
         <span className="divider" />
         <button onClick={onSearch} title="Ctrl+Shift+F 전체 검색">검색</button>
         <button onClick={onAi} title="Ctrl+/ AI 도우미">AI</button>

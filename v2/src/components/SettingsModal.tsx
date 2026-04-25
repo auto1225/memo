@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { importV1FromLocalStorage, exportV2ToJson, importV2FromJson } from '../lib/v1Import'
 import { importMarkdownFiles } from '../lib/bulkImport'
 import { pdfFileToHtml } from '../lib/pdfImport'
+import { downloadNotionZip } from '../lib/notionExport'
 import { useMemosStore } from '../store/memosStore'
 import { useI18nStore } from '../lib/i18n'
 import { useThemeStore } from '../store/themeStore'
@@ -295,6 +296,51 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                 <option value="en">English</option>
                 <option value="ja">日本語</option>
               </select>
+            </div>
+          </section>
+
+                    <section className="jan-settings-section">
+            <h4>Webhook (메모 저장 시 외부 알림)</h4>
+            <div className="jan-settings-info">
+              메모를 저장할 때마다 입력한 URL 들에 POST 요청을 보냅니다. 여러 개는 줄바꿈 또는 공백으로 구분.
+            </div>
+            <textarea
+              placeholder="https://example.com/webhook"
+              value={settings.webhookUrls}
+              onChange={(e) => settings.setKey('webhookUrls', e.target.value)}
+              rows={3}
+              style={{ width: '100%', boxSizing: 'border-box', padding: 8, fontFamily: 'inherit', fontSize: 12 }}
+            />
+          </section>
+
+          <section className="jan-settings-section">
+            <h4>AI 인라인 자동완성 (실험)</h4>
+            <div className="jan-settings-info">
+              입력 멈추고 1.5초 후 다음 문장을 ghost text 로 제안. Tab 수락, Esc 거부.
+            </div>
+            <div className="jan-settings-row">
+              <label>
+                <input type="checkbox" checked={settings.aiAutocomplete} onChange={(e) => settings.setKey('aiAutocomplete', e.target.checked)} />
+                {'  '}활성화
+              </label>
+            </div>
+          </section>
+
+          <section className="jan-settings-section">
+            <h4>Notion 호환 ZIP 내보내기</h4>
+            <div className="jan-settings-info">
+              모든 메모를 .md 파일로 + index.md + 태그 메타. Notion "Markdown & CSV import" 호환.
+            </div>
+            <div className="jan-settings-actions">
+              <button onClick={async () => {
+                setStatus('ZIP 생성 중...')
+                try {
+                  await downloadNotionZip()
+                  setStatus('ZIP 다운로드 완료')
+                } catch (e: any) {
+                  setStatus('ZIP 실패: ' + (e?.message || e))
+                }
+              }}>ZIP 다운로드</button>
             </div>
           </section>
 

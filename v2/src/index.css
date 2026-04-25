@@ -771,3 +771,57 @@ body.jan-heading-numbers .ProseMirror h3::before{content:counter(h1) "." counter
 
 /* Highlight extension styling — multicolor */
 mark{padding:1px 2px;border-radius:2px;}
+
+/* ==================== Phase 15 — Typography vars ==================== */
+:root{--jan-editor-font:"Noto Sans KR","Malgun Gothic",sans-serif;--jan-editor-line:1.7;--jan-editor-para:8px;--jan-editor-size:14px;}
+.ProseMirror{font-family:var(--jan-editor-font);line-height:var(--jan-editor-line);font-size:var(--jan-editor-size);}
+.ProseMirror p{margin-bottom:var(--jan-editor-para);}
+
+/* ==================== Phase 15 — Find & Replace ==================== */
+.jan-findbar{position:fixed;top:60px;right:16px;z-index:1000;display:flex;gap:4px;align-items:center;padding:6px 8px;background:#fff;border:1px solid #ccc;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.15);font-size:12px;}
+.jan-findbar input[type="text"]{padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:12px;width:140px;}
+.jan-findbar label{display:flex;align-items:center;gap:2px;font-size:11px;color:#666;}
+.jan-findbar-count{font-family:monospace;color:#888;min-width:50px;text-align:center;}
+.jan-findbar button{padding:3px 8px;border:1px solid #ddd;background:#fff;border-radius:4px;cursor:pointer;font-size:11px;}
+.jan-theme-dark .jan-findbar{background:#252525;border-color:#444;}
+
+/* ==================== Phase 15 — BubbleToolbar ==================== */
+.jan-bubble-toolbar{display:flex;gap:2px;padding:4px 6px;background:#222;color:#fff;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.3);font-size:12px;}
+.jan-bubble-toolbar button{padding:3px 8px;background:transparent;border:0;color:#fff;cursor:pointer;font-size:12px;}
+.jan-bubble-toolbar button:hover{background:rgba(255,255,255,0.1);}
+.jan-bubble-toolbar button.is-active{background:rgba(217,119,87,0.6);}
+.jan-bubble-toolbar .divider{width:1px;background:rgba(255,255,255,0.2);margin:0 2px;}
+
+/* ==================== Phase 15 — Typography modal ==================== */
+.jan-typography-modal{width:min(560px,92vw);}
+.jan-typography-preview{padding:14px;background:rgba(0,0,0,0.03);border-radius:6px;margin:12px 0;}
+
+/* ==================== Phase 15 — Info panel (right slide) ==================== */
+.jan-info-panel{position:fixed;right:0;top:0;bottom:0;width:320px;max-width:88vw;background:#fff;border-left:1px solid #ddd;box-shadow:-4px 0 16px rgba(0,0,0,0.08);z-index:3000;display:flex;flex-direction:column;}
+.jan-info-head{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid #eee;}
+.jan-info-head h3{margin:0;font-size:14px;}
+.jan-info-head button{background:none;border:1px solid #ccc;padding:3px 8px;border-radius:4px;cursor:pointer;}
+.jan-info-body{flex:1;overflow-y:auto;padding:14px;}
+.jan-info-body section{margin-bottom:18px;}
+.jan-info-body h4{margin:0 0 6px;font-size:14px;}
+.jan-info-body h5{margin:0 0 6px;font-size:12px;color:#888;text-transform:uppercase;letter-spacing:0.5px;}
+.jan-info-meta{font-size:11px;color:#666;line-height:1.6;}
+.jan-info-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;}
+.jan-info-stat{padding:8px;background:rgba(217,119,87,0.06);border-radius:4px;text-align:center;}
+.jan-info-stat-v{font-size:16px;font-weight:700;color:#5D4037;}
+.jan-info-stat-l{font-size:10px;color:#888;margin-top:2px;}
+.jan-info-tags{display:flex;flex-wrap:wrap;gap:4px;}
+.jan-theme-dark .jan-info-panel{background:#1e1e1e;border-color:#444;}
+
+/* ==================== Phase 15 — Activity heatmap ==================== */
+.jan-heatmap-modal{width:min(820px,96vw);}
+.jan-heatmap-scroll{overflow-x:auto;padding:10px 0;}
+.jan-heat-cell{width:11px;height:11px;display:inline-block;}
+.jan-heat-l0{fill:rgba(0,0,0,0.06);background:rgba(0,0,0,0.06);}
+.jan-heat-l1{fill:#FFE0CB;background:#FFE0CB;}
+.jan-heat-l2{fill:#FAB186;background:#FAB186;}
+.jan-heat-l3{fill:#E48356;background:#E48356;}
+.jan-heat-l4{fill:#A04A26;background:#A04A26;}
+.jan-heatmap-legend{display:flex;align-items:center;gap:4px;font-size:11px;color:#888;justify-content:flex-end;margin-top:8px;}
+.jan-heatmap-legend .jan-heat-cell{display:inline-block;border-radius:2px;}
+.jan-theme-dark .jan-heat-l0{fill:rgba(255,255,255,0.08);background:rgba(255,255,255,0.08);}

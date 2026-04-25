@@ -25,6 +25,8 @@ interface SettingsState {
   collabWsUrl: string
   collabRoom: string
   collabUserName: string
+  webhookUrls: string
+  aiAutocomplete: boolean
 
   setKey: (k: keyof SettingsState, v: string | boolean) => void
   reset: () => void
@@ -44,6 +46,8 @@ const DEFAULTS = {
   collabWsUrl: 'wss://demos.yjs.dev/ws',
   collabRoom: '',
   collabUserName: '',
+  webhookUrls: '',
+  aiAutocomplete: false,
 }
 
 export const useSettingsStore = create<SettingsState>()(

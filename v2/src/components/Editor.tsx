@@ -43,6 +43,11 @@ import { useMacroExpansion } from '../hooks/useMacroExpansion'
 import { LinkCard } from '../extensions/LinkCard'
 import { AudioNode, VideoNode } from '../extensions/Media'
 import Highlight from '@tiptap/extension-highlight'
+import { useTypographyStore } from '../store/typographyStore'
+import { useAiAutocomplete } from '../hooks/useAiAutocomplete'
+import { useSettingsStore } from '../store/settingsStore'
+import { dispatchWebhook } from '../lib/webhooks'
+import { BubbleToolbar } from './BubbleToolbar'
 import { ModalSkeleton } from './ModalSkeleton'
 
 const AiHelper = lazy(() => import('./AiHelper').then((m) => ({ default: m.AiHelper })))
@@ -68,6 +73,10 @@ const OcrModal = lazy(() => import('./OcrModal').then((m) => ({ default: m.OcrMo
 const SnippetsModal = lazy(() => import('./SnippetsModal').then((m) => ({ default: m.SnippetsModal })))
 const LinkCheckModal = lazy(() => import('./LinkCheckModal').then((m) => ({ default: m.LinkCheckModal })))
 const AiChatPanel = lazy(() => import('./AiChatPanel').then((m) => ({ default: m.AiChatPanel })))
+const FindReplaceBar = lazy(() => import('./FindReplaceBar').then((m) => ({ default: m.FindReplaceBar })))
+const TypographyModal = lazy(() => import('./TypographyModal').then((m) => ({ default: m.TypographyModal })))
+const InfoPanel = lazy(() => import('./InfoPanel').then((m) => ({ default: m.InfoPanel })))
+const ActivityHeatmap = lazy(() => import('./ActivityHeatmap').then((m) => ({ default: m.ActivityHeatmap })))
 
 // 모달 lazy load 중 skeleton
 
@@ -78,6 +87,8 @@ export function Editor() {
   const { fileHandle, setFileHandle, setSavedAt, setEditor } = useDocStore()
   const { currentId, current, updateCurrent } = useMemosStore()
   const applyTheme = useThemeStore((s) => s.apply)
+  const applyTypo = useTypographyStore((s) => s.apply)
+  const aiAuto = useSettingsStore((s) => s.aiAutocomplete)
   const collab = useCollab()
   const memo = current()
   const [, setTick] = useState(0)
@@ -105,6 +116,10 @@ export function Editor() {
   const [showSnippets, setShowSnippets] = useState(false)
   const [showLinkCheck, setShowLinkCheck] = useState(false)
   const [showChat, setShowChat] = useState(false)
+  const [showFind, setShowFind] = useState(false)
+  const [showTypo, setShowTypo] = useState(false)
+  const [showInfo, setShowInfo] = useState(false)
+  const [showHeatmap, setShowHeatmap] = useState(false)
 
   const initialContent = memo?.content || '<p></p>'
   const title = memo?.title || '새 메모'
@@ -181,6 +196,7 @@ export function Editor() {
 
   useImageDropPaste(editor)
   useMacroExpansion(editor)
+  useAiAutocomplete(editor, aiAuto)
   useAutoSave(editor, title)
   // 5분 / 1KB 단위 자동 버전 스냅샷
   const takeSnapshot = useVersionsStore((s) => s.takeSnapshot)
@@ -195,9 +211,10 @@ export function Editor() {
   useEffect(() => {
     if (editor) setEditor(editor)
     applyTheme()
+    applyTypo()
     tauriSyncOnBoot().catch(() => {})
     trackEvent('app_boot')
-  }, [editor, setEditor, applyTheme])
+  }, [editor, setEditor, applyTheme, applyTypo])
 
   useEffect(() => {
     if (!editor || !memo) return
@@ -232,6 +249,13 @@ export function Editor() {
         e.preventDefault(); setShowPrint(true); trackEvent('open_preview')
       } else if (ctrl && e.shiftKey && !e.altKey && (e.key === 'F' || e.key === 'f')) {
         e.preventDefault(); setShowSearch(true); trackEvent('open_search')
+      } else if (ctrl && !e.shiftKey && !e.altKey && (e.key === 'H' || e.key === 'h')) {
+        e.preventDefault(); setShowFind(true)
+      } else if (ctrl && !e.shiftKey && !e.altKey && /^[1-9]$/.test(e.key)) {
+        e.preventDefault()
+        const pinned = useMemosStore.getState().list().filter((m) => m.pinned)
+        const idx = parseInt(e.key, 10) - 1
+        if (pinned[idx]) useMemosStore.getState().setCurrent(pinned[idx].id)
       } else if (e.key === 'F1' || (ctrl && e.shiftKey && e.key === '?')) {
         e.preventDefault(); setShowHelp(true); trackEvent('open_help')
       }
@@ -251,6 +275,8 @@ export function Editor() {
         pushOne(currentId).catch(() => {})
       }
       trackEvent('save_file')
+      // Phase 15 — webhook
+      if (memo) dispatchWebhook({ type: 'memo-saved', memoId: memo.id, title: memo.title, charCount: editor.state.doc.textContent.length }).catch(() => {})
     } else if (result.error !== '취소됨') {
       alert('저장 실패: ' + result.error)
     }
@@ -296,6 +322,10 @@ export function Editor() {
         onSnippets={() => setShowSnippets(true)}
         onLinkCheck={() => setShowLinkCheck(true)}
         onChat={() => setShowChat(true)}
+        onFind={() => setShowFind(true)}
+        onTypo={() => setShowTypo(true)}
+        onInfo={() => setShowInfo(true)}
+        onHeatmap={() => setShowHeatmap(true)}
         onToggleOutline={() => setShowOutline((v) => !v)}
         outlineOpen={showOutline}
       />
@@ -310,6 +340,7 @@ export function Editor() {
       <CommandPalette editor={editor} />
       <SlashMenu editor={editor} />
       <TableMenu editor={editor} />
+      <BubbleToolbar editor={editor} />
       <Suspense fallback={<ModalSkeleton />}>
         {showAi && <AiHelper editor={editor} onClose={() => setShowAi(false)} />}
         {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
@@ -336,6 +367,10 @@ export function Editor() {
         {showSnippets && <SnippetsModal editor={editor} onClose={() => setShowSnippets(false)} />}
         {showLinkCheck && <LinkCheckModal editor={editor} onClose={() => setShowLinkCheck(false)} />}
         {showChat && <AiChatPanel editor={editor} onClose={() => setShowChat(false)} />}
+        {showFind && <FindReplaceBar editor={editor} onClose={() => setShowFind(false)} />}
+        {showTypo && <TypographyModal onClose={() => setShowTypo(false)} />}
+        {showInfo && <InfoPanel editor={editor} onClose={() => setShowInfo(false)} />}
+        {showHeatmap && <ActivityHeatmap onClose={() => setShowHeatmap(false)} />}
       </Suspense>
     </div>
   )
