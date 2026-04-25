@@ -93,7 +93,7 @@ export function PomodoroWidget() {
         title="뽀모도로 타이머"
         style={{ color: running ? color : undefined }}
       >
-        🍅 {mm}:{ss}
+        ● {mm}:{ss}
       </button>
       {open && (
         <div className="jan-pomodoro-panel" style={{ borderTop: `3px solid ${color}` }}>
