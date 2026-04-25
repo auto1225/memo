@@ -481,3 +481,31 @@ ul[data-type="taskList"] li[data-checked="true"] > div{text-decoration:line-thro
 .jan-modal *:focus-visible{outline-color:#D97757;}
 .skip-to-content{position:absolute;left:-9999px;top:0;background:#D97757;color:#fff;padding:8px 16px;text-decoration:none;font-size:13px;z-index:10000;}
 .skip-to-content:focus{left:8px;top:8px;}
+
+/* ==================== Phase 9 — Slash menu ==================== */
+.jan-slash-menu{background:#fff;border:1px solid #ddd;border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,0.18);min-width:220px;max-height:280px;overflow-y:auto;padding:4px;font-size:13px;}
+.jan-slash-item{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;cursor:pointer;border-radius:4px;}
+.jan-slash-item.is-selected,.jan-slash-item:hover{background:rgba(217,119,87,0.1);}
+.jan-slash-hint{font-size:11px;color:#999;font-family:monospace;}
+.jan-slash-empty{padding:12px;color:#999;text-align:center;}
+
+/* ==================== Phase 9 — Save / Collab badges ==================== */
+.jan-save-badge{padding:1px 8px;border-radius:10px;font-size:11px;}
+.jan-save-badge.is-saved{background:rgba(76,175,80,0.15);color:#2E7D32;}
+.jan-save-badge.is-dirty{background:rgba(255,152,0,0.15);color:#E65100;}
+.jan-save-badge.is-unsaved{background:rgba(244,67,54,0.15);color:#C62828;}
+.jan-collab-badge{padding:1px 8px;border-radius:10px;font-size:11px;background:rgba(33,150,243,0.15);color:#1565C0;}
+.jan-collab-badge.is-connecting{background:rgba(255,152,0,0.15);color:#E65100;}
+
+/* ==================== Phase 9 — About modal ==================== */
+.jan-about-modal{width:min(560px,92vw);max-height:80vh;}
+
+/* dark mode */
+.jan-theme-dark .jan-slash-menu{background:#252525;border-color:#444;color:#e0e0e0;}
+.jan-theme-dark .jan-slash-item:hover,.jan-theme-dark .jan-slash-item.is-selected{background:rgba(217,119,87,0.2);}
+.jan-theme-dark .jan-save-badge.is-saved{background:rgba(76,175,80,0.25);color:#A5D6A7;}
+.jan-theme-dark .jan-save-badge.is-dirty{background:rgba(255,152,0,0.25);color:#FFCC80;}
+
+/* collab cursor (Yjs CollaborationCursor) */
+.collaboration-cursor__caret{position:relative;margin-left:-1px;margin-right:-1px;border-left:1px solid #0d0d0d;border-right:1px solid #0d0d0d;word-break:normal;pointer-events:none;}
+.collaboration-cursor__label{position:absolute;top:-1.4em;left:-1px;font-size:10px;font-style:normal;font-weight:600;line-height:normal;user-select:none;color:#fff;padding:0 4px;border-radius:3px 3px 3px 0;white-space:nowrap;}

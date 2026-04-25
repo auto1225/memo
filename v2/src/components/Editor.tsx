@@ -10,12 +10,17 @@ import { TableCell } from '@tiptap/extension-table-cell'
 import { TableHeader } from '@tiptap/extension-table-header'
 import { Image } from '@tiptap/extension-image'
 import { PaginationPlus, PAGE_SIZES } from 'tiptap-pagination-plus'
-import { useEffect, useState, lazy, Suspense } from 'react'
+import { Collaboration } from '@tiptap/extension-collaboration'
+import { CollaborationCursor } from '@tiptap/extension-collaboration-cursor'
+import TaskList from '@tiptap/extension-task-list'
+import TaskItem from '@tiptap/extension-task-item'
+import { useEffect, useState, lazy, Suspense, useMemo } from 'react'
 import { Toolbar } from './Toolbar'
 import { StatusBar } from './StatusBar'
 import { CommandPalette } from './CommandPalette'
 import { TagsBar } from './TagsBar'
 import { OutlinePanel } from './OutlinePanel'
+import { SlashMenu } from './SlashMenu'
 import { useDocStore } from '../store/docStore'
 import { useMemosStore } from '../store/memosStore'
 import { useThemeStore } from '../store/themeStore'
@@ -23,15 +28,15 @@ import { saveToFile, openFile } from '../lib/fileOps'
 import { installWordKeymap } from '../lib/keymap'
 import { pushOne, syncConfigured } from '../lib/supabaseSync'
 import { tauriSyncOnBoot } from '../lib/justpin'
+import { trackEvent } from '../lib/analytics'
 import { MathInline } from '../extensions/Math'
 import { Mermaid } from '../extensions/Mermaid'
 import { MentionExt } from '../extensions/MentionConfig'
 import { Callout } from '../extensions/Callout'
 import { Embed } from '../extensions/Embed'
-import TaskList from '@tiptap/extension-task-list'
-import TaskItem from '@tiptap/extension-task-item'
+import { useCollab } from '../hooks/useCollab'
+import { useImageDropPaste } from '../hooks/useImageDropPaste'
 
-// Phase 7 — 무거운 모달은 lazy load (chunk 분리). 첫 페이지 로드 가벼움.
 const AiHelper = lazy(() => import('./AiHelper').then((m) => ({ default: m.AiHelper })))
 const SettingsModal = lazy(() => import('./SettingsModal').then((m) => ({ default: m.SettingsModal })))
 const PrintPreview = lazy(() => import('./PrintPreview').then((m) => ({ default: m.PrintPreview })))
@@ -41,6 +46,7 @@ const PostitPanel = lazy(() => import('./PostitPanel').then((m) => ({ default: m
 const SearchPanel = lazy(() => import('./SearchPanel').then((m) => ({ default: m.SearchPanel })))
 const PaintCanvas = lazy(() => import('./PaintCanvas').then((m) => ({ default: m.PaintCanvas })))
 const KeyboardHelp = lazy(() => import('./KeyboardHelp').then((m) => ({ default: m.KeyboardHelp })))
+const AboutModal = lazy(() => import('./AboutModal').then((m) => ({ default: m.AboutModal })))
 
 const Loading = () => (
   <div className="jan-modal-overlay">
@@ -49,15 +55,13 @@ const Loading = () => (
 )
 
 /**
- * JustANotepad v2 — Phase 7 통합.
- * - 모달 lazy chunk 분리 (Suspense)
- * - 수식 (MathInline / KaTeX), 다이어그램 (Mermaid lazy CDN)
- * - 모바일 반응형 (@media)
+ * JustANotepad v2 — Phase 9 통합.
  */
 export function Editor() {
   const { fileHandle, setFileHandle, setSavedAt, setEditor } = useDocStore()
   const { currentId, current, updateCurrent } = useMemosStore()
   const applyTheme = useThemeStore((s) => s.apply)
+  const collab = useCollab()
   const memo = current()
   const [, setTick] = useState(0)
   const [showAi, setShowAi] = useState(false)
@@ -70,17 +74,21 @@ export function Editor() {
   const [showPaint, setShowPaint] = useState(false)
   const [showHelp, setShowHelp] = useState(false)
   const [showOutline, setShowOutline] = useState(false)
+  const [showAbout, setShowAbout] = useState(false)
 
   const initialContent = memo?.content || '<p></p>'
   const title = memo?.title || '새 메모'
 
-  const editor = useEditor({
-    extensions: [
+  // 협업 활성 시 Collaboration extension 추가, 비활성 시 표준 모드.
+  // editor 가 ydoc 변경에 따라 재구성 — collab.ydoc 을 deps 에.
+  const editorExtensions = useMemo(() => {
+    const base = [
       StarterKit.configure({
         heading: { levels: [1, 2, 3, 4, 5, 6] },
+        undoRedo: collab.ydoc ? false : undefined, // collab 모드에서는 Yjs history 사용
       }),
       Placeholder.configure({
-        placeholder: '여기에 메모를 적어보세요... (F1 단축키)',
+        placeholder: '여기에 메모를 적어보세요... (/ 슬래시 명령, F1 단축키)',
       }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       Underline,
@@ -112,34 +120,49 @@ export function Editor() {
         customHeader: {},
         customFooter: {},
       }),
-    ],
-    content: initialContent,
-    editorProps: {
-      attributes: {
-        class: 'ProseMirror',
-        spellcheck: 'false',
+    ]
+    if (collab.ydoc && collab.provider) {
+      base.push(
+        Collaboration.configure({ document: collab.ydoc }) as any,
+        CollaborationCursor.configure({ provider: collab.provider }) as any,
+      )
+    }
+    return base
+  }, [collab.ydoc, collab.provider])
+
+  const editor = useEditor(
+    {
+      extensions: editorExtensions,
+      content: collab.ydoc ? '' : initialContent,
+      editorProps: {
+        attributes: { class: 'ProseMirror', spellcheck: 'false' },
+      },
+      onUpdate: ({ editor }) => {
+        const html = editor.getHTML()
+        updateCurrent({ content: html })
       },
     },
-    onUpdate: ({ editor }) => {
-      const html = editor.getHTML()
-      updateCurrent({ content: html })
-    },
-  })
+    [editorExtensions]
+  )
+
+  useImageDropPaste(editor)
 
   useEffect(() => {
     if (editor) setEditor(editor)
     applyTheme()
     tauriSyncOnBoot().catch(() => {})
+    trackEvent('app_boot')
   }, [editor, setEditor, applyTheme])
 
   useEffect(() => {
     if (!editor || !memo) return
+    if (collab.ydoc) return // collab 모드에서는 ydoc 가 source of truth
     const cur = editor.getHTML()
     if (cur !== memo.content) {
       editor.commands.setContent(memo.content, { emitUpdate: false })
     }
     setTick((n) => n + 1)
-  }, [currentId, editor])
+  }, [currentId, editor, collab.ydoc])
 
   useEffect(() => {
     if (!editor) return
@@ -157,15 +180,15 @@ export function Editor() {
       if (e.isComposing || e.keyCode === 229) return
       const ctrl = e.ctrlKey || e.metaKey
       if (ctrl && !e.shiftKey && !e.altKey && e.key === '/') {
-        e.preventDefault(); setShowAi(true)
+        e.preventDefault(); setShowAi(true); trackEvent('open_ai')
       } else if (ctrl && !e.shiftKey && !e.altKey && e.key === ',') {
-        e.preventDefault(); setShowSettings(true)
+        e.preventDefault(); setShowSettings(true); trackEvent('open_settings')
       } else if (ctrl && e.altKey && !e.shiftKey && (e.key === 'P' || e.key === 'p')) {
-        e.preventDefault(); setShowPrint(true)
+        e.preventDefault(); setShowPrint(true); trackEvent('open_preview')
       } else if (ctrl && e.shiftKey && !e.altKey && (e.key === 'F' || e.key === 'f')) {
-        e.preventDefault(); setShowSearch(true)
+        e.preventDefault(); setShowSearch(true); trackEvent('open_search')
       } else if (e.key === 'F1' || (ctrl && e.shiftKey && e.key === '?')) {
-        e.preventDefault(); setShowHelp(true)
+        e.preventDefault(); setShowHelp(true); trackEvent('open_help')
       }
     }
     document.addEventListener('keydown', h, true)
@@ -182,6 +205,7 @@ export function Editor() {
       if (syncConfigured() && currentId) {
         pushOne(currentId).catch(() => {})
       }
+      trackEvent('save_file')
     } else if (result.error !== '취소됨') {
       alert('저장 실패: ' + result.error)
     }
@@ -194,6 +218,7 @@ export function Editor() {
     updateCurrent({ title: result.title, content: result.content })
     setFileHandle(result.handle)
     editor.commands.setContent(result.content)
+    trackEvent('open_file')
   }
 
   return (
@@ -212,6 +237,7 @@ export function Editor() {
         onSearch={() => setShowSearch(true)}
         onPaint={() => setShowPaint(true)}
         onHelp={() => setShowHelp(true)}
+        onAbout={() => setShowAbout(true)}
         onToggleOutline={() => setShowOutline((v) => !v)}
         outlineOpen={showOutline}
       />
@@ -224,6 +250,7 @@ export function Editor() {
       </div>
       <StatusBar editor={editor} />
       <CommandPalette editor={editor} />
+      <SlashMenu editor={editor} />
       <Suspense fallback={<Loading />}>
         {showAi && <AiHelper editor={editor} onClose={() => setShowAi(false)} />}
         {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
@@ -236,6 +263,7 @@ export function Editor() {
         {showSearch && <SearchPanel onClose={() => setShowSearch(false)} />}
         {showPaint && <PaintCanvas editor={editor} onClose={() => setShowPaint(false)} />}
         {showHelp && <KeyboardHelp onClose={() => setShowHelp(false)} />}
+        {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
       </Suspense>
     </div>
   )

@@ -1,0 +1,17 @@
+{
+  "name": "JustANotepad v2",
+  "short_name": "JustANotepad",
+  "description": "TipTap 기반 가벼운 다국어 노트 — AI / 인쇄 / 협업 / HWPX",
+  "start_url": "/v2/",
+  "scope": "/v2/",
+  "display": "standalone",
+  "theme_color": "#D97757",
+  "background_color": "#FFF8F1",
+  "lang": "ko",
+  "icons": [
+    { "src": "/v2/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    { "name": "새 메모", "short_name": "새 메모", "url": "/v2/?new=1" }
+  ]
+}

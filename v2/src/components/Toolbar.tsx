@@ -19,12 +19,13 @@ interface ToolbarProps {
   onHelp: () => void
   onToggleOutline: () => void
   outlineOpen: boolean
+  onAbout: () => void
 }
 
 export function Toolbar({
   editor, title, onTitleChange, onSave, onOpen,
   onPrintPreview, onAi, onRoles, onPaper, onPostit,
-  onSearch, onPaint, onHelp, onToggleOutline, outlineOpen,
+  onSearch, onPaint, onHelp, onToggleOutline, outlineOpen, onAbout,
 }: ToolbarProps) {
   const theme = useThemeStore((s) => s.theme)
   const setTheme = useThemeStore((s) => s.setTheme)
@@ -107,6 +108,7 @@ export function Toolbar({
         <span className="divider" />
         <button onClick={cycleTheme} title={`테마: ${theme}`}>{theme === 'dark' ? '☾' : theme === 'auto' ? 'A' : '☀'}</button>
         <button onClick={onHelp} title="F1 단축키 도움말">?</button>
+        <button onClick={onAbout} title="버전 / 변경 내역">v</button>
       </div>
       <div className="jan-toolbar">
         <button onClick={() => editor.chain().focus().toggleBold().run()} className={editor.isActive('bold') ? 'is-active' : ''} title="Ctrl+B 굵게"><b>B</b></button>
