@@ -13,6 +13,7 @@ import { PaginationPlus, PAGE_SIZES } from 'tiptap-pagination-plus'
 import { useEffect, useState } from 'react'
 import { Toolbar } from './Toolbar'
 import { StatusBar } from './StatusBar'
+import { CommandPalette } from './CommandPalette'
 import { useDocStore } from '../store/docStore'
 import { useMemosStore } from '../store/memosStore'
 import { saveToFile, openFile } from '../lib/fileOps'
@@ -124,6 +125,7 @@ export function Editor() {
         <EditorContent editor={editor} />
       </div>
       <StatusBar editor={editor} />
+      <CommandPalette editor={editor} />
     </div>
   )
 }

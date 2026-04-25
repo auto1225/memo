@@ -6,7 +6,7 @@
   "build": {
     "beforeBuildCommand": "",
     "beforeDevCommand": "",
-    "devUrl": "https://justanotepad.com/app",
+    "devUrl": "https://justanotepad.com/v2",
     "frontendDist": "./dist"
   },
   "app": {
@@ -15,7 +15,7 @@
       {
         "title": "JustANotepad",
         "label": "main",
-        "url": "https://justanotepad.com/app",
+        "url": "https://justanotepad.com/v2",
         "width": 1280,
         "height": 800,
         "minWidth": 420,

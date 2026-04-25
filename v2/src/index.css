@@ -224,3 +224,16 @@ body.jan-show-pilcrow .ProseMirror p::after {
 
 .jan-main { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
 .jan-main .jan-editor-wrap { flex: 1; height: auto; min-height: 0; }
+
+
+/* Command Palette */
+.jan-cp-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 100; display: flex; justify-content: center; padding-top: 80px; }
+.jan-cp { width: 100%; max-width: 560px; height: fit-content; max-height: 60vh; background: var(--jan-paper); border-radius: 8px; box-shadow: 0 20px 60px rgba(0,0,0,0.25); display: flex; flex-direction: column; overflow: hidden; }
+.jan-cp-input { width: 100%; padding: 14px 18px; font-size: 15px; border: none; outline: none; border-bottom: 1px solid rgba(0,0,0,0.08); background: var(--jan-paper); color: var(--jan-fg); box-sizing: border-box; }
+.jan-cp-list { list-style: none; margin: 0; padding: 4px; overflow-y: auto; max-height: 400px; }
+.jan-cp-item { padding: 8px 14px; border-radius: 4px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+.jan-cp-item.is-selected { background: rgba(217,119,87,0.12); }
+.jan-cp-label { color: var(--jan-fg); }
+.jan-cp-hint { font-size: 11px; color: #999; font-family: monospace; background: rgba(0,0,0,0.05); padding: 1px 6px; border-radius: 3px; }
+.jan-cp-empty { padding: 16px; text-align: center; color: #999; font-size: 13px; }
+.jan-cp-footer { padding: 8px 14px; font-size: 11px; color: #999; border-top: 1px solid rgba(0,0,0,0.05); background: rgba(0,0,0,0.02); text-align: center; }
