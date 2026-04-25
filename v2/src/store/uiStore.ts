@@ -6,9 +6,13 @@ import { persist } from 'zustand/middleware'
  */
 interface UIState {
   focusMode: boolean
+  sidebarCollapsed: boolean
+  headingNumbers: boolean
   zoom: number // 0.6 ~ 2.0
   toggleFocus: () => void
   setFocus: (v: boolean) => void
+  toggleSidebar: () => void
+  toggleHeadingNumbers: () => void
   zoomIn: () => void
   zoomOut: () => void
   zoomReset: () => void
@@ -18,9 +22,13 @@ export const useUIStore = create<UIState>()(
   persist(
     (set, get) => ({
       focusMode: false,
+      sidebarCollapsed: false,
+      headingNumbers: false,
       zoom: 1,
       toggleFocus: () => set({ focusMode: !get().focusMode }),
       setFocus: (v) => set({ focusMode: v }),
+      toggleSidebar: () => set({ sidebarCollapsed: !get().sidebarCollapsed }),
+      toggleHeadingNumbers: () => set({ headingNumbers: !get().headingNumbers }),
       zoomIn: () => set({ zoom: Math.min(2, +(get().zoom + 0.1).toFixed(2)) }),
       zoomOut: () => set({ zoom: Math.max(0.6, +(get().zoom - 0.1).toFixed(2)) }),
       zoomReset: () => set({ zoom: 1 }),

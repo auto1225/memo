@@ -19,7 +19,7 @@ export function CommandPalette({ editor }: CommandPaletteProps) {
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState(0)
   const { newMemo, duplicate, currentId, togglePin } = useMemosStore()
-  const { toggleFocus, zoomIn, zoomOut, zoomReset } = useUIStore()
+  const { toggleFocus, zoomIn, zoomOut, zoomReset, toggleSidebar, toggleHeadingNumbers } = useUIStore()
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -96,7 +96,7 @@ export function CommandPalette({ editor }: CommandPaletteProps) {
         if (url) (editor.chain() as any).focus().setEmbed(url).run()
       }},
     ]
-  }, [editor, newMemo, currentId, togglePin, duplicate, toggleFocus, zoomIn, zoomOut, zoomReset])
+  }, [editor, newMemo, currentId, togglePin, duplicate, toggleFocus, zoomIn, zoomOut, zoomReset, toggleSidebar, toggleHeadingNumbers])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()

@@ -598,3 +598,58 @@ body.jan-focus-mode .jan-statusbar{opacity:0.4;}
 .jan-table-menu .divider{width:1px;background:#ddd;margin:0 2px;}
 .jan-theme-dark .jan-table-menu{background:#252525;border-color:#444;}
 .jan-theme-dark .jan-table-menu button{background:#1e1e1e;color:#e0e0e0;border-color:#444;}
+
+/* ==================== Phase 12 — Sidebar collapse / ws / filter ==================== */
+.jan-sidebar.is-collapsed{width:32px !important;min-width:32px;padding:8px 4px;}
+.jan-sidebar.is-collapsed .jan-sidebar-toggle{margin:auto;}
+.jan-sidebar-toggle{padding:4px 6px;background:transparent;border:1px solid #ccc;border-radius:4px;cursor:pointer;font-size:11px;}
+.jan-sidebar-ws,.jan-sidebar-filter{width:100%;box-sizing:border-box;padding:4px 8px;border:1px solid #ccc;border-radius:4px;font-size:12px;}
+.jan-sidebar-ws-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-left:6px;flex-shrink:0;}
+.jan-sidebar-ws-pick{padding:1px 4px;border:1px solid #ddd;border-radius:3px;font-size:10px;background:#fff;}
+.jan-theme-dark .jan-sidebar-ws,.jan-theme-dark .jan-sidebar-filter,.jan-theme-dark .jan-sidebar-ws-pick{background:#1e1e1e;color:#e0e0e0;border-color:#444;}
+
+/* ==================== Phase 12 — Attachments panel ==================== */
+.jan-att-modal{width:min(640px,92vw);max-height:75vh;}
+.jan-att-tools{display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:8px;background:rgba(0,0,0,0.03);border-radius:6px;}
+.jan-att-tools .primary{background:#D97757;color:#fff;border:0;padding:6px 14px;border-radius:6px;cursor:pointer;font-weight:600;}
+.jan-att-stats{font-size:11px;color:#888;}
+.jan-att-list{list-style:none;padding:0;margin:0;max-height:50vh;overflow-y:auto;}
+.jan-att-empty{padding:30px;text-align:center;color:#999;font-size:12px;}
+.jan-att-item{display:flex;align-items:center;gap:8px;padding:8px;border-bottom:1px solid #eee;font-size:12px;}
+.jan-att-name{font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.jan-att-meta{font-size:11px;color:#888;}
+.jan-att-item button{padding:3px 10px;border:1px solid #ccc;background:#fff;border-radius:4px;cursor:pointer;font-size:11px;}
+
+/* ==================== Phase 12 — Lock modal ==================== */
+.jan-lock-modal{width:min(440px,90vw);}
+
+/* Locked sentinel display */
+.jan-locked{padding:24px;text-align:center;background:rgba(217,119,87,0.05);border:1px dashed #D97757;border-radius:8px;margin:12px 0;color:#5D4037;}
+
+/* ==================== Phase 12 — Stats dashboard ==================== */
+.jan-stats-modal{width:min(720px,92vw);max-height:84vh;}
+.jan-stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:16px;}
+.jan-stats-card{padding:12px;background:rgba(217,119,87,0.06);border-radius:8px;text-align:center;}
+.jan-stats-card-label{font-size:11px;color:#888;}
+.jan-stats-card-value{font-size:22px;font-weight:700;margin-top:4px;color:#5D4037;}
+.jan-stats-bars{display:flex;align-items:flex-end;gap:2px;height:80px;padding:8px;background:rgba(0,0,0,0.03);border-radius:6px;margin-bottom:16px;}
+.jan-stats-bar{flex:1;height:100%;display:flex;align-items:flex-end;}
+.jan-stats-bar-fill{width:100%;background:#D97757;border-radius:2px 2px 0 0;min-height:1px;}
+.jan-stats-list{list-style:none;padding:0;margin:0 0 16px;}
+.jan-stats-list li{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;font-size:12px;}
+.jan-stats-num{color:#888;}
+.jan-stats-tags{display:flex;flex-wrap:wrap;gap:6px;}
+.jan-stats-empty{color:#999;font-size:12px;}
+
+/* ==================== Phase 12 — MindMap ==================== */
+.jan-mindmap-modal{width:min(960px,96vw);max-height:88vh;}
+.jan-mindmap-empty{padding:32px;text-align:center;color:#999;}
+
+/* ==================== Phase 12 — Heading numbers ==================== */
+body.jan-heading-numbers .ProseMirror{counter-reset:h1;}
+body.jan-heading-numbers .ProseMirror h1{counter-reset:h2;counter-increment:h1;}
+body.jan-heading-numbers .ProseMirror h1::before{content:counter(h1) ". ";color:#888;}
+body.jan-heading-numbers .ProseMirror h2{counter-reset:h3;counter-increment:h2;}
+body.jan-heading-numbers .ProseMirror h2::before{content:counter(h1) "." counter(h2) " ";color:#888;}
+body.jan-heading-numbers .ProseMirror h3{counter-increment:h3;}
+body.jan-heading-numbers .ProseMirror h3::before{content:counter(h1) "." counter(h2) "." counter(h3) " ";color:#888;}

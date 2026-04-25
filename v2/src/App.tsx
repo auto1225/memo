@@ -7,7 +7,7 @@ import { useUIStore } from './store/uiStore'
 
 function App() {
   const lang = useI18nStore((s) => s.lang)
-  const { focusMode, toggleFocus, zoom, zoomIn, zoomOut, zoomReset } = useUIStore()
+  const { focusMode, toggleFocus, zoom, zoomIn, zoomOut, zoomReset, headingNumbers } = useUIStore()
 
   if (typeof window !== 'undefined') {
     try {
@@ -21,8 +21,9 @@ function App() {
   // 포커스 모드 클래스 동기화 + 줌 변수
   useEffect(() => {
     document.body.classList.toggle('jan-focus-mode', focusMode)
+    document.body.classList.toggle('jan-heading-numbers', headingNumbers)
     document.documentElement.style.setProperty('--jan-zoom', String(zoom))
-  }, [focusMode, zoom])
+  }, [focusMode, zoom, headingNumbers])
 
   // F11 포커스 모드, Ctrl+= / Ctrl+- 줌
   useEffect(() => {

@@ -39,6 +39,7 @@ import { useImageDropPaste } from '../hooks/useImageDropPaste'
 import { useAutoSave } from '../hooks/useAutoSave'
 import { useVersionsStore } from '../store/versionsStore'
 import { TableMenu } from './TableMenu'
+import { useMacroExpansion } from '../hooks/useMacroExpansion'
 
 const AiHelper = lazy(() => import('./AiHelper').then((m) => ({ default: m.AiHelper })))
 const SettingsModal = lazy(() => import('./SettingsModal').then((m) => ({ default: m.SettingsModal })))
@@ -53,6 +54,10 @@ const AboutModal = lazy(() => import('./AboutModal').then((m) => ({ default: m.A
 const VersionsPanel = lazy(() => import('./VersionsPanel').then((m) => ({ default: m.VersionsPanel })))
 const MarkdownPreview = lazy(() => import('./MarkdownPreview').then((m) => ({ default: m.MarkdownPreview })))
 const ShareModal = lazy(() => import('./ShareModal').then((m) => ({ default: m.ShareModal })))
+const AttachmentsPanel = lazy(() => import('./AttachmentsPanel').then((m) => ({ default: m.AttachmentsPanel })))
+const LockModal = lazy(() => import('./LockModal').then((m) => ({ default: m.LockModal })))
+const StatsDashboard = lazy(() => import('./StatsDashboard').then((m) => ({ default: m.StatsDashboard })))
+const MindMap = lazy(() => import('./MindMap').then((m) => ({ default: m.MindMap })))
 
 const Loading = () => (
   <div className="jan-modal-overlay">
@@ -84,6 +89,10 @@ export function Editor() {
   const [showVersions, setShowVersions] = useState(false)
   const [showMd, setShowMd] = useState(false)
   const [showShare, setShowShare] = useState(false)
+  const [showAtt, setShowAtt] = useState(false)
+  const [showLock, setShowLock] = useState(false)
+  const [showStats, setShowStats] = useState(false)
+  const [showMindMap, setShowMindMap] = useState(false)
 
   const initialContent = memo?.content || '<p></p>'
   const title = memo?.title || '새 메모'
@@ -155,6 +164,7 @@ export function Editor() {
   )
 
   useImageDropPaste(editor)
+  useMacroExpansion(editor)
   useAutoSave(editor, title)
   // 5분 / 1KB 단위 자동 버전 스냅샷
   const takeSnapshot = useVersionsStore((s) => s.takeSnapshot)
@@ -260,6 +270,10 @@ export function Editor() {
         onVersions={() => setShowVersions(true)}
         onMdPreview={() => setShowMd(true)}
         onShare={() => setShowShare(true)}
+        onAtt={() => setShowAtt(true)}
+        onLock={() => setShowLock(true)}
+        onStats={() => setShowStats(true)}
+        onMindMap={() => setShowMindMap(true)}
         onToggleOutline={() => setShowOutline((v) => !v)}
         outlineOpen={showOutline}
       />
@@ -290,6 +304,10 @@ export function Editor() {
         {showVersions && <VersionsPanel onClose={() => setShowVersions(false)} />}
         {showMd && <MarkdownPreview editor={editor} onClose={() => setShowMd(false)} />}
         {showShare && <ShareModal onClose={() => setShowShare(false)} />}
+        {showAtt && <AttachmentsPanel editor={editor} onClose={() => setShowAtt(false)} />}
+        {showLock && <LockModal editor={editor} onClose={() => setShowLock(false)} />}
+        {showStats && <StatsDashboard onClose={() => setShowStats(false)} />}
+        {showMindMap && <MindMap editor={editor} onClose={() => setShowMindMap(false)} />}
       </Suspense>
     </div>
   )

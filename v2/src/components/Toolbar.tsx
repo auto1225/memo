@@ -26,12 +26,16 @@ interface ToolbarProps {
   onVersions: () => void
   onMdPreview: () => void
   onShare: () => void
+  onAtt: () => void
+  onLock: () => void
+  onStats: () => void
+  onMindMap: () => void
 }
 
 export function Toolbar({
   editor, title, onTitleChange, onSave, onOpen,
   onPrintPreview, onAi, onRoles, onPaper, onPostit,
-  onSearch, onPaint, onHelp, onToggleOutline, outlineOpen, onAbout, onVersions, onMdPreview, onShare,
+  onSearch, onPaint, onHelp, onToggleOutline, outlineOpen, onAbout, onVersions, onMdPreview, onShare, onAtt, onLock, onStats, onMindMap,
 }: ToolbarProps) {
   const theme = useThemeStore((s) => s.theme)
   const setTheme = useThemeStore((s) => s.setTheme)
@@ -112,6 +116,10 @@ export function Toolbar({
         <button onClick={exportPdf} title="PDF 내보내기">PDF</button>
         <button onClick={onMdPreview} title="Markdown 미리보기">MD↔</button>
         <button onClick={onShare} title="공유 링크">공유</button>
+        <button onClick={onAtt} title="첨부 파일">첨부</button>
+        <button onClick={onLock} title="비밀번호 보호">잠금</button>
+        <button onClick={onStats} title="메모 통계">통계</button>
+        <button onClick={onMindMap} title="마인드맵 자동 생성">마인드맵</button>
         <span className="divider" />
         <button onClick={onSearch} title="Ctrl+Shift+F 전체 검색">검색</button>
         <button onClick={onAi} title="Ctrl+/ AI 도우미">AI</button>
