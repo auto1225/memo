@@ -338,6 +338,11 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
         onSettings={() => setShowSettings(true)}
         onHelp={() => setShowHelp(true)}
         onAbout={() => setShowAbout(true)}
+        onAi={() => setShowAi(true)}
+        onPostit={() => setShowPostit(true)}
+        onPaint={() => setShowPaint(true)}
+        onRoles={() => setShowRoles(true)}
+        onTemplates={() => setShowTemplates(true)}
       />
       <MemoTabs />
       <div className="jan-titlebar">

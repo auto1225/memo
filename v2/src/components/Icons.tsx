@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Phase 18 — 라인아트 SVG 아이콘 라이브러리.
  * CLAUDE.md 규칙 #1 — 이모지 절대 금지. 모든 아이콘은 stroke="currentColor" SVG.
  */
@@ -33,7 +33,7 @@ export type IconName =
   | 'paperclip' | 'language' | 'translate'
   | 'image-text' | 'page' | 'globe' | 'cloud'
   | 'maximize' | 'minimize' | 'tag' | 'hash'
-  | 'cmd' | 'paragraph'
+  | 'cmd' | 'paragraph' | 'briefcase' | 'sync' | 'home' | 'shield' | 'clock' | 'page-break' | 'columns' | 'sup' | 'box' | 'qr' | 'history' | 'download' | 'upload' | 'dot' | 'send' | 'card' | 'cards' | 'sliders' | 'refresh-cw' | 'window-min' | 'window-max' | 'window-pin' | 'kanban'
 
 const PATHS: Record<IconName, string> = {
   // 파일
@@ -130,6 +130,29 @@ const PATHS: Record<IconName, string> = {
   hash: 'M4 9h16 M4 15h16 M10 3L8 21 M16 3l-2 18',
   cmd: 'M18 3a3 3 0 10-3 3v12a3 3 0 103-3H6a3 3 0 10-3 3V6a3 3 0 103 3h12',
   paragraph: 'M13 4v16 M17 4v16 M19 4H9.5a4.5 4.5 0 100 9H13',
+  briefcase: 'M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16',
+  sync: 'M21 2v6h-6 M3 12a9 9 0 0115-6.7L21 8 M3 22v-6h6 M21 12a9 9 0 01-15 6.7L3 16',
+  home: 'M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z M9 22V12h6v10',
+  shield: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
+  clock: 'M12 22a10 10 0 100-20 10 10 0 000 20z M12 6v6l4 2',
+  'page-break': 'M3 3h18v6H3z M3 21h18v-6H3z M9 12l3 3 3-3 M12 9v6',
+  columns: 'M3 3h7v18H3z M14 3h7v18h-7z',
+  sup: 'M4 18l6-12 6 12 M16 6h4 M18 4v4',
+  box: 'M3 3h18v18H3z',
+  qr: 'M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h3v3h-3z M21 21v-3h-3 M21 14v-3 M14 21v-3 M17 14h4',
+  history: 'M3 3v6h6 M3.5 11A9 9 0 1112 21 M12 7v5l3 2',
+  download: 'M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4 M7 10l5 5 5-5 M12 15V3',
+  upload: 'M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4 M17 8l-5-5-5 5 M12 3v12',
+  dot: 'M12 12m-2 0a2 2 0 104 0 2 2 0 10-4 0',
+  send: 'M22 2L11 13 M22 2l-7 20-4-9-9-4z',
+  card: 'M3 5h18v14H3z M3 10h18',
+  cards: 'M3 7h12v12H3z M9 3h12v12 M5 11h8 M5 14h6',
+  sliders: 'M4 21v-7 M4 10V3 M12 21v-9 M12 8V3 M20 21v-5 M20 12V3 M1 14h6 M9 8h6 M17 16h6',
+  'refresh-cw': 'M21 3v6h-6 M3 21v-6h6 M21 9a9 9 0 00-15-3 M3 15a9 9 0 0015 3',
+  'window-min': 'M5 12h14',
+  'window-max': 'M3 3h18v18H3z',
+  'window-pin': 'M12 17v5 M9 7h6l1 9H8z',
+  kanban: 'M3 3h6v18H3z M11 3h6v12h-6z M19 3h2v8h-2z',
 }
 
 export function Icon({ name, size = 16, className = '', strokeWidth = 2 }: IconProps) {
