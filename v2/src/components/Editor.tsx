@@ -10,45 +10,26 @@ import { TableCell } from '@tiptap/extension-table-cell'
 import { TableHeader } from '@tiptap/extension-table-header'
 import { Image } from '@tiptap/extension-image'
 import { PaginationPlus, PAGE_SIZES } from 'tiptap-pagination-plus'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Toolbar } from './Toolbar'
 import { StatusBar } from './StatusBar'
 import { useDocStore } from '../store/docStore'
+import { useMemosStore } from '../store/memosStore'
 import { saveToFile, openFile } from '../lib/fileOps'
-import { scheduleDraftSave, loadDraft } from '../lib/autoSave'
 import { installWordKeymap } from '../lib/keymap'
 
-/**
- * JustANotepad v2 — TipTap-based editor with automatic pagination.
- */
 export function Editor() {
-  const {
-    title, content, setContent, setTitle,
-    setEditor, setSavedAt, fileHandle, setFileHandle,
-  } = useDocStore()
+  const { fileHandle, setFileHandle, setSavedAt, setEditor } = useDocStore()
+  const { currentId, current, updateCurrent } = useMemosStore()
+  const memo = current()
+  const [, setTick] = useState(0)
 
-  const initialContent = (() => {
-    const draft = loadDraft()
-    if (draft) return draft.content
-    return '<p></p>'
-  })()
-
-  const initialTitle = (() => {
-    const draft = loadDraft()
-    if (draft) return draft.title
-    return '새 메모'
-  })()
-
-  useEffect(() => {
-    if (!content) setContent(initialContent)
-    if (title === '새 메모' && initialTitle !== '새 메모') setTitle(initialTitle)
-  }, [])
+  const initialContent = memo?.content || '<p></p>'
+  const title = memo?.title || '새 메모'
 
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({
-        heading: { levels: [1, 2, 3, 4, 5, 6] },
-      }),
+      StarterKit.configure({ heading: { levels: [1, 2, 3, 4, 5, 6] } }),
       Placeholder.configure({
         placeholder: '여기에 메모를 적어보세요... (Ctrl+B 굵게, Ctrl+I 기울임, Ctrl+U 밑줄)',
       }),
@@ -78,21 +59,26 @@ export function Editor() {
     ],
     content: initialContent,
     editorProps: {
-      attributes: {
-        class: 'ProseMirror',
-        spellcheck: 'false',
-      },
+      attributes: { class: 'ProseMirror', spellcheck: 'false' },
     },
     onUpdate: ({ editor }) => {
       const html = editor.getHTML()
-      setContent(html)
-      scheduleDraftSave(html, title)
+      updateCurrent({ content: html })
     },
   })
 
   useEffect(() => {
     if (editor) setEditor(editor)
   }, [editor, setEditor])
+
+  useEffect(() => {
+    if (!editor || !memo) return
+    const cur = editor.getHTML()
+    if (cur !== memo.content) {
+      editor.commands.setContent(memo.content)
+    }
+    setTick((n) => n + 1)
+  }, [currentId, editor])
 
   useEffect(() => {
     if (!editor) return
@@ -120,7 +106,7 @@ export function Editor() {
     if (!editor) return
     const result = await openFile()
     if (!result) return
-    setTitle(result.title)
+    updateCurrent({ title: result.title, content: result.content })
     setFileHandle(result.handle)
     editor.commands.setContent(result.content)
   }
@@ -130,7 +116,7 @@ export function Editor() {
       <Toolbar
         editor={editor}
         title={title}
-        onTitleChange={setTitle}
+        onTitleChange={(t) => updateCurrent({ title: t })}
         onSave={handleSave}
         onOpen={handleOpen}
       />
