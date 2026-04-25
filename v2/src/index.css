@@ -883,3 +883,7 @@ body.jan-reading-mode .ProseMirror h2{font-size:22pt;}
 /* ==================== Phase 17 — Page break visual ==================== */
 .ProseMirror div[style*="page-break-before"]{display:block;height:8px;background:repeating-linear-gradient(90deg,#D97757 0,#D97757 6px,transparent 6px,transparent 12px);margin:16px 0;border-radius:2px;position:relative;}
 .ProseMirror div[style*="page-break-before"]::after{content:"⤓ 페이지 분할";position:absolute;right:0;top:-16px;font-size:9px;color:#D97757;font-weight:600;}
+
+/* ==================== Phase 17b — Zoom override (transform 기반) ==================== */
+/* font-size 만 바꾸던 기존 방식 → transform: scale 로 페이지 자체 확대/축소 */
+.jan-editor-pages{transform:scale(var(--jan-zoom, 1));transform-origin:top center;will-change:transform;transition:transform 0.12s ease-out;}

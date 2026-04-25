@@ -12,7 +12,7 @@ export function useWheelZoom() {
       if (!(e.ctrlKey || e.metaKey)) return
       e.preventDefault()
       const ui = useUIStore.getState()
-      const delta = e.deltaY > 0 ? -0.05 : 0.05
+      const delta = e.deltaY > 0 ? -0.1 : 0.1
       const next = Math.max(0.6, Math.min(2, +(ui.zoom + delta).toFixed(2)))
       useUIStore.setState({ zoom: next })
     }
