@@ -2073,3 +2073,208 @@ html, body, #root {
 }
 
 /* End of Phase 21 — v1 design replica */
+
+
+/* =========================================================
+ * Phase 22 — v1 의 5-row 구조 정확 일치
+ *   v1: topbar / tabs / toolbar / body / statusbar
+ *   v2: 위 + titlebar + tagsbar (← 제거)
+ *
+ * 목표:
+ *  1. .jan-titlebar 제거 (제목은 AppHeader 안 또는 그냥 안 보이게)
+ *  2. .jan-tagsbar 제거 (필요시 별도 모달로 진입)
+ *  3. AppHeader 안에 제목 input 노출 (v1 처럼 노랑 바 안에)
+ *  4. statusbar 높이/색 v1 과 일치 (~29px, 연회색)
+ *  5. toolbar = multi-row 허용 (v1 의 flex-wrap:wrap)
+ * ========================================================= */
+
+/* --- 1) titlebar / tagsbar 제거 --- */
+.jan-titlebar {
+  display: none !important;
+}
+.jan-tagsbar {
+  display: none !important;
+}
+
+/* --- 2) AppHeader 안에 제목 입력 슬롯 --- */
+.jan-app-header .jan-hdr-title-input {
+  flex: 1;
+  height: 30px;
+  padding: 0 10px;
+  background: rgba(255,255,255,0.14);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  outline: none;
+  margin: 0 8px;
+  min-width: 120px;
+  max-width: 360px;
+}
+.jan-app-header .jan-hdr-title-input::placeholder {
+  color: rgba(255,255,255,0.7);
+}
+.jan-app-header .jan-hdr-title-input:focus {
+  background: rgba(255,255,255,0.26);
+  border-color: rgba(255,255,255,0.5);
+}
+
+/* --- 3) Toolbar = flex-wrap (v1 처럼 멀티-row 허용) --- */
+.jan-toolbar-row {
+  flex-wrap: wrap !important;
+  height: auto !important;
+  min-height: 38px !important;
+  overflow: visible !important;
+}
+@media (max-width: 800px) {
+  .jan-toolbar-row {
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+  }
+}
+
+/* --- 4) Statusbar = v1 의 정확한 높이/색 --- */
+.jan-statusbar {
+  height: 29px !important;
+  font-size: 11px !important;
+  background: #FCFCFC !important;
+  color: #555 !important;
+  border-top: 1px solid var(--paper-edge) !important;
+  padding: 4px 10px !important;
+  gap: 10px;
+}
+
+/* --- 5) AppHeader 높이 v1 과 일치 (46px) --- */
+.jan-app-header {
+  height: 46px !important;
+  padding: 0 10px !important;
+  gap: 4px !important;
+}
+.jan-app-header .jan-hdr-btn {
+  width: 30px;
+  height: 30px;
+}
+
+/* --- 6) Tabs row 높이 v1 과 일치 (44px) --- */
+.jan-memo-tabs {
+  height: 44px !important;
+  align-items: flex-end !important;
+  padding: 8px 8px 0 !important;
+}
+.jan-memo-tab {
+  height: 32px !important;
+}
+
+/* --- 7) v1 .topbar .title 스타일 그대로 적용 --- */
+.jan-app-header .jan-hdr-logo {
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  padding-left: 4px;
+  flex-shrink: 0;
+}
+
+/* End of Phase 22 — v1 5-row layout match */
+
+
+/* =========================================================
+ * Phase 22b — AppHeader 의 실제 클래스 (.jan-header-*) alias
+ *   AppHeader.tsx 가 jan-header-btn / jan-header-logo / jan-header-left / jan-header-right
+ *   클래스를 쓰는데 Phase 21 CSS 가 jan-hdr-* 로 잘못 잡혀있어 노랑 위 흰 버튼이 안 됨.
+ * ========================================================= */
+
+/* 좌측 그룹 / 우측 그룹 */
+.jan-header-left,
+.jan-header-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* 로고 */
+.jan-app-header .jan-header-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 13px;
+  color: #ffffff !important;
+  padding: 0 6px;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.06);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.jan-app-header .jan-header-logo svg {
+  stroke: #ffffff !important;
+}
+
+/* 헤더 버튼 — v1 의 .topbar button 스타일 그대로 */
+.jan-app-header .jan-header-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px; height: 30px;
+  background: rgba(0,0,0,0.08) !important;
+  border: 1px solid rgba(255,255,255,0.18) !important;
+  border-radius: 6px;
+  color: #ffffff !important;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background 0.12s, box-shadow 0.12s, transform 0.06s;
+}
+.jan-app-header .jan-header-btn:hover {
+  background: rgba(255,255,255,0.22) !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.jan-app-header .jan-header-btn:active {
+  transform: scale(0.92);
+}
+.jan-app-header .jan-header-btn svg,
+.jan-app-header .jan-header-btn .ico {
+  stroke: #ffffff !important;
+  width: 16px;
+  height: 16px;
+}
+
+/* 헤더 분리선 */
+.jan-app-header .jan-header-divider {
+  width: 1px;
+  height: 18px;
+  background: rgba(255,255,255,0.25);
+  margin: 0 4px;
+}
+
+/* 헤더 내부 제목 입력 */
+.jan-app-header .jan-header-title-input {
+  flex: 1;
+  height: 30px;
+  padding: 0 10px;
+  background: rgba(255,255,255,0.14);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  outline: none;
+  margin: 0 8px;
+  min-width: 100px;
+}
+.jan-app-header .jan-header-title-input::placeholder {
+  color: rgba(255,255,255,0.7);
+}
+.jan-app-header .jan-header-title-input:hover {
+  background: rgba(255,255,255,0.22);
+}
+.jan-app-header .jan-header-title-input:focus {
+  background: rgba(255,255,255,0.30);
+  border-color: rgba(255,255,255,0.55);
+}
+
+/* 다크 테마에서도 동일 — 보라 그라디언트 토픽바 */
+.jan-theme-dark .jan-app-header {
+  background: linear-gradient(180deg,#3d355f,#2a2740) !important;
+}
+
+/* End of Phase 22b */

@@ -1,6 +1,7 @@
 import { Icon } from './Icons'
 import { useUIStore } from '../store/uiStore'
 import { useThemeStore } from '../store/themeStore'
+import { useMemosStore } from '../store/memosStore'
 
 interface AppHeaderProps {
   onCmdK: () => void
@@ -17,15 +18,18 @@ interface AppHeaderProps {
 }
 
 /**
- * Phase 19 — v1 스타일 상단 헤더 바.
- * 좌측: 햄버거 + 로고
- * 우측: 작은 SVG 아이콘 도구 그룹 (명령 팔레트 / 검색 / 언어 / 테마 / 도움말 등)
+ * Phase 22 — v1 스타일 상단 헤더 바 (5-row 레이아웃 일치).
+ * v1 의 .topbar 처럼: 좌측 햄버거 + 로고 + 메모 제목 input → 우측 도구 아이콘들.
+ * 별도 jan-titlebar 행을 두지 않고 제목을 헤더 안에 둔다.
  */
 export function AppHeader(p: AppHeaderProps) {
   const sidebarCollapsed = useUIStore((s) => s.sidebarCollapsed)
   const toggleSidebar = useUIStore((s) => s.toggleSidebar)
   const theme = useThemeStore((s) => s.theme)
   const setTheme = useThemeStore((s) => s.setTheme)
+  const { current, updateCurrent } = useMemosStore()
+  const memo = current()
+  const title = memo?.title || '새 메모'
 
   function cycleTheme() {
     setTheme(theme === 'light' ? 'dark' : theme === 'dark' ? 'auto' : 'light')
@@ -50,6 +54,15 @@ export function AppHeader(p: AppHeaderProps) {
           <span>JustANotepad</span>
         </div>
       </div>
+
+      <input
+        type="text"
+        className="jan-header-title-input jan-hdr-title-input"
+        value={title}
+        onChange={(e) => updateCurrent({ title: e.target.value })}
+        placeholder="제목 없음"
+        aria-label="메모 제목"
+      />
 
       <div className="jan-header-right">
         <button className="jan-header-btn" onClick={p.onCmdPalette} title="명령 팔레트 (Ctrl+K)" aria-label="명령 팔레트">
