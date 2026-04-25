@@ -888,3 +888,99 @@ body.jan-reading-mode .ProseMirror h2{font-size:22pt;}
 /* font-size 만 바꾸던 기존 방식 → transform: scale 로 페이지 자체 확대/축소 */
 /* Phase 17b — page zoom (zoom property: works in Chromium + 모던 Firefox/Safari) */
 /* zoom 은 useWheelZoom hook 이 인라인으로 직접 적용 */
+
+/* ==================== Phase 18 — Ribbon Toolbar (v1 스타일) ==================== */
+/* 글자 깨짐 절대 방지 */
+.jan-titlebar, .jan-ribbon, .jan-toolbar { flex-wrap: nowrap !important; overflow-x: auto; }
+.jan-titlebar button, .jan-ribbon button, .jan-toolbar button { 
+  white-space: nowrap !important; 
+  flex-shrink: 0; 
+  min-width: max-content;
+  font-size: 12px;
+  padding: 4px 10px;
+}
+
+/* 1줄: titlebar — 제목 입력 + 빠른 액세스 + 음성 */
+.jan-titlebar { display: flex; gap: 8px; align-items: center; padding: 6px 12px; border-bottom: 1px solid var(--border, #eee); background: var(--paper, #FFF8F1); }
+.jan-title-input { flex: 0 1 360px; min-width: 200px; padding: 6px 12px; font-size: 14px; border: 1px solid var(--border, #ddd); border-radius: 6px; background: #fff; }
+.jan-quick-actions { display: flex; gap: 2px; }
+.jan-icon-btn { padding: 4px 8px !important; font-size: 14px !important; min-width: 32px; }
+.jan-spacer { flex: 1; }
+
+/* 2줄: ribbon — 카테고리 메뉴 ▾ */
+.jan-ribbon { display: flex; gap: 0; padding: 4px 8px; border-bottom: 1px solid var(--border, #eee); background: var(--bg-soft, #fafafa); }
+.jan-menu-wrap { position: relative; }
+.jan-menu-btn { 
+  background: transparent; 
+  border: 0; 
+  padding: 6px 14px !important; 
+  cursor: pointer; 
+  font-size: 13px !important; 
+  border-radius: 4px; 
+  color: var(--ink, #333);
+}
+.jan-menu-btn:hover, .jan-menu-btn.is-open { background: var(--jan-accent, #D97757); color: #fff; }
+.jan-menu-arrow { font-size: 9px; opacity: 0.6; margin-left: 4px; }
+
+.jan-menu-dropdown { 
+  position: absolute; 
+  top: 100%; 
+  left: 0; 
+  background: #fff; 
+  border: 1px solid var(--border, #ddd); 
+  border-radius: 6px; 
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12); 
+  min-width: 200px; 
+  max-width: 280px; 
+  padding: 4px 0; 
+  z-index: 1000;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+.jan-menu-item { 
+  display: flex !important; 
+  width: 100%; 
+  justify-content: space-between !important; 
+  align-items: center; 
+  background: transparent !important; 
+  border: 0 !important; 
+  text-align: left; 
+  padding: 6px 14px !important; 
+  cursor: pointer; 
+  font-size: 12px !important;
+  border-radius: 0 !important;
+}
+.jan-menu-item:hover { background: rgba(217,119,87,0.08) !important; }
+.jan-menu-item.is-active { background: rgba(217,119,87,0.15) !important; }
+.jan-menu-hint { font-size: 10px; color: #999; font-family: monospace; margin-left: 12px; }
+.jan-menu-divider { 
+  padding: 4px 14px; 
+  font-size: 10px; 
+  color: #999; 
+  text-transform: uppercase; 
+  letter-spacing: 0.5px; 
+  border-top: 1px solid #eee; 
+  margin-top: 4px; 
+}
+.jan-menu-divider:first-child { margin-top: 0; border-top: 0; }
+
+/* 3줄: toolbar — 서식 (B/I/U/H1..) */
+.jan-toolbar { display: flex; gap: 1px; padding: 4px 8px; border-bottom: 1px solid var(--border, #eee); background: #fff; align-items: center; }
+.jan-toolbar button { padding: 3px 8px !important; min-width: 28px !important; font-size: 13px !important; background: transparent; border: 0; cursor: pointer; border-radius: 3px; }
+.jan-toolbar button:hover { background: rgba(0,0,0,0.05); }
+.jan-toolbar button.is-active { background: rgba(217,119,87,0.2); color: #5D4037; }
+.jan-toolbar .divider { width: 1px; background: #ddd; margin: 0 4px; height: 18px; }
+
+.jan-theme-dark .jan-titlebar, .jan-theme-dark .jan-ribbon { background: #1e1e1e; border-color: #444; }
+.jan-theme-dark .jan-toolbar { background: #252525; border-color: #444; }
+.jan-theme-dark .jan-title-input { background: #2e2e2e; color: #e0e0e0; border-color: #444; }
+.jan-theme-dark .jan-menu-dropdown { background: #2e2e2e; border-color: #444; color: #e0e0e0; }
+.jan-theme-dark .jan-menu-item:hover { background: rgba(217,119,87,0.2) !important; }
+
+/* 사이드바 너비 보장 (글자 깨짐 X) */
+.jan-sidebar { min-width: 220px; max-width: 300px; }
+.jan-sidebar:not(.is-collapsed) { width: 240px; }
+.jan-sidebar-title, .jan-sidebar-preview { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* 첫줄 글자 작은 크기 */
+.jan-toolbar mark { padding: 0 3px !important; font-size: 12px; }
