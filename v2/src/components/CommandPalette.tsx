@@ -21,6 +21,7 @@ export function CommandPalette({ editor }: CommandPaletteProps) {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (e.isComposing || e.keyCode === 229) return
       const ctrl = e.ctrlKey || e.metaKey
       if ((ctrl && e.shiftKey && e.key.toLowerCase() === 'p') ||
           (ctrl && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'k')) {

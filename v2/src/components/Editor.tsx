@@ -14,6 +14,8 @@ import { useEffect, useState } from 'react'
 import { Toolbar } from './Toolbar'
 import { StatusBar } from './StatusBar'
 import { CommandPalette } from './CommandPalette'
+import { AiHelper } from './AiHelper'
+import { SettingsModal } from './SettingsModal'
 import { useDocStore } from '../store/docStore'
 import { useMemosStore } from '../store/memosStore'
 import { saveToFile, openFile } from '../lib/fileOps'
@@ -24,6 +26,8 @@ export function Editor() {
   const { currentId, current, updateCurrent } = useMemosStore()
   const memo = current()
   const [, setTick] = useState(0)
+  const [showAi, setShowAi] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
 
   const initialContent = memo?.content || '<p></p>'
   const title = memo?.title || '새 메모'
@@ -59,9 +63,7 @@ export function Editor() {
       }),
     ],
     content: initialContent,
-    editorProps: {
-      attributes: { class: 'ProseMirror', spellcheck: 'false' },
-    },
+    editorProps: { attributes: { class: 'ProseMirror', spellcheck: 'false' } },
     onUpdate: ({ editor }) => {
       const html = editor.getHTML()
       updateCurrent({ content: html })
@@ -76,7 +78,7 @@ export function Editor() {
     if (!editor || !memo) return
     const cur = editor.getHTML()
     if (cur !== memo.content) {
-      editor.commands.setContent(memo.content)
+      editor.commands.setContent(memo.content, { emitUpdate: false })
     }
     setTick((n) => n + 1)
   }, [currentId, editor])
@@ -89,7 +91,23 @@ export function Editor() {
       onPrint: () => window.print(),
     })
     return detach
-  }, [editor, fileHandle])
+  }, [editor, fileHandle, title, currentId])
+
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      if (e.isComposing || e.keyCode === 229) return
+      const ctrl = e.ctrlKey || e.metaKey
+      if (ctrl && !e.shiftKey && !e.altKey && e.key === '/') {
+        e.preventDefault()
+        setShowAi(true)
+      } else if (ctrl && !e.shiftKey && !e.altKey && e.key === ',') {
+        e.preventDefault()
+        setShowSettings(true)
+      }
+    }
+    document.addEventListener('keydown', h, true)
+    return () => document.removeEventListener('keydown', h, true)
+  }, [])
 
   async function handleSave() {
     if (!editor) return
@@ -126,6 +144,8 @@ export function Editor() {
       </div>
       <StatusBar editor={editor} />
       <CommandPalette editor={editor} />
+      {showAi && <AiHelper editor={editor} onClose={() => setShowAi(false)} />}
+      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
     </div>
   )
 }

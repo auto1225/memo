@@ -73,7 +73,11 @@ export const useMemosStore = create<MemosState>()(
           const next = { ...s.memos }
           delete next[id]
           const newOrder = s.order.filter((x) => x !== id)
-          const newCurrent = s.currentId === id ? newOrder[0] || null : s.currentId
+          let newCurrent = s.currentId === id ? newOrder[0] || null : s.currentId
+          if (newOrder.length === 0) {
+            const blank = makeBlankMemo()
+            return { memos: { [blank.id]: blank }, order: [blank.id], currentId: blank.id }
+          }
           return { memos: next, order: newOrder, currentId: newCurrent }
         })
       },

@@ -6,6 +6,7 @@ export function installWordKeymap(editor: Editor, opts: {
   onPrint?: () => void
 }) {
   const handler = (e: KeyboardEvent) => {
+    if (e.isComposing || e.keyCode === 229) return
     const ctrl = e.ctrlKey || e.metaKey
     const shift = e.shiftKey
     const alt = e.altKey

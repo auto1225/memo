@@ -237,3 +237,29 @@ body.jan-show-pilcrow .ProseMirror p::after {
 .jan-cp-hint { font-size: 11px; color: #999; font-family: monospace; background: rgba(0,0,0,0.05); padding: 1px 6px; border-radius: 3px; }
 .jan-cp-empty { padding: 16px; text-align: center; color: #999; font-size: 13px; }
 .jan-cp-footer { padding: 8px 14px; font-size: 11px; color: #999; border-top: 1px solid rgba(0,0,0,0.05); background: rgba(0,0,0,0.02); text-align: center; }
+
+
+/* Modal generic */
+.jan-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; display: flex; justify-content: center; align-items: center; }
+.jan-modal { width: 100%; max-width: 520px; max-height: 80vh; background: var(--jan-paper); border-radius: 8px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); display: flex; flex-direction: column; overflow: hidden; }
+.jan-modal-head { padding: 14px 18px; border-bottom: 1px solid rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; }
+.jan-modal-head h3 { margin: 0; font-size: 16px; font-weight: 600; color: var(--jan-fg); }
+.jan-modal-close { padding: 4px 10px; background: rgba(0,0,0,0.05); border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+.jan-modal-body { padding: 16px 18px; overflow-y: auto; }
+.jan-ai-modal { max-width: 600px; }
+.jan-ai-modes { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.jan-ai-mode { padding: 6px 14px; background: rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.08); border-radius: 4px; cursor: pointer; font-size: 13px; }
+.jan-ai-mode.is-active { background: var(--jan-accent); color: white; border-color: var(--jan-accent); }
+.jan-ai-input-info { font-size: 12px; color: #666; margin-bottom: 10px; padding: 8px 12px; background: rgba(0,0,0,0.03); border-radius: 4px; }
+.jan-ai-run, .jan-ai-apply { padding: 8px 16px; background: var(--jan-accent); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500; margin-bottom: 10px; }
+.jan-ai-run:disabled { opacity: 0.5; cursor: not-allowed; }
+.jan-ai-apply { background: rgba(0,0,0,0.05); color: var(--jan-fg); }
+.jan-ai-output { padding: 12px; background: rgba(217,119,87,0.06); border-left: 3px solid var(--jan-accent); border-radius: 4px; font-size: 13px; margin-bottom: 10px; max-height: 200px; overflow-y: auto; }
+.jan-settings-section { margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid rgba(0,0,0,0.05); }
+.jan-settings-section:last-of-type { border-bottom: none; }
+.jan-settings-section h4 { margin: 0 0 6px; font-size: 13px; font-weight: 600; color: var(--jan-fg); }
+.jan-settings-info { font-size: 12px; color: #666; line-height: 1.6; margin-bottom: 10px; }
+.jan-settings-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.jan-settings-actions button { padding: 6px 12px; background: var(--jan-paper); border: 1px solid rgba(0,0,0,0.1); border-radius: 4px; cursor: pointer; font-size: 12px; }
+.jan-settings-actions button:hover { background: var(--jan-bg); }
+.jan-settings-status { margin-top: 12px; padding: 8px 12px; background: rgba(217,119,87,0.1); border-radius: 4px; font-size: 12px; color: var(--jan-fg); }
