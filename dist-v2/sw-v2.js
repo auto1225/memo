@@ -5,7 +5,7 @@
  *
  * 캐시 키는 /v2/* 만 — v1 (/app, /home) 은 영향 X.
  */
-const VERSION = 'jan-v2-sw-v7-menus'
+const VERSION = 'jan-v2-sw-v8-impl'
 const STATIC_CACHE = `${VERSION}-static`
 
 const PRECACHE = [

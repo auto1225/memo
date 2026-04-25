@@ -1,4 +1,4 @@
-import { useEditor, EditorContent } from '@tiptap/react'
+﻿import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import TextAlign from '@tiptap/extension-text-align'
@@ -379,6 +379,9 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
         onTranslate={() => setShowTranslate(true)}
         onTemplates={() => setShowTemplates(true)}
         onGist={() => setShowGist(true)}
+        onOcr={() => setShowOcr(true)}
+        onChat={() => setShowChat(true)}
+        onSearch={() => setShowSearch(true)}
         onToggleOutline={() => setShowOutline((v) => !v)}
         outlineOpen={showOutline}
       />
