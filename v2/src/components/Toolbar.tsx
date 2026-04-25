@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+﻿import { useState, useRef, useEffect } from 'react'
 import type { Editor } from '@tiptap/react'
 import { downloadHwpx } from '../lib/hwpxExport'
 import { downloadMd } from '../lib/markdownIO'
@@ -180,12 +180,15 @@ export function Toolbar(p: ToolbarProps) {
     const sz = sizes[choice]; if (!sz) { alert('지원: ' + Object.keys(sizes).join(', ')); return }
     document.documentElement.style.setProperty('--jan-page-w', sz[0] + 'mm')
     document.documentElement.style.setProperty('--jan-page-h', sz[1] + 'mm')
+    document.querySelectorAll('.ProseMirror,.jan-page,.jan-editor-pages').forEach(el => { (el as HTMLElement).style.maxWidth = sz[0] + 'mm' })
     localStorage.setItem('jan-page-size', choice)
+    if (confirm(`페이지 크기를 ${choice} 로 변경했습니다. 페이지 분할에 즉시 반영하려면 새로고침할까요?`)) location.reload()
   }
   const setPageMargin = () => {
     const cur = localStorage.getItem('jan-page-margin') || '20'
     const v = window.prompt('페이지 여백 (mm):', cur); if (!v) return
     document.documentElement.style.setProperty('--jan-page-margin', v + 'mm')
+    document.querySelectorAll('.ProseMirror').forEach(el => { (el as HTMLElement).style.padding = v + 'mm ' + v + 'mm' })
     localStorage.setItem('jan-page-margin', v)
   }
 
@@ -218,12 +221,12 @@ export function Toolbar(p: ToolbarProps) {
 
   /* === 한국어 타이포 인라인 === */
   const setLetterSpacing = () => {
-    const v = window.prompt('자간 (px, 음수 가능, 예: -0.5):', localStorage.getItem('jan-letter-spacing') || '0')
+    const v = window.prompt('자간 (em, 예: -0.05 좁게 / 0.1 넓게):', localStorage.getItem('jan-letter-spacing') || '0')
     if (v === null) return
     localStorage.setItem('jan-letter-spacing', v)
     const id = 'jan-letter-spacing-style'
     const s = document.getElementById(id) || (() => { const e = document.createElement('style'); e.id = id; document.head.appendChild(e); return e })()
-    s.textContent = `.ProseMirror { letter-spacing: ${v}px; }`
+    s.textContent = `.ProseMirror { letter-spacing: ${v}em; }`
   }
   const setCharScale = () => {
     const v = window.prompt('장평 (% — 기본 100):', localStorage.getItem('jan-char-scale') || '100')
@@ -231,7 +234,10 @@ export function Toolbar(p: ToolbarProps) {
     localStorage.setItem('jan-char-scale', v)
     const id = 'jan-char-scale-style'
     const s = document.getElementById(id) || (() => { const e = document.createElement('style'); e.id = id; document.head.appendChild(e); return e })()
-    s.textContent = `.ProseMirror { font-stretch: ${v}%; transform-origin: left; }`
+    if (Number(v) === 100) { s.textContent = ''; return }
+    const ratio = Number(v)/100
+    const compW = (100/ratio).toFixed(2)
+    s.textContent = `.ProseMirror p, .ProseMirror h1, .ProseMirror h2, .ProseMirror h3, .ProseMirror h4, .ProseMirror h5, .ProseMirror h6, .ProseMirror li, .ProseMirror blockquote { transform: scaleX(${ratio}); transform-origin: left top; width: ${compW}%; }`
   }
   const toggleFirstLineIndent = () => {
     const cur = localStorage.getItem('jan-first-line-indent') === '1'
