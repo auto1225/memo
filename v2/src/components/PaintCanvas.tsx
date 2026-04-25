@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+﻿import { useEffect, useRef, useState } from 'react'
 import type { Editor } from '@tiptap/react'
 
 interface PaintCanvasProps {
@@ -150,6 +150,9 @@ export function PaintCanvas({ editor, onClose }: PaintCanvasProps) {
             onMouseMove={move}
             onMouseUp={end}
             onMouseLeave={end}
+            onTouchStart={(e) => { e.preventDefault(); const t = e.touches[0]; start({ clientX: t.clientX, clientY: t.clientY } as any) }}
+            onTouchMove={(e) => { e.preventDefault(); const t = e.touches[0]; move({ clientX: t.clientX, clientY: t.clientY } as any) }}
+            onTouchEnd={(e) => { e.preventDefault(); end() }}
           />
         </div>
       </div>

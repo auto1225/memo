@@ -1,14 +1,12 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { useTagsStore } from '../store/tagsStore'
 import { useMemosStore } from '../store/memosStore'
-
-interface TagsBarProps {}
 
 /**
  * Phase 6 — 현재 메모의 태그 표시·편집 + 태그 클릭 시 필터.
  * Toolbar 아래 한 줄.
  */
-export function TagsBar({}: TagsBarProps) {
+export function TagsBar() {
   const { byMemo, addTag, removeTag, allTags } = useTagsStore()
   const { currentId, memos, setCurrent } = useMemosStore()
   const [draft, setDraft] = useState('')

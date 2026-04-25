@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import type { Editor } from '@tiptap/react'
 
 interface OutlinePanelProps {
@@ -45,7 +45,7 @@ export function OutlinePanel({ editor }: OutlinePanelProps) {
 
   function jump(pos: number) {
     if (!editor) return
-    editor.chain().focus().setTextSelection(pos + 1).scrollIntoView().run()
+    editor.chain().focus().setTextSelection({ from: pos + 1, to: pos + 1 }).scrollIntoView().run()
   }
 
   if (!editor) return null
