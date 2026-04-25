@@ -102,6 +102,7 @@
     { "source": "/v2/favicon.svg", "destination": "/dist-v2/favicon.svg" },
     { "source": "/v2/icons.svg", "destination": "/dist-v2/icons.svg" },
     { "source": "/v2/sw-v2.js", "destination": "/dist-v2/sw-v2.js" },
+    { "source": "/v2/manifest.webmanifest", "destination": "/dist-v2/manifest.webmanifest" },
     { "source": "/admin", "destination": "/admin.html" },
     { "source": "/home", "destination": "/home.html" },
     { "source": "/postit", "destination": "/postit.html" },
