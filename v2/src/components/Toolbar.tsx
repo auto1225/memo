@@ -1,5 +1,7 @@
-﻿import type { Editor } from '@tiptap/react'
+import type { Editor } from '@tiptap/react'
 import { downloadHwpx } from '../lib/hwpxExport'
+import { downloadMd } from '../lib/markdownIO'
+import { useThemeStore } from '../store/themeStore'
 
 interface ToolbarProps {
   editor: Editor | null
@@ -12,12 +14,20 @@ interface ToolbarProps {
   onRoles: () => void
   onPaper: () => void
   onPostit: () => void
+  onSearch: () => void
+  onPaint: () => void
+  onHelp: () => void
+  onToggleOutline: () => void
+  outlineOpen: boolean
 }
 
 export function Toolbar({
   editor, title, onTitleChange, onSave, onOpen,
   onPrintPreview, onAi, onRoles, onPaper, onPostit,
+  onSearch, onPaint, onHelp, onToggleOutline, outlineOpen,
 }: ToolbarProps) {
+  const theme = useThemeStore((s) => s.theme)
+  const setTheme = useThemeStore((s) => s.setTheme)
   if (!editor) return null
 
   const togglePilcrow = () => {
@@ -57,6 +67,19 @@ export function Toolbar({
     }
   }
 
+  const exportMd = () => {
+    try {
+      downloadMd(editor.getHTML(), title || '메모')
+    } catch (e: any) {
+      alert('Markdown 내보내기 실패: ' + (e.message || e))
+    }
+  }
+
+  const cycleTheme = () => {
+    const next = theme === 'light' ? 'dark' : theme === 'dark' ? 'auto' : 'light'
+    setTheme(next)
+  }
+
   return (
     <>
       <div className="jan-titlebar">
@@ -72,11 +95,18 @@ export function Toolbar({
         <button onClick={onPrintPreview} title="Ctrl+Alt+P 인쇄 미리보기 (Paged.js)">미리보기</button>
         <button onClick={() => window.print()} title="Ctrl+P 인쇄">인쇄</button>
         <button onClick={exportHwpx} title="HWPX (한글) 내보내기">HWPX</button>
+        <button onClick={exportMd} title="Markdown 내보내기">MD</button>
         <span className="divider" />
+        <button onClick={onSearch} title="Ctrl+Shift+F 전체 검색">검색</button>
         <button onClick={onAi} title="Ctrl+/ AI 도우미">AI</button>
         <button onClick={onRoles} title="역할 팩 — 템플릿 삽입">역할</button>
         <button onClick={onPaper} title="논문 모드 — 인용 관리">논문</button>
+        <button onClick={onPaint} title="그림판">그림</button>
         <button onClick={onPostit} title="JustPin 포스트잇">포스트잇</button>
+        <button onClick={onToggleOutline} className={outlineOpen ? 'is-active' : ''} title="목차 패널">목차</button>
+        <span className="divider" />
+        <button onClick={cycleTheme} title={`테마: ${theme}`}>{theme === 'dark' ? '☾' : theme === 'auto' ? 'A' : '☀'}</button>
+        <button onClick={onHelp} title="F1 단축키 도움말">?</button>
       </div>
       <div className="jan-toolbar">
         <button onClick={() => editor.chain().focus().toggleBold().run()} className={editor.isActive('bold') ? 'is-active' : ''} title="Ctrl+B 굵게"><b>B</b></button>

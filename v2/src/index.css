@@ -333,3 +333,82 @@ body.jan-show-pilcrow .ProseMirror p::after {
 /* ==================== AI helper warn / error ==================== */
 .jan-ai-warn{padding:10px 12px;background:#FFF3E0;border-left:3px solid #FF9800;font-size:12px;color:#5D4037;border-radius:4px;margin-bottom:10px;}
 .jan-ai-error{padding:8px 12px;background:#FFEBEE;border-left:3px solid #F44336;font-size:12px;color:#B71C1C;border-radius:4px;margin-top:8px;white-space:pre-wrap;}
+
+/* ==================== Phase 6 — Search Panel ==================== */
+.jan-search-modal{width:min(720px,92vw);max-height:80vh;}
+.jan-search-input{width:100%;box-sizing:border-box;padding:10px 14px;font-size:15px;border:1px solid #ccc;border-radius:6px;font-family:inherit;}
+.jan-search-stats{font-size:12px;color:#888;margin:8px 0;}
+.jan-search-list{list-style:none;padding:0;margin:0;max-height:50vh;overflow-y:auto;}
+.jan-search-item{padding:10px 12px;border-bottom:1px solid #eee;cursor:pointer;border-radius:4px;}
+.jan-search-item.is-selected,.jan-search-item:hover{background:rgba(217,119,87,0.08);}
+.jan-search-title{font-weight:600;font-size:14px;color:var(--ink,#222);}
+.jan-search-snippet{font-size:12px;color:#666;margin-top:4px;line-height:1.5;}
+.jan-search-meta{font-size:11px;color:#999;margin-top:2px;}
+.jan-search-empty{padding:20px;text-align:center;color:#999;}
+
+/* ==================== Phase 6 — Tags Bar ==================== */
+.jan-tagsbar{padding:6px 14px;border-bottom:1px solid var(--border,#eee);background:var(--bg-soft,#fafafa);font-size:12px;}
+.jan-tagsbar-current{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.jan-tagsbar-label{color:#888;font-weight:600;}
+.jan-tagsbar-empty{color:#bbb;font-style:italic;}
+.jan-tag{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:rgba(217,119,87,0.12);color:#8B4513;border-radius:12px;font-size:11px;border:0;}
+.jan-tag button{background:none;border:0;padding:0 0 0 2px;cursor:pointer;font-size:14px;line-height:1;color:inherit;opacity:0.6;}
+.jan-tag button:hover{opacity:1;}
+.jan-tag-clickable{cursor:pointer;}
+.jan-tag-clickable:hover{background:rgba(217,119,87,0.25);}
+.jan-tagsbar-input{flex:1;min-width:120px;padding:2px 6px;border:1px solid transparent;background:transparent;font-size:12px;font-family:inherit;outline:none;}
+.jan-tagsbar-input:focus{border-color:#ccc;background:#fff;}
+.jan-tagsbar-toggle{padding:2px 8px;background:transparent;border:1px solid #ddd;border-radius:4px;font-size:11px;cursor:pointer;}
+.jan-tagsbar-all{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;padding-top:6px;border-top:1px dashed #ddd;}
+
+/* ==================== Phase 6 — Outline Panel ==================== */
+.jan-main{display:flex;flex:1;overflow:hidden;}
+.jan-main.has-outline .jan-editor-pages{flex:1;}
+.jan-outline{width:240px;border-right:1px solid var(--border,#ddd);background:var(--bg-soft,#fafafa);overflow-y:auto;flex-shrink:0;}
+.jan-outline-head{padding:10px 14px;font-weight:600;font-size:13px;border-bottom:1px solid var(--border,#eee);color:#666;}
+.jan-outline-empty{padding:14px;color:#999;font-size:12px;}
+.jan-outline-list{list-style:none;padding:6px 0;margin:0;}
+.jan-outline-item{padding:4px 14px;cursor:pointer;font-size:12px;line-height:1.4;border-left:2px solid transparent;}
+.jan-outline-item:hover{background:rgba(217,119,87,0.08);border-left-color:#D97757;}
+.jan-outline-item.lvl1{font-weight:700;font-size:13px;}
+.jan-outline-item.lvl2{font-weight:600;}
+
+/* ==================== Phase 6 — Keyboard Help ==================== */
+.jan-help-modal{width:min(640px,92vw);max-height:80vh;}
+.jan-help-section{margin-bottom:16px;}
+.jan-help-section h4{margin:0 0 6px;font-size:13px;color:#D97757;text-transform:uppercase;letter-spacing:0.5px;}
+.jan-help-table{width:100%;border-collapse:collapse;font-size:13px;}
+.jan-help-table td{padding:5px 8px;}
+.jan-help-table td:first-child{width:200px;}
+.jan-help-table kbd{display:inline-block;padding:2px 8px;background:rgba(0,0,0,0.06);border:1px solid rgba(0,0,0,0.12);border-bottom-width:2px;border-radius:4px;font-family:"D2Coding",monospace;font-size:12px;}
+
+/* ==================== Phase 6 — Paint Canvas ==================== */
+.jan-paint-modal{width:min(900px,96vw);}
+.jan-paint-tools{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:8px;padding:8px;background:rgba(0,0,0,0.03);border-radius:6px;}
+.jan-paint-tools button{padding:4px 10px;border:1px solid #ccc;background:#fff;cursor:pointer;border-radius:4px;font-size:12px;}
+.jan-paint-tools button.is-active{background:#D97757;color:#fff;border-color:#D97757;}
+.jan-paint-tools button.primary{background:#5D4037;color:#fff;border-color:#5D4037;font-weight:600;}
+.jan-paint-tools .divider{width:1px;height:18px;background:#ccc;margin:0 4px;}
+.jan-paint-color{width:24px;height:24px;border-radius:50%;padding:0 !important;border-width:2px !important;}
+.jan-paint-color.is-active{outline:2px solid #333;outline-offset:1px;}
+.jan-paint-canvas{display:block;width:100%;max-width:800px;margin:0 auto;border:1px solid #ddd;background:#fff;cursor:crosshair;}
+
+/* ==================== Phase 6 — Dark Theme ==================== */
+.jan-theme-dark{
+  --paper:#1e1e1e; --ink:#e0e0e0; --border:#3a3a3a; --bg-soft:#252525;
+  background:#1a1a1a; color:#e0e0e0;
+}
+.jan-theme-dark .jan-editor-wrap{background:#1a1a1a;}
+.jan-theme-dark .jan-titlebar,.jan-theme-dark .jan-toolbar{background:#252525;border-color:#3a3a3a;color:#e0e0e0;}
+.jan-theme-dark .jan-toolbar button,.jan-theme-dark .jan-titlebar button{background:#2e2e2e;color:#e0e0e0;border-color:#444;}
+.jan-theme-dark .jan-toolbar button:hover,.jan-theme-dark .jan-titlebar button:hover{background:#3a3a3a;}
+.jan-theme-dark .jan-toolbar button.is-active,.jan-theme-dark .jan-titlebar button.is-active{background:#D97757;color:#fff;border-color:#D97757;}
+.jan-theme-dark .jan-title-input{background:#1e1e1e;color:#e0e0e0;border-color:#3a3a3a;}
+.jan-theme-dark .ProseMirror{background:#252525;color:#e0e0e0;}
+.jan-theme-dark .jan-modal{background:#252525;color:#e0e0e0;}
+.jan-theme-dark .jan-modal-overlay{background:rgba(0,0,0,0.7);}
+.jan-theme-dark .jan-modal input,.jan-theme-dark .jan-modal textarea,.jan-theme-dark .jan-modal select{background:#1e1e1e;color:#e0e0e0;border-color:#444;}
+.jan-theme-dark .jan-tagsbar,.jan-theme-dark .jan-outline{background:#202020;border-color:#3a3a3a;}
+.jan-theme-dark .jan-help-table kbd{background:#333;color:#eee;border-color:#555;}
+.jan-theme-dark th{background:#333 !important;color:#eee;}
+.jan-theme-dark table th,.jan-theme-dark table td{border-color:#444 !important;}
