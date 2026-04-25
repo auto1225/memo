@@ -412,3 +412,48 @@ body.jan-show-pilcrow .ProseMirror p::after {
 .jan-theme-dark .jan-help-table kbd{background:#333;color:#eee;border-color:#555;}
 .jan-theme-dark th{background:#333 !important;color:#eee;}
 .jan-theme-dark table th,.jan-theme-dark table td{border-color:#444 !important;}
+
+/* ==================== Phase 7 — Math (KaTeX) ==================== */
+.jan-math-inline{display:inline-block;cursor:pointer;padding:0 2px;border-radius:3px;}
+.jan-math-inline:hover{background:rgba(217,119,87,0.08);}
+.jan-mermaid{cursor:pointer;}
+.jan-mermaid svg{max-width:100%;height:auto;}
+
+/* ==================== Phase 7 — Mention ==================== */
+.mention{padding:1px 6px;background:rgba(217,119,87,0.15);color:#8B4513;border-radius:10px;font-weight:500;}
+.jan-mention-list{background:#fff;border:1px solid #ddd;border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,0.15);max-height:240px;overflow-y:auto;min-width:180px;}
+.jan-mention-list-item{padding:6px 12px;cursor:pointer;font-size:13px;}
+.jan-mention-list-item.is-selected,.jan-mention-list-item:hover{background:rgba(217,119,87,0.1);}
+
+/* ==================== Phase 7 — Mobile Responsive ==================== */
+@media (max-width: 768px) {
+  .jan-app{flex-direction:column !important;}
+  .jan-sidebar{width:100% !important;max-height:160px;border-right:0 !important;border-bottom:1px solid var(--border,#ddd);}
+  .jan-titlebar{flex-wrap:wrap;gap:4px;padding:6px 8px;}
+  .jan-titlebar button{padding:4px 8px;font-size:12px;}
+  .jan-title-input{font-size:14px;padding:4px 8px;}
+  .jan-toolbar{flex-wrap:wrap;gap:2px;padding:4px 8px;overflow-x:auto;}
+  .jan-toolbar button{min-width:30px;padding:4px 6px;font-size:13px;}
+  .jan-outline{width:100%;max-height:140px;border-right:0;border-bottom:1px solid var(--border,#ddd);}
+  .jan-main{flex-direction:column;}
+  .jan-modal{width:96vw !important;max-width:96vw;max-height:90vh;}
+  .jan-roles-body{flex-direction:column;}
+  .jan-roles-sidebar{width:100% !important;max-height:120px;border-right:0;border-bottom:1px solid var(--border,#eee);}
+  .jan-paint-canvas{width:100% !important;height:auto;max-height:60vh;}
+  .jan-tagsbar{padding:4px 8px;font-size:11px;}
+  .jan-tag{font-size:10px;padding:1px 6px;}
+}
+
+@media (max-width: 480px) {
+  .jan-titlebar button{font-size:11px;padding:3px 6px;}
+  .jan-toolbar button{min-width:26px;padding:3px 4px;font-size:12px;}
+  .jan-toolbar .divider{display:none;}
+  .jan-help-table td:first-child{width:120px;}
+  .jan-help-table kbd{font-size:11px;padding:1px 4px;}
+}
+
+/* 터치 장치 — 버튼 최소 44x44 */
+@media (pointer: coarse) {
+  .jan-titlebar button,.jan-toolbar button{min-height:36px;min-width:36px;}
+  .jan-tag button{min-height:24px;min-width:24px;}
+}

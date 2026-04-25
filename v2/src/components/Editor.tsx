@@ -10,21 +10,12 @@ import { TableCell } from '@tiptap/extension-table-cell'
 import { TableHeader } from '@tiptap/extension-table-header'
 import { Image } from '@tiptap/extension-image'
 import { PaginationPlus, PAGE_SIZES } from 'tiptap-pagination-plus'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, lazy, Suspense } from 'react'
 import { Toolbar } from './Toolbar'
 import { StatusBar } from './StatusBar'
 import { CommandPalette } from './CommandPalette'
-import { AiHelper } from './AiHelper'
-import { SettingsModal } from './SettingsModal'
-import { PrintPreview } from './PrintPreview'
-import { RolesPanel } from './RolesPanel'
-import { PaperPanel } from './PaperPanel'
-import { PostitPanel } from './PostitPanel'
-import { SearchPanel } from './SearchPanel'
-import { PaintCanvas } from './PaintCanvas'
-import { KeyboardHelp } from './KeyboardHelp'
-import { OutlinePanel } from './OutlinePanel'
 import { TagsBar } from './TagsBar'
+import { OutlinePanel } from './OutlinePanel'
 import { useDocStore } from '../store/docStore'
 import { useMemosStore } from '../store/memosStore'
 import { useThemeStore } from '../store/themeStore'
@@ -32,12 +23,31 @@ import { saveToFile, openFile } from '../lib/fileOps'
 import { installWordKeymap } from '../lib/keymap'
 import { pushOne, syncConfigured } from '../lib/supabaseSync'
 import { tauriSyncOnBoot } from '../lib/justpin'
+import { MathInline } from '../extensions/Math'
+import { Mermaid } from '../extensions/Mermaid'
+
+// Phase 7 — 무거운 모달은 lazy load (chunk 분리). 첫 페이지 로드 가벼움.
+const AiHelper = lazy(() => import('./AiHelper').then((m) => ({ default: m.AiHelper })))
+const SettingsModal = lazy(() => import('./SettingsModal').then((m) => ({ default: m.SettingsModal })))
+const PrintPreview = lazy(() => import('./PrintPreview').then((m) => ({ default: m.PrintPreview })))
+const RolesPanel = lazy(() => import('./RolesPanel').then((m) => ({ default: m.RolesPanel })))
+const PaperPanel = lazy(() => import('./PaperPanel').then((m) => ({ default: m.PaperPanel })))
+const PostitPanel = lazy(() => import('./PostitPanel').then((m) => ({ default: m.PostitPanel })))
+const SearchPanel = lazy(() => import('./SearchPanel').then((m) => ({ default: m.SearchPanel })))
+const PaintCanvas = lazy(() => import('./PaintCanvas').then((m) => ({ default: m.PaintCanvas })))
+const KeyboardHelp = lazy(() => import('./KeyboardHelp').then((m) => ({ default: m.KeyboardHelp })))
+
+const Loading = () => (
+  <div className="jan-modal-overlay">
+    <div className="jan-modal" style={{ padding: 24, textAlign: 'center' }}>로딩 중...</div>
+  </div>
+)
 
 /**
- * JustANotepad v2 — Phase 6 통합.
- * 모달: AI / 설정 / 인쇄 / 역할 / 논문 / 포스트잇 / 검색 / 그림판 / 도움말
- * 사이드 패널: 목차 (Outline)
- * 메인 영역: 태그 바 + TipTap 편집기
+ * JustANotepad v2 — Phase 7 통합.
+ * - 모달 lazy chunk 분리 (Suspense)
+ * - 수식 (MathInline / KaTeX), 다이어그램 (Mermaid lazy CDN)
+ * - 모바일 반응형 (@media)
  */
 export function Editor() {
   const { fileHandle, setFileHandle, setSavedAt, setEditor } = useDocStore()
@@ -65,7 +75,7 @@ export function Editor() {
         heading: { levels: [1, 2, 3, 4, 5, 6] },
       }),
       Placeholder.configure({
-        placeholder: '여기에 메모를 적어보세요... (Ctrl+B 굵게, F1 단축키)',
+        placeholder: '여기에 메모를 적어보세요... (F1 단축키)',
       }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       Underline,
@@ -75,6 +85,8 @@ export function Editor() {
       TableHeader,
       TableCell,
       Image,
+      MathInline,
+      Mermaid,
       PaginationPlus.configure({
         ...PAGE_SIZES.A4,
         pageGap: 24,
@@ -106,12 +118,10 @@ export function Editor() {
 
   useEffect(() => {
     if (editor) setEditor(editor)
-    // 부팅 시 — 테마 적용 + Tauri postit 동기화
     applyTheme()
     tauriSyncOnBoot().catch(() => {})
   }, [editor, setEditor, applyTheme])
 
-  // 메모 전환 시 — content 를 새 메모로 교체.
   useEffect(() => {
     if (!editor || !memo) return
     const cur = editor.getHTML()
@@ -121,7 +131,6 @@ export function Editor() {
     setTick((n) => n + 1)
   }, [currentId, editor])
 
-  // Word-style keymap
   useEffect(() => {
     if (!editor) return
     const detach = installWordKeymap(editor, {
@@ -133,26 +142,20 @@ export function Editor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor, fileHandle, title, currentId])
 
-  // 추가 단축키
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
       if (e.isComposing || e.keyCode === 229) return
       const ctrl = e.ctrlKey || e.metaKey
       if (ctrl && !e.shiftKey && !e.altKey && e.key === '/') {
-        e.preventDefault()
-        setShowAi(true)
+        e.preventDefault(); setShowAi(true)
       } else if (ctrl && !e.shiftKey && !e.altKey && e.key === ',') {
-        e.preventDefault()
-        setShowSettings(true)
+        e.preventDefault(); setShowSettings(true)
       } else if (ctrl && e.altKey && !e.shiftKey && (e.key === 'P' || e.key === 'p')) {
-        e.preventDefault()
-        setShowPrint(true)
+        e.preventDefault(); setShowPrint(true)
       } else if (ctrl && e.shiftKey && !e.altKey && (e.key === 'F' || e.key === 'f')) {
-        e.preventDefault()
-        setShowSearch(true)
+        e.preventDefault(); setShowSearch(true)
       } else if (e.key === 'F1' || (ctrl && e.shiftKey && e.key === '?')) {
-        e.preventDefault()
-        setShowHelp(true)
+        e.preventDefault(); setShowHelp(true)
       }
     }
     document.addEventListener('keydown', h, true)
@@ -211,17 +214,19 @@ export function Editor() {
       </div>
       <StatusBar editor={editor} />
       <CommandPalette editor={editor} />
-      {showAi && <AiHelper editor={editor} onClose={() => setShowAi(false)} />}
-      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
-      {showPrint && editor && (
-        <PrintPreview html={editor.getHTML()} title={title} onClose={() => setShowPrint(false)} />
-      )}
-      {showRoles && <RolesPanel editor={editor} onClose={() => setShowRoles(false)} />}
-      {showPaper && <PaperPanel editor={editor} onClose={() => setShowPaper(false)} />}
-      {showPostit && <PostitPanel onClose={() => setShowPostit(false)} />}
-      {showSearch && <SearchPanel onClose={() => setShowSearch(false)} />}
-      {showPaint && <PaintCanvas editor={editor} onClose={() => setShowPaint(false)} />}
-      {showHelp && <KeyboardHelp onClose={() => setShowHelp(false)} />}
+      <Suspense fallback={<Loading />}>
+        {showAi && <AiHelper editor={editor} onClose={() => setShowAi(false)} />}
+        {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+        {showPrint && editor && (
+          <PrintPreview html={editor.getHTML()} title={title} onClose={() => setShowPrint(false)} />
+        )}
+        {showRoles && <RolesPanel editor={editor} onClose={() => setShowRoles(false)} />}
+        {showPaper && <PaperPanel editor={editor} onClose={() => setShowPaper(false)} />}
+        {showPostit && <PostitPanel onClose={() => setShowPostit(false)} />}
+        {showSearch && <SearchPanel onClose={() => setShowSearch(false)} />}
+        {showPaint && <PaintCanvas editor={editor} onClose={() => setShowPaint(false)} />}
+        {showHelp && <KeyboardHelp onClose={() => setShowHelp(false)} />}
+      </Suspense>
     </div>
   )
 }
