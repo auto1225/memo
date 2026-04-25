@@ -95,7 +95,7 @@ const TranslateModal = lazy(() => import('./TranslateModal').then((m) => ({ defa
 const TemplatesModal = lazy(() => import('./TemplatesModal').then((m) => ({ default: m.TemplatesModal })))
 const GistModal = lazy(() => import('./GistModal').then((m) => ({ default: m.GistModal })))
 
-export function Editor() {
+export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
   const { fileHandle, setFileHandle, setSavedAt, setEditor } = useDocStore()
   const { currentId, current, updateCurrent } = useMemosStore()
   const applyTheme = useThemeStore((s) => s.apply)
@@ -383,11 +383,14 @@ export function Editor() {
         outlineOpen={showOutline}
       />
       <TagsBar />
-      <div className={'jan-editor-main' + (showOutline ? ' has-outline' : '')}>
+      <div className="jan-app-body">
+        {sidebar}
+        <div className={'jan-editor-main' + (showOutline ? ' has-outline' : '')}>
         {showOutline && <OutlinePanel editor={editor} />}
         <div className="jan-editor-pages">
           <EditorContent editor={editor} />
         </div>
+      </div>
       </div>
       <StatusBar editor={editor} />
       <CommandPalette editor={editor} />

@@ -7,7 +7,7 @@ import { useUIStore } from './store/uiStore'
 
 function App() {
   const lang = useI18nStore((s) => s.lang)
-  const { focusMode, toggleFocus, zoom, zoomIn, zoomOut, zoomReset, headingNumbers, readingMode, toggleReading, spellCheck } = useUIStore()
+  const { focusMode, toggleFocus, zoom, zoomIn, zoomOut, zoomReset, headingNumbers, readingMode, toggleReading, spellCheck, sidebarCollapsed } = useUIStore()
 
   if (typeof window !== 'undefined') {
     try {
@@ -18,35 +18,24 @@ function App() {
     } catch {}
   }
 
-  // 포커스 모드 클래스 동기화 + 줌 변수
   useEffect(() => {
     document.body.classList.toggle('jan-focus-mode', focusMode)
     document.body.classList.toggle('jan-heading-numbers', headingNumbers)
     document.body.classList.toggle('jan-reading-mode', readingMode)
+    document.body.classList.toggle('jan-sidebar-hidden', sidebarCollapsed)
     document.documentElement.style.setProperty('--jan-zoom', String(zoom))
     document.querySelectorAll('.ProseMirror').forEach((el) => el.setAttribute('spellcheck', spellCheck ? 'true' : 'false'))
-  }, [focusMode, zoom, headingNumbers, readingMode, spellCheck])
+  }, [focusMode, zoom, headingNumbers, readingMode, spellCheck, sidebarCollapsed])
 
-  // F11 포커스 모드, Ctrl+= / Ctrl+- 줌
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.isComposing || e.keyCode === 229) return
-      if (e.key === 'F11' && !e.ctrlKey && !e.altKey) {
-        e.preventDefault(); toggleFocus()
-      } else if (e.key === 'F11' && e.shiftKey) {
-        e.preventDefault(); toggleReading()
-      }
+      if (e.key === 'F11' && !e.ctrlKey && !e.altKey) { e.preventDefault(); toggleFocus() }
+      else if (e.key === 'F11' && e.shiftKey) { e.preventDefault(); toggleReading() }
       const ctrl = e.ctrlKey || e.metaKey
-      if (ctrl && !e.shiftKey && (e.key === '=' || e.key === '+')) {
-        e.preventDefault()
-        zoomIn()
-      } else if (ctrl && !e.shiftKey && e.key === '-') {
-        e.preventDefault()
-        zoomOut()
-      } else if (ctrl && !e.shiftKey && e.key === '0') {
-        e.preventDefault()
-        zoomReset()
-      }
+      if (ctrl && !e.shiftKey && (e.key === '=' || e.key === '+')) { e.preventDefault(); zoomIn() }
+      else if (ctrl && !e.shiftKey && e.key === '-') { e.preventDefault(); zoomOut() }
+      else if (ctrl && !e.shiftKey && e.key === '0') { e.preventDefault(); zoomReset() }
     }
     document.addEventListener('keydown', onKey, true)
     return () => document.removeEventListener('keydown', onKey, true)
@@ -55,9 +44,8 @@ function App() {
   const { currentId, newMemo, list } = useMemosStore()
 
   useEffect(() => {
-    if (!currentId && list().length === 0) {
-      newMemo()
-    } else if (!currentId && list().length > 0) {
+    if (!currentId && list().length === 0) newMemo()
+    else if (!currentId && list().length > 0) {
       const first = list()[0]
       if (first) useMemosStore.getState().setCurrent(first.id)
     }
@@ -66,20 +54,7 @@ function App() {
   return (
     <div className="jan-app">
       <a href="#jan-editor" className="skip-to-content">본문으로 건너뛰기</a>
-      {!focusMode && <Sidebar />}
-      <main className="jan-main" id="jan-editor" role="main" aria-label="JustANotepad editor">
-        <Editor />
-      </main>
-      {focusMode && (
-        <button
-          className="jan-focus-exit"
-          onClick={toggleFocus}
-          title="포커스 모드 해제 (F11)"
-          aria-label="포커스 모드 해제"
-        >
-          ⊟
-        </button>
-      )}
+      <Editor sidebar={!focusMode && <Sidebar />} />
     </div>
   )
 }

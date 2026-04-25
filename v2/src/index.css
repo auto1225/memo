@@ -1222,3 +1222,557 @@ body { background: #FFE8E8; }
 /* 옛 .jan-toolbar / .jan-ribbon 스타일 제거 (충돌 방지) — toolbar-row 만 사용 */
 .jan-toolbar { display: none !important; }
 .jan-ribbon { display: none !important; }
+
+
+/* =========================================================
+ * Phase 20 — Professional UI/UX overhaul (grayscale base)
+ * 분홍 톤 → 회색조 / 사이드바 flex / 툴바 단일행
+ * ========================================================= */
+
+/* --- 0) 기본 변수 재정의 (분홍 → 그레이) --- */
+:root {
+  --jan-bg:        #FAFAFA;
+  --jan-bg-alt:    #FFFFFF;
+  --jan-paper:     #FFFFFF;
+  --jan-fg:        #1F2937;
+  --jan-fg-muted:  #6B7280;
+  --jan-border:    #E5E7EB;
+  --jan-border-2:  #D1D5DB;
+  --jan-hover:     #F3F4F6;
+  --jan-active:    #E5E7EB;
+  --jan-accent:    #2563EB;
+  --jan-accent-hi: #DBEAFE;
+  --jan-page-bg:   #F3F4F6;
+}
+
+html, body, #root { background: var(--jan-bg); color: var(--jan-fg); }
+
+/* --- 1) 앱 루트 — 풀스크린 flex column --- */
+.jan-app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background: var(--jan-bg);
+}
+.jan-app-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* --- 2) 헤더 (AppHeader) — 단정한 흰색 --- */
+.jan-app-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 8px;
+  background: var(--jan-bg-alt);
+  border-bottom: 1px solid var(--jan-border);
+  flex-shrink: 0;
+  z-index: 80;
+}
+.jan-app-header .jan-hdr-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px; height: 28px;
+  border: 0;
+  background: transparent;
+  color: var(--jan-fg-muted);
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 0;
+}
+.jan-app-header .jan-hdr-btn:hover { background: var(--jan-hover); color: var(--jan-fg); }
+.jan-app-header .jan-hdr-btn.is-active { background: var(--jan-accent-hi); color: var(--jan-accent); }
+.jan-app-header .jan-hdr-logo {
+  display: inline-flex; align-items: center;
+  font-weight: 700; font-size: 14px;
+  color: var(--jan-fg);
+  padding: 0 6px;
+  letter-spacing: -0.01em;
+}
+.jan-app-header .jan-hdr-spacer { flex: 1; }
+
+/* --- 3) 메모 탭 — Chrome 스타일 --- */
+.jan-memo-tabs {
+  display: flex;
+  align-items: stretch;
+  height: 34px;
+  background: var(--jan-bg);
+  border-bottom: 1px solid var(--jan-border);
+  padding: 0 8px;
+  gap: 2px;
+  flex-shrink: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+.jan-memo-tabs::-webkit-scrollbar { height: 4px; }
+.jan-memo-tabs::-webkit-scrollbar-thumb { background: var(--jan-border-2); border-radius: 2px; }
+.jan-memo-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px 0 10px;
+  height: 100%;
+  min-width: 100px;
+  max-width: 200px;
+  border: 1px solid transparent;
+  border-bottom: 0;
+  background: transparent;
+  color: var(--jan-fg-muted);
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 6px 6px 0 0;
+  margin-top: 4px;
+  transition: background 0.12s, color 0.12s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.jan-memo-tab:hover { background: var(--jan-hover); color: var(--jan-fg); }
+.jan-memo-tab.is-active {
+  background: var(--jan-bg-alt);
+  color: var(--jan-fg);
+  border-color: var(--jan-border);
+  border-bottom-color: var(--jan-bg-alt);
+  margin-bottom: -1px;
+  font-weight: 500;
+}
+.jan-memo-tab .jan-tab-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.jan-memo-tab .jan-tab-title {
+  flex: 1; overflow: hidden; text-overflow: ellipsis;
+}
+.jan-memo-tab .jan-tab-close {
+  width: 16px; height: 16px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 0; background: transparent; color: var(--jan-fg-muted);
+  border-radius: 3px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s, background 0.12s;
+}
+.jan-memo-tab:hover .jan-tab-close,
+.jan-memo-tab.is-active .jan-tab-close { opacity: 1; }
+.jan-memo-tab .jan-tab-close:hover { background: var(--jan-active); color: var(--jan-fg); }
+.jan-memo-tab-new {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px;
+  margin-top: 4px;
+  border: 0; background: transparent; color: var(--jan-fg-muted);
+  border-radius: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.jan-memo-tab-new:hover { background: var(--jan-hover); color: var(--jan-fg); }
+
+/* --- 4) 타이틀바 (메모 제목) --- */
+.jan-titlebar {
+  position: relative;
+  background: var(--jan-bg-alt);
+  border-bottom: 1px solid var(--jan-border);
+  padding: 6px 12px;
+  display: flex; gap: 8px; align-items: center;
+  flex-shrink: 0;
+  height: 40px;
+  box-sizing: border-box;
+}
+.jan-title-input {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--jan-fg);
+  font-size: 14px; font-weight: 600;
+  outline: none;
+  transition: border-color 0.12s, background 0.12s;
+}
+.jan-title-input:hover { background: var(--jan-hover); }
+.jan-title-input:focus {
+  border-color: var(--jan-accent);
+  background: var(--jan-bg-alt);
+  box-shadow: 0 0 0 3px var(--jan-accent-hi);
+}
+
+/* --- 5) 단일행 툴바 (Toolbar.tsx) --- */
+.jan-toolbar-row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 8px;
+  background: var(--jan-bg-alt);
+  border-bottom: 1px solid var(--jan-border);
+  flex-shrink: 0;
+  overflow-x: auto;
+  overflow-y: visible;
+  scrollbar-width: thin;
+  height: 38px;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 60;
+}
+.jan-toolbar-row::-webkit-scrollbar { height: 4px; }
+.jan-toolbar-row::-webkit-scrollbar-thumb { background: var(--jan-border-2); border-radius: 2px; }
+
+.jan-toolbar-row button,
+.jan-toolbar-row .jan-tb-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  min-width: 28px;
+  padding: 0 6px;
+  border: 0;
+  background: transparent;
+  color: var(--jan-fg);
+  font-size: 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  gap: 4px;
+}
+.jan-toolbar-row button:hover,
+.jan-toolbar-row .jan-tb-btn:hover { background: var(--jan-hover); }
+.jan-toolbar-row button.is-active,
+.jan-toolbar-row .jan-tb-btn.is-active {
+  background: var(--jan-accent-hi);
+  color: var(--jan-accent);
+}
+
+.jan-toolbar-row .jan-tb-sep {
+  width: 1px; height: 18px;
+  background: var(--jan-border);
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+.jan-toolbar-row .jan-tb-spacer { flex: 1; min-width: 8px; }
+
+.jan-toolbar-select {
+  height: 26px;
+  padding: 0 6px;
+  border: 1px solid var(--jan-border);
+  border-radius: 5px;
+  background: var(--jan-bg-alt);
+  color: var(--jan-fg);
+  font-size: 12px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.jan-toolbar-select:hover { border-color: var(--jan-border-2); }
+.jan-toolbar-select:focus {
+  outline: none;
+  border-color: var(--jan-accent);
+  box-shadow: 0 0 0 2px var(--jan-accent-hi);
+}
+
+/* 카테고리 메뉴 버튼 (논문 / 서식 / …) */
+.jan-menu-btn {
+  display: inline-flex; align-items: center; gap: 3px;
+  height: 28px;
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  color: var(--jan-fg);
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 5px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.jan-menu-btn:hover { background: var(--jan-hover); }
+.jan-menu-btn.is-open { background: var(--jan-accent-hi); color: var(--jan-accent); }
+
+.jan-menu-dropdown {
+  position: absolute !important;
+  top: calc(100% + 4px) !important;
+  right: 0 !important;
+  left: auto !important;
+  z-index: 9000 !important;
+  background: var(--jan-bg-alt);
+  border: 1px solid var(--jan-border);
+  border-radius: 8px;
+  box-shadow:
+    0 4px 6px -1px rgba(0,0,0,0.06),
+    0 10px 24px -4px rgba(0,0,0,0.10);
+  min-width: 240px;
+  max-width: 320px;
+  padding: 6px 0;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+.jan-menu-item {
+  display: flex !important;
+  width: 100% !important;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px !important;
+  border: 0 !important;
+  background: transparent !important;
+  text-align: left !important;
+  cursor: pointer;
+  font-size: 12px !important;
+  color: var(--jan-fg);
+  white-space: nowrap;
+}
+.jan-menu-item:hover { background: var(--jan-hover) !important; }
+.jan-menu-divider {
+  padding: 4px 14px;
+  font-size: 10px;
+  color: var(--jan-fg-muted);
+  text-transform: uppercase;
+  border-top: 1px solid var(--jan-border);
+  margin-top: 4px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+.jan-menu-divider:first-child { border-top: 0; margin-top: 0; padding-top: 0; }
+
+/* --- 6) 태그 바 --- */
+.jan-tagsbar {
+  padding: 4px 12px;
+  background: var(--jan-bg);
+  border-bottom: 1px solid var(--jan-border);
+  font-size: 11px;
+  flex-shrink: 0;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-sizing: border-box;
+  color: var(--jan-fg-muted);
+}
+
+/* --- 7) 사이드바 — flex item, NOT fixed --- */
+.jan-sidebar {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  bottom: auto !important;
+  width: 240px;
+  flex-shrink: 0;
+  background: var(--jan-bg-alt);
+  border-right: 1px solid var(--jan-border);
+  transform: none !important;
+  transition: width 0.2s ease;
+  overflow-y: auto;
+  overflow-x: hidden;
+  z-index: 5;
+  height: 100%;
+}
+.jan-sidebar.is-collapsed {
+  width: 0 !important;
+  border-right: 0;
+  overflow: hidden;
+}
+
+/* --- 8) 본문 영역 (편집기) --- */
+.jan-editor-main {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  background: var(--jan-page-bg);
+  padding: 24px 0;
+}
+.jan-editor-main.has-outline { display: flex; }
+.jan-editor-pages {
+  max-width: 794px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+.ProseMirror {
+  background: var(--jan-paper);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.06);
+  border-radius: 4px;
+  padding: 60px 76px;
+  min-height: 1000px;
+  outline: none;
+}
+.ProseMirror:focus { outline: none; }
+
+/* --- 9) 상태 바 --- */
+.jan-statusbar {
+  height: 22px;
+  padding: 0 12px;
+  background: var(--jan-bg-alt);
+  border-top: 1px solid var(--jan-border);
+  font-size: 11px;
+  color: var(--jan-fg-muted);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-sizing: border-box;
+}
+.jan-statusbar .jan-sb-spacer { flex: 1; }
+
+/* --- 10) 다크 모드 --- */
+.jan-theme-dark {
+  --jan-bg:        #0F0F10;
+  --jan-bg-alt:    #1A1A1B;
+  --jan-paper:     #1F1F20;
+  --jan-fg:        #E5E5E5;
+  --jan-fg-muted:  #9CA3AF;
+  --jan-border:    #2A2A2C;
+  --jan-border-2:  #3A3A3D;
+  --jan-hover:     #242425;
+  --jan-active:    #2A2A2C;
+  --jan-accent:    #60A5FA;
+  --jan-accent-hi: #1E3A5F;
+  --jan-page-bg:   #141415;
+}
+.jan-theme-dark body { background: var(--jan-bg); }
+.jan-theme-dark .ProseMirror { color: #E5E5E5; }
+.jan-theme-dark .jan-app-header,
+.jan-theme-dark .jan-memo-tabs,
+.jan-theme-dark .jan-titlebar,
+.jan-theme-dark .jan-toolbar-row,
+.jan-theme-dark .jan-tagsbar,
+.jan-theme-dark .jan-statusbar,
+.jan-theme-dark .jan-sidebar,
+.jan-theme-dark .jan-menu-dropdown {
+  background: var(--jan-bg-alt);
+  border-color: var(--jan-border);
+  color: var(--jan-fg);
+}
+.jan-theme-dark .jan-toolbar-select {
+  background: var(--jan-paper);
+  color: var(--jan-fg);
+  border-color: var(--jan-border);
+}
+.jan-theme-dark .jan-title-input { background: transparent; color: var(--jan-fg); }
+.jan-theme-dark .jan-title-input:hover { background: var(--jan-hover); }
+.jan-theme-dark .jan-memo-tab.is-active {
+  background: var(--jan-bg-alt);
+  border-color: var(--jan-border);
+  border-bottom-color: var(--jan-bg-alt);
+}
+
+/* --- 11) 옛 핑크 잔재 강제 제거 --- */
+.jan-toolbar { display: none !important; }
+.jan-ribbon { display: none !important; }
+.jan-titlebar { background: var(--jan-bg-alt) !important; }
+.jan-tagsbar { background: var(--jan-bg) !important; }
+
+/* --- 12) 아이콘 SVG 기본 --- */
+svg.ico, .jan-icon {
+  width: 16px; height: 16px;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+  display: inline-block;
+  overflow: visible;
+}
+
+/* --- 13) 줌 적용용 --- */
+.jan-editor-pages {
+  /* zoom 은 inline style 로 useWheelZoom hook 이 적용 */
+  transform-origin: top center;
+}
+
+/* --- 14) 스크롤바 전반 --- */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--jan-border-2); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--jan-fg-muted); }
+
+/* --- 15) 포커스 링 통일 --- */
+.jan-app *:focus-visible {
+  outline: 2px solid var(--jan-accent);
+  outline-offset: 1px;
+}
+
+/* --- 16) Skip link --- */
+.skip-to-content {
+  position: absolute;
+  left: -9999px;
+  top: auto;
+}
+.skip-to-content:focus {
+  left: 8px;
+  top: 8px;
+  background: var(--jan-accent);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  z-index: 9999;
+}
+
+/* End of Phase 20 */
+
+
+/* =========================================================
+ * Phase 20.1 — .jan-editor-wrap 를 flex column 으로 강제
+ * App.tsx 가 .jan-app > .jan-editor-wrap > children 구조
+ * ========================================================= */
+.jan-editor-wrap {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100vh !important;
+  width: 100% !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  background: var(--jan-bg) !important;
+}
+
+/* Outline 패널 + 페이지 */
+.jan-editor-main.has-outline {
+  display: flex;
+  flex-direction: row;
+}
+.jan-editor-main.has-outline > .jan-editor-pages {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 본문 안의 아웃라인 패널 */
+.jan-outline-panel {
+  width: 240px;
+  flex-shrink: 0;
+  background: var(--jan-bg-alt);
+  border-right: 1px solid var(--jan-border);
+  overflow-y: auto;
+  padding: 12px;
+}
+
+/* 사이드바 내부 */
+.jan-sidebar > * { color: var(--jan-fg); }
+.jan-sidebar h1, .jan-sidebar h2, .jan-sidebar h3 { color: var(--jan-fg); }
+
+/* 페이지 외곽선 정리 */
+.jan-page {
+  background: var(--jan-paper);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.06);
+  border: 1px solid var(--jan-border);
+  border-radius: 4px;
+}
+.jan-theme-dark .jan-page {
+  border-color: var(--jan-border);
+}
+
+/* PaginationPlus 페이지 구분 배경 색상 — 회색조 */
+.tiptap-pagination-page-break {
+  background: var(--jan-page-bg) !important;
+}
+
+/* 글로벌 폰트 — 깨끗한 sans */
+body, html, .ProseMirror, .jan-app * {
+  font-family: 'Inter', 'Noto Sans KR', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* End of Phase 20.1 */
