@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useDocStore } from '../store/docStore'
 import { useMemosStore } from '../store/memosStore'
 import { useCollab } from '../hooks/useCollab'
+import { PomodoroWidget } from './PomodoroWidget'
 
 interface StatusBarProps {
   editor: Editor | null
@@ -62,7 +63,8 @@ export function StatusBar({ editor }: StatusBarProps) {
           </span>
         </>
       )}
-      <span className="flex-spacer" />
+      <PomodoroWidget />
+            <span className="flex-spacer" />
       <span className="hint">Ctrl+S · Ctrl+/ · Ctrl+K · F1</span>
     </div>
   )

@@ -41,6 +41,8 @@ import { useVersionsStore } from '../store/versionsStore'
 import { TableMenu } from './TableMenu'
 import { useMacroExpansion } from '../hooks/useMacroExpansion'
 import { LinkCard } from '../extensions/LinkCard'
+import { AudioNode, VideoNode } from '../extensions/Media'
+import Highlight from '@tiptap/extension-highlight'
 import { ModalSkeleton } from './ModalSkeleton'
 
 const AiHelper = lazy(() => import('./AiHelper').then((m) => ({ default: m.AiHelper })))
@@ -62,6 +64,10 @@ const StatsDashboard = lazy(() => import('./StatsDashboard').then((m) => ({ defa
 const MindMap = lazy(() => import('./MindMap').then((m) => ({ default: m.MindMap })))
 const MacrosModal = lazy(() => import('./MacrosModal').then((m) => ({ default: m.MacrosModal })))
 const DiffModal = lazy(() => import('./DiffModal').then((m) => ({ default: m.DiffModal })))
+const OcrModal = lazy(() => import('./OcrModal').then((m) => ({ default: m.OcrModal })))
+const SnippetsModal = lazy(() => import('./SnippetsModal').then((m) => ({ default: m.SnippetsModal })))
+const LinkCheckModal = lazy(() => import('./LinkCheckModal').then((m) => ({ default: m.LinkCheckModal })))
+const AiChatPanel = lazy(() => import('./AiChatPanel').then((m) => ({ default: m.AiChatPanel })))
 
 // 모달 lazy load 중 skeleton
 
@@ -95,6 +101,10 @@ export function Editor() {
   const [showMindMap, setShowMindMap] = useState(false)
   const [showMacros, setShowMacros] = useState(false)
   const [showDiff, setShowDiff] = useState(false)
+  const [showOcr, setShowOcr] = useState(false)
+  const [showSnippets, setShowSnippets] = useState(false)
+  const [showLinkCheck, setShowLinkCheck] = useState(false)
+  const [showChat, setShowChat] = useState(false)
 
   const initialContent = memo?.content || '<p></p>'
   const title = memo?.title || '새 메모'
@@ -124,6 +134,9 @@ export function Editor() {
       Callout,
       Embed,
       LinkCard,
+      AudioNode,
+      VideoNode,
+      Highlight.configure({ multicolor: true }),
       TaskList,
       TaskItem.configure({ nested: true }),
       PaginationPlus.configure({
@@ -279,6 +292,10 @@ export function Editor() {
         onMindMap={() => setShowMindMap(true)}
         onMacros={() => setShowMacros(true)}
         onDiff={() => setShowDiff(true)}
+        onOcr={() => setShowOcr(true)}
+        onSnippets={() => setShowSnippets(true)}
+        onLinkCheck={() => setShowLinkCheck(true)}
+        onChat={() => setShowChat(true)}
         onToggleOutline={() => setShowOutline((v) => !v)}
         outlineOpen={showOutline}
       />
@@ -315,6 +332,10 @@ export function Editor() {
         {showMindMap && <MindMap editor={editor} onClose={() => setShowMindMap(false)} />}
         {showMacros && <MacrosModal onClose={() => setShowMacros(false)} />}
         {showDiff && <DiffModal onClose={() => setShowDiff(false)} />}
+        {showOcr && <OcrModal editor={editor} onClose={() => setShowOcr(false)} />}
+        {showSnippets && <SnippetsModal editor={editor} onClose={() => setShowSnippets(false)} />}
+        {showLinkCheck && <LinkCheckModal editor={editor} onClose={() => setShowLinkCheck(false)} />}
+        {showChat && <AiChatPanel editor={editor} onClose={() => setShowChat(false)} />}
       </Suspense>
     </div>
   )

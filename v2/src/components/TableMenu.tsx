@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Editor } from '@tiptap/react'
 import { aggregateColumn, tableToCsv, csvToRows, rowsToTableHtml } from '../lib/tableUtils'
+import { sortTableByCurrentColumn } from '../lib/tableSort'
 
 interface TableMenuProps {
   editor: Editor | null
@@ -76,6 +77,10 @@ export function TableMenu({ editor }: TableMenuProps) {
         if (rows.length === 0) return
         editor.chain().focus().deleteTable().insertContent(rowsToTableHtml(rows)).run()
       }} title="CSV → 표">→CSV</button>
-    </div>
+    
+      <span className="divider" />
+      <button onClick={() => sortTableByCurrentColumn(editor, 'asc')} title="현재 열 오름차순">A↑</button>
+      <button onClick={() => sortTableByCurrentColumn(editor, 'desc')} title="현재 열 내림차순">A↓</button>
+      </div>
   )
 }

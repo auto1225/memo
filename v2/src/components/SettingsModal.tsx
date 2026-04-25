@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { importV1FromLocalStorage, exportV2ToJson, importV2FromJson } from '../lib/v1Import'
 import { importMarkdownFiles } from '../lib/bulkImport'
+import { pdfFileToHtml } from '../lib/pdfImport'
 import { useMemosStore } from '../store/memosStore'
 import { useI18nStore } from '../lib/i18n'
 import { useThemeStore } from '../store/themeStore'
@@ -198,6 +199,38 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                 }
                 input.click()
               }}>Markdown 파일 선택</button>
+            </div>
+          </section>
+
+                    <section className="jan-settings-section">
+            <h4>PDF 가져오기 (텍스트 추출)</h4>
+            <div className="jan-settings-info">
+              PDF 페이지의 텍스트를 추출해 새 메모로 추가. PDF.js (CDN) 사용.
+            </div>
+            <div className="jan-settings-actions">
+              <button onClick={async () => {
+                const input = document.createElement('input')
+                input.type = 'file'
+                input.accept = 'application/pdf,.pdf'
+                input.onchange = async (e) => {
+                  const file = (e.target as HTMLInputElement).files?.[0]
+                  if (!file) return
+                  setStatus('PDF 변환 중...')
+                  try {
+                    const r = await pdfFileToHtml(file)
+                    const id = useMemosStore.getState().newMemo()
+                    useMemosStore.setState((s) => {
+                      const cur = s.memos[id]
+                      if (!cur) return s
+                      return { memos: { ...s.memos, [id]: { ...cur, title: file.name.replace(/\.pdf$/i, ''), content: r.html, updatedAt: Date.now() } } }
+                    })
+                    setStatus('PDF ' + r.pageCount + '페이지 변환 완료')
+                  } catch (err: any) {
+                    setStatus('PDF 변환 실패: ' + (err?.message || err))
+                  }
+                }
+                input.click()
+              }}>PDF 파일 선택</button>
             </div>
           </section>
 

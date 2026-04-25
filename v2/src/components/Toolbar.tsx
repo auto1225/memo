@@ -32,12 +32,16 @@ interface ToolbarProps {
   onMindMap: () => void
   onMacros: () => void
   onDiff: () => void
+  onOcr: () => void
+  onSnippets: () => void
+  onLinkCheck: () => void
+  onChat: () => void
 }
 
 export function Toolbar({
   editor, title, onTitleChange, onSave, onOpen,
   onPrintPreview, onAi, onRoles, onPaper, onPostit,
-  onSearch, onPaint, onHelp, onToggleOutline, outlineOpen, onAbout, onVersions, onMdPreview, onShare, onAtt, onLock, onStats, onMindMap, onMacros, onDiff,
+  onSearch, onPaint, onHelp, onToggleOutline, outlineOpen, onAbout, onVersions, onMdPreview, onShare, onAtt, onLock, onStats, onMindMap, onMacros, onDiff, onOcr, onSnippets, onLinkCheck, onChat,
 }: ToolbarProps) {
   const theme = useThemeStore((s) => s.theme)
   const setTheme = useThemeStore((s) => s.setTheme)
@@ -124,6 +128,10 @@ export function Toolbar({
         <button onClick={onMindMap} title="마인드맵 자동 생성">마인드맵</button>
         <button onClick={onMacros} title="매크로 (자동완성 단축어)">매크로</button>
         <button onClick={onDiff} title="메모 비교 (diff)">비교</button>
+        <button onClick={onOcr} title="OCR 이미지에서 텍스트">OCR</button>
+        <button onClick={onSnippets} title="스니펫 라이브러리">스니펫</button>
+        <button onClick={onLinkCheck} title="링크 검사">링크</button>
+        <button onClick={onChat} title="AI 챗 사이드 패널">챗</button>
         <span className="divider" />
         <button onClick={onSearch} title="Ctrl+Shift+F 전체 검색">검색</button>
         <button onClick={onAi} title="Ctrl+/ AI 도우미">AI</button>
@@ -145,6 +153,7 @@ export function Toolbar({
         <button onClick={() => editor.chain().focus().toggleItalic().run()} className={editor.isActive('italic') ? 'is-active' : ''} title="Ctrl+I 기울임"><i>I</i></button>
         <button onClick={() => editor.chain().focus().toggleUnderline().run()} className={editor.isActive('underline') ? 'is-active' : ''} title="Ctrl+U 밑줄"><u>U</u></button>
         <button onClick={() => editor.chain().focus().toggleStrike().run()} className={editor.isActive('strike') ? 'is-active' : ''} title="취소선"><s>S</s></button>
+        <button onClick={() => (editor.chain() as any).focus().toggleHighlight({ color: '#FFEB3B' }).run()} className={editor.isActive('highlight') ? 'is-active' : ''} title="형광펜"><mark style={{padding:0,background:'#FFEB3B'}}>H</mark></button>
         <span className="divider" />
         <button onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} className={editor.isActive('heading', { level: 1 }) ? 'is-active' : ''} title="Ctrl+Alt+1 제목 1">H1</button>
         <button onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} className={editor.isActive('heading', { level: 2 }) ? 'is-active' : ''} title="Ctrl+Alt+2 제목 2">H2</button>
