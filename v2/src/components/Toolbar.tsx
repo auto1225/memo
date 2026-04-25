@@ -4,6 +4,7 @@ import { downloadMd } from '../lib/markdownIO'
 import { exportToPdf } from '../lib/pdfExport'
 import { VoiceButton } from './VoiceButton'
 import { TTSButton } from './TTSButton'
+import { ColorPicker } from './ColorPicker'
 import { useThemeStore } from '../store/themeStore'
 
 interface ToolbarProps {
@@ -40,12 +41,16 @@ interface ToolbarProps {
   onTypo: () => void
   onInfo: () => void
   onHeatmap: () => void
+  onQuick: () => void
+  onTranslate: () => void
+  onTemplates: () => void
+  onGist: () => void
 }
 
 export function Toolbar({
   editor, title, onTitleChange, onSave, onOpen,
   onPrintPreview, onAi, onRoles, onPaper, onPostit,
-  onSearch, onPaint, onHelp, onToggleOutline, outlineOpen, onAbout, onVersions, onMdPreview, onShare, onAtt, onLock, onStats, onMindMap, onMacros, onDiff, onOcr, onSnippets, onLinkCheck, onChat, onFind, onTypo, onInfo, onHeatmap,
+  onSearch, onPaint, onHelp, onToggleOutline, outlineOpen, onAbout, onVersions, onMdPreview, onShare, onAtt, onLock, onStats, onMindMap, onMacros, onDiff, onOcr, onSnippets, onLinkCheck, onChat, onFind, onTypo, onInfo, onHeatmap, onQuick, onTranslate, onTemplates, onGist,
 }: ToolbarProps) {
   const theme = useThemeStore((s) => s.theme)
   const setTheme = useThemeStore((s) => s.setTheme)
@@ -140,6 +145,10 @@ export function Toolbar({
         <button onClick={onTypo} title="타이포그래피">글꼴</button>
         <button onClick={onInfo} title="메모 정보">정보</button>
         <button onClick={onHeatmap} title="활동 히트맵">히트맵</button>
+        <button onClick={onQuick} title="Ctrl+Shift+J 빠른 메모">빠른</button>
+        <button onClick={onTranslate} title="다국어 번역">번역</button>
+        <button onClick={onTemplates} title="메모 템플릿">템플릿</button>
+        <button onClick={onGist} title="GitHub Gist">Gist</button>
         <span className="divider" />
         <button onClick={onSearch} title="Ctrl+Shift+F 전체 검색">검색</button>
         <button onClick={onAi} title="Ctrl+/ AI 도우미">AI</button>
@@ -162,6 +171,7 @@ export function Toolbar({
         <button onClick={() => editor.chain().focus().toggleUnderline().run()} className={editor.isActive('underline') ? 'is-active' : ''} title="Ctrl+U 밑줄"><u>U</u></button>
         <button onClick={() => editor.chain().focus().toggleStrike().run()} className={editor.isActive('strike') ? 'is-active' : ''} title="취소선"><s>S</s></button>
         <button onClick={() => (editor.chain() as any).focus().toggleHighlight({ color: '#FFEB3B' }).run()} className={editor.isActive('highlight') ? 'is-active' : ''} title="형광펜"><mark style={{padding:0,background:'#FFEB3B'}}>H</mark></button>
+        <ColorPicker editor={editor} />
         <span className="divider" />
         <button onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} className={editor.isActive('heading', { level: 1 }) ? 'is-active' : ''} title="Ctrl+Alt+1 제목 1">H1</button>
         <button onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} className={editor.isActive('heading', { level: 2 }) ? 'is-active' : ''} title="Ctrl+Alt+2 제목 2">H2</button>

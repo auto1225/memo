@@ -8,7 +8,7 @@ import { Table } from '@tiptap/extension-table'
 import { TableRow } from '@tiptap/extension-table-row'
 import { TableCell } from '@tiptap/extension-table-cell'
 import { TableHeader } from '@tiptap/extension-table-header'
-import { Image } from '@tiptap/extension-image'
+import { ImageWithWidth as Image } from '../extensions/ImageWithWidth'
 import { PaginationPlus, PAGE_SIZES } from 'tiptap-pagination-plus'
 import { Collaboration } from '@tiptap/extension-collaboration'
 import { CollaborationCursor } from '@tiptap/extension-collaboration-cursor'
@@ -48,6 +48,11 @@ import { useAiAutocomplete } from '../hooks/useAiAutocomplete'
 import { useSettingsStore } from '../store/settingsStore'
 import { dispatchWebhook } from '../lib/webhooks'
 import { BubbleToolbar } from './BubbleToolbar'
+import { ImageMenu } from './ImageMenu'
+import { Lightbox } from './Lightbox'
+import { useHeadingAnchors } from '../hooks/useHeadingAnchors'
+import { TextStyle } from '@tiptap/extension-text-style'
+import { Color } from '@tiptap/extension-color'
 import { ModalSkeleton } from './ModalSkeleton'
 
 const AiHelper = lazy(() => import('./AiHelper').then((m) => ({ default: m.AiHelper })))
@@ -77,6 +82,10 @@ const FindReplaceBar = lazy(() => import('./FindReplaceBar').then((m) => ({ defa
 const TypographyModal = lazy(() => import('./TypographyModal').then((m) => ({ default: m.TypographyModal })))
 const InfoPanel = lazy(() => import('./InfoPanel').then((m) => ({ default: m.InfoPanel })))
 const ActivityHeatmap = lazy(() => import('./ActivityHeatmap').then((m) => ({ default: m.ActivityHeatmap })))
+const QuickCapture = lazy(() => import('./QuickCapture').then((m) => ({ default: m.QuickCapture })))
+const TranslateModal = lazy(() => import('./TranslateModal').then((m) => ({ default: m.TranslateModal })))
+const TemplatesModal = lazy(() => import('./TemplatesModal').then((m) => ({ default: m.TemplatesModal })))
+const GistModal = lazy(() => import('./GistModal').then((m) => ({ default: m.GistModal })))
 
 // 모달 lazy load 중 skeleton
 
@@ -120,6 +129,10 @@ export function Editor() {
   const [showTypo, setShowTypo] = useState(false)
   const [showInfo, setShowInfo] = useState(false)
   const [showHeatmap, setShowHeatmap] = useState(false)
+  const [showQuick, setShowQuick] = useState(false)
+  const [showTranslate, setShowTranslate] = useState(false)
+  const [showTemplates, setShowTemplates] = useState(false)
+  const [showGist, setShowGist] = useState(false)
 
   const initialContent = memo?.content || '<p></p>'
   const title = memo?.title || '새 메모'
@@ -152,6 +165,8 @@ export function Editor() {
       AudioNode,
       VideoNode,
       Highlight.configure({ multicolor: true }),
+      TextStyle,
+      Color,
       TaskList,
       TaskItem.configure({ nested: true }),
       PaginationPlus.configure({
@@ -197,6 +212,7 @@ export function Editor() {
   useImageDropPaste(editor)
   useMacroExpansion(editor)
   useAiAutocomplete(editor, aiAuto)
+  useHeadingAnchors(editor)
   useAutoSave(editor, title)
   // 5분 / 1KB 단위 자동 버전 스냅샷
   const takeSnapshot = useVersionsStore((s) => s.takeSnapshot)
@@ -249,6 +265,8 @@ export function Editor() {
         e.preventDefault(); setShowPrint(true); trackEvent('open_preview')
       } else if (ctrl && e.shiftKey && !e.altKey && (e.key === 'F' || e.key === 'f')) {
         e.preventDefault(); setShowSearch(true); trackEvent('open_search')
+      } else if (ctrl && e.shiftKey && !e.altKey && (e.key === 'J' || e.key === 'j')) {
+        e.preventDefault(); setShowQuick(true)
       } else if (ctrl && !e.shiftKey && !e.altKey && (e.key === 'H' || e.key === 'h')) {
         e.preventDefault(); setShowFind(true)
       } else if (ctrl && !e.shiftKey && !e.altKey && /^[1-9]$/.test(e.key)) {
@@ -326,6 +344,10 @@ export function Editor() {
         onTypo={() => setShowTypo(true)}
         onInfo={() => setShowInfo(true)}
         onHeatmap={() => setShowHeatmap(true)}
+        onQuick={() => setShowQuick(true)}
+        onTranslate={() => setShowTranslate(true)}
+        onTemplates={() => setShowTemplates(true)}
+        onGist={() => setShowGist(true)}
         onToggleOutline={() => setShowOutline((v) => !v)}
         outlineOpen={showOutline}
       />
@@ -341,6 +363,7 @@ export function Editor() {
       <SlashMenu editor={editor} />
       <TableMenu editor={editor} />
       <BubbleToolbar editor={editor} />
+      <ImageMenu editor={editor} />
       <Suspense fallback={<ModalSkeleton />}>
         {showAi && <AiHelper editor={editor} onClose={() => setShowAi(false)} />}
         {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
@@ -371,7 +394,12 @@ export function Editor() {
         {showTypo && <TypographyModal onClose={() => setShowTypo(false)} />}
         {showInfo && <InfoPanel editor={editor} onClose={() => setShowInfo(false)} />}
         {showHeatmap && <ActivityHeatmap onClose={() => setShowHeatmap(false)} />}
+        {showQuick && <QuickCapture onClose={() => setShowQuick(false)} />}
+        {showTranslate && <TranslateModal editor={editor} onClose={() => setShowTranslate(false)} />}
+        {showTemplates && <TemplatesModal onClose={() => setShowTemplates(false)} />}
+        {showGist && <GistModal editor={editor} onClose={() => setShowGist(false)} />}
       </Suspense>
+      <Lightbox />
     </div>
   )
 }

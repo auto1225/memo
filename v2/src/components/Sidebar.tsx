@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, lazy, Suspense } from 'react'
+import { importMarkdownFiles } from '../lib/bulkImport'
 import { useMemosStore } from '../store/memosStore'
 import { useUIStore } from '../store/uiStore'
 import { useWorkspaceStore, DEFAULT_WORKSPACE_ID } from '../store/workspaceStore'
@@ -54,8 +55,15 @@ export function Sidebar() {
     )
   }
 
+  async function onDrop(e: React.DragEvent) {
+    e.preventDefault()
+    const files = Array.from(e.dataTransfer.files).filter((f) => f.name.endsWith('.md') || f.name.endsWith('.txt') || f.type === 'text/markdown' || f.type === 'text/plain')
+    if (files.length === 0) return
+    await importMarkdownFiles(files)
+  }
+
   return (
-    <aside className="jan-sidebar">
+    <aside className="jan-sidebar" onDragOver={(e) => e.preventDefault()} onDrop={onDrop}>
       <div className="jan-sidebar-head">
         <div style={{ display: 'flex', gap: 4 }}>
           <button className="jan-sidebar-new" onClick={() => newMemo()} style={{ flex: 1 }}>+ 새 메모</button>
