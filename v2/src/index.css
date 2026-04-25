@@ -362,8 +362,8 @@ body.jan-show-pilcrow .ProseMirror p::after {
 .jan-tagsbar-all{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;padding-top:6px;border-top:1px dashed #ddd;}
 
 /* ==================== Phase 6 — Outline Panel ==================== */
-.jan-main{display:flex;flex:1;overflow:hidden;}
-.jan-main.has-outline .jan-editor-pages{flex:1;}
+.jan-editor-main{display:flex;flex:1;overflow:hidden;}
+.jan-editor-main.has-outline .jan-editor-pages{flex:1;}
 .jan-outline{width:240px;border-right:1px solid var(--border,#ddd);background:var(--bg-soft,#fafafa);overflow-y:auto;flex-shrink:0;}
 .jan-outline-head{padding:10px 14px;font-weight:600;font-size:13px;border-bottom:1px solid var(--border,#eee);color:#666;}
 .jan-outline-empty{padding:14px;color:#999;font-size:12px;}
@@ -435,7 +435,7 @@ body.jan-show-pilcrow .ProseMirror p::after {
   .jan-toolbar{flex-wrap:wrap;gap:2px;padding:4px 8px;overflow-x:auto;}
   .jan-toolbar button{min-width:30px;padding:4px 6px;font-size:13px;}
   .jan-outline{width:100%;max-height:140px;border-right:0;border-bottom:1px solid var(--border,#ddd);}
-  .jan-main{flex-direction:column;}
+  .jan-editor-main{flex-direction:column;}
   .jan-modal{width:96vw !important;max-width:96vw;max-height:90vh;}
   .jan-roles-body{flex-direction:column;}
   .jan-roles-sidebar{width:100% !important;max-height:120px;border-right:0;border-bottom:1px solid var(--border,#eee);}

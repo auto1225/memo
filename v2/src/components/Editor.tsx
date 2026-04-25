@@ -216,7 +216,7 @@ export function Editor() {
         outlineOpen={showOutline}
       />
       <TagsBar />
-      <div className={'jan-main' + (showOutline ? ' has-outline' : '')}>
+      <div className={'jan-editor-main' + (showOutline ? ' has-outline' : '')}>
         {showOutline && <OutlinePanel editor={editor} />}
         <div className="jan-editor-pages">
           <EditorContent editor={editor} />
