@@ -1,4 +1,5 @@
 import type { Editor } from '@tiptap/react'
+import { downloadHwpx } from '../lib/hwpxExport'
 
 interface ToolbarProps {
   editor: Editor | null
@@ -6,9 +7,17 @@ interface ToolbarProps {
   onTitleChange: (title: string) => void
   onSave: () => void
   onOpen: () => void
+  onPrintPreview: () => void
+  onAi: () => void
+  onRoles: () => void
+  onPaper: () => void
+  onPostit: () => void
 }
 
-export function Toolbar({ editor, title, onTitleChange, onSave, onOpen }: ToolbarProps) {
+export function Toolbar({
+  editor, title, onTitleChange, onSave, onOpen,
+  onPrintPreview, onAi, onRoles, onPaper, onPostit,
+}: ToolbarProps) {
   if (!editor) return null
 
   const togglePilcrow = () => {
@@ -39,6 +48,15 @@ export function Toolbar({ editor, title, onTitleChange, onSave, onOpen }: Toolba
     }
   }
 
+  const exportHwpx = async () => {
+    const html = editor.getHTML()
+    try {
+      await downloadHwpx(html, title || '메모')
+    } catch (e: any) {
+      alert('HWPX 내보내기 실패: ' + (e.message || e))
+    }
+  }
+
   return (
     <>
       <div className="jan-titlebar">
@@ -51,7 +69,14 @@ export function Toolbar({ editor, title, onTitleChange, onSave, onOpen }: Toolba
         />
         <button onClick={onSave} title="Ctrl+S 저장">저장</button>
         <button onClick={onOpen} title="Ctrl+O 열기">열기</button>
+        <button onClick={onPrintPreview} title="Ctrl+Shift+P 인쇄 미리보기 (Paged.js)">미리보기</button>
         <button onClick={() => window.print()} title="Ctrl+P 인쇄">인쇄</button>
+        <button onClick={exportHwpx} title="HWPX (한글) 내보내기">HWPX</button>
+        <span className="divider" />
+        <button onClick={onAi} title="Ctrl+/ AI 도우미">AI</button>
+        <button onClick={onRoles} title="역할 팩 — 템플릿 삽입">역할</button>
+        <button onClick={onPaper} title="논문 모드 — 인용 관리">논문</button>
+        <button onClick={onPostit} title="JustPin 포스트잇">포스트잇</button>
       </div>
       <div className="jan-toolbar">
         <button onClick={() => editor.chain().focus().toggleBold().run()} className={editor.isActive('bold') ? 'is-active' : ''} title="Ctrl+B 굵게"><b>B</b></button>

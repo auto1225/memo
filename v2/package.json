@@ -22,6 +22,7 @@
     "@tiptap/pm": "^3.22.4",
     "@tiptap/react": "^3.22.4",
     "@tiptap/starter-kit": "^3.22.4",
+    "jszip": "^3.10.1",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "tiptap-pagination-plus": "^3.0.6",
