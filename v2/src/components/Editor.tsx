@@ -44,7 +44,7 @@ import { LinkCard } from '../extensions/LinkCard'
 import { AudioNode, VideoNode } from '../extensions/Media'
 import Highlight from '@tiptap/extension-highlight'
 import { useTypographyStore } from '../store/typographyStore'
-// import { useAiAutocomplete } from '../hooks/useAiAutocomplete'
+import { useAiAutocomplete } from '../hooks/useAiAutocomplete'
 import { useSettingsStore } from '../store/settingsStore'
 import { dispatchWebhook } from '../lib/webhooks'
 import { BubbleToolbar } from './BubbleToolbar'
@@ -103,7 +103,7 @@ export function Editor() {
   const { currentId, current, updateCurrent } = useMemosStore()
   const applyTheme = useThemeStore((s) => s.apply)
   const applyTypo = useTypographyStore((s) => s.apply)
-  const aiAuto = useSettingsStore((s) => s.aiAutocomplete); void aiAuto
+  const aiAuto = useSettingsStore((s) => s.aiAutocomplete)
   const collab = useCollab()
   const memo = current()
   const [, setTick] = useState(0)
@@ -223,7 +223,7 @@ export function Editor() {
 
   useImageDropPaste(editor)
   useMacroExpansion(editor)
-  // useAiAutocomplete(editor, aiAuto) // disabled
+  useAiAutocomplete(editor, aiAuto)
   useHeadingAnchors(editor)
   useFormatPainter(editor)
   useCursorMemory(editor, currentId)
