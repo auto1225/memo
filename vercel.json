@@ -38,6 +38,13 @@
       ]
     },
     {
+      "source": "/v2/sw-v2.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" },
+        { "key": "Service-Worker-Allowed", "value": "/v2/" }
+      ]
+    },
+    {
       "source": "/postit.html",
       "headers": [
         { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate, max-age=0" }
@@ -94,6 +101,7 @@
     { "source": "/v2/assets/:path+", "destination": "/dist-v2/assets/:path+" },
     { "source": "/v2/favicon.svg", "destination": "/dist-v2/favicon.svg" },
     { "source": "/v2/icons.svg", "destination": "/dist-v2/icons.svg" },
+    { "source": "/v2/sw-v2.js", "destination": "/dist-v2/sw-v2.js" },
     { "source": "/admin", "destination": "/admin.html" },
     { "source": "/home", "destination": "/home.html" },
     { "source": "/postit", "destination": "/postit.html" },
