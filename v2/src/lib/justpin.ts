@@ -1,9 +1,11 @@
 /**
- * Phase 5 — JustPin 포스트잇 (단순화 버전).
+ * Phase 5+ — JustPin 포스트잇.
  *
- * v1 의 postit-desktop.js 는 Tauri subprocess 로 Windows top-most 창을 띄움.
- * v2 에서는 우선 브라우저 window.open 으로 작은 sticky-note 창을 열고,
- * Tauri 환경이면 추후 IPC 로 native top-most 창 띄우는 hook 만 남겨둠.
+ * 환경 분기:
+ *   - Tauri (window.__TAURI__ 존재): postit_spawn 명령 → 항상 위 native 창
+ *   - 브라우저: window.open 으로 sticky-note popup
+ *
+ * v1 의 postit-desktop.js + Rust postit_list/spawn/self_update 와 호환.
  */
 const STORAGE = 'jan-v2-postits'
 
@@ -12,6 +14,27 @@ export interface Postit {
   text: string
   color: string
   createdAt: number
+}
+
+declare global {
+  interface Window {
+    __TAURI__?: {
+      core?: { invoke: (cmd: string, args?: any) => Promise<any> }
+    }
+  }
+}
+
+function isTauri(): boolean {
+  return typeof window !== 'undefined' && !!window.__TAURI__?.core?.invoke
+}
+
+async function tauriInvoke<T = any>(cmd: string, args?: any): Promise<T | null> {
+  try {
+    return (await window.__TAURI__!.core!.invoke(cmd, args)) as T
+  } catch (e) {
+    console.warn('[justpin invoke]', cmd, e)
+    return null
+  }
 }
 
 function load(): Postit[] {
@@ -39,14 +62,46 @@ export function addPostit(text: string, color = '#FFEB3B'): Postit {
 
 export function removePostit(id: string) {
   save(load().filter((p) => p.id !== id))
+  // Tauri 환경이면 native 창도 닫기 시도
+  if (isTauri()) {
+    tauriInvoke('postit_self_close', { id }).catch(() => {})
+  }
+}
+
+/** 색상 hex → Tauri Rust 가 기대하는 이름 매핑. */
+const TAURI_COLOR_MAP: Record<string, string> = {
+  '#FFEB3B': 'yellow',
+  '#FFC1A6': 'peach',
+  '#A6E3FF': 'sky',
+  '#C8E6C9': 'mint',
+  '#E1BEE7': 'lavender',
+  '#FFCDD2': 'pink',
 }
 
 /**
- * 작은 sticky-note 창 띄우기. window.open 으로 320x320 popup.
- * 닫혀도 텍스트는 localStorage 에 영속.
+ * 포스트잇 창 띄우기.
+ * Tauri 면 postit_spawn, 브라우저면 window.open.
  */
-export function openPostitWindow(p: Postit) {
-  const safe = (p.text || '').replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c] || c))
+export async function openPostitWindow(p: Postit): Promise<boolean> {
+  if (isTauri()) {
+    const tauriColor = TAURI_COLOR_MAP[p.color] || 'yellow'
+    const r = await tauriInvoke<string>('postit_spawn', {
+      id: p.id,
+      color: tauriColor,
+      content: p.text,
+      x: 120,
+      y: 120,
+      w: 280,
+      h: 240,
+    })
+    return !!r
+  }
+
+  // 브라우저 폴백 — sticky-note popup
+  const safe = (p.text || '').replace(
+    /[<>&"]/g,
+    (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c] || c)
+  )
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>JustPin</title>
 <style>
   html,body{margin:0;padding:0;height:100%;background:${p.color};font-family:"Malgun Gothic",sans-serif;}
@@ -75,5 +130,31 @@ export function openPostitWindow(p: Postit) {
   if (!win) {
     URL.revokeObjectURL(url)
     alert('팝업 차단을 해제하세요')
+    return false
   }
+  // 1분 후 blob URL 정리 (창은 srcdoc 로드 끝났으므로 OK)
+  setTimeout(() => URL.revokeObjectURL(url), 60000)
+  return true
 }
+
+/** Tauri 환경에서 모든 native 포스트잇 동기화 (앱 시작 시). */
+export async function tauriSyncOnBoot() {
+  if (!isTauri()) return
+  const list = await tauriInvoke<any[]>('postit_list')
+  if (!Array.isArray(list)) return
+  const local = load()
+  const localIds = new Set(local.map((p) => p.id))
+  for (const t of list) {
+    if (!localIds.has(t.id)) {
+      local.push({
+        id: t.id,
+        text: t.content || '',
+        color: t.color || '#FFEB3B',
+        createdAt: t.updated_at || Date.now(),
+      })
+    }
+  }
+  save(local)
+}
+
+export const isTauriEnv = isTauri

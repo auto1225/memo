@@ -1,11 +1,7 @@
 /**
- * Phase 5 — Claude/GPT 실 API 연결.
- * 사용자가 SettingsModal 에 입력한 키로 직접 호출.
- *
- * 보안: 키는 localStorage 에만 저장. CORS — Anthropic/OpenAI 모두 브라우저 직접 호출 가능.
- *   Anthropic: anthropic-dangerous-direct-browser-access 헤더로 허용.
- *   OpenAI: 항상 허용.
- * 타임아웃: 30초 AbortController.
+ * Phase 5+ — Claude/GPT API 연결.
+ *   - direct mode: 사용자가 자기 키로 브라우저에서 직접 호출 (Anthropic/OpenAI)
+ *   - proxy mode: /api/v2-ai 서버가 forward (사용자 키 불필요, 서버 키 사용)
  */
 import { useSettingsStore } from '../store/settingsStore'
 
@@ -38,13 +34,11 @@ function withTimeout(): { signal: AbortSignal; cancel: () => void } {
   return { signal: ac.signal, cancel: () => clearTimeout(id) }
 }
 
-/** 응답 텍스트에서 키 prefix 같은 거 잘라내고 길이 제한. */
 function safeError(prefix: string, raw: string): string {
   const trimmed = raw.replace(/sk-[a-zA-Z0-9-_]+/g, '[redacted-key]').slice(0, 250)
   return `${prefix}: ${trimmed}`
 }
 
-/** Anthropic Claude API 호출. */
 async function callAnthropic(prompt: string, model: string, key: string): Promise<AiCallResult> {
   const t = withTimeout()
   try {
@@ -78,7 +72,6 @@ async function callAnthropic(prompt: string, model: string, key: string): Promis
   }
 }
 
-/** OpenAI Chat Completions API 호출. */
 async function callOpenAI(prompt: string, model: string, key: string): Promise<AiCallResult> {
   const t = withTimeout()
   try {
@@ -110,7 +103,30 @@ async function callOpenAI(prompt: string, model: string, key: string): Promise<A
   }
 }
 
-/** 메인 진입점. settingsStore 의 provider 에 따라 적절한 API 호출. */
+/** Vercel /api/v2-ai 프록시 호출 — 사용자 키 불필요. */
+async function callProxy(prompt: string, providerHint: 'anthropic' | 'openai', model: string): Promise<AiCallResult> {
+  const t = withTimeout()
+  try {
+    const r = await fetch('/api/v2-ai', {
+      method: 'POST',
+      signal: t.signal,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider: providerHint, model, prompt }),
+    })
+    const data = await r.json().catch(() => ({ ok: false, error: 'JSON 파싱 실패' }))
+    if (!r.ok || !data.ok) {
+      return { ok: false, error: safeError(`Proxy ${r.status}`, data.error || '') }
+    }
+    return { ok: true, text: data.text || '' }
+  } catch (e: any) {
+    if (e?.name === 'AbortError') return { ok: false, error: 'Proxy 타임아웃 (30초)' }
+    return { ok: false, error: 'Proxy 네트워크 오류: ' + (e?.message || String(e)) }
+  } finally {
+    t.cancel()
+  }
+}
+
+/** 메인 진입점. provider 에 따라 적절한 호출. */
 export async function runAi(mode: AiMode, text: string): Promise<AiCallResult> {
   const s = useSettingsStore.getState()
   const prompt = PROMPTS[mode](text)
@@ -122,12 +138,18 @@ export async function runAi(mode: AiMode, text: string): Promise<AiCallResult> {
     if (!s.openaiKey) return { ok: false, error: '설정에서 OpenAI API 키를 입력하세요' }
     return callOpenAI(prompt, s.aiModel || 'gpt-4o-mini', s.openaiKey)
   }
-  return { ok: false, error: 'AI 제공자가 설정되지 않음 — 설정 모달에서 Anthropic 또는 OpenAI 선택' }
+  if (s.aiProvider === 'proxy') {
+    // 모델 prefix 로 어느 backend 인지 추론
+    const backend: 'anthropic' | 'openai' = (s.aiModel || '').startsWith('gpt') ? 'openai' : 'anthropic'
+    return callProxy(prompt, backend, s.aiModel || (backend === 'openai' ? 'gpt-4o-mini' : 'claude-sonnet-4-6'))
+  }
+  return { ok: false, error: 'AI 제공자가 설정되지 않음 — 설정 모달에서 선택' }
 }
 
 export function aiConfigured(): boolean {
   const s = useSettingsStore.getState()
   if (s.aiProvider === 'anthropic') return !!s.anthropicKey
   if (s.aiProvider === 'openai') return !!s.openaiKey
+  if (s.aiProvider === 'proxy') return true
   return false
 }

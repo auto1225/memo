@@ -1,4 +1,4 @@
-import { useEditor, EditorContent } from '@tiptap/react'
+﻿import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import TextAlign from '@tiptap/extension-text-align'
@@ -25,6 +25,7 @@ import { useMemosStore } from '../store/memosStore'
 import { saveToFile, openFile } from '../lib/fileOps'
 import { installWordKeymap } from '../lib/keymap'
 import { pushOne, syncConfigured } from '../lib/supabaseSync'
+import { tauriSyncOnBoot } from '../lib/justpin'
 
 /**
  * JustANotepad v2 — Phase 5 통합.
@@ -92,6 +93,8 @@ export function Editor() {
 
   useEffect(() => {
     if (editor) setEditor(editor)
+    // Tauri 환경이면 native postit 동기화
+    tauriSyncOnBoot().catch(() => {})
   }, [editor, setEditor])
 
   // 메모 전환 시 — content 를 새 메모로 교체.

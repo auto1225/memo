@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { importV1FromLocalStorage, exportV2ToJson, importV2FromJson } from '../lib/v1Import'
 import { useMemosStore } from '../store/memosStore'
 import { useSettingsStore } from '../store/settingsStore'
@@ -87,6 +87,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                 <option value="none">사용 안 함</option>
                 <option value="anthropic">Anthropic Claude</option>
                 <option value="openai">OpenAI ChatGPT</option>
+                <option value="proxy">서버 프록시 (키 불필요)</option>
               </select>
             </div>
             {settings.aiProvider === 'anthropic' && (
@@ -119,6 +120,14 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                   value={settings.aiModel}
                   onChange={(e) => settings.setKey('aiModel', e.target.value)}
                 />
+              </>
+            )}
+            {settings.aiProvider === 'proxy' && (
+              <>
+                <div className="jan-settings-info" style={{padding:'8px 10px',background:'rgba(76,175,80,0.08)',borderLeft:'3px solid #4caf50',borderRadius:4,marginTop:6}}>
+                  서버 프록시 모드 — 사용자 키 불필요. 서버에서 forward.
+                </div>
+                <input type="text" placeholder="모델명 (claude-sonnet-4-6 또는 gpt-4o-mini)" value={settings.aiModel} onChange={(e) => settings.setKey('aiModel', e.target.value)} />
               </>
             )}
           </section>

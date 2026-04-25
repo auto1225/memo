@@ -2,11 +2,11 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 /**
- * 사용자 설정 — API 키, 테마, 동기화 설정 등.
- * Phase 5 — Claude/GPT API 키, Supabase URL/anon key, 인용 스타일.
+ * 사용자 설정 — API 키, 동기화, 인용 스타일.
+ * Phase 5+: AI proxy 모드 추가 (서버 키 사용).
  */
 export type CitationStyle = 'apa' | 'ieee' | 'mla'
-export type AiProvider = 'anthropic' | 'openai' | 'none'
+export type AiProvider = 'anthropic' | 'openai' | 'proxy' | 'none'
 
 interface SettingsState {
   anthropicKey: string
