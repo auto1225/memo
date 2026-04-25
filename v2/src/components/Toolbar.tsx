@@ -138,8 +138,18 @@ export function Toolbar(p: ToolbarProps) {
 <p>본 연구는 [기관명/과제번호] 의 지원으로 수행되었습니다. ...</p>`)
   const insertFootnote = () => {
     const n = (document.querySelectorAll('.paper-footnote').length || 0) + 1
+    /* 1) 커서 위치에 sup 삽입 */
     insertHTML(`<sup class="paper-fn-ref">[${n}]</sup>`)
-    setTimeout(() => insertHTML(`<div class="paper-footnote" style="font-size:0.85em;color:#444;border-top:1px solid #ccc;padding-top:0.4em;margin-top:1em;">[${n}] 각주 내용</div>`), 80)
+    /* 2) 문서 끝에 footnote 블록 추가 */
+    const root = document.querySelector('.ProseMirror') as HTMLElement | null
+    if (root) {
+      const div = document.createElement('div')
+      div.className = 'paper-footnote'
+      div.style.cssText = 'font-size:0.85em;color:#444;border-top:1px solid #ccc;padding-top:0.4em;margin-top:1em;'
+      div.textContent = `[${n}] 각주 내용 — 더블클릭해서 편집`  
+      root.appendChild(div)
+      editor.commands.setContent(root.innerHTML)
+    }
   }
   const insertCitation = () => {
     const cite = window.prompt('인용 (예: Smith, 2024):', 'Author, 2024')
@@ -157,10 +167,8 @@ export function Toolbar(p: ToolbarProps) {
   }
   const toggleTwoCol = () => {
     const cur = document.body.classList.toggle('jan-2col')
-    if (cur) {
-      const style = document.getElementById('jan-2col-style') || (() => { const s = document.createElement('style'); s.id = 'jan-2col-style'; document.head.appendChild(s); return s })()
-      style.textContent = '.jan-2col .ProseMirror { column-count: 2; column-gap: 2em; column-rule: 1px solid #eee; }'
-    }
+    const style = document.getElementById('jan-2col-style') || (() => { const s = document.createElement('style'); s.id = 'jan-2col-style'; document.head.appendChild(s); return s })()
+    style.textContent = cur ? '.jan-2col .ProseMirror { column-count: 2; column-gap: 2em; column-rule: 1px solid #eee; }' : ''
   }
   const setRunningHeader = () => {
     const cur = localStorage.getItem('jan-run-header') || ''
@@ -328,8 +336,16 @@ export function Toolbar(p: ToolbarProps) {
         stream.getTracks().forEach(t => t.stop())
       }
       rec.start()
-      alert('녹음 시작 — 확인 누르면 정지')
-      rec.stop()
+      const stop = () => { try { rec.stop() } catch {} }
+      /* Auto-stop after 30 sec or user click */
+      setTimeout(stop, 30000)
+      const overlay = document.createElement('div')
+      overlay.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#FAE100;color:#333;padding:16px 24px;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.2);z-index:99999;font-weight:600;cursor:pointer;'
+      overlay.textContent = '녹음 중... 클릭하면 정지'
+      overlay.onclick = () => { stop(); overlay.remove() }
+      document.body.appendChild(overlay)
+      rec.onstart = () => {}
+      rec.addEventListener('stop', () => overlay.remove())
     } catch (e: any) { alert('마이크 접근 실패: ' + (e.message || e)) }
   }
   const meetingNote = () => {
