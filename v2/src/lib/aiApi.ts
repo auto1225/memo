@@ -2,9 +2,10 @@
  * Phase 5 — Claude/GPT 실 API 연결.
  * 사용자가 SettingsModal 에 입력한 키로 직접 호출.
  *
- * 보안: 키는 localStorage 에 저장 (전송 X). CORS — Anthropic/OpenAI 모두 브라우저 직접 호출 가능.
- *   Anthropic: 2024 부터 anthropic-dangerous-direct-browser-access 헤더로 허용.
+ * 보안: 키는 localStorage 에만 저장. CORS — Anthropic/OpenAI 모두 브라우저 직접 호출 가능.
+ *   Anthropic: anthropic-dangerous-direct-browser-access 헤더로 허용.
  *   OpenAI: 항상 허용.
+ * 타임아웃: 30초 AbortController.
  */
 import { useSettingsStore } from '../store/settingsStore'
 
@@ -29,11 +30,27 @@ export interface AiCallResult {
   error?: string
 }
 
+const TIMEOUT_MS = 30000
+
+function withTimeout(): { signal: AbortSignal; cancel: () => void } {
+  const ac = new AbortController()
+  const id = setTimeout(() => ac.abort(), TIMEOUT_MS)
+  return { signal: ac.signal, cancel: () => clearTimeout(id) }
+}
+
+/** 응답 텍스트에서 키 prefix 같은 거 잘라내고 길이 제한. */
+function safeError(prefix: string, raw: string): string {
+  const trimmed = raw.replace(/sk-[a-zA-Z0-9-_]+/g, '[redacted-key]').slice(0, 250)
+  return `${prefix}: ${trimmed}`
+}
+
 /** Anthropic Claude API 호출. */
 async function callAnthropic(prompt: string, model: string, key: string): Promise<AiCallResult> {
+  const t = withTimeout()
   try {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
+      signal: t.signal,
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': key,
@@ -47,22 +64,27 @@ async function callAnthropic(prompt: string, model: string, key: string): Promis
       }),
     })
     if (!r.ok) {
-      const err = await r.text()
-      return { ok: false, error: `Anthropic ${r.status}: ${err.slice(0, 300)}` }
+      const err = await r.text().catch(() => '')
+      return { ok: false, error: safeError(`Anthropic ${r.status}`, err) }
     }
     const data = await r.json()
     const text = (data.content || []).map((b: any) => b.text || '').join('')
     return { ok: true, text }
   } catch (e: any) {
-    return { ok: false, error: 'Anthropic 네트워크 오류: ' + e.message }
+    if (e?.name === 'AbortError') return { ok: false, error: 'Anthropic 타임아웃 (30초 초과)' }
+    return { ok: false, error: 'Anthropic 네트워크 오류: ' + (e?.message || String(e)) }
+  } finally {
+    t.cancel()
   }
 }
 
 /** OpenAI Chat Completions API 호출. */
 async function callOpenAI(prompt: string, model: string, key: string): Promise<AiCallResult> {
+  const t = withTimeout()
   try {
     const r = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
+      signal: t.signal,
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${key}`,
@@ -74,14 +96,17 @@ async function callOpenAI(prompt: string, model: string, key: string): Promise<A
       }),
     })
     if (!r.ok) {
-      const err = await r.text()
-      return { ok: false, error: `OpenAI ${r.status}: ${err.slice(0, 300)}` }
+      const err = await r.text().catch(() => '')
+      return { ok: false, error: safeError(`OpenAI ${r.status}`, err) }
     }
     const data = await r.json()
     const text = data.choices?.[0]?.message?.content || ''
     return { ok: true, text }
   } catch (e: any) {
-    return { ok: false, error: 'OpenAI 네트워크 오류: ' + e.message }
+    if (e?.name === 'AbortError') return { ok: false, error: 'OpenAI 타임아웃 (30초 초과)' }
+    return { ok: false, error: 'OpenAI 네트워크 오류: ' + (e?.message || String(e)) }
+  } finally {
+    t.cancel()
   }
 }
 

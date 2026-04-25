@@ -77,13 +77,23 @@ export function PrintPreview({ html, title, onClose }: PrintPreviewProps) {
   )
 }
 
+/** HTML attribute / element 텍스트 escape (한글은 그대로 유지). */
+function escAttr(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+}
+/** CSS string content() 안전 escape — 백슬래시·따옴표만 처리, 한글/이모지 유지. */
+function escCss(s: string): string {
+  return s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+}
+
 function buildHtml(content: string, title: string): string {
-  const safeTitle = title.replace(/[<>&"']/g, '')
+  const titleAttr = escAttr(title)
+  const titleCss = escCss(title)
   return `<!DOCTYPE html>
-<html lang="ko"><head><meta charset="UTF-8"><title>${safeTitle}</title>
+<html lang="ko"><head><meta charset="UTF-8"><title>${titleAttr}</title>
 <style>
 @page { size: A4; margin: 20mm;
-  @top-right { content: "${safeTitle}"; font-size: 9pt; color:#888; }
+  @top-right { content: "${titleCss}"; font-size: 9pt; color:#888; }
   @bottom-right { content: "Page " counter(page) " / " counter(pages); font-size:9pt; color:#888; }
 }
 html,body{margin:0;padding:0;}

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { listPostits, addPostit, removePostit, openPostitWindow, type Postit } from '../lib/justpin'
 
 interface PostitPanelProps {
@@ -6,10 +6,12 @@ interface PostitPanelProps {
 }
 
 const COLORS = ['#FFEB3B', '#FFC1A6', '#A6E3FF', '#C8E6C9', '#E1BEE7', '#FFCDD2']
+const STORAGE_KEY = 'jan-v2-postits'
 
 /**
  * Phase 5 — JustPin 포스트잇 매니저.
  * Top-bar 카드 그리드 + 새 포스트잇 + 클릭하면 별도 창에서 편집.
+ * Storage 이벤트로 다른 창의 변경을 자동 반영.
  */
 export function PostitPanel({ onClose }: PostitPanelProps) {
   const [items, setItems] = useState<Postit[]>(listPostits())
@@ -19,6 +21,20 @@ export function PostitPanel({ onClose }: PostitPanelProps) {
   function refresh() {
     setItems(listPostits())
   }
+
+  // 다른 창/탭에서 localStorage 변경 시 자동 새로고침
+  useEffect(() => {
+    function onStorage(e: StorageEvent) {
+      if (e.key === STORAGE_KEY) refresh()
+    }
+    window.addEventListener('storage', onStorage)
+    // 폴링도 추가 (같은 origin 새 창은 storage 이벤트 발화 안 할 수 있음)
+    const t = setInterval(refresh, 2000)
+    return () => {
+      window.removeEventListener('storage', onStorage)
+      clearInterval(t)
+    }
+  }, [])
 
   function create() {
     if (!text.trim()) return

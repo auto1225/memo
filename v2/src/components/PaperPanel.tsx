@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { Editor } from '@tiptap/react'
 import { useSettingsStore } from '../store/settingsStore'
 import { formatBibEntry, formatInline, type Citation, type CitationStyle } from '../lib/citationFormat'
@@ -9,19 +9,36 @@ interface PaperPanelProps {
 }
 
 const EMPTY: Citation = { id: '', authors: [''], title: '', year: '' }
+const STORAGE_KEY = 'jan-v2-citations'
+
+function loadCitations(): Citation[] {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+  } catch {
+    return []
+  }
+}
+function saveCitations(list: Citation[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(list))
+  } catch {}
+}
 
 /**
  * Phase 5 — 논문 모드 패널.
  * 인용 추가/편집 → APA/IEEE/MLA 본문 인라인 + Bibliography 섹션 자동 삽입.
- *
- * 인용 데이터는 메모 별로 저장되지 않고 (Phase 5 범위 외) — 패널 내 세션 상태만.
- * 추후 메모 metadata 로 영속화 가능.
+ * 인용 목록은 localStorage 에 영속 (모달 닫아도 보존).
  */
 export function PaperPanel({ editor, onClose }: PaperPanelProps) {
   const style = useSettingsStore((s) => s.citationStyle)
   const setStyle = (st: CitationStyle) => useSettingsStore.getState().setKey('citationStyle', st)
-  const [cites, setCites] = useState<Citation[]>([])
+  const [cites, setCites] = useState<Citation[]>(() => loadCitations())
   const [draft, setDraft] = useState<Citation>({ ...EMPTY })
+
+  // 변경 시마다 localStorage 동기화
+  useEffect(() => {
+    saveCitations(cites)
+  }, [cites])
 
   if (!editor) return null
 
@@ -33,6 +50,10 @@ export function PaperPanel({ editor, onClose }: PaperPanelProps) {
   }
   function remove(idx: number) {
     setCites((cs) => cs.filter((_, i) => i !== idx))
+  }
+  function clearAll() {
+    if (cites.length === 0) return
+    if (window.confirm(`인용 ${cites.length}개 모두 삭제할까요?`)) setCites([])
   }
 
   function insertInline(idx: number) {
@@ -118,9 +139,16 @@ export function PaperPanel({ editor, onClose }: PaperPanelProps) {
             ))}
           </div>
 
-          <button className="jan-paper-bib" onClick={insertBibliography} disabled={cites.length === 0}>
-            References 섹션 삽입 ({cites.length})
-          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="jan-paper-bib" onClick={insertBibliography} disabled={cites.length === 0}>
+              References 섹션 삽입 ({cites.length})
+            </button>
+            {cites.length > 0 && (
+              <button onClick={clearAll} style={{ padding: '8px 14px', border: '1px solid #ccc', background: '#fff', borderRadius: 6, cursor: 'pointer' }}>
+                전체 삭제
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

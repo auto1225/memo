@@ -117,7 +117,8 @@ export function Editor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor, fileHandle, title, currentId])
 
-  // 추가 단축키 — Ctrl+/ AI, Ctrl+, 설정, Ctrl+Shift+P 미리보기
+  // 추가 단축키 — Ctrl+/ AI, Ctrl+, 설정, Ctrl+Alt+P 인쇄 미리보기 (Paged.js).
+  // (Ctrl+Shift+P 는 CommandPalette 가 사용 중 → 충돌 회피).
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
       if (e.isComposing || e.keyCode === 229) return
@@ -128,9 +129,9 @@ export function Editor() {
       } else if (ctrl && !e.shiftKey && !e.altKey && e.key === ',') {
         e.preventDefault()
         setShowSettings(true)
-      } else if (ctrl && e.shiftKey && !e.altKey && (e.key === 'P' || e.key === 'p')) {
-        // Ctrl+Shift+P — Paged.js 미리보기. CommandPalette 도 같은 키 → CommandPalette 가 먼저 캡쳐.
-        // 따라서 별도 handler 추가하지 않고 CommandPalette 안에서만 처리.
+      } else if (ctrl && e.altKey && !e.shiftKey && (e.key === 'P' || e.key === 'p')) {
+        e.preventDefault()
+        setShowPrint(true)
       }
     }
     document.addEventListener('keydown', h, true)

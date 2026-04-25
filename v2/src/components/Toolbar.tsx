@@ -1,4 +1,4 @@
-import type { Editor } from '@tiptap/react'
+﻿import type { Editor } from '@tiptap/react'
 import { downloadHwpx } from '../lib/hwpxExport'
 
 interface ToolbarProps {
@@ -69,7 +69,7 @@ export function Toolbar({
         />
         <button onClick={onSave} title="Ctrl+S 저장">저장</button>
         <button onClick={onOpen} title="Ctrl+O 열기">열기</button>
-        <button onClick={onPrintPreview} title="Ctrl+Shift+P 인쇄 미리보기 (Paged.js)">미리보기</button>
+        <button onClick={onPrintPreview} title="Ctrl+Alt+P 인쇄 미리보기 (Paged.js)">미리보기</button>
         <button onClick={() => window.print()} title="Ctrl+P 인쇄">인쇄</button>
         <button onClick={exportHwpx} title="HWPX (한글) 내보내기">HWPX</button>
         <span className="divider" />
