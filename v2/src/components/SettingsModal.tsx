@@ -1,6 +1,7 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { importV1FromLocalStorage, exportV2ToJson, importV2FromJson } from '../lib/v1Import'
 import { useMemosStore } from '../store/memosStore'
+import { useI18nStore } from '../lib/i18n'
 import { useSettingsStore } from '../store/settingsStore'
 import { syncNow, syncConfigured } from '../lib/supabaseSync'
 
@@ -12,6 +13,8 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
   const [status, setStatus] = useState<string>('')
   const memos = useMemosStore((s) => Object.values(s.memos))
   const settings = useSettingsStore()
+  const lang = useI18nStore((s) => s.lang)
+  const setLang = useI18nStore((s) => s.setLang)
 
   function handleV1Import() {
     const result = importV1FromLocalStorage()
@@ -179,6 +182,49 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
             </div>
             <div className="jan-settings-actions">
               <button onClick={handleV1Import}>v1 메모 가져오기</button>
+            </div>
+          </section>
+
+          <section className="jan-settings-section">
+            <h4>실시간 협업 (Yjs)</h4>
+            <div className="jan-settings-info">
+              WebSocket URL + 룸 이름 + 사용자명. 같은 룸의 다른 사용자와 동시 편집.
+              테스트 서버: wss://demos.yjs.dev/ws (영속 X)
+            </div>
+            <input
+              type="text"
+              placeholder="WebSocket URL"
+              value={settings.collabWsUrl}
+              onChange={(e) => settings.setKey('collabWsUrl', e.target.value)}
+            />
+            <input
+              type="text"
+              placeholder="룸 이름 (예: my-shared-doc)"
+              value={settings.collabRoom}
+              onChange={(e) => settings.setKey('collabRoom', e.target.value)}
+            />
+            <input
+              type="text"
+              placeholder="사용자명 (커서에 표시)"
+              value={settings.collabUserName}
+              onChange={(e) => settings.setKey('collabUserName', e.target.value)}
+            />
+            <div className="jan-settings-actions">
+              <button onClick={() => { settings.setKey('collabEnabled', !settings.collabEnabled); setStatus(settings.collabEnabled ? '협업 중지 — 새로고침 후 적용' : '협업 시작 — 새로고침 후 적용') }}>
+                {settings.collabEnabled ? '협업 중지' : '협업 시작'}
+              </button>
+            </div>
+          </section>
+
+          <section className="jan-settings-section">
+            <h4>언어 / Language</h4>
+            <div className="jan-settings-row">
+              <label>언어:</label>
+              <select value={lang} onChange={(e) => setLang(e.target.value as any)}>
+                <option value="ko">한국어</option>
+                <option value="en">English</option>
+                <option value="ja">日本語</option>
+              </select>
             </div>
           </section>
 

@@ -2,8 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 /**
- * 사용자 설정 — API 키, 동기화, 인용 스타일.
- * Phase 5+: AI proxy 모드 추가 (서버 키 사용).
+ * 사용자 설정 — API 키, 동기화, 인용 스타일, 협업.
  */
 export type CitationStyle = 'apa' | 'ieee' | 'mla'
 export type AiProvider = 'anthropic' | 'openai' | 'proxy' | 'none'
@@ -21,6 +20,12 @@ interface SettingsState {
 
   citationStyle: CitationStyle
 
+  // Phase 8 — Yjs 협업
+  collabEnabled: boolean
+  collabWsUrl: string
+  collabRoom: string
+  collabUserName: string
+
   setKey: (k: keyof SettingsState, v: string | boolean) => void
   reset: () => void
 }
@@ -35,6 +40,10 @@ const DEFAULTS = {
   supabaseEmail: '',
   syncEnabled: false,
   citationStyle: 'apa' as CitationStyle,
+  collabEnabled: false,
+  collabWsUrl: 'wss://demos.yjs.dev/ws',
+  collabRoom: '',
+  collabUserName: '',
 }
 
 export const useSettingsStore = create<SettingsState>()(

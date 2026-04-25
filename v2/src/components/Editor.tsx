@@ -25,6 +25,11 @@ import { pushOne, syncConfigured } from '../lib/supabaseSync'
 import { tauriSyncOnBoot } from '../lib/justpin'
 import { MathInline } from '../extensions/Math'
 import { Mermaid } from '../extensions/Mermaid'
+import { MentionExt } from '../extensions/MentionConfig'
+import { Callout } from '../extensions/Callout'
+import { Embed } from '../extensions/Embed'
+import TaskList from '@tiptap/extension-task-list'
+import TaskItem from '@tiptap/extension-task-item'
 
 // Phase 7 — 무거운 모달은 lazy load (chunk 분리). 첫 페이지 로드 가벼움.
 const AiHelper = lazy(() => import('./AiHelper').then((m) => ({ default: m.AiHelper })))
@@ -87,6 +92,11 @@ export function Editor() {
       Image,
       MathInline,
       Mermaid,
+      MentionExt,
+      Callout,
+      Embed,
+      TaskList,
+      TaskItem.configure({ nested: true }),
       PaginationPlus.configure({
         ...PAGE_SIZES.A4,
         pageGap: 24,

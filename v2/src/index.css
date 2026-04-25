@@ -457,3 +457,27 @@ body.jan-show-pilcrow .ProseMirror p::after {
   .jan-titlebar button,.jan-toolbar button{min-height:36px;min-width:36px;}
   .jan-tag button{min-height:24px;min-width:24px;}
 }
+
+/* ==================== Phase 8 — Task list (체크박스) ==================== */
+ul[data-type="taskList"]{list-style:none;padding-left:8px;}
+ul[data-type="taskList"] li{display:flex;align-items:flex-start;gap:8px;}
+ul[data-type="taskList"] li > label{flex-shrink:0;margin-top:3px;}
+ul[data-type="taskList"] li > div{flex:1;}
+ul[data-type="taskList"] li[data-checked="true"] > div{text-decoration:line-through;opacity:0.55;}
+
+/* ==================== Phase 8 — Callout ==================== */
+.jan-callout{margin:10px 0;}
+.jan-callout-icon{user-select:none;}
+.jan-callout-body p{margin:0.3em 0;}
+
+/* ==================== Phase 8 — Embed ==================== */
+.jan-embed-wrap{margin:8px 0;}
+
+/* ==================== Phase 8 — Mention list (tippy) ==================== */
+.tippy-box[data-theme~="light"]{background:#fff;color:#222;}
+
+/* ==================== Phase 8 — Accessibility ==================== */
+*:focus-visible{outline:2px solid #D97757;outline-offset:2px;border-radius:3px;}
+.jan-modal *:focus-visible{outline-color:#D97757;}
+.skip-to-content{position:absolute;left:-9999px;top:0;background:#D97757;color:#fff;padding:8px 16px;text-decoration:none;font-size:13px;z-index:10000;}
+.skip-to-content:focus{left:8px;top:8px;}

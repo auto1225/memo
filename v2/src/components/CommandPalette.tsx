@@ -76,6 +76,23 @@ export function CommandPalette({ editor }: CommandPaletteProps) {
         document.body.classList.toggle('jan-show-pilcrow')
         try { localStorage.setItem('jan-show-pilcrow', document.body.classList.contains('jan-show-pilcrow') ? '1' : '0') } catch {}
       }},
+      { id: 'task', label: '체크리스트', run: () => editor.chain().focus().toggleList('taskList', 'taskItem').run() },
+      { id: 'callout-info', label: '콜아웃: 정보', run: () => (editor.chain() as any).focus().setCallout('info').run() },
+      { id: 'callout-warn', label: '콜아웃: 경고', run: () => (editor.chain() as any).focus().setCallout('warn').run() },
+      { id: 'callout-tip', label: '콜아웃: 팁', run: () => (editor.chain() as any).focus().setCallout('tip').run() },
+      { id: 'callout-error', label: '콜아웃: 오류', run: () => (editor.chain() as any).focus().setCallout('error').run() },
+      { id: 'math', label: '수식 (KaTeX)', run: () => {
+        const tex = window.prompt('LaTeX 입력 (예: x^2 + y^2 = z^2):')
+        if (tex) (editor.chain() as any).focus().setMath(tex).run()
+      }},
+      { id: 'mermaid', label: '다이어그램 (Mermaid)', run: () => {
+        const code = window.prompt('Mermaid 코드:', 'graph TD\n  A-->B')
+        if (code) (editor.chain() as any).focus().setMermaid(code).run()
+      }},
+      { id: 'embed', label: '데이터 임베드 (URL)', run: () => {
+        const url = window.prompt('URL (YouTube/Vimeo/CodeSandbox):')
+        if (url) (editor.chain() as any).focus().setEmbed(url).run()
+      }},
     ]
   }, [editor, newMemo])
 
