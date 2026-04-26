@@ -173,6 +173,31 @@ test.describe('v2 smoke', () => {
     expect(pageUi.pageMarginsMm).toEqual({ top: 12, right: 16, bottom: 20, left: 24 })
   })
 
+  test('view zoom controls support Word-style fit modes', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await page.goto('./')
+    await expect(page.locator('.ProseMirror').first()).toBeVisible({ timeout: 15000 })
+    const zoomValue = page.locator('.jan-zoom-value')
+    const readZoom = () => page.evaluate(() => JSON.parse(localStorage.getItem('jan-v2-ui') || '{}')?.state?.zoom || 1)
+
+    await expect(zoomValue).toHaveText('100%')
+    await page.getByRole('button', { name: '보기', exact: true }).click()
+    await page.getByRole('button', { name: '한 페이지 보기', exact: true }).click()
+    await expect.poll(readZoom).toBeLessThan(1)
+    await expect(zoomValue).not.toHaveText('100%')
+    const wholePageZoom = await readZoom()
+
+    await page.getByRole('button', { name: '보기', exact: true }).click()
+    await page.getByRole('button', { name: '페이지 너비에 맞춤', exact: true }).click()
+    await expect.poll(readZoom).toBeGreaterThan(wholePageZoom)
+    const widthZoom = await readZoom()
+
+    await page.getByLabel('상태바 줌 아웃').click()
+    await expect.poll(readZoom).toBeLessThan(widthZoom)
+    await page.getByLabel('상태바 줌 인').click()
+    await expect.poll(readZoom).toBeGreaterThan(widthZoom - 0.01)
+  })
+
   test('meeting notes flow inserts a structured v1-style note', async ({ page }) => {
     await page.goto('./')
     await page.locator('.ProseMirror').first().waitFor({ state: 'visible', timeout: 15000 })

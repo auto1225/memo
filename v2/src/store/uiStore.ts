@@ -6,6 +6,8 @@ export type PageSizePreset = 'A4' | 'A3' | 'B4' | 'A5' | 'B5' | 'Letter'
 export type PageOrientation = 'portrait' | 'landscape'
 export type PageColumnCount = 1 | 2 | 3
 export const DEFAULT_RUNNING_FOOTER = 'Page {page} / {total}'
+export const ZOOM_MIN = 0.35
+export const ZOOM_MAX = 2
 export interface PageMarginsMm {
   top: number
   right: number
@@ -91,6 +93,12 @@ export function pageMarginsSummary(value: unknown, fallback = 20): string {
   return `상${margins.top} 우${margins.right} 하${margins.bottom} 좌${margins.left}mm`
 }
 
+export function normalizeZoom(value: unknown, fallback = 1): number {
+  const next = Number(value)
+  const base = Number.isFinite(next) ? next : fallback
+  return Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, Math.round(base * 100) / 100))
+}
+
 export function formatRunningText(template: string, page = 1, total = 1): string {
   return template
     .replace(/\{page\}/g, String(Math.max(1, Math.round(page))))
@@ -107,7 +115,7 @@ interface UIState {
   spellCheck: boolean
   sidebarCollapsed: boolean
   headingNumbers: boolean
-  zoom: number // 0.6 ~ 2.0
+  zoom: number // 0.35 ~ 2.0
   paperStyle: PaperStyle
   pageSize: PageSizePreset
   pageOrientation: PageOrientation
@@ -122,6 +130,7 @@ interface UIState {
   toggleSpellCheck: () => void
   toggleSidebar: () => void
   toggleHeadingNumbers: () => void
+  setZoom: (zoom: number) => void
   zoomIn: () => void
   zoomOut: () => void
   zoomReset: () => void
@@ -158,8 +167,9 @@ export const useUIStore = create<UIState>()(
       setFocus: (v) => set({ focusMode: v }),
       toggleSidebar: () => set({ sidebarCollapsed: !get().sidebarCollapsed }),
       toggleHeadingNumbers: () => set({ headingNumbers: !get().headingNumbers }),
-      zoomIn: () => set({ zoom: Math.min(2, +(get().zoom + 0.1).toFixed(2)) }),
-      zoomOut: () => set({ zoom: Math.max(0.6, +(get().zoom - 0.1).toFixed(2)) }),
+      setZoom: (zoom) => set({ zoom: normalizeZoom(zoom, get().zoom) }),
+      zoomIn: () => set({ zoom: normalizeZoom(get().zoom + 0.1, get().zoom) }),
+      zoomOut: () => set({ zoom: normalizeZoom(get().zoom - 0.1, get().zoom) }),
       zoomReset: () => set({ zoom: 1 }),
       setPaperStyle: (style) => set({ paperStyle: style }),
       setPageSize: (size) => set({ pageSize: size }),

@@ -12,6 +12,7 @@ import { useMemosStore } from '../store/memosStore'
 import { exportV2ToJson, importV2FromJsonAsync } from '../lib/v1Import'
 import { fileToDataUrl } from '../lib/attachments'
 import { saveDataUrlAsBlobRef } from '../lib/blobRefs'
+import { fitPageZoom, setPageZoom } from '../lib/pageZoom'
 
 interface ToolbarProps {
   editor: Editor | null
@@ -669,6 +670,10 @@ export function Toolbar(p: ToolbarProps) {
         { label: '줌 인', hint: 'Ctrl+=', icon: 'plus', onClick: () => run(() => ui.zoomIn()) },
         { label: '줌 아웃', hint: 'Ctrl+-', icon: 'minus', onClick: () => run(() => ui.zoomOut()) },
         { label: '줌 리셋 (100%)', hint: 'Ctrl+0', icon: 'undo', onClick: () => run(() => ui.zoomReset()) },
+        { label: '페이지 너비에 맞춤', icon: 'maximize', onClick: () => run(() => fitPageZoom('width')) },
+        { label: '한 페이지 보기', icon: 'page', onClick: () => run(() => fitPageZoom('page')) },
+        { label: '75%', icon: 'zoom-out', onClick: () => run(() => setPageZoom(0.75)) },
+        { label: '125%', icon: 'zoom-in', onClick: () => run(() => setPageZoom(1.25)) },
         { divider: '아웃라인 / 미리보기', label: '' },
         { label: `목차 ${p.outlineOpen ? '닫기' : '열기'}`, icon: 'list-bullet', onClick: () => run(p.onToggleOutline) },
         { label: 'Markdown 미리보기', icon: 'preview', onClick: () => run(p.onMdPreview) },

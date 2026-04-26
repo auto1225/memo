@@ -2462,6 +2462,61 @@ html, body, #root {
   gap: 10px;
 }
 
+.jan-zoom-control {
+  display: inline-flex;
+  align-items: center;
+  height: 21px;
+  gap: 1px;
+  border: 1px solid color-mix(in srgb, var(--paper-edge, #e5e5e5) 90%, transparent);
+  border-radius: 4px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.jan-zoom-control button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-width: 24px;
+  padding: 0 6px;
+  border: 0;
+  border-left: 1px solid color-mix(in srgb, var(--paper-edge, #e5e5e5) 80%, transparent);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.jan-zoom-control button:first-child {
+  border-left: 0;
+}
+
+.jan-zoom-control button:hover {
+  background: color-mix(in srgb, var(--accent, #D97757) 12%, #fff);
+  color: color-mix(in srgb, var(--accent, #D97757) 88%, #222);
+}
+
+.jan-zoom-control .jan-zoom-value {
+  min-width: 44px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.jan-theme-dark .jan-zoom-control {
+  background: var(--jan-paper, #1f1f20);
+  border-color: var(--jan-border, #2a2a2c);
+}
+
+.jan-theme-dark .jan-zoom-control button {
+  border-left-color: var(--jan-border, #2a2a2c);
+}
+
+.jan-theme-dark .jan-zoom-control button:hover {
+  background: rgba(217,119,87,0.18);
+  color: #f0c0aa;
+}
+
 /* --- 5) AppHeader 높이 v1 과 일치 (46px) --- */
 .jan-app-header {
   height: 46px !important;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatRunningText, normalizePageColumnCount, normalizePageMarginsMm, pageMarginsCss, pageMarginsSummary } from './uiStore'
+import { formatRunningText, normalizePageColumnCount, normalizePageMarginsMm, normalizeZoom, pageMarginsCss, pageMarginsSummary } from './uiStore'
 
 describe('uiStore helpers', () => {
   it('normalizes page column counts to Word-like supported values', () => {
@@ -33,5 +33,12 @@ describe('uiStore helpers', () => {
     expect(formatRunningText('Page {page} / {total}', 2, 7)).toBe('Page 2 / 7')
     expect(formatRunningText('쪽 {page}', 0, 0)).toBe('쪽 1')
     expect(formatRunningText('  프로젝트 헤더  ', 1, 1)).toBe('프로젝트 헤더')
+  })
+
+  it('normalizes Word-like zoom values for page view controls', () => {
+    expect(normalizeZoom(0.1)).toBe(0.35)
+    expect(normalizeZoom(1.234)).toBe(1.23)
+    expect(normalizeZoom(3)).toBe(2)
+    expect(normalizeZoom('bad', 1.25)).toBe(1.25)
   })
 })

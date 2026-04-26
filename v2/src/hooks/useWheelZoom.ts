@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useUIStore } from '../store/uiStore'
+import { setPageZoom } from '../lib/pageZoom'
 
 /**
  * Phase 17 — Ctrl+휠 줌.
@@ -38,15 +39,15 @@ export function useWheelZoom() {
       e.stopPropagation()
       const delta = e.deltaY > 0 ? -0.1 : 0.1
       const cur = useUIStore.getState().zoom
-      const next = Math.max(0.6, Math.min(2, +(cur + delta).toFixed(2)))
+      const next = setPageZoom(cur + delta)
       if (next !== cur) {
-        useUIStore.setState({ zoom: next })
+        applyZoom(next)
       }
     }
     document.addEventListener('wheel', onWheel, { passive: false, capture: true })
     window.addEventListener('wheel', onWheel, { passive: false })
     return () => {
-      document.removeEventListener('wheel', onWheel, { capture: true } as any)
+      document.removeEventListener('wheel', onWheel, true)
       window.removeEventListener('wheel', onWheel)
     }
   }, [])

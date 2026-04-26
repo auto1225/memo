@@ -6,6 +6,8 @@ import { useCollab } from '../hooks/useCollab'
 import { useWritingGoalStore } from '../store/writingGoalStore'
 import { useUIStore } from '../store/uiStore'
 import { PomodoroWidget } from './PomodoroWidget'
+import { Icon } from './Icons'
+import { fitPageZoom, setPageZoom } from '../lib/pageZoom'
 
 interface StatusBarProps {
   editor: Editor | null
@@ -74,12 +76,18 @@ export function StatusBar({ editor }: StatusBarProps) {
       )}
       <span className="divider" />
       <span className={saveClass}>{saveLabel}</span>
-      {zoom !== 1 && (
-        <>
-          <span className="divider" />
-          <span title="Ctrl+휠 또는 Ctrl+0 으로 100%">{Math.round(zoom * 100)}%</span>
-        </>
-      )}
+      <span className="divider" />
+      <span className="jan-zoom-control" aria-label="페이지 줌">
+        <button type="button" aria-label="상태바 줌 아웃" title="줌 아웃" onClick={() => setPageZoom(zoom - 0.1)}>
+          <Icon name="zoom-out" size={12} />
+        </button>
+        <button type="button" className="jan-zoom-value" aria-label="상태바 페이지 너비 맞춤" title="페이지 너비에 맞춤" onClick={() => fitPageZoom('width')}>
+          {Math.round(zoom * 100)}%
+        </button>
+        <button type="button" aria-label="상태바 줌 인" title="줌 인" onClick={() => setPageZoom(zoom + 0.1)}>
+          <Icon name="zoom-in" size={12} />
+        </button>
+      </span>
       {goal.dailyTarget > 0 && (
         <>
           <span className="divider" />

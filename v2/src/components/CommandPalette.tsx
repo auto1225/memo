@@ -8,6 +8,7 @@ import type { IconName } from './Icons'
 import { downloadHwpx } from '../lib/hwpxExport'
 import { downloadMd } from '../lib/markdownIO'
 import { exportToPdf } from '../lib/pdfExport'
+import { fitPageZoom, setPageZoom } from '../lib/pageZoom'
 
 interface Command {
   id: string
@@ -401,6 +402,10 @@ export function CommandPalette(p: CommandPaletteProps) {
       { id:'zoom-in', cat:'보기', icon:'zoom-in', label:'줌 인', desc:'본문 +10%.', hint:'Ctrl+=', run: zoomIn },
       { id:'zoom-out', cat:'보기', icon:'zoom-out', label:'줌 아웃', desc:'본문 -10%.', hint:'Ctrl+-', run: zoomOut },
       { id:'zoom-reset', cat:'보기', icon:'refresh-cw', label:'줌 리셋 (100%)', desc:'기본 크기로.', hint:'Ctrl+0', run: zoomReset },
+      { id:'zoom-fit-width', cat:'보기', icon:'maximize', label:'페이지 너비에 맞춤', desc:'현재 창 폭에 종이를 맞춤.', run: () => fitPageZoom('width') },
+      { id:'zoom-fit-page', cat:'보기', icon:'page', label:'한 페이지 보기', desc:'페이지 전체가 보이도록 축소/확대.', run: () => fitPageZoom('page') },
+      { id:'zoom-75', cat:'보기', icon:'zoom-out', label:'줌 75%', desc:'문서를 75%로 표시.', run: () => setPageZoom(0.75) },
+      { id:'zoom-125', cat:'보기', icon:'zoom-in', label:'줌 125%', desc:'문서를 125%로 표시.', run: () => setPageZoom(1.25) },
       { id:'theme', cat:'보기', icon: theme==='dark'?'moon':theme==='light'?'sun':'auto', label:`테마 변경 (현재: ${theme})`, desc:'라이트→다크→자동 순환.', run: cycleTheme },
       { id:'h-num', cat:'보기', icon:'hash', label:'제목 번호 매기기', desc:'1, 1.1, 1.1.1 자동 번호.', run: toggleHeadingNumbers },
       { id:'md-prev', cat:'보기', icon:'preview', label:'Markdown 미리보기', desc:'MD 렌더링 미리보기.', run: () => p.onMd?.() },
