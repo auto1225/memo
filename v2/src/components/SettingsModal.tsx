@@ -21,6 +21,7 @@ import {
   pullByocSnapshot,
   pushByocSnapshot,
   startDropboxOAuth,
+  syncByocNow,
   type ByocStatus,
 } from '../lib/byocSync'
 
@@ -38,6 +39,19 @@ function formatBytes(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`
 }
 
+function readLastSyncAt(): number {
+  try {
+    return Number(localStorage.getItem('jan.v2.sync.lastAt') || '0') || 0
+  } catch {
+    return 0
+  }
+}
+
+function formatLastSyncAt(value: number): string {
+  if (!value) return '기록 없음'
+  return new Date(value).toLocaleString('ko-KR')
+}
+
 export function SettingsModal({ onClose }: SettingsModalProps) {
   const [status, setStatus] = useState<string>('')
   const [supabaseUser, setSupabaseUser] = useState<string>('')
@@ -45,6 +59,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
   const [showPageSettings, setShowPageSettings] = useState(false)
   const [storageSummary, setStorageSummary] = useState<{ backend: string; stateBytes: number; blobCount: number; blobBytes: number } | null>(null)
   const [byocStatus, setByocStatus] = useState<ByocStatus | null>(null)
+  const [lastSyncAt, setLastSyncAt] = useState<number>(() => readLastSyncAt())
   const memoCount = useMemosStore((s) => Object.keys(s.memos).length)
   const settings = useSettingsStore()
   const lang = useI18nStore((s) => s.lang)
@@ -170,6 +185,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
     const r = await syncNow()
     if (r.ok) setStatus(`동기화 완료 — push ${r.pushed}, pull ${r.pulled}`)
     else setStatus(`동기화 실패: ${r.error}`)
+    setLastSyncAt(readLastSyncAt())
   }
 
   async function handleSupabaseLogin() {
@@ -208,6 +224,16 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
     const result = await pushByocSnapshot()
     if (result.ok) setStatus(`${result.provider} 백업 완료`)
     else setStatus(`백업 실패: ${result.error}`)
+    setLastSyncAt(readLastSyncAt())
+    getByocStatus().then(setByocStatus).catch(() => {})
+  }
+
+  async function handleByocSync() {
+    setStatus('개인 저장소와 동기화 중...')
+    const result = await syncByocNow()
+    if (result.ok) setStatus(`${result.provider} 동기화 완료: 가져오기 ${result.pulled}, 백업 ${result.pushed}`)
+    else setStatus(`동기화 실패: ${result.error}`)
+    setLastSyncAt(readLastSyncAt())
     getByocStatus().then(setByocStatus).catch(() => {})
   }
 
@@ -218,6 +244,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
     const result = await pullByocSnapshot()
     if (result.ok) setStatus(`${result.provider} 가져오기 완료: ${result.pulled}개 항목 반영`)
     else setStatus(`가져오기 실패: ${result.error}`)
+    setLastSyncAt(readLastSyncAt())
     getByocStatus().then(setByocStatus).catch(() => {})
   }
 
@@ -345,6 +372,9 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
             <div className="jan-settings-info">
               현재 개인 저장소: <b>{byocStatus ? `${byocStatus.label}${byocStatus.detail ? ` · ${byocStatus.detail}` : ''}` : '확인 중...'}</b>
             </div>
+            <div className="jan-settings-info">
+              마지막 동기화: <b>{formatLastSyncAt(lastSyncAt)}</b>
+            </div>
             <div className="jan-settings-row">
               <label>
                 <input
@@ -356,7 +386,8 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
               </label>
             </div>
             <div className="jan-settings-actions">
-              <button onClick={handleByocPush}>지금 백업</button>
+              <button onClick={handleByocSync}>지금 동기화</button>
+              <button onClick={handleByocPush}>백업만 저장</button>
               <button onClick={handleByocPull}>백업 가져오기</button>
             </div>
             <details>

@@ -274,6 +274,23 @@ function toDropboxPath(path: string): string {
   return '/' + path.replace(/^\/+/, '')
 }
 
+function isMissingRemoteSnapshot(error: unknown): boolean {
+  if (!(error instanceof Error)) return false
+  return /not.?found|path\/not_found|파일.*찾을 수 없습니다|not exist|404|409/i.test(error.message)
+}
+
+async function writeProviderFile(provider: SyncProvider, path: string, data: string): Promise<void> {
+  if (provider === 'local') await writeLocalFile(path, data)
+  else if (provider === 'dropbox') await writeDropboxFile(path, data)
+  else throw new Error('개인 저장소 provider가 선택되지 않았습니다')
+}
+
+async function readProviderFile(provider: SyncProvider, path: string): Promise<string> {
+  if (provider === 'local') return readLocalFile(path)
+  if (provider === 'dropbox') return readDropboxFile(path)
+  throw new Error('개인 저장소 provider가 선택되지 않았습니다')
+}
+
 async function writeDropboxFile(path: string, data: string): Promise<void> {
   await dropboxFetch('/2/files/upload', {
     path: toDropboxPath(path),
@@ -405,13 +422,8 @@ export async function pushByocSnapshot(): Promise<ByocSyncResult> {
       updatedAt: new Date().toISOString(),
       provider,
     }
-    if (provider === 'local') {
-      await writeLocalFile(SNAPSHOT_PATH, json)
-      await writeLocalFile(META_PATH, JSON.stringify(meta, null, 2))
-    } else {
-      await writeDropboxFile(SNAPSHOT_PATH, json)
-      await writeDropboxFile(META_PATH, JSON.stringify(meta, null, 2))
-    }
+    await writeProviderFile(provider, SNAPSHOT_PATH, json)
+    await writeProviderFile(provider, META_PATH, JSON.stringify(meta, null, 2))
     safeLocalSet('jan.v2.sync.lastAt', String(Date.now()))
     return { ok: true, provider, pushed: 1, pulled: 0 }
   } catch (error: unknown) {
@@ -425,7 +437,7 @@ export async function pullByocSnapshot(): Promise<ByocSyncResult> {
     return { ok: false, provider, pushed: 0, pulled: 0, error: '개인 저장소 provider가 선택되지 않았습니다' }
   }
   try {
-    const json = provider === 'local' ? await readLocalFile(SNAPSHOT_PATH) : await readDropboxFile(SNAPSHOT_PATH)
+    const json = await readProviderFile(provider, SNAPSHOT_PATH)
     const result = await importV2FromJsonAsync(json)
     if (result.errors.length) throw new Error(result.errors.join(', '))
     safeLocalSet('jan.v2.sync.lastAt', String(Date.now()))
@@ -436,7 +448,28 @@ export async function pullByocSnapshot(): Promise<ByocSyncResult> {
 }
 
 export async function syncByocNow(): Promise<ByocSyncResult> {
-  return pushByocSnapshot()
+  const provider = getSettingsProvider()
+  if (provider !== 'local' && provider !== 'dropbox') {
+    return { ok: false, provider, pushed: 0, pulled: 0, error: '개인 저장소 provider가 선택되지 않았습니다' }
+  }
+
+  try {
+    let pulled = 0
+    try {
+      const json = await readProviderFile(provider, SNAPSHOT_PATH)
+      const result = await importV2FromJsonAsync(json)
+      if (result.errors.length) throw new Error(result.errors.join(', '))
+      pulled = result.imported
+    } catch (error: unknown) {
+      if (!isMissingRemoteSnapshot(error)) throw error
+    }
+
+    const pushed = await pushByocSnapshot()
+    if (!pushed.ok) throw new Error(pushed.error || '개인 저장소 백업 실패')
+    return { ok: true, provider, pushed: pushed.pushed, pulled }
+  } catch (error: unknown) {
+    return { ok: false, provider, pushed: 0, pulled: 0, error: error instanceof Error ? error.message : String(error) }
+  }
 }
 
 export function isByocProvider(provider = getSettingsProvider()): boolean {
