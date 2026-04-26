@@ -218,4 +218,32 @@ test.describe('v2 smoke', () => {
     await expect(rows.nth(1)).toContainText('Alpha')
     await expect(rows.nth(2)).toContainText('Beta')
   })
+
+  test('document style presets apply Word-like typography settings', async ({ page }) => {
+    await page.goto('./')
+    await page.locator('.ProseMirror').first().waitFor({ state: 'visible', timeout: 15000 })
+
+    await page.getByRole('button', { name: '서식', exact: true }).click()
+    await page.getByRole('button', { name: /문서 스타일/ }).click()
+    const modal = page.locator('.jan-typography-modal')
+    await expect(modal).toBeVisible()
+
+    await modal.locator('.jan-typography-preset', { hasText: '원고/논문' }).click()
+    await expect(modal.locator('.jan-typography-preset.is-active', { hasText: '원고/논문' })).toBeVisible()
+
+    const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('jan-v2-typography') || '{}')?.state)
+    expect(stored).toMatchObject({
+      presetId: 'manuscript',
+      fontFamily: 'serif',
+      fontSize: 15,
+      paragraphSpacing: 12,
+    })
+
+    const editorStyle = await page.locator('.ProseMirror').first().evaluate((node) => {
+      const style = getComputedStyle(node)
+      return { fontFamily: style.fontFamily, lineHeight: style.lineHeight, fontSize: style.fontSize }
+    })
+    expect(editorStyle.fontFamily).toContain('Noto Serif KR')
+    expect(editorStyle.fontSize).toBe('15px')
+  })
 })

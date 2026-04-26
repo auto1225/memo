@@ -6,7 +6,7 @@ import { exportToPdf } from '../lib/pdfExport'
 import { ColorPicker } from './ColorPicker'
 import { Icon } from './Icons'
 import type { IconName } from './Icons'
-import { useTypographyStore, type FontFamily } from '../store/typographyStore'
+import { normalizeFontFamily, useTypographyStore } from '../store/typographyStore'
 import { PAPER_STYLES, useUIStore } from '../store/uiStore'
 import { useMemosStore } from '../store/memosStore'
 import { exportV2ToJson, importV2FromJsonAsync } from '../lib/v1Import'
@@ -543,6 +543,7 @@ export function Toolbar(p: ToolbarProps) {
         { label: '글자 효과', icon: 'sparkle', onClick: () => run(setTextEffect) },
         { label: '강조 배경 상자', icon: 'highlight', onClick: () => run(insertHighlightBox) },
         { divider: '기타', label: '' },
+        { label: '문서 스타일', icon: 'palette', onClick: () => run(p.onTypo) },
         { label: '서식 지우기', icon: 'wand', onClick: () => run(() => editor.chain().focus().unsetAllMarks().clearNodes().run()) },
         { label: '엔터 표시(¶) 켬/끔', icon: 'paragraph', onClick: () => run(togglePilcrow) },
       ],
@@ -741,7 +742,7 @@ export function Toolbar(p: ToolbarProps) {
       <select
         className="jan-toolbar-select"
         value={typo.fontFamily}
-        onChange={(e) => typo.setFontFamily(e.target.value as FontFamily)}
+        onChange={(e) => typo.setFontFamily(normalizeFontFamily(e.target.value))}
         title="글꼴"
       >
         <option value="sans">기본 폰트</option>

@@ -1077,8 +1077,41 @@ mark{padding:1px 2px;border-radius:2px;}
 .jan-bubble-toolbar .divider{width:1px;background:rgba(255,255,255,0.2);margin:0 2px;}
 
 /* ==================== Phase 15 — Typography modal ==================== */
-.jan-typography-modal{width:min(560px,92vw);}
-.jan-typography-preview{padding:14px;background:rgba(0,0,0,0.03);border-radius:6px;margin:12px 0;}
+.jan-typography-modal{width:min(720px,94vw);}
+.jan-typography-modal .jan-modal-close{display:inline-flex;align-items:center;gap:5px;border:1px solid rgba(0,0,0,0.1);background:#fff;color:var(--jan-fg);}
+.jan-typography-body{display:grid;gap:14px;}
+.jan-typography-section{display:grid;gap:10px;}
+.jan-typography-presets{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;}
+.jan-typography-preset{min-height:112px;padding:10px 9px;border:1px solid rgba(0,0,0,0.12);border-radius:8px;background:#fff;color:var(--jan-fg);text-align:left;cursor:pointer;display:grid;grid-template-rows:auto 1fr auto;gap:6px;line-height:1.35;}
+.jan-typography-preset:hover{border-color:#D97757;background:#fffaf7;}
+.jan-typography-preset.is-active{border-color:#D97757;background:#fff4ec;box-shadow:inset 0 0 0 1px #D97757;}
+.jan-typography-preset-title{font-weight:700;font-size:13px;}
+.jan-typography-preset span:not(.jan-typography-preset-title){font-size:11px;color:#666;}
+.jan-typography-preset strong{font-size:11px;color:#8F4628;font-weight:700;}
+.jan-typography-field{display:grid;grid-template-columns:96px minmax(0,1fr) 56px;gap:10px;align-items:center;}
+.jan-typography-field label{font-size:13px;color:#555;}
+.jan-typography-field select,.jan-typography-field input{min-width:0;}
+.jan-typography-field select{grid-column:2 / 4;height:34px;padding:4px 8px;border:1px solid #d4d4d4;border-radius:6px;background:#fff;color:var(--jan-fg);}
+.jan-typography-field input[type="range"]{accent-color:#D97757;}
+.jan-typography-field output{font-size:12px;color:#666;text-align:right;font-variant-numeric:tabular-nums;}
+.jan-typography-preview{padding:16px 18px;background:linear-gradient(#fff 0 31px,#e7e0d8 32px);background-size:100% 32px;border:1px solid rgba(0,0,0,0.1);border-radius:8px;margin:0;font-family:var(--jan-editor-font);font-size:var(--jan-editor-size);line-height:var(--jan-editor-line);}
+.jan-typography-preview p{margin:0 0 var(--jan-editor-para);}
+.jan-typography-preview p:last-child{margin-bottom:0;}
+@media (max-width: 760px){
+  .jan-typography-presets{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .jan-typography-preset{min-height:98px;}
+}
+@media (max-width: 520px){
+  .jan-typography-presets{grid-template-columns:1fr;}
+  .jan-typography-field{grid-template-columns:1fr 52px;gap:6px 10px;}
+  .jan-typography-field label{grid-column:1 / 3;}
+  .jan-typography-field select{grid-column:1 / 3;}
+}
+.jan-theme-dark .jan-typography-modal .jan-modal-close,.jan-theme-dark .jan-typography-preset,.jan-theme-dark .jan-typography-field select{background:#252525;border-color:#444;color:#e0e0e0;}
+.jan-theme-dark .jan-typography-preset:hover{background:#2b2724;border-color:#D97757;}
+.jan-theme-dark .jan-typography-preset.is-active{background:#31251f;border-color:#D97757;}
+.jan-theme-dark .jan-typography-preset span:not(.jan-typography-preset-title),.jan-theme-dark .jan-typography-field label,.jan-theme-dark .jan-typography-field output{color:#b8b8b8;}
+.jan-theme-dark .jan-typography-preview{background:linear-gradient(#242424 0 31px,#363636 32px);background-size:100% 32px;border-color:#444;}
 
 /* ==================== Phase 15 — Info panel (right slide) ==================== */
 .jan-info-panel{position:fixed;right:0;top:0;bottom:0;width:320px;max-width:88vw;background:#fff;border-left:1px solid #ddd;box-shadow:-4px 0 16px rgba(0,0,0,0.08);z-index:3000;display:flex;flex-direction:column;}
@@ -3192,8 +3225,13 @@ html, body, #root {
   background-color: var(--paper, var(--jan-paper, #ffffff)) !important;
   color: var(--ink, var(--jan-fg, #191919)) !important;
   box-shadow: 0 2px 8px rgba(0,0,0,0.05), 0 12px 28px rgba(0,0,0,0.08) !important;
-  line-height: 28px;
+  font-family: var(--jan-editor-font) !important;
+  font-size: var(--jan-editor-size) !important;
+  line-height: var(--jan-editor-line) !important;
   background-clip: padding-box;
+}
+.jan-editor-pages .ProseMirror :where(:not(code):not(pre):not(kbd):not(samp)) {
+  font-family: var(--jan-editor-font) !important;
 }
 
 .jan-editor-pages[data-paper="lined"] .ProseMirror,
