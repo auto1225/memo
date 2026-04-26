@@ -206,23 +206,24 @@ export function WebBrowserModal({ editor, onClose }: WebBrowserModalProps) {
       let doc = new DOMParser().parseFromString(html, 'text/html')
       let items = engine.parse(doc, Q)
       let usedEngine = engine.label
-      /* anti-scraping 차단 (Google/Naver) → Bing 폴백 */
-      if (items.length === 0 && (engineKey === 'google' || engineKey === 'naver')) {
-        setStatusMsg(engine.label + ' 차단 — Bing 폴백 시도...')
-        try {
-          html = await fetchViaProxy(ENGINES.bing.searchUrl(Q))
-          doc = new DOMParser().parseFromString(html, 'text/html')
-          items = ENGINES.bing.parse(doc, Q)
-          if (items.length) usedEngine = 'Bing (' + engine.label + ' 폴백)'
-        } catch {}
-      }
-      /* Bing 도 실패면 DDG 폴백 */
-      if (items.length === 0 && engineKey !== 'ddg') {
+      /* 차단된 엔진 (Google/Naver/Bing/YouTube) → DDG 폴백 (한국어 정확도 가장 좋음) */
+      if (items.length === 0 && engineKey !== 'ddg' && engineKey !== 'wiki' && engineKey !== 'namu') {
+        setStatusMsg(engine.label + ' 차단 — DuckDuckGo 폴백 시도...')
         try {
           html = await fetchViaProxy(ENGINES.ddg.searchUrl(Q))
           doc = new DOMParser().parseFromString(html, 'text/html')
           items = ENGINES.ddg.parse(doc, Q)
           if (items.length) usedEngine = 'DuckDuckGo (' + engine.label + ' 폴백)'
+        } catch {}
+      }
+      /* DDG 도 실패면 Wikipedia 폴백 */
+      if (items.length === 0 && engineKey !== 'wiki') {
+        setStatusMsg('DuckDuckGo 도 실패 — Wikipedia 폴백 시도...')
+        try {
+          html = await fetchViaProxy(ENGINES.wiki.searchUrl(Q))
+          doc = new DOMParser().parseFromString(html, 'text/html')
+          items = ENGINES.wiki.parse(doc, Q)
+          if (items.length) usedEngine = 'Wikipedia (' + engine.label + ' 폴백)'
         } catch {}
       }
       setResults(items)
