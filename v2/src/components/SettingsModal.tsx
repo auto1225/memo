@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { importV1FromLocalStorage, exportV2ToJson, importV2FromJson } from '../lib/v1Import'
+import { importV1FromLocalStorage, exportV2ToJson, importV2FromJsonAsync } from '../lib/v1Import'
 import { importMarkdownFiles } from '../lib/bulkImport'
 import { pdfFileToHtml } from '../lib/pdfImport'
 import { downloadNotionZip } from '../lib/notionExport'
@@ -14,6 +14,15 @@ import { getSession, getSupabaseConfigStatus, signInGoogle, signOut, syncNow, sy
 import { PageSettingsModal } from './PageSettingsModal'
 import { getLocalFirstStorageStats } from '../lib/localFirstStorage'
 import { getBlobStorageStats } from '../lib/blobRefs'
+import {
+  chooseLocalSyncFolder,
+  getByocStatus,
+  handleDropboxOAuthRedirectIfNeeded,
+  pullByocSnapshot,
+  pushByocSnapshot,
+  startDropboxOAuth,
+  type ByocStatus,
+} from '../lib/byocSync'
 
 interface SettingsModalProps {
   onClose: () => void
@@ -35,6 +44,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
   const [checkingSession, setCheckingSession] = useState(false)
   const [showPageSettings, setShowPageSettings] = useState(false)
   const [storageSummary, setStorageSummary] = useState<{ backend: string; stateBytes: number; blobCount: number; blobBytes: number } | null>(null)
+  const [byocStatus, setByocStatus] = useState<ByocStatus | null>(null)
   const memoCount = useMemosStore((s) => Object.keys(s.memos).length)
   const settings = useSettingsStore()
   const lang = useI18nStore((s) => s.lang)
@@ -85,6 +95,28 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
     }
   }, [memoCount, status])
 
+  useEffect(() => {
+    let cancelled = false
+    getByocStatus().then((next) => {
+      if (!cancelled) setByocStatus(next)
+    }).catch(() => {
+      if (!cancelled) setByocStatus(null)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [settings.syncProvider, status])
+
+  useEffect(() => {
+    handleDropboxOAuthRedirectIfNeeded()
+      .then((next) => {
+        if (!next) return
+        setByocStatus(next)
+        setStatus('Dropbox 연결 완료')
+      })
+      .catch((error: unknown) => setStatus('Dropbox 연결 실패: ' + errorMessage(error)))
+  }, [])
+
   async function handleV1Import() {
     setStatus('v1 데이터를 가져오는 중...')
     const result = await importV1FromLocalStorage()
@@ -118,7 +150,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
       const file = (e.target as HTMLInputElement).files?.[0]
       if (!file) return
       const text = await file.text()
-      const result = importV2FromJson(text)
+      const result = await importV2FromJsonAsync(text)
       setStatus(
         `백업 ${result.imported}개 가져옴` +
         (result.skipped > 0 ? `, ${result.skipped}개 건너뜀` : '') +
@@ -129,6 +161,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
   }
 
   async function handleSync() {
+    settings.setKey('syncProvider', 'supabase')
     if (!syncConfigured()) {
       setStatus('Supabase 설정이 없습니다. config.js 또는 아래 고급 설정을 확인하세요')
       return
@@ -140,6 +173,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
   }
 
   async function handleSupabaseLogin() {
+    settings.setKey('syncProvider', 'supabase')
     if (!syncConfigured()) {
       setStatus('Supabase 설정이 없습니다. config.js 또는 아래 고급 설정을 확인하세요')
       return
@@ -147,6 +181,44 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
     setStatus('Google 로그인으로 이동 중...')
     const result = await signInGoogle()
     if (!result.ok) setStatus(`로그인 실패: ${result.error}`)
+  }
+
+  async function handleChooseLocalFolder() {
+    setStatus('동기화 폴더를 선택하는 중...')
+    try {
+      const next = await chooseLocalSyncFolder()
+      setByocStatus(next)
+      setStatus(`개인 저장소 연결 완료: ${next.detail || next.label}`)
+    } catch (error: unknown) {
+      setStatus('폴더 연결 실패: ' + errorMessage(error))
+    }
+  }
+
+  async function handleDropboxConnect() {
+    setStatus('Dropbox 연결 준비 중...')
+    try {
+      await startDropboxOAuth()
+    } catch (error: unknown) {
+      setStatus('Dropbox 연결 실패: ' + errorMessage(error))
+    }
+  }
+
+  async function handleByocPush() {
+    setStatus('개인 저장소로 백업 중...')
+    const result = await pushByocSnapshot()
+    if (result.ok) setStatus(`${result.provider} 백업 완료`)
+    else setStatus(`백업 실패: ${result.error}`)
+    getByocStatus().then(setByocStatus).catch(() => {})
+  }
+
+  async function handleByocPull() {
+    const ok = window.confirm('개인 저장소의 백업을 현재 v2 데이터에 병합할까요?')
+    if (!ok) return
+    setStatus('개인 저장소에서 가져오는 중...')
+    const result = await pullByocSnapshot()
+    if (result.ok) setStatus(`${result.provider} 가져오기 완료: ${result.pulled}개 항목 반영`)
+    else setStatus(`가져오기 실패: ${result.error}`)
+    getByocStatus().then(setByocStatus).catch(() => {})
   }
 
   async function handleSupabaseLogout() {
@@ -245,6 +317,59 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
             )}
           </section>
 
+          <section className="jan-settings-section jan-settings-byoc-section">
+            <h4>개인 저장소 동기화</h4>
+            <div className="jan-settings-info">
+              v1 방식처럼 서버 개입을 최소화합니다. 내 PC 폴더를 Dropbox · OneDrive · Google Drive 데스크톱 동기화 폴더 안에 두면 그 클라우드가 기기 간 동기화를 맡습니다.
+            </div>
+            <div className="jan-sync-provider-grid">
+              <button
+                className={settings.syncProvider === 'local' ? 'active' : ''}
+                onClick={handleChooseLocalFolder}
+              >
+                <strong>내 PC/클라우드 폴더</strong>
+                <span>Chrome·Edge 권장 · 가장 v1에 가까운 방식</span>
+              </button>
+              <button
+                className={settings.syncProvider === 'dropbox' ? 'active' : ''}
+                onClick={handleDropboxConnect}
+              >
+                <strong>Dropbox 직접 연결</strong>
+                <span>데스크톱 앱 없이 Dropbox 계정으로 저장</span>
+              </button>
+              <button disabled>
+                <strong>Google Drive / OneDrive</strong>
+                <span>직접 API는 준비 중 · 현재는 폴더 방식으로 지원</span>
+              </button>
+            </div>
+            <div className="jan-settings-info">
+              현재 개인 저장소: <b>{byocStatus ? `${byocStatus.label}${byocStatus.detail ? ` · ${byocStatus.detail}` : ''}` : '확인 중...'}</b>
+            </div>
+            <div className="jan-settings-row">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={settings.syncEnabled && (settings.syncProvider === 'local' || settings.syncProvider === 'dropbox')}
+                  onChange={(e) => settings.setKey('syncEnabled', e.target.checked)}
+                />
+                {' '}개인 저장소 자동 백업
+              </label>
+            </div>
+            <div className="jan-settings-actions">
+              <button onClick={handleByocPush}>지금 백업</button>
+              <button onClick={handleByocPull}>백업 가져오기</button>
+            </div>
+            <details>
+              <summary>Dropbox 고급 설정</summary>
+              <input
+                type="text"
+                placeholder="Dropbox Client ID (config.js 또는 여기 입력)"
+                value={settings.dropboxClientId}
+                onChange={(e) => settings.setKey('dropboxClientId', e.target.value)}
+              />
+            </details>
+          </section>
+
           <section className="jan-settings-section">
             <h4>Supabase 클라우드 동기화</h4>
             <div className="jan-settings-info">
@@ -257,8 +382,11 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
               <label>
                 <input
                   type="checkbox"
-                  checked={settings.syncEnabled}
-                  onChange={(e) => settings.setKey('syncEnabled', e.target.checked)}
+                  checked={settings.syncEnabled && settings.syncProvider === 'supabase'}
+                  onChange={(e) => {
+                    settings.setKey('syncProvider', 'supabase')
+                    settings.setKey('syncEnabled', e.target.checked)
+                  }}
                 />
                 {' '}자동 동기화
               </label>

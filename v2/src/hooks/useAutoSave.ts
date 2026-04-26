@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import type { Editor } from '@tiptap/react'
 import { useDocStore } from '../store/docStore'
 import { saveToFile } from '../lib/fileOps'
-import { pushOne, syncConfigured } from '../lib/supabaseSync'
+import { pushActiveSnapshot } from '../lib/activeSync'
 import { useMemosStore } from '../store/memosStore'
 import { trackEvent } from '../lib/analytics'
 
@@ -29,7 +29,7 @@ export function useAutoSave(editor: Editor | null, title: string) {
         if (result.ok) {
           useDocStore.getState().setSavedAt(Date.now())
           const { currentId } = useMemosStore.getState()
-          if (syncConfigured() && currentId) pushOne(currentId).catch(() => {})
+          if (currentId) pushActiveSnapshot(currentId).catch(() => {})
           trackEvent('autosave')
         }
       }, DEBOUNCE_MS)

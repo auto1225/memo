@@ -120,6 +120,9 @@ test.describe('local-first memo storage', () => {
     await expect(modal).toBeVisible({ timeout: 15000 })
     await expect(page.locator('.jan-settings-storage-section')).toContainText('IndexedDB')
     await expect(page.locator('.jan-settings-storage-section')).toContainText('이미지 블롭')
+    await expect(page.locator('.jan-settings-byoc-section')).toContainText('개인 저장소 동기화')
+    await expect(page.locator('.jan-settings-byoc-section')).toContainText('내 PC/클라우드 폴더')
+    await expect(page.locator('.jan-settings-byoc-section')).toContainText('Dropbox 직접 연결')
 
     const hasHorizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 2)
     expect(hasHorizontalOverflow).toBe(false)

@@ -234,6 +234,8 @@ function createExtrasSnapshot(): V2Snapshot['extras'] {
       'aiProvider',
       'aiModel',
       'syncEnabled',
+      'syncProvider',
+      'dropboxClientId',
       'citationStyle',
       'collabEnabled',
       'collabWsUrl',

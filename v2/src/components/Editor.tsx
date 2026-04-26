@@ -33,7 +33,6 @@ import { useMemosStore } from '../store/memosStore'
 import { useThemeStore } from '../store/themeStore'
 import { saveToFile, openFile } from '../lib/fileOps'
 import { installWordKeymap } from '../lib/keymap'
-import { pushOne, syncConfigured } from '../lib/supabaseSync'
 import { tauriSyncOnBoot } from '../lib/justpin'
 import { trackEvent } from '../lib/analytics'
 import { MathInline } from '../extensions/Math'
@@ -65,6 +64,7 @@ import Highlight from '@tiptap/extension-highlight'
 import { Lightbox } from './Lightbox'
 import type { RoleToolId } from '../lib/roles'
 import { externalizeLargeDataUrlsInHtml, resolveBlobRefsInElement } from '../lib/blobRefs'
+import { pushActiveSnapshot } from '../lib/activeSync'
 
 const AiHelper = lazy(() => import('./AiHelper').then((m) => ({ default: m.AiHelper })))
 const SettingsModal = lazy(() => import('./SettingsModal').then((m) => ({ default: m.SettingsModal })))
@@ -407,9 +407,7 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
     if (result.ok) {
       setSavedAt(Date.now())
       if (result.handle) setFileHandle(result.handle)
-      if (syncConfigured() && currentId) {
-        pushOne(currentId).catch(() => {})
-      }
+      if (currentId) pushActiveSnapshot(currentId).catch(() => {})
       trackEvent('save_file')
       if (memo) dispatchWebhook({ type: 'memo-saved', memoId: memo.id, title: memo.title, charCount: editor.state.doc.textContent.length }).catch(() => {})
     } else if (result.error !== '취소됨') {

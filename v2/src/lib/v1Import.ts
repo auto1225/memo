@@ -81,6 +81,32 @@ async function hydrateSnapshotForJson(snapshot: V2Snapshot): Promise<V2Snapshot>
   return cloned
 }
 
+async function externalizeSnapshotForLocalImport(snapshot: V2Snapshot): Promise<V2Snapshot> {
+  const cloned = JSON.parse(JSON.stringify(snapshot)) as V2Snapshot
+
+  for (const memo of Object.values(cloned.memos)) memo.content = await externalizeLargeDataUrlsInHtml(memo.content)
+  for (const memo of Object.values(cloned.trashed)) memo.content = await externalizeLargeDataUrlsInHtml(memo.content)
+
+  for (const card of Object.values(cloned.businessCards.cards)) {
+    if (card.frontImage) card.frontImage = await externalizeLargeDataUrlsInHtml(card.frontImage)
+    if (card.backImage) card.backImage = await externalizeLargeDataUrlsInHtml(card.backImage)
+  }
+
+  if (cloned.extras?.templates) {
+    for (const template of cloned.extras.templates) template.content = await externalizeLargeDataUrlsInHtml(template.content)
+  }
+  if (cloned.extras?.snippets) {
+    for (const snippet of cloned.extras.snippets) snippet.content = await externalizeLargeDataUrlsInHtml(snippet.content)
+  }
+  if (cloned.extras?.versions?.byMemo) {
+    for (const versions of Object.values(cloned.extras.versions.byMemo)) {
+      for (const version of versions) version.content = await externalizeLargeDataUrlsInHtml(version.content)
+    }
+  }
+
+  return cloned
+}
+
 function applySnapshotImport(snapshot: V2Snapshot, result: V1ImportResult) {
   const applied = applyV2Snapshot(snapshot)
   result.imported +=
@@ -204,6 +230,22 @@ export function importV2FromJson(json: string): V1ImportResult {
       return result
     }
     applySnapshotImport(snapshot, result)
+  } catch (e: unknown) {
+    result.errors.push('백업 파일 파싱 실패: ' + (e instanceof Error ? e.message : String(e)))
+  }
+  return result
+}
+
+export async function importV2FromJsonAsync(json: string): Promise<V1ImportResult> {
+  const result: V1ImportResult = { imported: 0, skipped: 0, errors: [] }
+  try {
+    const data = JSON.parse(json)
+    const snapshot = snapshotFromCloudData(data)
+    if (!snapshot) {
+      result.errors.push('유효하지 않은 백업 파일')
+      return result
+    }
+    applySnapshotImport(await externalizeSnapshotForLocalImport(snapshot), result)
   } catch (e: unknown) {
     result.errors.push('백업 파일 파싱 실패: ' + (e instanceof Error ? e.message : String(e)))
   }

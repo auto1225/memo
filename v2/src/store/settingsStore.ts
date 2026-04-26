@@ -6,6 +6,7 @@ import { persist } from 'zustand/middleware'
  */
 export type CitationStyle = 'apa' | 'ieee' | 'mla'
 export type AiProvider = 'anthropic' | 'openai' | 'proxy' | 'none'
+export type SyncProvider = 'none' | 'local' | 'dropbox' | 'supabase'
 
 interface SettingsState {
   anthropicKey: string
@@ -17,6 +18,8 @@ interface SettingsState {
   supabaseAnonKey: string
   supabaseEmail: string
   syncEnabled: boolean
+  syncProvider: SyncProvider
+  dropboxClientId: string
 
   citationStyle: CitationStyle
 
@@ -41,6 +44,8 @@ const DEFAULTS = {
   supabaseAnonKey: '',
   supabaseEmail: '',
   syncEnabled: false,
+  syncProvider: 'supabase' as SyncProvider,
+  dropboxClientId: '',
   citationStyle: 'apa' as CitationStyle,
   collabEnabled: false,
   collabWsUrl: 'wss://demos.yjs.dev/ws',
