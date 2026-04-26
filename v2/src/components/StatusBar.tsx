@@ -11,6 +11,14 @@ interface StatusBarProps {
   editor: Editor | null
 }
 
+interface TextStats {
+  chars: number
+  words: number
+  blocks: number
+}
+
+const EMPTY_STATS: TextStats = { chars: 0, words: 0, blocks: 0 }
+
 /**
  * Phase 17 — 강화된 StatusBar.
  * 글자/단어/단락 + 선택 영역 통계 + 저장 인디케이터 + 협업 + 줌 + 일일 목표 + 뽀모도로.
@@ -21,37 +29,28 @@ export function StatusBar({ editor }: StatusBarProps) {
   const collab = useCollab()
   const goal = useWritingGoalStore()
   const zoom = useUIStore((s) => s.zoom)
-  const [dirty, setDirty] = useState(false)
   const [tick, setTick] = useState(0)
 
-  useEffect(() => {
-    if (!memo || !savedAt) { setDirty(false); return }
-    setDirty(memo.updatedAt > savedAt)
-  }, [memo?.updatedAt, savedAt])
-
-  // selection 변경 시 재렌더
   useEffect(() => {
     if (!editor) return
     const fn = () => setTick((t) => t + 1)
     editor.on('selectionUpdate', fn)
-    return () => { editor.off('selectionUpdate', fn) }
+    editor.on('update', fn)
+    return () => {
+      editor.off('selectionUpdate', fn)
+      editor.off('update', fn)
+    }
   }, [editor])
+
+  const docStats = editor ? getDocumentStats(editor) : EMPTY_STATS
+  const selectionStats = editor ? getSelectionStats(editor) : EMPTY_STATS
+  const dirty = !!memo && !!savedAt && memo.updatedAt > savedAt
 
   if (!editor) return null
 
   const sel = editor.state.selection
   const hasSel = !sel.empty
-  const allText = editor.state.doc.textContent
-  const chars = allText.length
-  const words = allText.split(/\s+/).filter(Boolean).length
-  const lines = (editor.getHTML().match(/<p|<h[1-6]|<li/g) || []).length
-
-  let selChars = 0, selWords = 0
-  if (hasSel) {
-    const selText = editor.state.doc.textBetween(sel.from, sel.to, ' ')
-    selChars = selText.length
-    selWords = selText.split(/\s+/).filter(Boolean).length
-  }
+  void tick
 
   let saveLabel: string, saveClass = 'jan-save-badge'
   if (!savedAt) { saveLabel = '저장 안 됨'; saveClass += ' is-unsaved' }
@@ -60,20 +59,17 @@ export function StatusBar({ editor }: StatusBarProps) {
 
   const goalPct = goal.dailyTarget > 0 ? Math.min(100, Math.round((goal.todayCount / goal.dailyTarget) * 100)) : 0
 
-  // tick 사용 (선언만 — render trigger 용)
-  void tick
-
   return (
     <div className="jan-statusbar">
-      <span>{chars}자</span>
+      <span>{docStats.chars}자</span>
       <span className="divider" />
-      <span>{words}단어</span>
+      <span>{docStats.words}단어</span>
       <span className="divider" />
-      <span>{lines}단락</span>
+      <span>{docStats.blocks}단락</span>
       {hasSel && (
         <>
           <span className="divider" />
-          <span style={{ color: '#D97757' }}>선택 {selChars}자/{selWords}단어</span>
+          <span style={{ color: '#D97757' }}>선택 {selectionStats.chars}자/{selectionStats.words}단어</span>
         </>
       )}
       <span className="divider" />
@@ -108,4 +104,33 @@ export function StatusBar({ editor }: StatusBarProps) {
       <span className="hint">Ctrl+S · Ctrl+K 링크 · Ctrl+Shift+P · F1</span>
     </div>
   )
+}
+
+function getDocumentStats(editor: Editor): TextStats {
+  const stats: TextStats = { chars: 0, words: 0, blocks: 0 }
+  editor.state.doc.descendants((node) => {
+    if (node.isText) {
+      const text = node.text || ''
+      stats.chars += text.length
+      stats.words += countWords(text)
+    } else if (node.type.name === 'paragraph' || node.type.name === 'heading' || node.type.name === 'listItem' || node.type.name === 'taskItem') {
+      stats.blocks += 1
+    }
+  })
+  return stats
+}
+
+function getSelectionStats(editor: Editor): TextStats {
+  const selection = editor.state.selection
+  if (selection.empty) return EMPTY_STATS
+  const text = editor.state.doc.textBetween(selection.from, selection.to, ' ')
+  return {
+    chars: text.length,
+    words: countWords(text),
+    blocks: 0,
+  }
+}
+
+function countWords(text: string): number {
+  return text.trim().split(/\s+/).filter(Boolean).length
 }
