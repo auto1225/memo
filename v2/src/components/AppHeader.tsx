@@ -23,6 +23,8 @@ interface AppHeaderProps {
   onRoles?: () => void
   onTemplates?: () => void
   onCards?: () => void
+  onLectureNotes?: () => void
+  onMeetingNotes?: () => void
 }
 
 /**
@@ -91,6 +93,10 @@ export function AppHeader(p: AppHeaderProps) {
     else { newMemo(); alert('새 JustPin 메모 생성됨') }
   }
   const insertLectureTemplate = () => {
+    if (p.onLectureNotes) {
+      p.onLectureNotes()
+      return
+    }
     newMemo()
     setTimeout(() => {
       updateCurrent({
@@ -100,6 +106,10 @@ export function AppHeader(p: AppHeaderProps) {
     }, 50)
   }
   const insertMeetingTemplate = () => {
+    if (p.onMeetingNotes) {
+      p.onMeetingNotes()
+      return
+    }
     newMemo()
     setTimeout(() => {
       updateCurrent({

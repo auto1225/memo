@@ -3769,6 +3769,254 @@ html, body, #root {
   background-color: var(--paper, #1f1f20);
 }
 
+.jan-meeting-modal {
+  width: min(1040px, calc(100vw - 32px)) !important;
+  max-width: min(1040px, calc(100vw - 32px)) !important;
+  max-height: min(860px, calc(100vh - 32px)) !important;
+  overflow: hidden;
+}
+
+.jan-meeting-body {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.82fr) minmax(360px, 1.18fr);
+  gap: 0;
+  min-height: 620px;
+  max-height: calc(100vh - 112px);
+}
+
+.jan-meeting-capture,
+.jan-meeting-review {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  overflow: auto;
+}
+
+.jan-meeting-capture {
+  border-right: 1px solid var(--paper-edge, #e5e5e5);
+  background: color-mix(in srgb, var(--tab-hover, #FFFBE5) 48%, var(--paper, #fff));
+}
+
+.jan-meeting-mode {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.jan-meeting-mode button,
+.jan-meeting-actions button,
+.jan-meeting-recorder button {
+  border: 1px solid var(--paper-edge, #dedede);
+  border-radius: 8px;
+  background: var(--paper, #fff);
+  color: var(--ink, #191919);
+  padding: 9px 11px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.jan-meeting-mode button.active,
+.jan-meeting-actions button.primary {
+  border-color: color-mix(in srgb, var(--accent, #FAE100) 80%, #b8a400);
+  background: var(--accent, #FAE100);
+  color: #191919;
+  font-weight: 700;
+}
+
+.jan-meeting-actions button:disabled,
+.jan-meeting-recorder button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.jan-meeting-recorder button.danger {
+  border-color: #df6f57;
+  background: #fff0ec;
+  color: #9d2c17;
+}
+
+.jan-meeting-capture input,
+.jan-meeting-capture textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--paper-edge, #dedede);
+  border-radius: 8px;
+  background: var(--paper, #fff);
+  color: var(--ink, #191919);
+  padding: 10px 11px;
+  font: inherit;
+  resize: vertical;
+}
+
+.jan-meeting-recorder {
+  display: grid;
+  grid-template-columns: 112px 1fr 1fr;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.jan-meeting-recorder button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 54px;
+}
+
+.jan-meeting-timer {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border: 1px solid var(--paper-edge, #dedede);
+  border-radius: 8px;
+  background: var(--paper, #fff);
+  padding: 8px 10px;
+}
+
+.jan-meeting-timer span {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--ink, #191919);
+}
+
+.jan-meeting-timer small {
+  color: var(--ink-soft, #666);
+  font-size: 11px;
+}
+
+.jan-meeting-timer.is-active {
+  border-color: #df6f57;
+  box-shadow: 0 0 0 3px rgba(223, 111, 87, 0.12);
+}
+
+.jan-meeting-audio,
+.jan-meeting-interim,
+.jan-meeting-status,
+.jan-meeting-empty {
+  border: 1px solid var(--paper-edge, #dedede);
+  border-radius: 8px;
+  background: var(--paper, #fff);
+  color: var(--ink-soft, #666);
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.jan-meeting-audio {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink, #191919);
+}
+
+.jan-meeting-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.jan-meeting-summary div {
+  border: 1px solid var(--paper-edge, #dedede);
+  border-radius: 8px;
+  background: var(--paper, #fff);
+  padding: 11px;
+}
+
+.jan-meeting-summary strong {
+  display: block;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--ink, #191919);
+}
+
+.jan-meeting-summary span {
+  display: block;
+  margin-top: 5px;
+  font-size: 12px;
+  color: var(--ink-soft, #666);
+}
+
+.jan-meeting-transcript-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-height: 170px;
+}
+
+.jan-meeting-transcript-list article {
+  display: grid;
+  grid-template-columns: 52px 74px 1fr;
+  gap: 8px;
+  align-items: start;
+  border: 1px solid var(--paper-edge, #dedede);
+  border-radius: 8px;
+  background: var(--paper, #fff);
+  padding: 9px 10px;
+}
+
+.jan-meeting-transcript-list span {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 12px;
+  color: var(--ink-soft, #666);
+}
+
+.jan-meeting-transcript-list strong {
+  font-size: 12px;
+  color: var(--ink, #191919);
+}
+
+.jan-meeting-transcript-list p {
+  margin: 0;
+  color: var(--ink, #191919);
+  line-height: 1.55;
+}
+
+.jan-meeting-result {
+  border: 1px solid var(--paper-edge, #dedede);
+  border-radius: 8px;
+  background: var(--paper, #fff);
+  padding: 12px;
+}
+
+.jan-meeting-result h4 {
+  margin: 0 0 7px;
+  font-size: 13px;
+}
+
+.jan-meeting-result ul {
+  margin: 0 0 10px 18px;
+  padding: 0;
+}
+
+.jan-meeting-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.jan-meeting-note-block {
+  border: 1px solid color-mix(in srgb, var(--accent, #FAE100) 55%, #d0d0d0);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin: 16px 0;
+  background: color-mix(in srgb, var(--paper, #fff) 92%, var(--tab-hover, #FFFBE5));
+}
+
+.jan-meeting-note-block h2 {
+  margin-top: 0;
+}
+
+.jan-meeting-transcript li {
+  margin: 6px 0;
+}
+
+.jan-meeting-transcript span {
+  display: block;
+  margin-top: 2px;
+}
+
 @media (max-width: 860px) {
   .jan-page-settings-overlay {
     padding: 8px;
@@ -3804,6 +4052,28 @@ html, body, #root {
   .jan-settings-page-summary {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .jan-meeting-body {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  .jan-meeting-capture {
+    border-right: 0;
+    border-bottom: 1px solid var(--paper-edge, #e5e5e5);
+  }
+
+  .jan-meeting-recorder {
+    grid-template-columns: 1fr;
+  }
+
+  .jan-meeting-transcript-list article {
+    grid-template-columns: 48px 1fr;
+  }
+
+  .jan-meeting-transcript-list article p {
+    grid-column: 1 / -1;
   }
 }
 

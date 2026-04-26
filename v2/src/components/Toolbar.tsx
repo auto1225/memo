@@ -10,6 +10,8 @@ import { useTypographyStore, type FontFamily } from '../store/typographyStore'
 import { PAPER_STYLES, useUIStore } from '../store/uiStore'
 import { useMemosStore } from '../store/memosStore'
 import { exportV2ToJson, importV2FromJsonAsync } from '../lib/v1Import'
+import { fileToDataUrl } from '../lib/attachments'
+import { saveDataUrlAsBlobRef } from '../lib/blobRefs'
 
 interface ToolbarProps {
   editor: Editor | null
@@ -47,6 +49,8 @@ interface ToolbarProps {
   onSave: () => void
   onOpen: () => void
   onPageSettings: () => void
+  onLectureNotes: () => void
+  onMeetingNotes: () => void
 }
 
 interface MenuItem { label: string; hint?: string; icon?: IconName; divider?: string; onClick?: () => void }
@@ -316,10 +320,10 @@ export function Toolbar(p: ToolbarProps) {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       const rec = new MediaRecorder(stream); const chunks: Blob[] = []
       rec.ondataavailable = (e) => chunks.push(e.data)
-      rec.onstop = () => {
-        const blob = new Blob(chunks, { type: 'audio/webm' })
-        const url = URL.createObjectURL(blob)
-        editor.chain().focus().insertContent(`<audio controls src="${url}" style="width:100%;margin:0.5em 0;"></audio><p></p>`).run()
+      rec.onstop = async () => {
+        const blob = new Blob(chunks, { type: rec.mimeType || 'audio/webm' })
+        const ref = await saveDataUrlAsBlobRef(await fileToDataUrl(blob))
+        editor.chain().focus().insertContent(`<audio controls src="${ref}" style="width:100%;margin:0.5em 0;"></audio><p></p>`).run()
         stream.getTracks().forEach(t => t.stop())
       }
       rec.start()
@@ -609,7 +613,9 @@ export function Toolbar(p: ToolbarProps) {
         { label: '음성 입력 (받아쓰기)', icon: 'mic', onClick: () => run(startVoiceInput) },
         { label: '읽어주기 (TTS)', icon: 'speaker', onClick: () => run(speakSelection) },
         { label: '음성 녹음', icon: 'mic', onClick: () => run(recordAudio) },
-        { label: '회의 노트 (템플릿)', icon: 'mic', onClick: () => run(meetingNote) },
+        { label: '회의 노트 (녹음+받아쓰기)', icon: 'users', onClick: () => run(p.onMeetingNotes) },
+        { label: '강의 노트 (녹음+받아쓰기)', icon: 'mic', onClick: () => run(p.onLectureNotes) },
+        { label: '회의록 템플릿 삽입', icon: 'file-plus', onClick: () => run(meetingNote) },
         { divider: '파일 / 첨부', label: '' },
         { label: '파일 첨부', icon: 'paperclip', onClick: () => run(p.onAtt) },
         { divider: '드로잉', label: '' },

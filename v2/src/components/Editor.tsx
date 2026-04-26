@@ -63,6 +63,7 @@ import { AudioNode, VideoNode } from '../extensions/Media'
 import Highlight from '@tiptap/extension-highlight'
 import { Lightbox } from './Lightbox'
 import type { RoleToolId } from '../lib/roles'
+import type { MeetingKind } from '../lib/meetingNotes'
 import { externalizeLargeDataUrlsInHtml, resolveBlobRefsInElement } from '../lib/blobRefs'
 import { pushActiveSnapshot } from '../lib/activeSync'
 import { downloadAttachment } from '../lib/attachments'
@@ -101,6 +102,7 @@ const GistModal = lazy(() => import('./GistModal').then((m) => ({ default: m.Gis
 const WebBrowserModal = lazy(() => import('./WebBrowserModal').then((m) => ({ default: m.WebBrowserModal })))
 const BusinessCardsModal = lazy(() => import('./BusinessCardsModal').then((m) => ({ default: m.BusinessCardsModal })))
 const PageSettingsModal = lazy(() => import('./PageSettingsModal').then((m) => ({ default: m.PageSettingsModal })))
+const MeetingNotesModal = lazy(() => import('./MeetingNotesModal').then((m) => ({ default: m.MeetingNotesModal })))
 
 export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
   const { fileHandle, setFileHandle, setSavedAt, setEditor } = useDocStore()
@@ -147,6 +149,8 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
   const [showWeb, setShowWeb] = useState(false)
   const [showCards, setShowCards] = useState(false)
   const [showPageSettings, setShowPageSettings] = useState(false)
+  const [showMeetingNotes, setShowMeetingNotes] = useState(false)
+  const [meetingKind, setMeetingKind] = useState<MeetingKind>('meeting')
   const paperStyle = useUIStore((s) => s.paperStyle)
   const pageSize = useUIStore((s) => s.pageSize)
   const pageOrientation = useUIStore((s) => s.pageOrientation)
@@ -445,6 +449,11 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
     trackEvent('open_file')
   }
 
+  function openMeetingNotes(kind: MeetingKind) {
+    setMeetingKind(kind)
+    setShowMeetingNotes(true)
+  }
+
   return (
     <div className="jan-editor-wrap">
       <AppHeader
@@ -465,6 +474,8 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
         onRoles={() => { setInitialRoleTool(null); setShowRoles(true) }}
         onTemplates={() => setShowTemplates(true)}
         onCards={() => setShowCards(true)}
+        onLectureNotes={() => openMeetingNotes('lecture')}
+        onMeetingNotes={() => openMeetingNotes('meeting')}
       />
       <MemoTabs />
       <div className="jan-titlebar">
@@ -510,6 +521,8 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
         onChat={() => setShowChat(true)}
         onSearch={() => setShowSearch(true)}
         onPageSettings={() => setShowPageSettings(true)}
+        onLectureNotes={() => openMeetingNotes('lecture')}
+        onMeetingNotes={() => openMeetingNotes('meeting')}
         onToggleOutline={() => setShowOutline((v) => !v)}
         outlineOpen={showOutline}
       />
@@ -570,6 +583,7 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
         {showWeb && <WebBrowserModal editor={editor} onClose={() => setShowWeb(false)} />}
         {showCards && <BusinessCardsModal editor={editor} onClose={() => setShowCards(false)} />}
         {showPageSettings && <PageSettingsModal onClose={() => setShowPageSettings(false)} />}
+        {showMeetingNotes && <MeetingNotesModal editor={editor} initialKind={meetingKind} onClose={() => setShowMeetingNotes(false)} />}
       </Suspense>
       <Lightbox />
     </div>

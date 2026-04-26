@@ -90,4 +90,21 @@ test.describe('v2 smoke', () => {
     await expect(pages).toHaveAttribute('data-page-size', 'B4')
     await expect(pages).toHaveAttribute('data-page-orientation', 'landscape')
   })
+
+  test('meeting notes flow inserts a structured v1-style note', async ({ page }) => {
+    await page.goto('./')
+    await page.locator('.ProseMirror').first().waitFor({ state: 'visible', timeout: 15000 })
+
+    await page.getByLabel('회의노트').click()
+    await expect(page.locator('.jan-meeting-modal')).toBeVisible()
+    await page.locator('.jan-meeting-capture input').first().fill('동기화 점검 회의')
+    await page.locator('.jan-meeting-capture textarea').nth(1).fill('오늘 회의에서는 v2 동기화 정책을 확정했습니다.\n민수 담당으로 다음 주까지 Dropbox 백업 테스트를 진행해야 합니다.')
+    await page.getByRole('button', { name: '발언 추가' }).click()
+    await expect(page.locator('.jan-meeting-transcript-list article')).toHaveCount(2)
+    await expect(page.locator('.jan-meeting-result')).toContainText('액션 아이템')
+
+    await page.getByRole('button', { name: '메모에 삽입' }).click()
+    await expect(page.locator('.ProseMirror').first()).toContainText('동기화 점검 회의')
+    await expect(page.locator('.ProseMirror').first()).toContainText('Dropbox 백업 테스트')
+  })
 })
