@@ -2612,3 +2612,129 @@ html, body, #root {
 .jan-theme-dark .jan-cp-icon { color: #999 }
 .jan-theme-dark .jan-cp-desc { color: #999 }
 .jan-theme-dark .jan-cp-hint { background: rgba(255,255,255,0.08); color: #aaa }
+
+
+/* =========================================================
+ * Phase 31 — 인앱 웹 브라우저 모달 (v1 디자인 정확)
+ * ========================================================= */
+.jan-modal-bg {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.jan-web-browser {
+  background: var(--paper, #fff);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  width: 92vw;
+  max-width: 1100px;
+  height: 88vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.jan-wb-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--paper-edge, #eee);
+  background: var(--accent, #FAE100);
+}
+.jan-wb-header h3 {
+  display: flex; align-items: center; gap: 8px;
+  margin: 0; font-size: 15px; font-weight: 700; color: #191919;
+}
+.jan-wb-close {
+  width: 28px; height: 28px;
+  border: 0; background: rgba(0,0,0,0.08); color: #333;
+  border-radius: 50%;
+  font-size: 18px; line-height: 1;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.jan-wb-close:hover { background: rgba(0,0,0,0.18); }
+.jan-wb-toolbar {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--paper-edge, #eee);
+  background: #fafafa;
+}
+.jan-wb-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 30px; min-width: 32px; padding: 0 10px;
+  background: #fff; border: 1px solid #ddd; border-radius: 5px;
+  cursor: pointer; font-size: 12px;
+  color: #333;
+  gap: 4px;
+}
+.jan-wb-btn:hover { background: #f0f0f0; }
+.jan-wb-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.jan-wb-btn.primary { background: var(--accent, #FAE100); border-color: var(--accent, #FAE100); font-weight: 600; }
+.jan-wb-btn.primary:hover { background: #f0d800; }
+.jan-wb-btn.small { height: 26px; padding: 0 8px; font-size: 11px; min-width: 0; }
+.jan-wb-btn.action { background: #f5f5f5; }
+.jan-wb-btn.action:hover { background: #ebebeb; }
+.jan-wb-input {
+  flex: 1; height: 30px; padding: 0 10px;
+  border: 1px solid #ddd; border-radius: 5px;
+  font-size: 13px; outline: none;
+}
+.jan-wb-input:focus { border-color: var(--accent, #FAE100); box-shadow: 0 0 0 2px rgba(250, 225, 0, 0.2); }
+.jan-wb-engines, .jan-wb-research {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--paper-edge, #eee);
+  background: #fafafa;
+}
+.jan-wb-research {
+  background: #faf7ff;
+  border-bottom: 1px dashed #d9c8ff;
+}
+.jan-wb-label { font-size: 11px; color: #666; font-weight: 600; margin-right: 4px; }
+.jan-wb-frame-wrap {
+  flex: 1; position: relative;
+  background: #fafafa;
+  border-bottom: 1px solid var(--paper-edge, #eee);
+}
+.jan-wb-frame-wrap iframe {
+  width: 100%; height: 100%; border: none;
+}
+.jan-wb-placeholder, .jan-wb-error {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 40px; text-align: center;
+}
+.jan-wb-placeholder { color: #888; }
+.jan-wb-placeholder svg { stroke: #bbb; stroke-width: 1.4; }
+.jan-wb-placeholder h4 { margin: 14px 0 4px; color: #555; font-size: 16px; }
+.jan-wb-placeholder p { font-size: 12px; margin: 4px 0; line-height: 1.6; }
+.jan-wb-placeholder .muted { font-size: 11px; margin-top: 12px; color: #999; }
+.jan-wb-error {
+  background: #fff5f5; color: #c62828;
+}
+.jan-wb-error svg { stroke: #e57373; stroke-width: 1.5; }
+.jan-wb-error h4 { margin: 14px 0 4px; }
+.jan-wb-error p { font-size: 12px; }
+.jan-wb-loading {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  background: #fff; padding: 8px 16px;
+  border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  font-size: 12px; color: #666;
+}
+.jan-wb-statusbar {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 12px;
+  font-size: 10px; color: #999;
+  background: #fafafa;
+}
+.jan-wb-current {
+  flex: 1; font-family: monospace;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.jan-theme-dark .jan-web-browser { background: #1a1a1b }
+.jan-theme-dark .jan-wb-toolbar, .jan-theme-dark .jan-wb-engines, .jan-theme-dark .jan-wb-statusbar { background: #232325 }
+.jan-theme-dark .jan-wb-research { background: #1f1d2a; border-bottom-color: #3d3650 }
+.jan-theme-dark .jan-wb-input, .jan-theme-dark .jan-wb-btn { background: #2a2a2c; color: #e5e5e5; border-color: #3a3a3d }
+.jan-theme-dark .jan-wb-frame-wrap { background: #232325 }

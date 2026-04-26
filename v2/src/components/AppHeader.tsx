@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { Icon } from './Icons'
 import { useUIStore } from '../store/uiStore'
 import { useThemeStore } from '../store/themeStore'
@@ -64,8 +64,8 @@ export function AppHeader(p: AppHeaderProps) {
 
   /* === v1 전용 핸들러 (인라인 구현) === */
   const openWebSearch = () => {
-    const q = window.prompt('웹 검색어:')
-    if (q) window.open('https://www.google.com/search?q=' + encodeURIComponent(q), '_blank')
+    /* v1 의 인앱 웹 브라우저 호출 — onSearch prop 으로 모달 열기 */
+    p.onSearch()
   }
   const openJustPin = () => {
     /* 새 메모를 빠른 메모 모드로 생성 */

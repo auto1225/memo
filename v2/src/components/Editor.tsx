@@ -94,6 +94,7 @@ const QuickCapture = lazy(() => import('./QuickCapture').then((m) => ({ default:
 const TranslateModal = lazy(() => import('./TranslateModal').then((m) => ({ default: m.TranslateModal })))
 const TemplatesModal = lazy(() => import('./TemplatesModal').then((m) => ({ default: m.TemplatesModal })))
 const GistModal = lazy(() => import('./GistModal').then((m) => ({ default: m.GistModal })))
+const WebBrowserModal = lazy(() => import('./WebBrowserModal').then((m) => ({ default: m.WebBrowserModal })))
 
 export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
   const { fileHandle, setFileHandle, setSavedAt, setEditor } = useDocStore()
@@ -136,6 +137,7 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
   const [showTranslate, setShowTranslate] = useState(false)
   const [showTemplates, setShowTemplates] = useState(false)
   const [showGist, setShowGist] = useState(false)
+  const [showWeb, setShowWeb] = useState(false)
 
   const initialContent = memo?.content || '<p></p>'
   const title = memo?.title || '새 메모'
@@ -329,7 +331,7 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
       <AppHeader
         onCmdK={() => {}}
         onCmdPalette={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }))}
-        onSearch={() => setShowSearch(true)}
+        onSearch={() => setShowWeb(true)}
         onLanguage={() => setShowSettings(true)}
         onCalendar={() => setShowQuick(true)}
         onOcr={() => setShowOcr(true)}
@@ -438,6 +440,7 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
         {showTranslate && <TranslateModal editor={editor} onClose={() => setShowTranslate(false)} />}
         {showTemplates && <TemplatesModal onClose={() => setShowTemplates(false)} />}
         {showGist && <GistModal editor={editor} onClose={() => setShowGist(false)} />}
+        {showWeb && <WebBrowserModal editor={editor} onClose={() => setShowWeb(false)} />}
       </Suspense>
       <Lightbox />
     </div>
