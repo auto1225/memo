@@ -112,6 +112,10 @@ test.describe('v2 smoke', () => {
     await expect(pages).toHaveAttribute('data-page-orientation', 'portrait')
     await expect(pages).toHaveAttribute('data-page-columns', '1')
     await expect(page.locator('.jan-page-running-footer')).toHaveCount(0)
+    const ruler = page.getByRole('img', { name: /페이지 눈금자/ })
+    await expect(ruler).toBeVisible()
+    await expect(ruler.locator('.jan-page-ruler-margin-left')).toContainText('20mm')
+    await expect(ruler.locator('.jan-page-ruler-margin-right')).toContainText('20mm')
 
     const backgroundImage = await editor.evaluate((node) => getComputedStyle(node).backgroundImage)
     expect(backgroundImage).toContain('repeating-linear-gradient')
@@ -142,6 +146,8 @@ test.describe('v2 smoke', () => {
     await expect(page.getByLabel('편집 화면 머리글 미리보기')).toHaveText('프로젝트 헤더')
     await expect(page.getByLabel('편집 화면 꼬리말 미리보기')).toHaveText('Page 1')
     await expect(page.locator('.jan-page-margin-frame')).toBeVisible()
+    await expect(ruler.locator('.jan-page-ruler-margin-left')).toContainText('24mm')
+    await expect(ruler.locator('.jan-page-ruler-margin-right')).toContainText('16mm')
     const columnCount = await editor.evaluate((node) => getComputedStyle(node).columnCount)
     expect(columnCount).toBe('2')
     const padding = await editor.evaluate((node) => {

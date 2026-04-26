@@ -189,6 +189,19 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
     '--jan-page-margin-left': `${pageMargins.left}mm`,
     '--jan-page-columns': pageColumnCount,
   } as CSSProperties), [pageMm.widthMm, pageMm.heightMm, pageMarginMm, pageMargins, pageColumnCount])
+  const rulerMarks = useMemo(() => {
+    const width = Math.max(1, Math.round(pageMm.widthMm))
+    const marks: Array<{ mm: number; percent: number; major: boolean }> = []
+    for (let mm = 0; mm <= width; mm += 10) {
+      marks.push({ mm, percent: (mm / width) * 100, major: mm % 50 === 0 })
+    }
+    if (marks[marks.length - 1]?.mm !== width) {
+      marks.push({ mm: width, percent: 100, major: true })
+    }
+    return marks
+  }, [pageMm.widthMm])
+  const leftMarginPercent = Math.min(100, Math.max(0, (pageMargins.left / pageMm.widthMm) * 100))
+  const rightMarginPercent = Math.min(100, Math.max(0, (pageMargins.right / pageMm.widthMm) * 100))
 
   const initialContent = memo?.content || '<p></p>'
   const title = memo?.title || '새 메모'
@@ -630,6 +643,31 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
           data-page-columns={pageColumnCount}
           style={pageStyle}
         >
+          <div className="jan-page-ruler" role="img" aria-label={`페이지 눈금자 ${Math.round(pageMm.widthMm)}mm`}>
+            <div className="jan-page-ruler-track" aria-hidden="true">
+              {rulerMarks.map((mark) => (
+                <span
+                  key={mark.mm}
+                  className={'jan-page-ruler-tick' + (mark.major ? ' is-major' : '')}
+                  style={{ left: `${mark.percent}%` }}
+                >
+                  {mark.major && <em>{mark.mm}</em>}
+                </span>
+              ))}
+              <span
+                className="jan-page-ruler-margin jan-page-ruler-margin-left"
+                style={{ left: `${leftMarginPercent}%` }}
+              >
+                <b>{pageMargins.left}mm</b>
+              </span>
+              <span
+                className="jan-page-ruler-margin jan-page-ruler-margin-right"
+                style={{ right: `${rightMarginPercent}%` }}
+              >
+                <b>{pageMargins.right}mm</b>
+              </span>
+            </div>
+          </div>
           <div className="jan-page-shell" data-has-running-preview={hasRunningPreview ? 'true' : 'false'}>
             <EditorContent editor={editor} />
             <div className="jan-page-margin-frame" aria-hidden="true" />

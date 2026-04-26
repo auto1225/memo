@@ -3214,6 +3214,83 @@ html, body, #root {
   --jan-note-margin-line: color-mix(in srgb, #d97757 50%, transparent);
 }
 
+.jan-page-ruler {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  width: var(--jan-page-w, 210mm);
+  height: 28px;
+  margin: 0 0 6px;
+  pointer-events: none;
+  color: color-mix(in srgb, var(--ink-soft, #666) 86%, transparent);
+  font-family: var(--jan-editor-font);
+  font-size: 9.5px;
+}
+
+.jan-page-ruler-track {
+  position: relative;
+  height: 22px;
+  border: 1px solid color-mix(in srgb, var(--paper-edge, #e5e5e5) 88%, transparent);
+  border-radius: 4px;
+  background:
+    linear-gradient(to bottom, color-mix(in srgb, var(--paper, #fff) 94%, transparent), color-mix(in srgb, var(--paper, #fff) 84%, var(--jan-bg, #f7f7f7))),
+    repeating-linear-gradient(to right, transparent 0, transparent calc(10mm - 1px), color-mix(in srgb, var(--paper-edge, #e5e5e5) 70%, transparent) calc(10mm - 1px), color-mix(in srgb, var(--paper-edge, #e5e5e5) 70%, transparent) 10mm);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  overflow: hidden;
+}
+
+.jan-page-ruler-tick {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: color-mix(in srgb, var(--paper-edge, #e5e5e5) 76%, transparent);
+}
+
+.jan-page-ruler-tick.is-major {
+  background: color-mix(in srgb, var(--ink-soft, #666) 36%, transparent);
+}
+
+.jan-page-ruler-tick em {
+  position: absolute;
+  top: 5px;
+  left: 3px;
+  font-style: normal;
+  font-size: 9px;
+  color: color-mix(in srgb, var(--ink-soft, #666) 78%, transparent);
+}
+
+.jan-page-ruler-margin {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: color-mix(in srgb, var(--accent, #D97757) 58%, transparent);
+}
+
+.jan-page-ruler-margin b {
+  position: absolute;
+  top: 4px;
+  min-width: 30px;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--accent, #D97757) 14%, var(--paper, #fff));
+  color: color-mix(in srgb, var(--ink, #191919) 88%, var(--accent, #D97757));
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+}
+
+.jan-page-ruler-margin-left b {
+  left: 4px;
+}
+
+.jan-page-ruler-margin-right b {
+  right: 4px;
+}
+
 .jan-page-shell {
   position: relative;
   width: var(--jan-page-w, 210mm);
@@ -4372,6 +4449,10 @@ html, body, #root {
       clamp(28px, var(--jan-page-margin-bottom, var(--jan-page-margin, 20mm)), 56px)
       clamp(24px, var(--jan-page-margin-left, var(--jan-page-margin, 20mm)), 56px) !important;
     font-size: 14px !important;
+  }
+
+  .jan-page-ruler {
+    display: none;
   }
 
   .jan-page-shell {
