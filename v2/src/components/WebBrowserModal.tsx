@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+﻿import { useState, useRef, useEffect } from 'react'
 import type { Editor } from '@tiptap/react'
 import { Icon } from './Icons'
 
@@ -201,14 +201,35 @@ export function WebBrowserModal({ editor, onClose }: WebBrowserModalProps) {
     setStatusMsg(`${engine.label} 에서 "${Q}" 검색 중...`)
     setResults([]); setPreview(null); setView('results')
     try {
-      const html = await fetchViaProxy(engine.searchUrl(Q))
-      const doc = new DOMParser().parseFromString(html, 'text/html')
-      const items = engine.parse(doc, Q)
+      let html = ''
+      try { html = await fetchViaProxy(engine.searchUrl(Q)) } catch {}
+      let doc = new DOMParser().parseFromString(html, 'text/html')
+      let items = engine.parse(doc, Q)
+      let usedEngine = engine.label
+      /* anti-scraping 차단 (Google/Naver) → Bing 폴백 */
+      if (items.length === 0 && (engineKey === 'google' || engineKey === 'naver')) {
+        setStatusMsg(engine.label + ' 차단 — Bing 폴백 시도...')
+        try {
+          html = await fetchViaProxy(ENGINES.bing.searchUrl(Q))
+          doc = new DOMParser().parseFromString(html, 'text/html')
+          items = ENGINES.bing.parse(doc, Q)
+          if (items.length) usedEngine = 'Bing (' + engine.label + ' 폴백)'
+        } catch {}
+      }
+      /* Bing 도 실패면 DDG 폴백 */
+      if (items.length === 0 && engineKey !== 'ddg') {
+        try {
+          html = await fetchViaProxy(ENGINES.ddg.searchUrl(Q))
+          doc = new DOMParser().parseFromString(html, 'text/html')
+          items = ENGINES.ddg.parse(doc, Q)
+          if (items.length) usedEngine = 'DuckDuckGo (' + engine.label + ' 폴백)'
+        } catch {}
+      }
       setResults(items)
-      if (items.length) setStatusMsg(`${engine.label}: ${items.length}개 결과 발견 — 클릭하면 본문 미리보기`)
-      else setStatusMsg(`${engine.label} 결과 파싱 실패 — 다른 엔진을 시도해보세요. 마크업이 변경됐을 수 있습니다.`)
+      if (items.length) setStatusMsg(usedEngine + ': ' + items.length + '개 결과 — 클릭하면 본문 미리보기')
+      else setStatusMsg(engine.label + ' 차단됨 — 우상단 [외부] 버튼으로 새 탭에서 검색')
     } catch (e: any) {
-      setStatusMsg(`${engine.label} 검색 실패: ${e.message}`)
+      setStatusMsg(engine.label + ' 실패: ' + e.message)
     } finally { setBusy(false) }
   }
 
