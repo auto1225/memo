@@ -241,6 +241,11 @@ export async function pushOne(id: string): Promise<boolean> {
   try {
     const session = await getSession()
     if (!session) return false
+    const cloud = await fetchCloudSnapshot(session)
+    if (cloud?.data) {
+      const imported = await importV2SnapshotDataAsync(cloud.data)
+      if (imported.errors.length) return false
+    }
     await upsertCloudSnapshot(session, await createCloudSnapshot())
     try {
       localStorage.setItem('jan.v2.sync.lastAt', String(Date.now()))
