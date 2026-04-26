@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import type { Editor } from '@tiptap/react'
+import type { Node as ProseMirrorNode } from '@tiptap/pm/model'
+import { findTextMatches, getReplacementText, type FindReplaceOptions } from '../lib/findReplace'
 
 interface FindReplaceBarProps {
   editor: Editor | null
@@ -16,76 +18,52 @@ export function FindReplaceBar({ editor, onClose }: FindReplaceBarProps) {
   const [replaceText, setReplaceText] = useState('')
   const [useRegex, setUseRegex] = useState(false)
   const [caseSensitive, setCaseSensitive] = useState(false)
+  const [wholeWord, setWholeWord] = useState(false)
   const [matchIdx, setMatchIdx] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
+  const docSnapshot = useEditorDocSnapshot(editor)
 
   useEffect(() => { inputRef.current?.focus() }, [])
 
+  const findOptions = useMemo<FindReplaceOptions>(() => ({
+    query: findText,
+    useRegex,
+    caseSensitive,
+    wholeWord,
+    limit: 1000,
+  }), [caseSensitive, findText, useRegex, wholeWord])
+
   const matches = useMemo(() => {
-    if (!editor || !findText) return [] as Array<{ from: number; to: number }>
-    const text = editor.state.doc.textContent
-    let re: RegExp
-    try {
-      re = useRegex
-        ? new RegExp(findText, caseSensitive ? 'g' : 'gi')
-        : new RegExp(escapeRegex(findText), caseSensitive ? 'g' : 'gi')
-    } catch {
-      return []
-    }
-    // doc 내 위치 추적 — textContent 위치 → ProseMirror pos 매핑은 정확히 어려움.
-    // 단순화: textBetween 검색 후 pos 누적.
-    const out: Array<{ from: number; to: number }> = []
-    let m: RegExpExecArray | null
-    // matches loop
-    while ((m = re.exec(text)) !== null) {
-      // 빈 매치 무한루프 방지
-      if (m[0].length === 0) { re.lastIndex++; continue }
-      out.push({ from: m.index, to: m.index + m[0].length })
-      
-      if (out.length > 500) break // 안전 한계
-    }
-    return out
-  }, [editor, findText, useRegex, caseSensitive])
+    if (!docSnapshot || !findText) return []
+    return findTextMatches(docSnapshot, findOptions)
+  }, [docSnapshot, findOptions, findText])
+
+  const activeMatchIdx = matches.length === 0 ? 0 : Math.min(matchIdx, matches.length - 1)
 
   function jumpTo(idx: number) {
     if (!editor || matches.length === 0) return
     const i = ((idx % matches.length) + matches.length) % matches.length
     setMatchIdx(i)
     const m = matches[i]
-    // textContent index → ProseMirror pos: 단순 추정 (1 차이로 +1 보정)
-    const from = m.from + 1
-    const to = m.to + 1
-    editor.chain().focus().setTextSelection({ from, to }).scrollIntoView().run()
+    editor.chain().focus().setTextSelection({ from: m.from, to: m.to }).scrollIntoView().run()
   }
 
   function replaceOne() {
     if (!editor || matches.length === 0) return
-    const m = matches[matchIdx]
-    const from = m.from + 1
-    const to = m.to + 1
-    editor.chain().focus().setTextSelection({ from, to }).deleteSelection().insertContent(replaceText).run()
-    // 다음 매치로 이동
-    setTimeout(() => jumpTo(matchIdx), 0)
+    const m = matches[activeMatchIdx]
+    replaceTextRange(editor, m.from, m.to, getReplacementText(m, findOptions, replaceText))
+    setMatchIdx(activeMatchIdx)
   }
 
   function replaceAll() {
-    if (!editor || !findText) return
-    const html = editor.getHTML()
-    const div = document.createElement('div')
-    div.innerHTML = html
-    walkText(div, (txt) => {
-      if (useRegex) {
-        try {
-          const re = new RegExp(findText, caseSensitive ? 'g' : 'gi')
-          return txt.replace(re, replaceText)
-        } catch {
-          return txt
-        }
-      }
-      const re = new RegExp(escapeRegex(findText), caseSensitive ? 'g' : 'gi')
-      return txt.replace(re, replaceText)
-    })
-    editor.commands.setContent(div.innerHTML, { emitUpdate: true })
+    if (!editor || matches.length === 0) return
+    const tr = editor.state.tr
+    for (const m of [...matches].reverse()) {
+      tr.insertText(getReplacementText(m, findOptions, replaceText), m.from, m.to)
+    }
+    editor.view.dispatch(tr.scrollIntoView())
+    editor.view.focus()
+    setMatchIdx(0)
   }
 
   function onKey(e: React.KeyboardEvent) {
@@ -115,27 +93,30 @@ export function FindReplaceBar({ editor, onClose }: FindReplaceBarProps) {
       />
       <label title="정규식"><input type="checkbox" checked={useRegex} onChange={(e) => setUseRegex(e.target.checked)} />.*</label>
       <label title="대소문자 구분"><input type="checkbox" checked={caseSensitive} onChange={(e) => setCaseSensitive(e.target.checked)} />Aa</label>
-      <span className="jan-findbar-count">{matches.length === 0 ? '0' : `${matchIdx + 1}/${matches.length}`}</span>
-      <button onClick={() => jumpTo(matchIdx - 1)} disabled={matches.length === 0} title="이전 (Shift+Enter)">↑</button>
-      <button onClick={() => jumpTo(matchIdx + 1)} disabled={matches.length === 0} title="다음 (Enter)">↓</button>
-      <button onClick={replaceOne} disabled={matches.length === 0}>치환</button>
+      <label title="전체 단어만"><input type="checkbox" checked={wholeWord} onChange={(e) => setWholeWord(e.target.checked)} />단어</label>
+      <span className="jan-findbar-count">{matches.length === 0 ? '0' : `${activeMatchIdx + 1}/${matches.length}`}</span>
+      <button onClick={() => jumpTo(activeMatchIdx - 1)} disabled={matches.length === 0} title="이전 (Shift+Enter)">↑</button>
+      <button onClick={() => jumpTo(activeMatchIdx + 1)} disabled={matches.length === 0} title="다음 (Enter)">↓</button>
+      <button onClick={replaceOne} disabled={matches.length === 0}>바꾸기</button>
       <button onClick={replaceAll} disabled={matches.length === 0}>전체</button>
       <button onClick={onClose} title="닫기 (Esc)">×</button>
     </div>
   )
 }
 
-function escapeRegex(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+function useEditorDocSnapshot(editor: Editor | null): ProseMirrorNode | null {
+  const subscribe = useCallback((emit: () => void) => {
+    if (!editor) return () => {}
+    editor.on('update', emit)
+    return () => editor.off('update', emit)
+  }, [editor])
+
+  const getSnapshot = useCallback(() => editor?.state.doc ?? null, [editor])
+
+  return useSyncExternalStore(subscribe, getSnapshot, () => null)
 }
 
-function walkText(el: Element, fn: (s: string) => string) {
-  for (const node of Array.from(el.childNodes)) {
-    if (node.nodeType === Node.TEXT_NODE) {
-      const next = fn(node.textContent || '')
-      if (next !== node.textContent) node.textContent = next
-    } else if (node.nodeType === Node.ELEMENT_NODE) {
-      walkText(node as Element, fn)
-    }
-  }
+function replaceTextRange(editor: Editor, from: number, to: number, replacement: string) {
+  editor.view.dispatch(editor.state.tr.insertText(replacement, from, to).scrollIntoView())
+  editor.view.focus()
 }

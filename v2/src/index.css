@@ -1053,12 +1053,13 @@ mark{padding:1px 2px;border-radius:2px;}
 .ProseMirror p{margin-bottom:var(--jan-editor-para);}
 
 /* ==================== Phase 15 — Find & Replace ==================== */
-.jan-findbar{position:fixed;top:60px;right:16px;z-index:1000;display:flex;gap:4px;align-items:center;padding:6px 8px;background:#fff;border:1px solid #ccc;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.15);font-size:12px;}
-.jan-findbar input[type="text"]{padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:12px;width:140px;}
-.jan-findbar label{display:flex;align-items:center;gap:2px;font-size:11px;color:#666;}
+.jan-findbar{position:fixed;top:60px;right:16px;z-index:1000;display:flex;gap:4px;align-items:center;flex-wrap:wrap;max-width:min(760px,calc(100vw - 32px));padding:6px 8px;background:#fff;border:1px solid #ccc;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.15);font-size:12px;}
+.jan-findbar input[type="text"]{padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:12px;width:140px;min-width:110px;}
+.jan-findbar label{display:flex;align-items:center;gap:2px;font-size:11px;color:#666;white-space:nowrap;}
 .jan-findbar-count{font-family:monospace;color:#888;min-width:50px;text-align:center;}
-.jan-findbar button{padding:3px 8px;border:1px solid #ddd;background:#fff;border-radius:4px;cursor:pointer;font-size:11px;}
+.jan-findbar button{padding:3px 8px;border:1px solid #ddd;background:#fff;border-radius:4px;cursor:pointer;font-size:11px;white-space:nowrap;}
 .jan-theme-dark .jan-findbar{background:#252525;border-color:#444;}
+@media (max-width: 640px){.jan-findbar{left:8px;right:8px;top:56px}.jan-findbar input[type="text"]{flex:1 1 132px;width:auto;min-width:0}}
 
 /* ==================== Phase 15 — BubbleToolbar ==================== */
 .jan-bubble-toolbar{display:flex;gap:2px;padding:4px 6px;background:#222;color:#fff;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.3);font-size:12px;}
