@@ -97,6 +97,10 @@ const FONT_STACK: Record<FontFamily, string> = {
   mono: '"D2Coding","Consolas","Courier New",monospace',
 }
 
+export function getTypographyFontStack(fontFamily: FontFamily): string {
+  return FONT_STACK[fontFamily] || FONT_STACK.sans
+}
+
 const LIMITS = {
   fontSize: { min: 10, max: 22 },
   lineHeight: { min: 1.2, max: 2.4 },

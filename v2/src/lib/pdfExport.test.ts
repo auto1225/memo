@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildPrintHtml, currentPrintPageSettings, type PrintPageSettings } from './pdfExport'
 import { useUIStore } from '../store/uiStore'
+import { useTypographyStore } from '../store/typographyStore'
 
 const landscapeGrid: PrintPageSettings = {
   paperStyle: 'grid',
@@ -37,12 +38,46 @@ describe('pdfExport print document', () => {
     expect(out).not.toContain('@top-right')
   })
 
+  it('uses running header and footer templates from page settings', () => {
+    const out = buildPrintHtml('<p>Hello</p>', 'Memo', {
+      ...landscapeGrid,
+      runningHeader: '프로젝트 헤더',
+      runningFooter: 'Page {page} / {total}',
+    })
+
+    expect(out).toContain('@top-left { content: "프로젝트 헤더";')
+    expect(out).toContain('@bottom-right { content: "Page " counter(page) " / " counter(pages);')
+  })
+
+  it('keeps manual page breaks and typography settings in print output', () => {
+    const out = buildPrintHtml('<p>One</p><hr class="jan-page-break" data-page-break="1" /><p>Two</p>', 'Memo', {
+      ...landscapeGrid,
+      fontFamily: 'serif',
+      fontSize: 16,
+      lineHeight: 1.9,
+      paragraphSpacing: 12,
+    })
+
+    expect(out).toContain('font-family:"Noto Serif KR"')
+    expect(out).toContain('font-size:12pt;line-height:1.9')
+    expect(out).toContain('p{margin:0 0 12px;}')
+    expect(out).toContain('.jan-page-break,hr.jan-page-break')
+  })
+
   it('reads current settings from uiStore', () => {
     useUIStore.setState({
       paperStyle: 'dot',
       pageSize: 'A5',
       pageOrientation: 'portrait',
       pageMarginMm: 18,
+      runningHeader: '헤더',
+      runningFooter: '쪽 {page}',
+    })
+    useTypographyStore.setState({
+      fontFamily: 'mono',
+      fontSize: 13,
+      lineHeight: 1.55,
+      paragraphSpacing: 6,
     })
 
     expect(currentPrintPageSettings()).toMatchObject({
@@ -50,6 +85,10 @@ describe('pdfExport print document', () => {
       pageSize: 'A5',
       pageOrientation: 'portrait',
       pageMarginMm: 18,
+      runningHeader: '헤더',
+      runningFooter: '쪽 {page}',
+      fontFamily: 'mono',
+      fontSize: 13,
     })
   })
 })

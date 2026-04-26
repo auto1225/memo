@@ -5,6 +5,7 @@ import {
   type PageSizePreset,
   type PaperStyle,
 } from '../store/uiStore'
+import { getTypographyFontStack, useTypographyStore, type FontFamily } from '../store/typographyStore'
 
 const PAGED_CDN = 'https://unpkg.com/pagedjs/dist/paged.polyfill.js'
 
@@ -13,15 +14,28 @@ export interface PrintPageSettings {
   pageSize: PageSizePreset
   pageOrientation: PageOrientation
   pageMarginMm: number
+  runningHeader?: string
+  runningFooter?: string
+  fontFamily?: FontFamily
+  fontSize?: number
+  lineHeight?: number
+  paragraphSpacing?: number
 }
 
 export function currentPrintPageSettings(): PrintPageSettings {
   const ui = useUIStore.getState()
+  const typography = useTypographyStore.getState()
   return {
     paperStyle: ui.paperStyle,
     pageSize: ui.pageSize,
     pageOrientation: ui.pageOrientation,
     pageMarginMm: ui.pageMarginMm,
+    runningHeader: ui.runningHeader,
+    runningFooter: ui.runningFooter,
+    fontFamily: typography.fontFamily,
+    fontSize: typography.fontSize,
+    lineHeight: typography.lineHeight,
+    paragraphSpacing: typography.paragraphSpacing,
   }
 }
 
@@ -76,22 +90,33 @@ export function buildPrintHtml(
   const page = pageDimensions(settings.pageSize, settings.pageOrientation)
   const pageSizeCss = `${page.widthMm}mm ${page.heightMm}mm`
   const marginMm = Math.max(0, Math.round(settings.pageMarginMm))
-  const headerTitle = options.includeHeaderTitle === false
-    ? ''
-    : `@top-right { content: "${titleCss}"; font-size: 9pt; color:#888; }`
+  const runningHeader = settings.runningHeader?.trim() || ''
+  const runningFooter = settings.runningFooter?.trim() || 'Page {page} / {total}'
+  const headerCss = runningHeader
+    ? `@top-left { content: ${cssContentFromTemplate(runningHeader)}; font-size: 9pt; color:#666; }`
+    : options.includeHeaderTitle === false
+      ? ''
+      : `@top-right { content: "${titleCss}"; font-size: 9pt; color:#888; }`
+  const footerCss = runningFooter
+    ? `@bottom-right { content: ${cssContentFromTemplate(runningFooter)}; font-size:9pt; color:#888; }`
+    : ''
   const previewCss = options.previewChrome
     ? 'body{background:#ccc;}.pagedjs_page{margin:16px auto !important;box-shadow:0 4px 16px rgba(0,0,0,0.18);}'
     : 'body{background:#fff;}'
+  const fontFamily = getTypographyFontStack(settings.fontFamily || 'sans')
+  const fontSizePt = pxToPt(settings.fontSize || 14)
+  const lineHeight = settings.lineHeight || 1.7
+  const paragraphSpacing = Math.max(0, Math.round(settings.paragraphSpacing ?? 8))
 
   return `<!DOCTYPE html>
 <html lang="ko"><head><meta charset="UTF-8"><title>${titleAttr}</title>
 <style>
 @page { size: ${pageSizeCss}; margin: ${marginMm}mm;
-  ${headerTitle}
-  @bottom-right { content: "Page " counter(page) " / " counter(pages); font-size:9pt; color:#888; }
+  ${headerCss}
+  ${footerCss}
 }
 html,body{margin:0;padding:0;}
-body{font-family:"Noto Sans KR","Malgun Gothic",sans-serif;font-size:11pt;line-height:1.65;color:#222;}
+body{font-family:${fontFamily};font-size:${fontSizePt}pt;line-height:${lineHeight};color:#222;}
 body,#content,.pagedjs_page,.pagedjs_page_content{
   --jan-note-line: rgba(229,229,229,0.78);
   --jan-note-margin-line: rgba(217,119,87,0.5);
@@ -102,7 +127,7 @@ ${previewCss}
 h1{font-size:22pt;font-weight:700;margin:1em 0 0.5em;}
 h2{font-size:17pt;font-weight:700;margin:1em 0 0.4em;}
 h3{font-size:14pt;font-weight:600;margin:0.8em 0 0.3em;}
-p{margin:0.5em 0;}
+p{margin:0 0 ${paragraphSpacing}px;}
 table{border-collapse:collapse;margin:0.6em 0;width:100%;}
 th,td{border:1px solid #999;padding:4px 8px;}
 th{background:#f0f0f0;font-weight:600;}
@@ -110,6 +135,7 @@ pre,code{font-family:"D2Coding",monospace;background:#f5f5f5;padding:0 4px;borde
 pre{padding:8px 12px;overflow-x:auto;}
 blockquote{border-left:3px solid #D97757;padding:4px 12px;margin:0.6em 0;color:#555;background:rgba(217,119,87,0.05);}
 img{max-width:100%;height:auto;}
+.jan-page-break,hr.jan-page-break,[data-page-break="1"],div[style*="page-break-before"],.tiptap-pagination-page-break{break-before:page;page-break-before:always;height:0 !important;border:0 !important;margin:0 !important;background:transparent !important;overflow:hidden;}
 @media print{body{background:white;}.pagedjs_page{box-shadow:none !important;margin:0 !important;}}
 </style></head><body data-paper="${settings.paperStyle}">
 <div id="content" data-paper="${settings.paperStyle}">${html}</div>
@@ -142,4 +168,21 @@ function escAttr(s: string): string {
 
 function escCss(s: string): string {
   return s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+}
+
+function cssContentFromTemplate(template: string): string {
+  const parts: string[] = []
+  const pattern = /\{page\}|\{total\}/g
+  let lastIndex = 0
+  for (const match of template.matchAll(pattern)) {
+    if (match.index > lastIndex) parts.push(`"${escCss(template.slice(lastIndex, match.index))}"`)
+    parts.push(match[0] === '{page}' ? 'counter(page)' : 'counter(pages)')
+    lastIndex = match.index + match[0].length
+  }
+  if (lastIndex < template.length) parts.push(`"${escCss(template.slice(lastIndex))}"`)
+  return parts.length ? parts.join(' ') : '""'
+}
+
+function pxToPt(px: number): number {
+  return Math.max(8, Math.round(px * 0.75 * 100) / 100)
 }
