@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cardToVCard, cardsToCsv, parseContactText, parseCsv, parseVCard } from './businessCards'
+import { cardToVCard, cardsToCsv, parseAiBusinessCardJson, parseContactText, parseCsv, parseVCard } from './businessCards'
 import { snapshotFromCloudData } from './snapshot'
 import type { BusinessCard } from '../store/businessCardsStore'
 
@@ -60,6 +60,33 @@ cmh@woojoocha.com
     expect(parsed.fax).toBe('064.756.1634')
     expect(parsed.email).toBe('cmh@woojoocha.com')
     expect(parsed.address).toContain('제주특별자치도')
+  })
+
+  it('parses AI business card JSON with Korean labels and nested contact fields', () => {
+    const parsed = parseAiBusinessCardJson(`\`\`\`json
+{
+  "이름": "최민호",
+  "회사명": "우주주차",
+  "직책": "대표",
+  "연락처": {
+    "대표 전화": "064.756.1633",
+    "팩스": "064.756.1634",
+    "이메일": "cmh@woojoocha.com"
+  },
+  "주소": "제주특별자치도 제주시 첨단로 245-13",
+  "SNS": { "naver": "blog.naver.com/woojoocha" },
+  "태그": ["주차", "제주"]
+}
+\`\`\``)
+
+    expect(parsed?.name).toBe('최민호')
+    expect(parsed?.company).toBe('우주주차')
+    expect(parsed?.position).toBe('대표')
+    expect(parsed?.phone).toBe('064.756.1633')
+    expect(parsed?.fax).toBe('064.756.1634')
+    expect(parsed?.email).toBe('cmh@woojoocha.com')
+    expect(parsed?.sns?.naver).toContain('blog.naver.com')
+    expect(parsed?.tags).toEqual(['주차', '제주'])
   })
 
   it('round-trips CSV with Korean headers and SNS fields', () => {

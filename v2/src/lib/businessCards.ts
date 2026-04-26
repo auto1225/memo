@@ -188,9 +188,14 @@ const CARD_FIELD_ALIASES: Record<string, keyof BusinessCardInput | 'linkedin'> =
   name: 'name',
   이름: 'name',
   성함: 'name',
+  fullname: 'name',
+  fullnamekr: 'name',
+  full_name: 'name',
   nameen: 'nameEn',
   영문이름: 'nameEn',
   영문명: 'nameEn',
+  englishname: 'nameEn',
+  english_name: 'nameEn',
   company: 'company',
   회사: 'company',
   회사명: 'company',
@@ -199,16 +204,24 @@ const CARD_FIELD_ALIASES: Record<string, keyof BusinessCardInput | 'linkedin'> =
   department: 'department',
   dept: 'department',
   부서: 'department',
+  division: 'department',
   position: 'position',
   title: 'position',
+  jobtitle: 'position',
+  job_title: 'position',
   직책: 'position',
   직위: 'position',
   mobile: 'mobile',
   cell: 'mobile',
+  cellphone: 'mobile',
+  mobilephone: 'mobile',
+  휴대전화: 'mobile',
   휴대폰: 'mobile',
   핸드폰: 'mobile',
   phone: 'phone',
   tel: 'phone',
+  telephone: 'phone',
+  officephone: 'phone',
   전화: 'phone',
   대표전화: 'phone',
   fax: 'fax',
@@ -374,7 +387,8 @@ function parseCsvLine(line: string): string[] {
 
 function fieldAlias(header: string): keyof BusinessCardInput | 'linkedin' | null {
   const compact = header.trim().replace(/^\uFEFF/, '')
-  return CARD_FIELD_ALIASES[compact] || CARD_FIELD_ALIASES[compact.toLowerCase()] || null
+  const normalized = compact.replace(/[\s_-]+/g, '').toLowerCase()
+  return CARD_FIELD_ALIASES[compact] || CARD_FIELD_ALIASES[compact.toLowerCase()] || CARD_FIELD_ALIASES[normalized] || null
 }
 
 export function parseCsv(text: string): BusinessCardInput[] {
@@ -605,31 +619,69 @@ export function parseAiBusinessCardJson(text: string): Partial<BusinessCardInput
   if (!match) return null
   try {
     const data = JSON.parse(match[0]) as Record<string, unknown>
-    const card: Partial<BusinessCardInput> = { sns: {} }
-    const assign = (key: keyof BusinessCardInput, value: unknown) => {
-      if (typeof value === 'string' && value.trim()) card[key] = value.trim() as never
-    }
-    assign('name', data.name)
-    assign('nameEn', data.nameEn)
-    assign('company', data.company)
-    assign('department', data.department)
-    assign('position', data.position)
-    assign('mobile', data.mobile)
-    assign('phone', data.phone)
-    assign('fax', data.fax)
-    assign('email', data.email)
-    assign('website', data.website)
-    assign('address', data.address)
-    assign('memo', data.memo)
-    if (data.sns && typeof data.sns === 'object' && !Array.isArray(data.sns)) {
-      for (const [key, value] of Object.entries(data.sns)) {
-        if (typeof value === 'string' && value.trim()) card.sns![key] = value.trim()
-      }
-    }
+    const card = aiRecordToBusinessCardPatch(data)
     return card
   } catch {
     return null
   }
+}
+
+function aiRecordToBusinessCardPatch(record: Record<string, unknown>): Partial<BusinessCardInput> {
+  const card: Partial<BusinessCardInput> = { sns: {} }
+  const assign = (key: keyof BusinessCardInput | 'linkedin', value: unknown) => {
+    if (key === 'tags') {
+      if (Array.isArray(value)) card.tags = splitTags(value.filter((item): item is string => typeof item === 'string').join(','))
+      else if (typeof value === 'string') card.tags = splitTags(value)
+      return
+    }
+    if (key === 'favorite') {
+      if (typeof value === 'boolean') card.favorite = value
+      else if (typeof value === 'string') card.favorite = /^[yt1]|true|yes|즐겨/i.test(value.trim())
+      return
+    }
+    if (key === 'linkedin') {
+      const str = stringValue(value)
+      if (str) card.sns!.linkedin = str
+      return
+    }
+    const str = stringValue(value)
+    if (str) card[key] = str as never
+  }
+
+  const walk = (source: Record<string, unknown>) => {
+    for (const [rawKey, value] of Object.entries(source)) {
+      if (value == null) continue
+      const key = rawKey.trim()
+      const lowerKey = key.replace(/[\s_-]+/g, '').toLowerCase()
+      if ((lowerKey === 'sns' || lowerKey === 'social' || lowerKey === 'socials' || lowerKey === 'socialprofiles') && isPlainRecord(value)) {
+        for (const [snsKey, snsValue] of Object.entries(value)) {
+          const str = stringValue(snsValue)
+          if (str) card.sns![snsKey] = str
+        }
+        continue
+      }
+      if ((lowerKey === 'contact' || lowerKey === 'contacts' || lowerKey === '연락처') && isPlainRecord(value)) {
+        walk(value)
+        continue
+      }
+      const alias = fieldAlias(key)
+      if (alias) assign(alias, value)
+    }
+  }
+
+  walk(record)
+  if (card.website && !/^https?:\/\//i.test(card.website)) card.website = card.website.replace(/^www\./i, 'www.')
+  return card
+}
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === 'object' && !Array.isArray(value)
+}
+
+function stringValue(value: unknown): string {
+  if (typeof value === 'string') return value.trim()
+  if (typeof value === 'number') return String(value)
+  return ''
 }
 
 export const BUSINESS_CARD_VISION_PROMPT = `이 이미지는 명함입니다. 아래 JSON 형식으로 정보를 정확히 추출하여 JSON 객체만 반환하세요. 없는 필드는 빈 문자열로 두고 추측하지 마세요.
