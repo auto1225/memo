@@ -39,6 +39,7 @@ export function StatusBar({ editor, onPageSettings }: StatusBarProps) {
   const pageColumnCount = useUIStore((s) => s.pageColumnCount)
   const paperStyle = useUIStore((s) => s.paperStyle)
   const showRulers = useUIStore((s) => s.showRulers)
+  const viewLayout = useUIStore((s) => s.viewLayout)
   const [tick, setTick] = useState(0)
 
   useEffect(() => {
@@ -69,7 +70,9 @@ export function StatusBar({ editor, onPageSettings }: StatusBarProps) {
 
   const goalPct = goal.dailyTarget > 0 ? Math.min(100, Math.round((goal.todayCount / goal.dailyTarget) * 100)) : 0
   const paperLabel = PAPER_STYLES.find((style) => style.value === paperStyle)?.label.replace(' (기본)', '') || '줄노트'
+  const viewLayoutLabel = viewLayout === 'draft' ? '초안' : '인쇄'
   const pageSummary = [
+    viewLayoutLabel,
     pageSize,
     pageOrientation === 'landscape' ? '가로' : '세로',
     `${pageColumnCount}단`,

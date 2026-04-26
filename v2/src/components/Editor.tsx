@@ -167,6 +167,7 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
   const runningFooter = useUIStore((s) => s.runningFooter)
   const spellCheck = useUIStore((s) => s.spellCheck)
   const showRulers = useUIStore((s) => s.showRulers)
+  const viewLayout = useUIStore((s) => s.viewLayout)
 
   const pageMm = useMemo(() => pageDimensions(pageSize, pageOrientation), [pageSize, pageOrientation])
   const pagePx = useMemo(() => pageDimensionsPx(pageSize, pageOrientation), [pageSize, pageOrientation])
@@ -225,6 +226,7 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
     return formatRunningText(runningFooter, 1, 1)
   }, [runningFooter, runningHeader])
   const hasRunningPreview = !!(runningHeaderPreview || runningFooterPreview)
+  const shouldShowRulers = viewLayout === 'print' && showRulers
 
   const commitEditorContent = useCallback((targetEditor: TiptapEditor, memoId: string | null, seq: number) => {
     if (!memoId || targetEditor.isDestroyed) return
@@ -655,10 +657,11 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
           data-page-size={pageSize}
           data-page-orientation={pageOrientation}
           data-page-columns={pageColumnCount}
-          data-rulers={showRulers ? 'true' : 'false'}
+          data-rulers={shouldShowRulers ? 'true' : 'false'}
+          data-view-layout={viewLayout}
           style={pageStyle}
         >
-          {showRulers && (
+          {shouldShowRulers && (
             <div className="jan-page-ruler" role="img" aria-label={`가로 페이지 눈금자 ${Math.round(pageMm.widthMm)}mm`}>
               <div className="jan-page-ruler-track" aria-hidden="true">
                 {rulerMarks.map((mark) => (
@@ -686,7 +689,7 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
             </div>
           )}
           <div className="jan-page-layout">
-            {showRulers && (
+            {shouldShowRulers && (
               <div className="jan-page-vertical-ruler" role="img" aria-label={`세로 페이지 눈금자 ${Math.round(pageMm.heightMm)}mm`}>
                 <div className="jan-page-vertical-ruler-track" aria-hidden="true">
                   {verticalRulerMarks.map((mark) => (

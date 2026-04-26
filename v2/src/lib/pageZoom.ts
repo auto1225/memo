@@ -7,6 +7,8 @@ const DESKTOP_RULER_HEIGHT_PX = 34
 const DESKTOP_PAGE_PADDING_X_PX = 32
 const DESKTOP_PAGE_PADDING_BOTTOM_PX = 40
 const MOBILE_PAGE_PADDING_X_PX = 24
+const DRAFT_LAYOUT_WIDTH_PX = 980
+const DRAFT_LAYOUT_HEIGHT_PX = 900
 
 export function setPageZoom(zoom: number) {
   const next = normalizeZoom(zoom)
@@ -19,6 +21,11 @@ export function fitPageZoom(mode: PageZoomFitMode) {
   const main = document.querySelector<HTMLElement>('.jan-editor-main')
   const availableWidth = Math.max(240, (main?.clientWidth || window.innerWidth) - 32)
   const availableHeight = Math.max(240, (main?.clientHeight || window.innerHeight) - 32)
+  if (state.viewLayout === 'draft') {
+    const widthZoom = availableWidth / DRAFT_LAYOUT_WIDTH_PX
+    const pageZoom = Math.min(widthZoom, availableHeight / DRAFT_LAYOUT_HEIGHT_PX)
+    return setPageZoom(mode === 'width' ? widthZoom : pageZoom)
+  }
   const pagePx = pageDimensionsPx(state.pageSize, state.pageOrientation)
   const desktopRulers = state.showRulers && window.matchMedia('(min-width: 861px)').matches
   const rulerWidth = desktopRulers ? DESKTOP_RULER_WIDTH_PX : 0

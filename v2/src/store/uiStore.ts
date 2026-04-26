@@ -5,6 +5,7 @@ export type PaperStyle = 'lined' | 'grid' | 'dot' | 'blank' | 'music' | 'cornell
 export type PageSizePreset = 'A4' | 'A3' | 'B4' | 'A5' | 'B5' | 'Letter'
 export type PageOrientation = 'portrait' | 'landscape'
 export type PageColumnCount = 1 | 2 | 3
+export type ViewLayoutMode = 'print' | 'draft'
 export const DEFAULT_RUNNING_FOOTER = 'Page {page} / {total}'
 export const ZOOM_MIN = 0.35
 export const ZOOM_MAX = 2
@@ -99,6 +100,10 @@ export function normalizeZoom(value: unknown, fallback = 1): number {
   return Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, Math.round(base * 100) / 100))
 }
 
+export function normalizeViewLayout(value: unknown): ViewLayoutMode {
+  return value === 'draft' ? 'draft' : 'print'
+}
+
 export function formatRunningText(template: string, page = 1, total = 1): string {
   return template
     .replace(/\{page\}/g, String(Math.max(1, Math.round(page))))
@@ -116,6 +121,7 @@ interface UIState {
   sidebarCollapsed: boolean
   headingNumbers: boolean
   showRulers: boolean
+  viewLayout: ViewLayoutMode
   zoom: number // 0.35 ~ 2.0
   paperStyle: PaperStyle
   pageSize: PageSizePreset
@@ -133,6 +139,7 @@ interface UIState {
   toggleHeadingNumbers: () => void
   toggleRulers: () => void
   setRulers: (visible: boolean) => void
+  setViewLayout: (mode: ViewLayoutMode) => void
   setZoom: (zoom: number) => void
   zoomIn: () => void
   zoomOut: () => void
@@ -156,6 +163,7 @@ export const useUIStore = create<UIState>()(
       sidebarCollapsed: false,
       headingNumbers: false,
       showRulers: true,
+      viewLayout: 'print',
       zoom: 1,
       paperStyle: 'lined',
       pageSize: 'A4',
@@ -173,6 +181,7 @@ export const useUIStore = create<UIState>()(
       toggleHeadingNumbers: () => set({ headingNumbers: !get().headingNumbers }),
       toggleRulers: () => set({ showRulers: !get().showRulers }),
       setRulers: (visible) => set({ showRulers: visible }),
+      setViewLayout: (mode) => set({ viewLayout: normalizeViewLayout(mode) }),
       setZoom: (zoom) => set({ zoom: normalizeZoom(zoom, get().zoom) }),
       zoomIn: () => set({ zoom: normalizeZoom(get().zoom + 0.1, get().zoom) }),
       zoomOut: () => set({ zoom: normalizeZoom(get().zoom - 0.1, get().zoom) }),

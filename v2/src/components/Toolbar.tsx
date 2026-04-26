@@ -190,6 +190,7 @@ export function Toolbar(p: ToolbarProps) {
   const currentPaperLabel = PAPER_STYLES.find((style) => style.value === ui.paperStyle)?.label.replace(' (기본)', '') || '줄노트'
   const pageColumnLabel = `${ui.pageColumnCount || 1}단`
   const pageMarginLabel = pageMarginsSummary(ui.pageMarginsMm, ui.pageMarginMm)
+  const viewLayoutLabel = ui.viewLayout === 'draft' ? '초안 레이아웃' : '인쇄 레이아웃'
   const openPageSettings = () => p.onPageSettings()
 
   /* === 책갈피 / 텍스트 상자 / 구분선 스타일 === */
@@ -663,6 +664,10 @@ export function Toolbar(p: ToolbarProps) {
     /* 7. 보기 */
     {
       label: '보기', items: [
+        { label: `문서 보기: ${viewLayoutLabel}`, icon: 'preview', onClick: () => run(() => ui.setViewLayout(ui.viewLayout === 'draft' ? 'print' : 'draft')) },
+        { label: '인쇄 레이아웃', icon: 'page', onClick: () => run(() => ui.setViewLayout('print')) },
+        { label: '초안 레이아웃', icon: 'file-text', onClick: () => run(() => ui.setViewLayout('draft')) },
+        { divider: '창', label: '' },
         { label: '집중 모드', hint: 'F11', icon: 'focus', onClick: () => run(() => ui.toggleFocus()) },
         { label: '읽기 모드', hint: 'Shift+F11', icon: 'preview', onClick: () => run(() => ui.toggleReading()) },
         { label: '사이드바 토글', icon: 'list-bullet', onClick: () => run(() => ui.toggleSidebar()) },

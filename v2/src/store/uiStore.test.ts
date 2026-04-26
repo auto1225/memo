@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatRunningText, normalizePageColumnCount, normalizePageMarginsMm, normalizeZoom, pageMarginsCss, pageMarginsSummary } from './uiStore'
+import { formatRunningText, normalizePageColumnCount, normalizePageMarginsMm, normalizeViewLayout, normalizeZoom, pageMarginsCss, pageMarginsSummary } from './uiStore'
 
 describe('uiStore helpers', () => {
   it('normalizes page column counts to Word-like supported values', () => {
@@ -40,5 +40,11 @@ describe('uiStore helpers', () => {
     expect(normalizeZoom(1.234)).toBe(1.23)
     expect(normalizeZoom(3)).toBe(2)
     expect(normalizeZoom('bad', 1.25)).toBe(1.25)
+  })
+
+  it('normalizes Word-like view layout modes', () => {
+    expect(normalizeViewLayout('print')).toBe('print')
+    expect(normalizeViewLayout('draft')).toBe('draft')
+    expect(normalizeViewLayout('web')).toBe('print')
   })
 })

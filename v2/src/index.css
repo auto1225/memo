@@ -3320,6 +3320,21 @@ html, body, #root {
   width: var(--jan-page-w, 210mm);
 }
 
+.jan-editor-pages[data-view-layout="draft"] {
+  width: min(100%, 1040px) !important;
+  padding: 18px 24px 60px !important;
+}
+
+.jan-editor-pages[data-view-layout="draft"] .jan-page-ruler,
+.jan-editor-pages[data-view-layout="draft"] .jan-page-vertical-ruler {
+  display: none !important;
+}
+
+.jan-editor-pages[data-view-layout="draft"] .jan-page-layout {
+  display: block;
+  width: min(100%, 980px);
+}
+
 .jan-page-ruler {
   position: sticky;
   top: 0;
@@ -3505,6 +3520,25 @@ html, body, #root {
   background-clip: padding-box;
 }
 
+.jan-editor-pages[data-view-layout="draft"] .jan-page-shell {
+  width: min(100%, 980px);
+  min-height: calc(100vh - 240px);
+}
+
+.jan-editor-pages[data-view-layout="draft"] .ProseMirror {
+  width: min(100%, 980px) !important;
+  max-width: 100% !important;
+  min-height: calc(100vh - 240px) !important;
+  padding: 30px 40px 84px !important;
+  border-radius: 6px !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04), 0 8px 20px rgba(0,0,0,0.05) !important;
+}
+
+.jan-editor-pages[data-view-layout="draft"] .jan-page-margin-frame,
+.jan-editor-pages[data-view-layout="draft"] .jan-page-running {
+  display: none !important;
+}
+
 .jan-page-margin-frame {
   position: absolute;
   z-index: 2;
@@ -3573,6 +3607,13 @@ html, body, #root {
 .jan-editor-pages[data-page-columns="2"] .ProseMirror :where(h1,h2,h3,table,pre,blockquote,img,.jan-page-break,.tiptap-pagination-page-break),
 .jan-editor-pages[data-page-columns="3"] .ProseMirror :where(h1,h2,h3,table,pre,blockquote,img,.jan-page-break,.tiptap-pagination-page-break) {
   break-inside: avoid-column;
+}
+
+.jan-editor-pages[data-view-layout="draft"][data-page-columns="2"] .ProseMirror,
+.jan-editor-pages[data-view-layout="draft"][data-page-columns="3"] .ProseMirror {
+  column-count: 1 !important;
+  column-gap: normal !important;
+  column-rule: 0 !important;
 }
 
 .jan-editor-pages .ProseMirror :where(:not(code):not(pre):not(kbd):not(samp)) {
@@ -4655,6 +4696,17 @@ html, body, #root {
   .jan-page-shell {
     width: calc(100vw - 24px) !important;
     min-height: calc((100vw - 24px) * 1.414) !important;
+  }
+
+  .jan-editor-pages[data-view-layout="draft"] .jan-page-shell,
+  .jan-editor-pages[data-view-layout="draft"] .ProseMirror {
+    width: calc(100vw - 24px) !important;
+    max-width: calc(100vw - 24px) !important;
+    min-height: calc(100vh - 220px) !important;
+  }
+
+  .jan-editor-pages[data-view-layout="draft"] .ProseMirror {
+    padding: 24px 24px 72px !important;
   }
 
   .jan-page-running {

@@ -121,6 +121,7 @@ test.describe('v2 smoke', () => {
     await expect(verticalRuler.locator('.jan-page-vertical-ruler-margin-top')).toContainText('20mm')
     await expect(verticalRuler.locator('.jan-page-vertical-ruler-margin-bottom')).toContainText('20mm')
     const pageStatus = page.getByRole('button', { name: '상태바 페이지 설정' })
+    await expect(pageStatus).toContainText('인쇄')
     await expect(pageStatus).toContainText('A4')
     await expect(pageStatus).toContainText('세로')
     await expect(pageStatus).toContainText('여백 20mm')
@@ -232,6 +233,31 @@ test.describe('v2 smoke', () => {
     await expect(pages).toHaveAttribute('data-rulers', 'true')
     await expect(page.getByRole('img', { name: /가로 페이지 눈금자/ })).toBeVisible()
     await expect(page.getByRole('img', { name: /세로 페이지 눈금자/ })).toBeVisible()
+  })
+
+  test('view menu switches between print and draft layouts', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await page.goto('./')
+    const pages = page.locator('.jan-editor-pages').first()
+    const pageStatus = page.getByRole('button', { name: '상태바 페이지 설정' })
+    await expect(page.locator('.ProseMirror').first()).toBeVisible({ timeout: 15000 })
+    await expect(pages).toHaveAttribute('data-view-layout', 'print')
+    await expect(pageStatus).toContainText('인쇄')
+
+    await page.getByRole('button', { name: '보기', exact: true }).click()
+    await page.getByRole('button', { name: '초안 레이아웃', exact: true }).click()
+    await expect(pages).toHaveAttribute('data-view-layout', 'draft')
+    await expect(pages).toHaveAttribute('data-rulers', 'false')
+    await expect(page.getByRole('img', { name: /가로 페이지 눈금자/ })).toHaveCount(0)
+    await expect(pageStatus).toContainText('초안')
+    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('jan-v2-ui') || '{}')?.state?.viewLayout)).toBe('draft')
+
+    await page.keyboard.press('Control+Shift+P')
+    await page.locator('.jan-cp-input').fill('인쇄 레이아웃')
+    await page.getByRole('button', { name: /인쇄 레이아웃/ }).first().click()
+    await expect(pages).toHaveAttribute('data-view-layout', 'print')
+    await expect(pageStatus).toContainText('인쇄')
+    await expect(page.getByRole('img', { name: /가로 페이지 눈금자/ })).toBeVisible()
   })
 
   test('meeting notes flow inserts a structured v1-style note', async ({ page }) => {

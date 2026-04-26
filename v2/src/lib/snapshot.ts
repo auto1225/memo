@@ -252,6 +252,8 @@ function createExtrasSnapshot(): V2Snapshot['extras'] {
       'spellCheck',
       'sidebarCollapsed',
       'headingNumbers',
+      'showRulers',
+      'viewLayout',
       'zoom',
       'paperStyle',
       'pageSize',
