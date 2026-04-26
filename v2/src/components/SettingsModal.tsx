@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { importV1FromLocalStorage, exportV2ToJson, importV2FromJson } from '../lib/v1Import'
 import { importMarkdownFiles } from '../lib/bulkImport'
 import { pdfFileToHtml } from '../lib/pdfImport'
@@ -9,7 +9,7 @@ import { useThemeStore } from '../store/themeStore'
 import { useUIStore } from '../store/uiStore'
 import { useWritingGoalStore } from '../store/writingGoalStore'
 import { useSettingsStore } from '../store/settingsStore'
-import { syncNow, syncConfigured } from '../lib/supabaseSync'
+import { getSession, getSupabaseConfigStatus, signInGoogle, signOut, syncNow, syncConfigured } from '../lib/supabaseSync'
 
 interface SettingsModalProps {
   onClose: () => void
@@ -17,7 +17,9 @@ interface SettingsModalProps {
 
 export function SettingsModal({ onClose }: SettingsModalProps) {
   const [status, setStatus] = useState<string>('')
-  const memos = useMemosStore((s) => Object.values(s.memos))
+  const [supabaseUser, setSupabaseUser] = useState<string>('')
+  const [checkingSession, setCheckingSession] = useState(false)
+  const memoCount = useMemosStore((s) => Object.keys(s.memos).length)
   const settings = useSettingsStore()
   const lang = useI18nStore((s) => s.lang)
   const setLang = useI18nStore((s) => s.setLang)
@@ -25,6 +27,26 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
   const setAccent = useThemeStore((s) => s.setAccent)
   const ui = useUIStore()
   const goal = useWritingGoalStore()
+  const supabaseStatus = getSupabaseConfigStatus()
+
+  useEffect(() => {
+    let cancelled = false
+    if (!supabaseStatus.configured) return
+    setCheckingSession(true)
+    getSession()
+      .then((session) => {
+        if (!cancelled) setSupabaseUser(session?.user.email || '')
+      })
+      .catch(() => {
+        if (!cancelled) setSupabaseUser('')
+      })
+      .finally(() => {
+        if (!cancelled) setCheckingSession(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [supabaseStatus.configured])
 
   function handleV1Import() {
     const result = importV1FromLocalStorage()
@@ -46,7 +68,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
     a.click()
     document.body.removeChild(a)
     setTimeout(() => URL.revokeObjectURL(url), 1000)
-    setStatus(`${memos.length}개 메모 백업 완료`)
+    setStatus(`${Object.keys(useMemosStore.getState().memos).length}개 메모 백업 완료`)
   }
 
   async function handleImport() {
@@ -69,13 +91,33 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
 
   async function handleSync() {
     if (!syncConfigured()) {
-      setStatus('Supabase URL / anon key / 이메일을 모두 입력하세요')
+      setStatus('Supabase 설정이 없습니다. config.js 또는 아래 고급 설정을 확인하세요')
       return
     }
     setStatus('동기화 중...')
     const r = await syncNow()
     if (r.ok) setStatus(`동기화 완료 — push ${r.pushed}, pull ${r.pulled}`)
     else setStatus(`동기화 실패: ${r.error}`)
+  }
+
+  async function handleSupabaseLogin() {
+    if (!syncConfigured()) {
+      setStatus('Supabase 설정이 없습니다. config.js 또는 아래 고급 설정을 확인하세요')
+      return
+    }
+    setStatus('Google 로그인으로 이동 중...')
+    const result = await signInGoogle()
+    if (!result.ok) setStatus(`로그인 실패: ${result.error}`)
+  }
+
+  async function handleSupabaseLogout() {
+    const result = await signOut()
+    if (result.ok) {
+      setSupabaseUser('')
+      setStatus('Supabase 로그아웃 완료')
+    } else {
+      setStatus(`로그아웃 실패: ${result.error}`)
+    }
   }
 
   return (
@@ -146,38 +188,49 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
           </section>
 
           <section className="jan-settings-section">
-            <h4>Supabase 클라우드 동기화 (선택)</h4>
+            <h4>Supabase 클라우드 동기화</h4>
             <div className="jan-settings-info">
-              선택사항. Supabase 프로젝트의 URL + anon key + 본인 이메일을 입력하면
-              메모를 클라우드에 동기화. RLS 정책은 사용자가 직접 설정해야 함.
+              {supabaseStatus.configured
+                ? `${supabaseStatus.source === 'runtime' ? '기본' : '사용자'} Supabase 프로젝트 연결됨`
+                : 'Supabase URL과 anon key가 필요합니다.'}
+              {supabaseUser ? ` · 로그인: ${supabaseUser}` : checkingSession ? ' · 세션 확인 중...' : ' · 로그인 필요'}
             </div>
-            <input
-              type="text"
-              placeholder="Supabase URL (https://xxxx.supabase.co)"
-              value={settings.supabaseUrl}
-              onChange={(e) => settings.setKey('supabaseUrl', e.target.value)}
-            />
-            <input
-              type="password"
-              placeholder="anon key"
-              value={settings.supabaseAnonKey}
-              onChange={(e) => settings.setKey('supabaseAnonKey', e.target.value)}
-            />
-            <input
-              type="email"
-              placeholder="이메일 (owner_email)"
-              value={settings.supabaseEmail}
-              onChange={(e) => settings.setKey('supabaseEmail', e.target.value)}
-            />
+            <div className="jan-settings-row">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={settings.syncEnabled}
+                  onChange={(e) => settings.setKey('syncEnabled', e.target.checked)}
+                />
+                {' '}자동 동기화
+              </label>
+            </div>
             <div className="jan-settings-actions">
+              {!supabaseUser && <button onClick={handleSupabaseLogin}>Google 로그인</button>}
+              {supabaseUser && <button onClick={handleSupabaseLogout}>로그아웃</button>}
               <button onClick={handleSync}>지금 동기화</button>
             </div>
+            <details>
+              <summary>고급 설정</summary>
+              <input
+                type="text"
+                placeholder="Supabase URL override (비워두면 config.js 사용)"
+                value={settings.supabaseUrl}
+                onChange={(e) => settings.setKey('supabaseUrl', e.target.value)}
+              />
+              <input
+                type="password"
+                placeholder="anon key override (비워두면 config.js 사용)"
+                value={settings.supabaseAnonKey}
+                onChange={(e) => settings.setKey('supabaseAnonKey', e.target.value)}
+              />
+            </details>
           </section>
 
           <section className="jan-settings-section">
             <h4>데이터 관리</h4>
             <div className="jan-settings-info">
-              현재 v2 메모: <b>{memos.length}개</b>
+              현재 v2 메모: <b>{memoCount}개</b>
             </div>
             <div className="jan-settings-actions">
               <button onClick={handleExport}>JSON 백업 내보내기</button>

@@ -21,18 +21,18 @@ export type IconName =
   | 'search' | 'find' | 'replace'
   | 'chevron-down' | 'chevron-up' | 'chevron-left' | 'chevron-right'
   | 'menu' | 'plus' | 'close' | 'check' | 'minus'
-  | 'pin' | 'pin-on' | 'star' | 'star-on'
+  | 'pin' | 'pin-on' | 'star' | 'star-on' | 'heart'
   | 'ai' | 'sparkle' | 'wand'
   | 'moon' | 'sun' | 'auto'
   | 'zoom-in' | 'zoom-out'
-  | 'mic' | 'mic-off' | 'volume' | 'volume-off'
+  | 'mic' | 'mic-off' | 'volume' | 'volume-off' | 'speaker'
   | 'eye' | 'eye-off' | 'lock' | 'unlock'
   | 'file-text' | 'file-plus' | 'folder' | 'trash'
   | 'settings' | 'help' | 'info' | 'bell'
   | 'users' | 'user' | 'login'
   | 'paperclip' | 'language' | 'translate'
   | 'image-text' | 'page' | 'globe' | 'cloud'
-  | 'maximize' | 'minimize' | 'tag' | 'hash'
+  | 'maximize' | 'minimize' | 'focus' | 'tag' | 'hash'
   | 'cmd' | 'paragraph' | 'briefcase' | 'sync' | 'home' | 'shield' | 'clock' | 'page-break' | 'columns' | 'sup' | 'box' | 'qr' | 'history' | 'download' | 'upload' | 'dot' | 'send' | 'card' | 'cards' | 'sliders' | 'refresh-cw' | 'window-min' | 'window-max' | 'window-pin' | 'kanban'
 
 const PATHS: Record<IconName, string> = {
@@ -90,6 +90,7 @@ const PATHS: Record<IconName, string> = {
   'pin-on': 'M12 17v5 M9 7h6l1 9H8z M9 7l3-5 3 5',
   star: 'M12 2l3 7h7l-6 5 2 8-6-4-6 4 2-8-6-5h7z',
   'star-on': 'M12 2l3 7h7l-6 5 2 8-6-4-6 4 2-8-6-5h7z',
+  heart: 'M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.6l-1-1a5.5 5.5 0 00-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 000-7.8z',
   ai: 'M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z M19 3v4 M21 5h-4',
   sparkle: 'M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z',
   wand: 'M15 4V2 M15 16v-2 M8 9h2 M20 9h2 M18 5l-1 1 M18 13l-1-1 M14 9a5 5 0 100 0 M3 21l9-9',
@@ -102,6 +103,7 @@ const PATHS: Record<IconName, string> = {
   'mic-off': 'M1 1l22 22 M9 9v2a3 3 0 005 2 M14 6V5a2 2 0 00-4 0v3 M19 11a7 7 0 01-1 4 M5 11a7 7 0 0011 5 M12 18v4 M8 22h8',
   volume: 'M11 5L6 9H2v6h4l5 4V5z M19 12a4 4 0 00-2-3 M22 12a8 8 0 00-4-7',
   'volume-off': 'M11 5L6 9H2v6h4l5 4V5z M23 9l-6 6 M17 9l6 6',
+  speaker: 'M11 5L6 9H2v6h4l5 4V5z M15.5 8.5a5 5 0 010 7 M18.5 5.5a9 9 0 010 13',
   eye: 'M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z M12 15a3 3 0 100-6 3 3 0 000 6z',
   'eye-off': 'M1 1l22 22 M10 10a3 3 0 004 4 M9 4l3 0 11 8s-2 4-7 6 M5 6L1 12s4 8 11 8c2 0 4-1 5-1',
   lock: 'M5 11h14v10H5z M8 11V7a4 4 0 018 0v4',
@@ -126,6 +128,7 @@ const PATHS: Record<IconName, string> = {
   cloud: 'M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z',
   maximize: 'M8 3H3v5 M21 8V3h-5 M3 16v5h5 M16 21h5v-5',
   minimize: 'M4 14h6v6 M20 10h-6V4 M14 10l7-7 M3 21l7-7',
+  focus: 'M8 3H5a2 2 0 00-2 2v3 M16 3h3a2 2 0 012 2v3 M21 16v3a2 2 0 01-2 2h-3 M8 21H5a2 2 0 01-2-2v-3 M9 12h6 M12 9v6',
   tag: 'M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z M7 7h.01',
   hash: 'M4 9h16 M4 15h16 M10 3L8 21 M16 3l-2 18',
   cmd: 'M18 3a3 3 0 10-3 3v12a3 3 0 103-3H6a3 3 0 10-3 3V6a3 3 0 103 3h12',

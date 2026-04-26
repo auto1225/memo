@@ -147,6 +147,8 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
       StarterKit.configure({
         heading: { levels: [1, 2, 3, 4, 5, 6] },
         undoRedo: collab.ydoc ? false : undefined,
+        link: false,
+        underline: false,
       }),
       Placeholder.configure({
         placeholder: '여기에 메모를 적어보세요... (/ 슬래시 명령, F1 단축키)',

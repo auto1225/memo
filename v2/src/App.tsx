@@ -9,14 +9,17 @@ function App() {
   const lang = useI18nStore((s) => s.lang)
   const { focusMode, toggleFocus, zoom, zoomIn, zoomOut, zoomReset, headingNumbers, readingMode, toggleReading, spellCheck, sidebarCollapsed } = useUIStore()
 
-  if (typeof window !== 'undefined') {
+  useEffect(() => {
+    document.documentElement.lang = lang
+  }, [lang])
+
+  useEffect(() => {
     try {
-      if (localStorage.getItem('jan-show-pilcrow') === '1') {
-        document.body.classList.add('jan-show-pilcrow')
-      }
-      document.documentElement.lang = lang
-    } catch {}
-  }
+      document.body.classList.toggle('jan-show-pilcrow', localStorage.getItem('jan-show-pilcrow') === '1')
+    } catch {
+      document.body.classList.remove('jan-show-pilcrow')
+    }
+  }, [])
 
   useEffect(() => {
     document.body.classList.toggle('jan-focus-mode', focusMode)

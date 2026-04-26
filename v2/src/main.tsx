@@ -8,7 +8,7 @@ import { startMultiTabSync } from './lib/multiTabSync'
 import { readShareFragment } from './lib/shareLink'
 
 async function main() {
-  // share=fragment 가 있으면 read-only 보기로 전환
+  // share fragment가 있으면 읽기 전용 공유 보기로 전환한다.
   const share = await readShareFragment()
   if (share) {
     document.body.classList.add('jan-share-view')
@@ -18,7 +18,7 @@ async function main() {
         <header class="jan-share-header">
           <h1>${escape(share.title || '무제')}</h1>
           <div class="jan-share-meta">공유 링크 보기 · ${new Date(share.createdAt).toLocaleString('ko-KR')}</div>
-          <a href="/v2/" class="jan-share-edit">v2 앱으로 새 메모 작성하기 →</a>
+          <a href="/v2/" class="jan-share-edit">JustANotepad에서 새 메모 작성하기</a>
         </header>
         <article class="jan-share-content">${share.content}</article>
       </div>

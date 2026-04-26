@@ -1,7 +1,7 @@
 {
-  "name": "JustANotepad v2",
+  "name": "JustANotepad",
   "short_name": "JustANotepad",
-  "description": "TipTap 기반 가벼운 다국어 노트 — AI / 인쇄 / 협업 / HWPX",
+  "description": "빠르고 강력한 다국어 노트 — AI / 인쇄 / 협업 / HWPX",
   "start_url": "/v2/",
   "scope": "/v2/",
   "display": "standalone",

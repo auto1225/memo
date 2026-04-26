@@ -1,21 +1,60 @@
 /**
- * Phase 5 — Supabase 동기화.
+ * Supabase cloud sync for JustANotepad v2.
  *
- * 가벼운 REST 직접 호출 (supabase-js 추가 의존 없이) — anon key 로 RLS 인증.
- * 테이블 가정: notes (id text pk, title text, content text, updated_at timestamptz, owner_email text).
- *
- * 동기화 정책: last-write-wins (updated_at 비교).
- * 사용자가 RLS 정책을 직접 설정해야 함 (auth.email() = owner_email).
+ * v1 and production already use `user_data` as a per-user JSON blob protected by
+ * Supabase Auth + RLS. v2 keeps that contract and stores a normalized snapshot,
+ * instead of writing unauthenticated note rows.
  */
-import { useSettingsStore } from '../store/settingsStore'
+import { getSupabaseRuntimeConfig } from './runtimeConfig'
+import { applyV2Snapshot, createV2Snapshot, snapshotFromCloudData, type V2Snapshot } from './snapshot'
 import { useMemosStore } from '../store/memosStore'
+import { useSettingsStore } from '../store/settingsStore'
 
-interface RemoteNote {
-  id: string
-  title: string
-  content: string
-  updated_at: string
-  owner_email: string
+interface SupabaseError {
+  message?: string
+}
+
+export interface SupabaseSession {
+  user: {
+    id: string
+    email?: string
+  }
+}
+
+interface UserDataRow {
+  data: unknown
+  updated_at?: string
+  version?: number
+}
+
+interface SupabaseQueryFilter {
+  eq: (column: string, value: string) => SupabaseQueryFilter
+  maybeSingle: () => Promise<{ data: UserDataRow | null; error: SupabaseError | null }>
+}
+
+interface SupabaseQueryBuilder {
+  select: (columns: string) => SupabaseQueryFilter
+  upsert: (payload: unknown) => Promise<{ error: SupabaseError | null }>
+}
+
+interface SupabaseClientLike {
+  auth: {
+    getSession: () => Promise<{ data: { session: SupabaseSession | null }; error: SupabaseError | null }>
+    signInWithOAuth: (args: {
+      provider: 'google'
+      options: { redirectTo: string }
+    }) => Promise<{ error: SupabaseError | null }>
+    signOut: () => Promise<{ error: SupabaseError | null }>
+  }
+  from: (table: string) => SupabaseQueryBuilder
+}
+
+declare global {
+  interface Window {
+    supabase?: {
+      createClient: (url: string, anonKey: string, options?: unknown) => SupabaseClientLike
+    }
+  }
 }
 
 interface SyncResult {
@@ -25,110 +64,181 @@ interface SyncResult {
   error?: string
 }
 
-function getCfg() {
-  const s = useSettingsStore.getState()
-  return {
-    url: s.supabaseUrl.replace(/\/$/, ''),
-    key: s.supabaseAnonKey,
-    email: s.supabaseEmail,
-    enabled: s.syncEnabled,
+let client: SupabaseClientLike | null = null
+let clientKey = ''
+let clientPromise: Promise<SupabaseClientLike> | null = null
+let clientPromiseKey = ''
+let sdkPromise: Promise<void> | null = null
+
+function configKey(url: string, anonKey: string): string {
+  return `${url}|${anonKey.slice(0, 12)}`
+}
+
+function getRedirectUrl(): string {
+  if (typeof window === 'undefined') return 'https://justanotepad.com/v2/'
+  return `${window.location.origin}/v2/`
+}
+
+function loadSupabaseSdk(): Promise<void> {
+  if (typeof window === 'undefined') return Promise.reject(new Error('브라우저 환경이 아닙니다'))
+  if (window.supabase) return Promise.resolve()
+  if (sdkPromise) return sdkPromise
+
+  sdkPromise = new Promise((resolve, reject) => {
+    const existing = document.querySelector<HTMLScriptElement>('script[data-jan-supabase-sdk="true"]')
+    if (existing) {
+      existing.addEventListener('load', () => resolve(), { once: true })
+      existing.addEventListener('error', () => reject(new Error('Supabase SDK 로딩 실패')), { once: true })
+      return
+    }
+
+    const script = document.createElement('script')
+    script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js'
+    script.async = true
+    script.dataset.janSupabaseSdk = 'true'
+    script.onload = () => resolve()
+    script.onerror = () => reject(new Error('Supabase SDK 로딩 실패'))
+    document.head.appendChild(script)
+  })
+
+  return sdkPromise
+}
+
+async function getClient(): Promise<SupabaseClientLike> {
+  const cfg = getSupabaseRuntimeConfig()
+  if (!cfg.url || !cfg.anonKey) throw new Error('Supabase 설정이 없습니다')
+
+  const key = configKey(cfg.url, cfg.anonKey)
+  if (client && clientKey === key) return client
+  if (clientPromise && clientPromiseKey === key) return clientPromise
+
+  clientPromiseKey = key
+  clientPromise = (async () => {
+    await loadSupabaseSdk()
+    if (!window.supabase) throw new Error('Supabase SDK를 사용할 수 없습니다')
+
+    client = window.supabase.createClient(cfg.url, cfg.anonKey, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+    })
+    clientKey = key
+    return client
+  })()
+
+  try {
+    return await clientPromise
+  } finally {
+    clientPromise = null
+    clientPromiseKey = ''
   }
+}
+
+export function getSupabaseConfigStatus(): { configured: boolean; source: 'runtime' | 'settings' | 'missing'; url: string } {
+  const cfg = getSupabaseRuntimeConfig()
+  return { configured: !!(cfg.url && cfg.anonKey), source: cfg.source, url: cfg.url }
 }
 
 export function syncConfigured(): boolean {
-  const c = getCfg()
-  return !!(c.url && c.key && c.email)
+  return getSupabaseConfigStatus().configured
 }
 
-async function fetchRemote(): Promise<RemoteNote[]> {
-  const c = getCfg()
-  const r = await fetch(
-    `${c.url}/rest/v1/notes?select=*&owner_email=eq.${encodeURIComponent(c.email)}`,
-    {
-      headers: { apikey: c.key, Authorization: `Bearer ${c.key}` },
-    }
-  )
-  if (!r.ok) throw new Error(`Supabase 조회 실패: ${r.status} ${await r.text().catch(() => '')}`)
-  return (await r.json()) as RemoteNote[]
+export async function getSession(): Promise<SupabaseSession | null> {
+  const sb = await getClient()
+  const { data, error } = await sb.auth.getSession()
+  if (error) throw new Error(error.message || '세션 확인 실패')
+  return data.session
 }
 
-async function upsertRemote(note: { id: string; title: string; content: string; updatedAt: number }) {
-  const c = getCfg()
-  const body = {
-    id: note.id,
-    title: note.title,
-    content: note.content,
-    updated_at: new Date(note.updatedAt).toISOString(),
-    owner_email: c.email,
-  }
-  const r = await fetch(`${c.url}/rest/v1/notes?on_conflict=id`, {
-    method: 'POST',
-    headers: {
-      apikey: c.key,
-      Authorization: `Bearer ${c.key}`,
-      'Content-Type': 'application/json',
-      Prefer: 'resolution=merge-duplicates,return=minimal',
-    },
-    body: JSON.stringify(body),
-  })
-  if (!r.ok) throw new Error(`upsert 실패 ${r.status}: ${await r.text().catch(() => '')}`)
-}
-
-/** 양방향 동기화. last-write-wins. */
-export async function syncNow(): Promise<SyncResult> {
-  if (!syncConfigured()) return { ok: false, pushed: 0, pulled: 0, error: '설정 미완료' }
-  let pushed = 0,
-    pulled = 0
+export async function signInGoogle(): Promise<{ ok: boolean; error?: string }> {
   try {
-    const local = useMemosStore.getState().memos
-    const remote = await fetchRemote()
-    const remoteMap = new Map(remote.map((r) => [r.id, r]))
-
-    // local → remote (로컬이 더 최신)
-    for (const id of Object.keys(local)) {
-      const lo = local[id]
-      const re = remoteMap.get(id)
-      if (!re || new Date(re.updated_at).getTime() < lo.updatedAt) {
-        await upsertRemote({ id: lo.id, title: lo.title, content: lo.content, updatedAt: lo.updatedAt })
-        pushed++
-      }
-    }
-
-    // remote → local (원격이 더 최신 또는 로컬에 없음)
-    for (const re of remote) {
-      const lo = local[re.id]
-      const reTs = new Date(re.updated_at).getTime()
-      if (!lo || lo.updatedAt < reTs) {
-        useMemosStore.setState((s) => {
-          const merged = {
-            ...(lo || {
-              id: re.id,
-              createdAt: reTs,
-            }),
-            id: re.id,
-            title: re.title || '무제',
-            content: re.content || '<p></p>',
-            updatedAt: reTs,
-          }
-          const newOrder = s.order.includes(re.id) ? s.order : [re.id, ...s.order]
-          return { memos: { ...s.memos, [re.id]: merged as any }, order: newOrder }
-        })
-        pulled++
-      }
-    }
-    return { ok: true, pushed, pulled }
-  } catch (e: any) {
-    return { ok: false, pushed, pulled, error: e.message || String(e) }
+    const sb = await getClient()
+    const { error } = await sb.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: getRedirectUrl() },
+    })
+    if (error) return { ok: false, error: error.message || 'Google 로그인 실패' }
+    useSettingsStore.getState().setKey('syncEnabled', true)
+    return { ok: true }
+  } catch (e: unknown) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) }
   }
 }
 
-/** 단일 메모만 푸시 (저장 시 호출). */
+export async function signOut(): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const sb = await getClient()
+    const { error } = await sb.auth.signOut()
+    if (error) return { ok: false, error: error.message || '로그아웃 실패' }
+    return { ok: true }
+  } catch (e: unknown) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) }
+  }
+}
+
+async function fetchCloudSnapshot(session: SupabaseSession): Promise<UserDataRow | null> {
+  const sb = await getClient()
+  const { data, error } = await sb
+    .from('user_data')
+    .select('data, updated_at, version')
+    .eq('user_id', session.user.id)
+    .maybeSingle()
+  if (error) throw new Error(error.message || '클라우드 데이터 조회 실패')
+  return data
+}
+
+async function upsertCloudSnapshot(session: SupabaseSession, snapshot: V2Snapshot): Promise<void> {
+  const sb = await getClient()
+  const { error } = await sb.from('user_data').upsert({
+    user_id: session.user.id,
+    data: snapshot,
+    version: 2,
+    updated_at: new Date().toISOString(),
+  })
+  if (error) throw new Error(error.message || '클라우드 데이터 저장 실패')
+}
+
+/** Full bidirectional sync. Remote v1 blobs are migrated into the v2 snapshot shape. */
+export async function syncNow(): Promise<SyncResult> {
+  if (!syncConfigured()) return { ok: false, pushed: 0, pulled: 0, error: 'Supabase 설정이 없습니다' }
+
+  let pushed = 0
+  let pulled = 0
+  try {
+    const session = await getSession()
+    if (!session) return { ok: false, pushed, pulled, error: 'Google 로그인 후 동기화할 수 있습니다' }
+
+    const cloud = await fetchCloudSnapshot(session)
+    if (cloud?.data) {
+      const snapshot = snapshotFromCloudData(cloud.data)
+      if (!snapshot) return { ok: false, pushed, pulled, error: '지원하지 않는 클라우드 데이터 형식입니다' }
+      const applied = applyV2Snapshot(snapshot)
+      pulled = applied.memosChanged + applied.trashChanged + applied.tagsChanged + applied.workspacesChanged
+    }
+
+    await upsertCloudSnapshot(session, createV2Snapshot())
+    pushed = 1
+    useSettingsStore.getState().setKey('syncEnabled', true)
+    try {
+      localStorage.setItem('jan.v2.sync.lastAt', String(Date.now()))
+    } catch {}
+    return { ok: true, pushed, pulled }
+  } catch (e: unknown) {
+    return { ok: false, pushed, pulled, error: e instanceof Error ? e.message : String(e) }
+  }
+}
+
+/** Autosave hook entry point. The whole snapshot is uploaded to keep order/tags/workspaces coherent. */
 export async function pushOne(id: string): Promise<boolean> {
   if (!syncConfigured()) return false
-  const m = useMemosStore.getState().memos[id]
-  if (!m) return false
+  if (!useSettingsStore.getState().syncEnabled) return false
+  if (!useMemosStore.getState().memos[id]) return false
+
   try {
-    await upsertRemote({ id: m.id, title: m.title, content: m.content, updatedAt: m.updatedAt })
+    const session = await getSession()
+    if (!session) return false
+    await upsertCloudSnapshot(session, createV2Snapshot())
+    try {
+      localStorage.setItem('jan.v2.sync.lastAt', String(Date.now()))
+    } catch {}
     return true
   } catch {
     return false

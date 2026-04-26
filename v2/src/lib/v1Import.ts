@@ -1,5 +1,6 @@
 import { migrateV1Html } from './migration'
 import { useMemosStore } from '../store/memosStore'
+import { applyV2Snapshot, createV2Snapshot, snapshotFromCloudData } from './snapshot'
 
 export interface V1ImportResult {
   imported: number
@@ -73,29 +74,20 @@ export function importV1FromLocalStorage(): V1ImportResult {
 }
 
 export function exportV2ToJson(): string {
-  const state = useMemosStore.getState()
-  return JSON.stringify({ version: 2, exportedAt: Date.now(), memos: state.memos, order: state.order }, null, 2)
+  return JSON.stringify(createV2Snapshot(), null, 2)
 }
 
 export function importV2FromJson(json: string): V1ImportResult {
   const result: V1ImportResult = { imported: 0, skipped: 0, errors: [] }
   try {
     const data = JSON.parse(json)
-    if (!data.memos || typeof data.memos !== 'object') {
+    const snapshot = snapshotFromCloudData(data)
+    if (!snapshot) {
       result.errors.push('유효하지 않은 백업 파일')
       return result
     }
-    const store = useMemosStore.getState()
-    for (const memo of Object.values(data.memos as Record<string, any>)) {
-      if (!memo || typeof memo !== 'object' || !memo.content) { result.skipped++; continue }
-      const id = store.newMemo()
-      useMemosStore.setState((s) => {
-        const cur = s.memos[id]
-        if (!cur) return s
-        return { memos: { ...s.memos, [id]: { ...cur, title: memo.title || '무제', content: memo.content || '<p></p>', updatedAt: Date.now() } } }
-      })
-      result.imported++
-    }
+    const applied = applyV2Snapshot(snapshot)
+    result.imported = applied.memosChanged + applied.trashChanged
   } catch (e: any) {
     result.errors.push('백업 파일 파싱 실패: ' + e.message)
   }
