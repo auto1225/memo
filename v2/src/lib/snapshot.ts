@@ -13,6 +13,7 @@ import { useUIStore } from '../store/uiStore'
 import { useThemeStore } from '../store/themeStore'
 import { useTypographyStore } from '../store/typographyStore'
 import { useWritingGoalStore } from '../store/writingGoalStore'
+import type { AttachmentSnapshot } from './attachments'
 
 export interface V2Snapshot {
   app: 'justanotepad'
@@ -52,6 +53,7 @@ export interface V2Snapshot {
     theme?: Record<string, unknown>
     typography?: Record<string, unknown>
     writingGoal?: Record<string, unknown>
+    attachments?: AttachmentSnapshot[]
   }
 }
 
@@ -214,6 +216,7 @@ function normalizeExtras(raw: unknown): V2Snapshot['extras'] | undefined {
   for (const key of ['settings', 'ui', 'theme', 'typography', 'writingGoal'] as const) {
     if (isRecord(raw[key])) extras[key] = cloneJson(raw[key]) as Record<string, unknown>
   }
+  if (Array.isArray(raw.attachments)) extras.attachments = cloneJson(raw.attachments) as AttachmentSnapshot[]
 
   return Object.keys(extras).length ? extras : undefined
 }

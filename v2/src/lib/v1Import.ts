@@ -2,6 +2,7 @@ import { migrateV1Html } from './migration'
 import { useMemosStore } from '../store/memosStore'
 import { applyV2Snapshot, createV2Snapshot, snapshotFromCloudData, type V2Snapshot } from './snapshot'
 import { externalizeLargeDataUrlsInHtml, importV1BlobRefsInHtml, resolveBlobRefsInHtml } from './blobRefs'
+import { exportAttachments, importAttachments } from './attachments'
 
 export interface V1ImportResult {
   imported: number
@@ -57,6 +58,7 @@ async function prepareLegacyBlob(raw: unknown): Promise<unknown> {
 
 async function hydrateSnapshotForJson(snapshot: V2Snapshot): Promise<V2Snapshot> {
   const cloned = JSON.parse(JSON.stringify(snapshot)) as V2Snapshot
+  cloned.extras = cloned.extras || {}
 
   for (const memo of Object.values(cloned.memos)) memo.content = await resolveBlobRefsInHtml(memo.content)
   for (const memo of Object.values(cloned.trashed)) memo.content = await resolveBlobRefsInHtml(memo.content)
@@ -77,8 +79,13 @@ async function hydrateSnapshotForJson(snapshot: V2Snapshot): Promise<V2Snapshot>
       for (const version of versions) version.content = await resolveBlobRefsInHtml(version.content)
     }
   }
+  cloned.extras.attachments = await exportAttachments()
 
   return cloned
+}
+
+export async function createPortableV2Snapshot(): Promise<V2Snapshot> {
+  return hydrateSnapshotForJson(createV2Snapshot())
 }
 
 async function externalizeSnapshotForLocalImport(snapshot: V2Snapshot): Promise<V2Snapshot> {
@@ -116,6 +123,11 @@ function applySnapshotImport(snapshot: V2Snapshot, result: V1ImportResult) {
     applied.workspacesChanged +
     applied.cardsChanged +
     applied.extrasChanged
+}
+
+async function applySnapshotImportAsync(snapshot: V2Snapshot, result: V1ImportResult) {
+  applySnapshotImport(snapshot, result)
+  result.imported += await importAttachments(snapshot.extras?.attachments)
 }
 
 export async function importV1FromLocalStorage(): Promise<V1ImportResult> {
@@ -217,7 +229,22 @@ export async function importV1FromLocalStorage(): Promise<V1ImportResult> {
 }
 
 export async function exportV2ToJson(): Promise<string> {
-  return JSON.stringify(await hydrateSnapshotForJson(createV2Snapshot()), null, 2)
+  return JSON.stringify(await createPortableV2Snapshot(), null, 2)
+}
+
+export async function importV2SnapshotDataAsync(data: unknown): Promise<V1ImportResult> {
+  const result: V1ImportResult = { imported: 0, skipped: 0, errors: [] }
+  try {
+    const snapshot = snapshotFromCloudData(data)
+    if (!snapshot) {
+      result.errors.push('유효하지 않은 백업 파일')
+      return result
+    }
+    await applySnapshotImportAsync(await externalizeSnapshotForLocalImport(snapshot), result)
+  } catch (e: unknown) {
+    result.errors.push('백업 파일 파싱 실패: ' + (e instanceof Error ? e.message : String(e)))
+  }
+  return result
 }
 
 export function importV2FromJson(json: string): V1ImportResult {
@@ -237,17 +264,12 @@ export function importV2FromJson(json: string): V1ImportResult {
 }
 
 export async function importV2FromJsonAsync(json: string): Promise<V1ImportResult> {
-  const result: V1ImportResult = { imported: 0, skipped: 0, errors: [] }
   try {
     const data = JSON.parse(json)
-    const snapshot = snapshotFromCloudData(data)
-    if (!snapshot) {
-      result.errors.push('유효하지 않은 백업 파일')
-      return result
-    }
-    applySnapshotImport(await externalizeSnapshotForLocalImport(snapshot), result)
+    return importV2SnapshotDataAsync(data)
   } catch (e: unknown) {
+    const result: V1ImportResult = { imported: 0, skipped: 0, errors: [] }
     result.errors.push('백업 파일 파싱 실패: ' + (e instanceof Error ? e.message : String(e)))
+    return result
   }
-  return result
 }

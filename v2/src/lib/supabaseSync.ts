@@ -6,9 +6,10 @@
  * instead of writing unauthenticated note rows.
  */
 import { getSupabaseRuntimeConfig } from './runtimeConfig'
-import { applyV2Snapshot, createV2Snapshot, snapshotFromCloudData, type V2Snapshot } from './snapshot'
+import type { V2Snapshot } from './snapshot'
 import { useMemosStore } from '../store/memosStore'
 import { useSettingsStore } from '../store/settingsStore'
+import { createPortableV2Snapshot, importV2SnapshotDataAsync } from './v1Import'
 
 interface SupabaseError {
   message?: string
@@ -196,6 +197,10 @@ async function upsertCloudSnapshot(session: SupabaseSession, snapshot: V2Snapsho
   if (error) throw new Error(error.message || '클라우드 데이터 저장 실패')
 }
 
+async function createCloudSnapshot(): Promise<V2Snapshot> {
+  return createPortableV2Snapshot()
+}
+
 /** Full bidirectional sync. Remote v1 blobs are migrated into the v2 snapshot shape. */
 export async function syncNow(): Promise<SyncResult> {
   if (!syncConfigured()) return { ok: false, pushed: 0, pulled: 0, error: 'Supabase 설정이 없습니다' }
@@ -208,18 +213,19 @@ export async function syncNow(): Promise<SyncResult> {
 
     const cloud = await fetchCloudSnapshot(session)
     if (cloud?.data) {
-      const snapshot = snapshotFromCloudData(cloud.data)
-      if (!snapshot) return { ok: false, pushed, pulled, error: '지원하지 않는 클라우드 데이터 형식입니다' }
-      const applied = applyV2Snapshot(snapshot)
-      pulled = applied.memosChanged + applied.trashChanged + applied.tagsChanged + applied.workspacesChanged + applied.cardsChanged
+      const imported = await importV2SnapshotDataAsync(cloud.data)
+      if (imported.errors.length) return { ok: false, pushed, pulled, error: imported.errors[0] }
+      pulled = imported.imported
     }
 
-    await upsertCloudSnapshot(session, createV2Snapshot())
+    await upsertCloudSnapshot(session, await createCloudSnapshot())
     pushed = 1
     useSettingsStore.getState().setKey('syncEnabled', true)
     try {
       localStorage.setItem('jan.v2.sync.lastAt', String(Date.now()))
-    } catch {}
+    } catch {
+      // Last-sync display is best-effort; sync success should not depend on localStorage.
+    }
     return { ok: true, pushed, pulled }
   } catch (e: unknown) {
     return { ok: false, pushed, pulled, error: e instanceof Error ? e.message : String(e) }
@@ -235,10 +241,12 @@ export async function pushOne(id: string): Promise<boolean> {
   try {
     const session = await getSession()
     if (!session) return false
-    await upsertCloudSnapshot(session, createV2Snapshot())
+    await upsertCloudSnapshot(session, await createCloudSnapshot())
     try {
       localStorage.setItem('jan.v2.sync.lastAt', String(Date.now()))
-    } catch {}
+    } catch {
+      // Last-sync display is best-effort; sync success should not depend on localStorage.
+    }
     return true
   } catch {
     return false

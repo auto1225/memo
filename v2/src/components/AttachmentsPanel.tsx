@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Editor } from '@tiptap/react'
-import { saveAttachment, listAttachments, deleteAttachment, attachmentObjectUrl } from '../lib/attachments'
+import { deleteAttachment, downloadAttachment, fileToDataUrl, listAttachments, saveAttachment } from '../lib/attachments'
+import { resolveBlobRefsInElement, saveDataUrlAsBlobRef } from '../lib/blobRefs'
 import { useMemosStore } from '../store/memosStore'
 
 interface AttachmentsPanelProps {
@@ -17,11 +18,6 @@ interface AttRow {
   createdAt: number
 }
 
-/**
- * Phase 12 — IndexedDB 첨부 매니저.
- * 파일 선택 → 저장 → 메모에 링크 삽입.
- * 기존 첨부 목록 + 다운로드 / 삭제.
- */
 export function AttachmentsPanel({ editor, onClose }: AttachmentsPanelProps) {
   const memo = useMemosStore((s) => s.current())
   const [items, setItems] = useState<AttRow[]>([])
@@ -34,8 +30,26 @@ export function AttachmentsPanel({ editor, onClose }: AttachmentsPanelProps) {
   }
 
   useEffect(() => {
-    refresh()
+    let cancelled = false
+    void listAttachments(scope === 'memo' ? memo?.id : undefined).then((list) => {
+      if (!cancelled) setItems(list as AttRow[])
+    })
+    return () => { cancelled = true }
   }, [scope, memo?.id])
+
+  async function insertAttachment(file: File, id: string) {
+    if (!editor) return
+    if (file.type.startsWith('image/')) {
+      const ref = await saveDataUrlAsBlobRef(await fileToDataUrl(file))
+      editor.chain().focus().setImage({ src: ref, alt: file.name, title: `attachment:${id}` }).run()
+      window.setTimeout(() => resolveBlobRefsInElement(editor.view.dom).catch(() => {}), 0)
+      return
+    }
+
+    const name = escAttr(file.name)
+    const link = `<p>첨부 <a href="indexeddb:${id}" data-att="${id}" data-name="${name}">${name}</a> (${fmtSize(file.size)})</p>`
+    editor.chain().focus().insertContent(link).run()
+  }
 
   async function pickFiles() {
     const input = document.createElement('input')
@@ -46,18 +60,9 @@ export function AttachmentsPanel({ editor, onClose }: AttachmentsPanelProps) {
       if (!files || files.length === 0) return
       setBusy(true)
       try {
-        for (const f of Array.from(files)) {
-          const id = await saveAttachment(f, memo?.id)
-          // 메모에 링크 삽입
-          if (editor) {
-            if (f.type.startsWith('image/')) {
-              const url = await attachmentObjectUrl(id)
-              if (url) editor.chain().focus().setImage({ src: url }).run()
-            } else {
-              const link = `<p>📎 <a href="indexeddb:${id}" data-att="${id}" data-name="${escAttr(f.name)}">${escAttr(f.name)}</a> (${fmtSize(f.size)})</p>`
-              editor.chain().focus().insertContent(link).run()
-            }
-          }
+        for (const file of Array.from(files)) {
+          const id = await saveAttachment(file, memo?.id)
+          await insertAttachment(file, id)
         }
         await refresh()
       } finally {
@@ -68,19 +73,12 @@ export function AttachmentsPanel({ editor, onClose }: AttachmentsPanelProps) {
   }
 
   async function open(id: string, name: string) {
-    const url = await attachmentObjectUrl(id)
-    if (!url) return alert('첨부를 찾을 수 없습니다')
-    const a = document.createElement('a')
-    a.href = url
-    a.download = name
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    setTimeout(() => URL.revokeObjectURL(url), 1000)
+    const ok = await downloadAttachment(id, name)
+    if (!ok) alert('첨부파일을 찾을 수 없습니다.')
   }
 
   async function del(id: string) {
-    if (!confirm('첨부를 삭제할까요?')) return
+    if (!confirm('첨부파일을 삭제할까요?')) return
     await deleteAttachment(id)
     await refresh()
   }
@@ -95,16 +93,16 @@ export function AttachmentsPanel({ editor, onClose }: AttachmentsPanelProps) {
         <div className="jan-modal-body">
           <div className="jan-att-tools">
             <button onClick={pickFiles} disabled={busy} className="primary">
-              + 파일 추가
+              {busy ? '추가 중...' : '+ 파일 추가'}
             </button>
-            <select value={scope} onChange={(e) => setScope(e.target.value as any)}>
+            <select value={scope} onChange={(e) => setScope(e.target.value as 'all' | 'memo')}>
               <option value="memo">현재 메모만</option>
               <option value="all">전체</option>
             </select>
             <span className="jan-att-stats">{items.length}개 · {fmtSize(items.reduce((a, b) => a + b.size, 0))}</span>
           </div>
           <ul className="jan-att-list">
-            {items.length === 0 && <li className="jan-att-empty">첨부 없음</li>}
+            {items.length === 0 && <li className="jan-att-empty">첨부 파일 없음</li>}
             {items.map((a) => (
               <li key={a.id} className="jan-att-item">
                 <span className="jan-att-name" title={a.name}>{a.name}</span>
@@ -128,6 +126,7 @@ function fmtSize(b: number): string {
   if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)}KB`
   return `${(b / 1024 / 1024).toFixed(1)}MB`
 }
+
 function escAttr(s: string): string {
   return s.replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c] || c))
 }

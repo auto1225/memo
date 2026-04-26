@@ -76,6 +76,7 @@ function dataUrlToBlob(dataUrl: string): Blob | null {
 
 async function putDataUrl(id: string, dataUrl: string): Promise<void> {
   memoryCache.set(id, dataUrl)
+  if (!hasIndexedDb()) return
   await withStore<IDBValidKey>('readwrite', (store) => store.put(dataUrl, id))
 }
 

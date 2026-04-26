@@ -9,6 +9,7 @@ import type { IconName } from './Icons'
 import { useTypographyStore, type FontFamily } from '../store/typographyStore'
 import { PAPER_STYLES, useUIStore } from '../store/uiStore'
 import { useMemosStore } from '../store/memosStore'
+import { exportV2ToJson, importV2FromJsonAsync } from '../lib/v1Import'
 
 interface ToolbarProps {
   editor: Editor | null
@@ -416,10 +417,9 @@ export function Toolbar(p: ToolbarProps) {
     const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = '메모.doc'
     document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(() => URL.revokeObjectURL(url), 800)
   }
-  const exportJsonBackup = () => {
-    const all = useMemosStore.getState().list()
-    const data = { exportedAt: new Date().toISOString(), version: 'v2', memos: all }
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+  const exportJsonBackup = async () => {
+    const json = await exportV2ToJson()
+    const blob = new Blob([json], { type: 'application/json' })
     const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `JustANotepad-backup-${Date.now()}.json`
     document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(() => URL.revokeObjectURL(url), 800)
   }
@@ -428,17 +428,14 @@ export function Toolbar(p: ToolbarProps) {
     inp.onchange = () => {
       const file = inp.files?.[0]; if (!file) return
       const r = new FileReader()
-      r.onload = () => {
+      r.onload = async () => {
         try {
-          const data = JSON.parse(String(r.result))
-          if (!data.memos || !Array.isArray(data.memos)) { alert('유효한 백업 파일이 아닙니다.'); return }
-          if (!confirm(`${data.memos.length}개 메모를 가져옵니다. 진행하시겠습니까?`)) return
-          const store = useMemosStore.getState() as any
-          data.memos.forEach((m: any) => {
-            if (store.upsert) store.upsert(m)
-            else if (store.newMemo && store.updateCurrent) { store.newMemo(); store.updateCurrent({ title: m.title, content: m.content }) }
-          })
-          alert(`${data.memos.length}개 가져오기 완료`)
+          const result = await importV2FromJsonAsync(String(r.result))
+          if (result.errors.length) {
+            alert(`가져오기 오류 ${result.errors.length}개: ${result.errors[0]}`)
+            return
+          }
+          alert(`백업 가져오기 완료: ${result.imported}개 항목 반영`)
         } catch (e: any) { alert('가져오기 실패: ' + (e.message || e)) }
       }
       r.readAsText(file)

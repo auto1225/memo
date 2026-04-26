@@ -65,6 +65,7 @@ import { Lightbox } from './Lightbox'
 import type { RoleToolId } from '../lib/roles'
 import { externalizeLargeDataUrlsInHtml, resolveBlobRefsInElement } from '../lib/blobRefs'
 import { pushActiveSnapshot } from '../lib/activeSync'
+import { downloadAttachment } from '../lib/attachments'
 
 const AiHelper = lazy(() => import('./AiHelper').then((m) => ({ default: m.AiHelper })))
 const SettingsModal = lazy(() => import('./SettingsModal').then((m) => ({ default: m.SettingsModal })))
@@ -330,6 +331,25 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
     if (!editor) return
     resolveBlobRefsInElement(editor.view.dom).catch(() => {})
   }, [editor, currentId, memo?.content])
+
+  useEffect(() => {
+    if (!editor) return
+    const root = editor.view.dom
+    const onClick = (event: MouseEvent) => {
+      const target = event.target as Element | null
+      const link = target?.closest?.('a[href^="indexeddb:"]') as HTMLAnchorElement | null
+      if (!link) return
+      event.preventDefault()
+      const id = link.getAttribute('data-att') || link.getAttribute('href')?.replace(/^indexeddb:/, '') || ''
+      if (!id) return
+      const name = link.getAttribute('data-name') || link.textContent || undefined
+      downloadAttachment(id, name).then((ok) => {
+        if (!ok) alert('첨부파일을 찾을 수 없습니다.')
+      }).catch(() => alert('첨부파일을 열 수 없습니다.'))
+    }
+    root.addEventListener('click', onClick)
+    return () => root.removeEventListener('click', onClick)
+  }, [editor])
 
   useEffect(() => {
     if (!editor) return

@@ -46,8 +46,14 @@ export function AppHeader(p: AppHeaderProps) {
   const [pomoLeft, setPomoLeft] = useState<number | null>(null)
   useEffect(() => {
     if (pomoLeft === null) return
-    if (pomoLeft <= 0) { setPomoLeft(null); alert('포모도로 완료! 5분 휴식하세요.'); return }
-    const t = setTimeout(() => setPomoLeft(pomoLeft - 1000), 1000)
+    const t = setTimeout(() => {
+      if (pomoLeft <= 1000) {
+        setPomoLeft(null)
+        alert('포모도로 완료! 5분 휴식하세요.')
+        return
+      }
+      setPomoLeft(pomoLeft - 1000)
+    }, 1000)
     return () => clearTimeout(t)
   }, [pomoLeft])
   const togglePomo = () => {
@@ -62,6 +68,15 @@ export function AppHeader(p: AppHeaderProps) {
   function cycleTheme() {
     setTheme(theme === 'light' ? 'dark' : theme === 'dark' ? 'auto' : 'light')
   }
+
+  function toggleSidebarFromHeader() {
+    if (typeof window !== 'undefined' && window.matchMedia('(max-width: 700px)').matches) {
+      document.body.classList.toggle('jan-mobile-sidebar-open')
+      return
+    }
+    toggleSidebar()
+  }
+
   const themeIcon: 'sun' | 'moon' | 'auto' =
     theme === 'light' ? 'sun' : theme === 'dark' ? 'moon' : 'auto'
 
@@ -125,7 +140,7 @@ export function AppHeader(p: AppHeaderProps) {
     const all = list().slice(0, 20)
     const w = window.open('', '_blank', 'width=600,height=700')
     if (!w) return
-    const items = all.map((m: any) => `<li><a href="javascript:void(0)" data-id="${m.id}">${m.title || '제목없음'}</a> — ${new Date(m.updatedAt || m.createdAt || Date.now()).toLocaleString('ko-KR')}</li>`).join('')
+    const items = all.map((m) => `<li><a href="javascript:void(0)" data-id="${m.id}">${m.title || '제목없음'}</a> — ${new Date(m.updatedAt || Date.now()).toLocaleString('ko-KR')}</li>`).join('')
     w.document.write(`<!doctype html><html><head><title>홈 허브</title><style>body{font-family:sans-serif;padding:1em;background:#FFF8E7;} ul{list-style:none;padding:0;} li{padding:8px;border-bottom:1px solid #eee;} a{color:#333;text-decoration:none;font-weight:600;} a:hover{color:#FAE100;}</style></head><body><h2>홈 허브 — 최근 메모 ${all.length}개</h2><ul>${items}</ul></body></html>`)
     w.document.close()
   }
@@ -135,14 +150,46 @@ export function AppHeader(p: AppHeaderProps) {
   const openCms = () => {
     if (confirm('CMS 관리자 페이지로 이동합니다 (Super Admin 전용)')) window.open('/admin', '_blank')
   }
-  const tauriPin = async () => { try { const t: any = (window as any).__TAURI__; if (!t) { alert('데스크톱 앱에서만 사용 가능'); return } const w = t.window?.getCurrent?.(); if (w?.setAlwaysOnTop) { const cur = await w.isAlwaysOnTop?.(); await w.setAlwaysOnTop(!cur) } } catch (e: any) { alert('실패: ' + e.message) } }
-  const tauriMin = async () => { try { const t: any = (window as any).__TAURI__; const w = t?.window?.getCurrent?.(); if (w?.minimize) await w.minimize() } catch {} }
-  const tauriMax = async () => { try { const t: any = (window as any).__TAURI__; const w = t?.window?.getCurrent?.(); if (w?.toggleMaximize) await w.toggleMaximize() } catch {} }
-  const tauriClose = async () => { try { const t: any = (window as any).__TAURI__; const w = t?.window?.getCurrent?.(); if (w?.close) await w.close() } catch {} }
+  type TauriWindow = {
+    isAlwaysOnTop?: () => Promise<boolean>
+    setAlwaysOnTop?: (value: boolean) => Promise<void>
+    minimize?: () => Promise<void>
+    toggleMaximize?: () => Promise<void>
+    close?: () => Promise<void>
+  }
+  const getTauriWindow = (): TauriWindow | undefined =>
+    (window as Window & { __TAURI__?: { window?: { getCurrent?: () => TauriWindow } } }).__TAURI__?.window?.getCurrent?.()
+  const tauriPin = async () => {
+    try {
+      const w = getTauriWindow()
+      if (!w) { alert('데스크톱 앱에서만 사용 가능'); return }
+      if (w.setAlwaysOnTop) {
+        const cur = await w.isAlwaysOnTop?.()
+        await w.setAlwaysOnTop(!cur)
+      }
+    } catch (e: unknown) {
+      alert('실패: ' + (e instanceof Error ? e.message : String(e)))
+    }
+  }
+  const tauriMin = async () => {
+    try { await getTauriWindow()?.minimize?.() } catch {
+      // Desktop window controls are best-effort in the browser build.
+    }
+  }
+  const tauriMax = async () => {
+    try { await getTauriWindow()?.toggleMaximize?.() } catch {
+      // Desktop window controls are best-effort in the browser build.
+    }
+  }
+  const tauriClose = async () => {
+    try { await getTauriWindow()?.close?.() } catch {
+      // Desktop window controls are best-effort in the browser build.
+    }
+  }
   return (
     <header className="jan-app-header">
       <div className="jan-header-left">
-        <button className="jan-header-btn" onClick={toggleSidebar} title={sidebarCollapsed ? '사이드바 열기' : '사이드바 접기'} aria-label="메뉴">
+        <button className="jan-header-btn" onClick={toggleSidebarFromHeader} title={sidebarCollapsed ? '사이드바 열기' : '사이드바 접기'} aria-label="메뉴">
           <Icon name="menu" size={18} />
         </button>
         <div className="jan-header-logo">

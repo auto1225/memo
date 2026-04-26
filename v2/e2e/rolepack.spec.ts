@@ -2,13 +2,12 @@ import { expect, test } from '@playwright/test'
 
 test.describe('role pack and my tools', () => {
   test('selects roles, opens a tool, and inserts a template', async ({ page }) => {
-    await page.goto('./')
-    await page.evaluate(() => {
+    await page.addInitScript(() => {
       localStorage.setItem('jan-v2-role-onboarded', '1')
       localStorage.removeItem('jan-v2-role-tools')
     })
-    await page.reload()
-    await page.locator('.ProseMirror').first().waitFor({ state: 'visible' })
+    await page.goto('./')
+    await page.locator('.ProseMirror').first().waitFor({ state: 'visible', timeout: 15000 })
 
     await page.getByLabel('내 도구 / 역할 팩').click()
     await expect(page.locator('.jan-rolepack-modal')).toBeVisible()
