@@ -502,6 +502,7 @@ test.describe('v2 smoke', () => {
   })
 
   test('document style presets apply Word-like typography settings', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('jan-v2-role-onboarded', '1'))
     await page.goto('./')
     await page.locator('.ProseMirror').first().waitFor({ state: 'visible', timeout: 15000 })
 
