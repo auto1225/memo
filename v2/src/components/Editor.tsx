@@ -200,8 +200,21 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
     }
     return marks
   }, [pageMm.widthMm])
+  const verticalRulerMarks = useMemo(() => {
+    const height = Math.max(1, Math.round(pageMm.heightMm))
+    const marks: Array<{ mm: number; percent: number; major: boolean }> = []
+    for (let mm = 0; mm <= height; mm += 10) {
+      marks.push({ mm, percent: (mm / height) * 100, major: mm % 50 === 0 })
+    }
+    if (marks[marks.length - 1]?.mm !== height) {
+      marks.push({ mm: height, percent: 100, major: true })
+    }
+    return marks
+  }, [pageMm.heightMm])
   const leftMarginPercent = Math.min(100, Math.max(0, (pageMargins.left / pageMm.widthMm) * 100))
   const rightMarginPercent = Math.min(100, Math.max(0, (pageMargins.right / pageMm.widthMm) * 100))
+  const topMarginPercent = Math.min(100, Math.max(0, (pageMargins.top / pageMm.heightMm) * 100))
+  const bottomMarginPercent = Math.min(100, Math.max(0, (pageMargins.bottom / pageMm.heightMm) * 100))
 
   const initialContent = memo?.content || '<p></p>'
   const title = memo?.title || '새 메모'
@@ -643,7 +656,7 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
           data-page-columns={pageColumnCount}
           style={pageStyle}
         >
-          <div className="jan-page-ruler" role="img" aria-label={`페이지 눈금자 ${Math.round(pageMm.widthMm)}mm`}>
+          <div className="jan-page-ruler" role="img" aria-label={`가로 페이지 눈금자 ${Math.round(pageMm.widthMm)}mm`}>
             <div className="jan-page-ruler-track" aria-hidden="true">
               {rulerMarks.map((mark) => (
                 <span
@@ -668,19 +681,46 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
               </span>
             </div>
           </div>
-          <div className="jan-page-shell" data-has-running-preview={hasRunningPreview ? 'true' : 'false'}>
-            <EditorContent editor={editor} />
-            <div className="jan-page-margin-frame" aria-hidden="true" />
-            {runningHeaderPreview && (
-              <div className="jan-page-running jan-page-running-header" aria-label="편집 화면 머리글 미리보기">
-                {runningHeaderPreview}
+          <div className="jan-page-layout">
+            <div className="jan-page-vertical-ruler" role="img" aria-label={`세로 페이지 눈금자 ${Math.round(pageMm.heightMm)}mm`}>
+              <div className="jan-page-vertical-ruler-track" aria-hidden="true">
+                {verticalRulerMarks.map((mark) => (
+                  <span
+                    key={mark.mm}
+                    className={'jan-page-vertical-ruler-tick' + (mark.major ? ' is-major' : '')}
+                    style={{ top: `${mark.percent}%` }}
+                  >
+                    {mark.major && <em>{mark.mm}</em>}
+                  </span>
+                ))}
+                <span
+                  className="jan-page-vertical-ruler-margin jan-page-vertical-ruler-margin-top"
+                  style={{ top: `${topMarginPercent}%` }}
+                >
+                  <b>{pageMargins.top}mm</b>
+                </span>
+                <span
+                  className="jan-page-vertical-ruler-margin jan-page-vertical-ruler-margin-bottom"
+                  style={{ bottom: `${bottomMarginPercent}%` }}
+                >
+                  <b>{pageMargins.bottom}mm</b>
+                </span>
               </div>
-            )}
-            {runningFooterPreview && (
-              <div className="jan-page-running jan-page-running-footer" aria-label="편집 화면 꼬리말 미리보기">
-                {runningFooterPreview}
-              </div>
-            )}
+            </div>
+            <div className="jan-page-shell" data-has-running-preview={hasRunningPreview ? 'true' : 'false'}>
+              <EditorContent editor={editor} />
+              <div className="jan-page-margin-frame" aria-hidden="true" />
+              {runningHeaderPreview && (
+                <div className="jan-page-running jan-page-running-header" aria-label="편집 화면 머리글 미리보기">
+                  {runningHeaderPreview}
+                </div>
+              )}
+              {runningFooterPreview && (
+                <div className="jan-page-running jan-page-running-footer" aria-label="편집 화면 꼬리말 미리보기">
+                  {runningFooterPreview}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
