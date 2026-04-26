@@ -114,6 +114,16 @@ export function StatusBar({ editor, onPageSettings }: StatusBarProps) {
         <button type="button" className="jan-zoom-value" aria-label="상태바 페이지 너비 맞춤" title="페이지 너비에 맞춤" onClick={() => fitPageZoom('width')}>
           {Math.round(zoom * 100)}%
         </button>
+        <input
+          type="range"
+          className="jan-zoom-slider"
+          aria-label="상태바 줌 슬라이더"
+          min={35}
+          max={200}
+          step={5}
+          value={Math.round(zoom * 100)}
+          onChange={(event) => setPageZoom(Number(event.currentTarget.value) / 100)}
+        />
         <button type="button" aria-label="상태바 줌 인" title="줌 인" onClick={() => setPageZoom(zoom + 0.1)}>
           <Icon name="zoom-in" size={12} />
         </button>

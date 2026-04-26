@@ -209,6 +209,12 @@ test.describe('v2 smoke', () => {
     await expect.poll(readZoom).toBeLessThan(widthZoom)
     await page.getByLabel('상태바 줌 인').click()
     await expect.poll(readZoom).toBeGreaterThan(widthZoom - 0.01)
+
+    const zoomSlider = page.getByLabel('상태바 줌 슬라이더')
+    await zoomSlider.focus()
+    await page.keyboard.press('Home')
+    await expect.poll(readZoom).toBe(0.35)
+    await expect(zoomValue).toHaveText('35%')
   })
 
   test('view menu can hide and restore page rulers', async ({ page }) => {

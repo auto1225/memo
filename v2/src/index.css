@@ -2530,6 +2530,13 @@ html, body, #root {
   font-weight: 600;
 }
 
+.jan-zoom-slider {
+  width: 82px;
+  height: 21px;
+  accent-color: var(--accent, #D97757);
+  cursor: pointer;
+}
+
 .jan-theme-dark .jan-zoom-control {
   background: var(--jan-paper, #1f1f20);
   border-color: var(--jan-border, #2a2a2c);
@@ -4728,5 +4735,9 @@ html, body, #root {
 
   .jan-page-status-chip {
     max-width: 190px;
+  }
+
+  .jan-zoom-slider {
+    display: none;
   }
 }
