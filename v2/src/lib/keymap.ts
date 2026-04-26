@@ -20,10 +20,15 @@ export function installWordKeymap(editor: Editor, opts: {
     if (ctrl && !shift && !alt && k === 'e') { e.preventDefault(); editor.chain().focus().setTextAlign('center').run(); return }
     if (ctrl && !shift && !alt && k === 'r') { e.preventDefault(); editor.chain().focus().setTextAlign('right').run(); return }
     if (ctrl && !shift && !alt && k === 'j') { e.preventDefault(); editor.chain().focus().setTextAlign('justify').run(); return }
-    if (ctrl && !shift && !alt && k === 'm') { e.preventDefault(); editor.chain().focus().sinkListItem('listItem').run(); return }
-    if (ctrl && shift && !alt && k === 'm') { e.preventDefault(); editor.chain().focus().liftListItem('listItem').run(); return }
+    if (ctrl && !shift && !alt && k === 'm') { e.preventDefault(); indentListItem(editor, 'in'); return }
+    if (ctrl && shift && !alt && k === 'm') { e.preventDefault(); indentListItem(editor, 'out'); return }
     if (ctrl && shift && !alt && k === 'l') { e.preventDefault(); editor.chain().focus().toggleBulletList().run(); return }
     if (ctrl && !shift && !alt && k === ' ') { e.preventDefault(); editor.chain().focus().unsetAllMarks().clearNodes().run(); return }
+    if (!ctrl && !alt && k === 'tab' && shouldHandleListTab(editor)) {
+      const moved = indentListItem(editor, shift ? 'out' : 'in')
+      if (moved) e.preventDefault()
+      return
+    }
     if (!ctrl && shift && !alt && k === 'f3') { e.preventDefault(); toggleSelectionCase(editor); return }
     if (ctrl && alt && !shift && (k === '1' || k === '2' || k === '3')) {
       e.preventDefault()
@@ -46,6 +51,28 @@ export function installWordKeymap(editor: Editor, opts: {
 
   document.addEventListener('keydown', handler, true)
   return () => document.removeEventListener('keydown', handler, true)
+}
+
+type ListIndentDirection = 'in' | 'out'
+type ListItemType = 'listItem' | 'taskItem'
+
+function shouldHandleListTab(editor: Editor) {
+  return editor.view.hasFocus() && !editor.isActive('table') && Boolean(getActiveListItemType((name) => editor.isActive(name)))
+}
+
+export function getActiveListItemType(isActive: (name: string) => boolean): ListItemType | null {
+  if (isActive('taskItem')) return 'taskItem'
+  if (isActive('listItem')) return 'listItem'
+  return null
+}
+
+function indentListItem(editor: Editor, direction: ListIndentDirection) {
+  const itemType = getActiveListItemType((name) => editor.isActive(name))
+  if (!itemType) return false
+  const chain = editor.chain().focus()
+  return direction === 'in'
+    ? chain.sinkListItem(itemType).run()
+    : chain.liftListItem(itemType).run()
 }
 
 function insertLink(editor: Editor) {

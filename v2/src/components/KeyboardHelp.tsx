@@ -36,6 +36,8 @@ const SHORTCUTS: Array<{ category: string; items: Array<[string, string]> }> = [
       ['Ctrl+E', '가운데 정렬'],
       ['Ctrl+R', '오른쪽 정렬'],
       ['Ctrl+J', '양쪽 정렬'],
+      ['Tab / Shift+Tab', '목록 들여쓰기 / 내어쓰기'],
+      ['Ctrl+M / Ctrl+Shift+M', '목록 단계 올림 / 내림'],
     ],
   },
   {

@@ -64,6 +64,26 @@ test.describe('v2 smoke', () => {
     await expect(page.locator('.jan-cp')).toBeVisible()
   })
 
+  test('list indentation follows Word-style Tab and Shift+Tab behavior', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('jan-v2-role-onboarded', '1'))
+    await page.goto('./')
+    const editor = page.locator('.ProseMirror').first()
+    await editor.waitFor({ state: 'visible', timeout: 15000 })
+    await editor.click()
+    await page.keyboard.press('Control+A')
+    await page.keyboard.type('- ')
+    await page.keyboard.type('Parent')
+    await page.keyboard.press('Enter')
+    await page.keyboard.type('Child')
+    await expect(editor.locator('ul > li', { hasText: 'Child' })).toHaveCount(1)
+
+    await page.keyboard.press('Tab')
+    await expect(editor.locator('ul ul li', { hasText: 'Child' })).toHaveCount(1)
+
+    await page.keyboard.press('Shift+Tab')
+    await expect(editor.locator('ul ul li', { hasText: 'Child' })).toHaveCount(0)
+  })
+
   test('toolbar buttons present', async ({ page }) => {
     await page.goto('./')
     await page.locator('.ProseMirror').first().waitFor()
