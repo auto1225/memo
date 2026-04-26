@@ -34,6 +34,7 @@ interface MemosState {
 
   newMemo: () => string
   setCurrent: (id: string) => void
+  updateMemo: (id: string, patch: { title?: string; content?: string }) => void
   updateCurrent: (patch: { title?: string; content?: string }) => void
   togglePin: (id: string) => void
   duplicate: (id: string) => string | null
@@ -86,6 +87,16 @@ export const useMemosStore = create<MemosState>()(
 
       setCurrent: (id) => {
         if (get().memos[id]) set({ currentId: id })
+      },
+
+      updateMemo: (id, patch) => {
+        set((s) => {
+          const cur = s.memos[id]
+          if (!cur) return s
+          const next: Memo = { ...cur, ...patch, updatedAt: Date.now() }
+          const newOrder = [id, ...s.order.filter((memoId) => memoId !== id)]
+          return { memos: { ...s.memos, [id]: next }, order: newOrder }
+        })
       },
 
       updateCurrent: (patch) => {

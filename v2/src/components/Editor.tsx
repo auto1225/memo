@@ -1,4 +1,4 @@
-﻿import { useEditor, EditorContent } from '@tiptap/react'
+﻿import { useEditor, EditorContent, type Editor as TiptapEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import type { AnyExtension } from '@tiptap/core'
 import Placeholder from '@tiptap/extension-placeholder'
@@ -15,7 +15,7 @@ import { Collaboration } from '@tiptap/extension-collaboration'
 import { CollaborationCursor } from '@tiptap/extension-collaboration-cursor'
 import TaskList from '@tiptap/extension-task-list'
 import TaskItem from '@tiptap/extension-task-item'
-import { useEffect, useState, lazy, Suspense, useMemo, useRef, type CSSProperties } from 'react'
+import { useCallback, useEffect, useState, lazy, Suspense, useMemo, useRef, type CSSProperties } from 'react'
 import { Toolbar } from './Toolbar'
 import { AppHeader } from './AppHeader'
 import { MemoTabs } from './MemoTabs'
@@ -103,16 +103,22 @@ const WebBrowserModal = lazy(() => import('./WebBrowserModal').then((m) => ({ de
 const BusinessCardsModal = lazy(() => import('./BusinessCardsModal').then((m) => ({ default: m.BusinessCardsModal })))
 const PageSettingsModal = lazy(() => import('./PageSettingsModal').then((m) => ({ default: m.PageSettingsModal })))
 const MeetingNotesModal = lazy(() => import('./MeetingNotesModal').then((m) => ({ default: m.MeetingNotesModal })))
+const CONTENT_COMMIT_DELAY_MS = 350
 
 export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
   const { fileHandle, setFileHandle, setSavedAt, setEditor } = useDocStore()
-  const { currentId, current, updateCurrent } = useMemosStore()
+  const { currentId, current, updateCurrent, updateMemo } = useMemosStore()
   const applyTheme = useThemeStore((s) => s.apply)
   const applyTypo = useTypographyStore((s) => s.apply)
   const aiAuto = useSettingsStore((s) => s.aiAutocomplete); void aiAuto
   const collab = useCollab()
   const memo = current()
   const contentSaveSeq = useRef(0)
+  const activeMemoIdRef = useRef<string | null>(currentId)
+  const pendingContentTimerRef = useRef<number | null>(null)
+  const pendingContentEditorRef = useRef<TiptapEditor | null>(null)
+  const pendingContentMemoIdRef = useRef<string | null>(null)
+  const pendingContentSeqRef = useRef(0)
   const [showAi, setShowAi] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [showPrint, setShowPrint] = useState(false)
@@ -168,6 +174,60 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
 
   const initialContent = memo?.content || '<p></p>'
   const title = memo?.title || '새 메모'
+
+  const commitEditorContent = useCallback((targetEditor: TiptapEditor, memoId: string | null, seq: number) => {
+    if (!memoId || targetEditor.isDestroyed) return
+
+    const html = targetEditor.getHTML()
+    if (html.includes('data:')) {
+      externalizeLargeDataUrlsInHtml(html)
+        .then((storedHtml) => {
+          if (seq !== contentSaveSeq.current) return
+          updateMemo(memoId, { content: storedHtml })
+          if (storedHtml !== html && activeMemoIdRef.current === memoId && !targetEditor.isDestroyed) {
+            targetEditor.commands.setContent(storedHtml, { emitUpdate: false })
+            resolveBlobRefsInElement(targetEditor.view.dom).catch(() => {})
+          }
+        })
+        .catch(() => {
+          if (seq === contentSaveSeq.current) updateMemo(memoId, { content: html })
+        })
+      return
+    }
+
+    updateMemo(memoId, { content: html })
+    if (activeMemoIdRef.current === memoId && html.includes('jan-blob://')) {
+      resolveBlobRefsInElement(targetEditor.view.dom).catch(() => {})
+    }
+  }, [updateMemo])
+
+  const flushPendingEditorContent = useCallback(() => {
+    if (pendingContentTimerRef.current) {
+      window.clearTimeout(pendingContentTimerRef.current)
+      pendingContentTimerRef.current = null
+    }
+
+    const pendingEditor = pendingContentEditorRef.current
+    const pendingMemoId = pendingContentMemoIdRef.current
+    const pendingSeq = pendingContentSeqRef.current
+    pendingContentEditorRef.current = null
+    pendingContentMemoIdRef.current = null
+
+    if (pendingEditor && pendingMemoId) commitEditorContent(pendingEditor, pendingMemoId, pendingSeq)
+  }, [commitEditorContent])
+
+  const scheduleEditorContentCommit = useCallback((targetEditor: TiptapEditor) => {
+    const memoId = activeMemoIdRef.current
+    if (!memoId) return
+
+    const seq = ++contentSaveSeq.current
+    pendingContentEditorRef.current = targetEditor
+    pendingContentMemoIdRef.current = memoId
+    pendingContentSeqRef.current = seq
+
+    if (pendingContentTimerRef.current) window.clearTimeout(pendingContentTimerRef.current)
+    pendingContentTimerRef.current = window.setTimeout(flushPendingEditorContent, CONTENT_COMMIT_DELAY_MS)
+  }, [flushPendingEditorContent])
 
   const editorExtensions = useMemo(() => {
     const base: AnyExtension[] = [
@@ -240,23 +300,7 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
         attributes: { class: 'ProseMirror', spellcheck: spellCheck ? 'true' : 'false' },
       },
       onUpdate: ({ editor, transaction }) => {
-        const html = editor.getHTML()
-        const seq = ++contentSaveSeq.current
-        if (html.includes('data:')) {
-          externalizeLargeDataUrlsInHtml(html)
-            .then((storedHtml) => {
-              if (seq !== contentSaveSeq.current) return
-              updateCurrent({ content: storedHtml })
-              if (storedHtml !== html) {
-                editor.commands.setContent(storedHtml, { emitUpdate: false })
-                resolveBlobRefsInElement(editor.view.dom).catch(() => {})
-              }
-            })
-            .catch(() => updateCurrent({ content: html }))
-        } else {
-          updateCurrent({ content: html })
-          if (html.includes('jan-blob://')) resolveBlobRefsInElement(editor.view.dom).catch(() => {})
-        }
+        scheduleEditorContentCommit(editor)
         let inserted = 0
         transaction.steps.forEach((step) => {
           const slice = (step as { slice?: { size?: number } }).slice
@@ -265,7 +309,7 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
         if (inserted > 0) useWritingGoalStore.getState().addChars(inserted)
       },
     },
-    [editorExtensions]
+    [editorExtensions, scheduleEditorContentCommit]
   )
 
   useEffect(() => {
@@ -320,6 +364,28 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
     tauriSyncOnBoot().catch(() => {})
     trackEvent('app_boot')
   }, [editor, setEditor, applyTheme, applyTypo])
+
+  useEffect(() => {
+    if (activeMemoIdRef.current !== currentId) {
+      flushPendingEditorContent()
+      activeMemoIdRef.current = currentId
+    }
+  }, [currentId, flushPendingEditorContent])
+
+  useEffect(() => {
+    const onPageHide = () => flushPendingEditorContent()
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') flushPendingEditorContent()
+    }
+
+    window.addEventListener('pagehide', onPageHide)
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => {
+      window.removeEventListener('pagehide', onPageHide)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+      flushPendingEditorContent()
+    }
+  }, [flushPendingEditorContent])
 
   useEffect(() => {
     if (!editor || !memo) return
@@ -426,6 +492,7 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
 
   async function handleSave() {
     if (!editor) return
+    flushPendingEditorContent()
     const html = editor.getHTML()
     const result = await saveToFile({ title, content: html, handle: fileHandle })
     if (result.ok) {
@@ -441,6 +508,7 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
 
   async function handleOpen() {
     if (!editor) return
+    flushPendingEditorContent()
     const result = await openFile()
     if (!result) return
     updateCurrent({ title: result.title, content: result.content })
