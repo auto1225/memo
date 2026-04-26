@@ -102,6 +102,7 @@ test.describe('v2 smoke', () => {
   })
 
   test('v1 note paper default and page settings are available', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
     await page.goto('./')
     const pages = page.locator('.jan-editor-pages').first()
     const editor = page.locator('.ProseMirror').first()
@@ -126,6 +127,10 @@ test.describe('v2 smoke', () => {
     await page.getByRole('button', { name: '가로' }).click()
     await page.getByRole('button', { name: '2단' }).click()
     await page.locator('.jan-paper-style-card', { hasText: '모눈종이' }).click()
+    await page.getByLabel('위 여백 mm').fill('12')
+    await page.getByLabel('오른쪽 여백 mm').fill('16')
+    await page.getByLabel('아래 여백 mm').fill('20')
+    await page.getByLabel('왼쪽 여백 mm').fill('24')
     await page.getByLabel('페이지 머리글').fill('프로젝트 헤더')
     await page.getByLabel('페이지 꼬리말').fill('Page {page}')
     await page.getByRole('button', { name: '적용' }).click()
@@ -135,10 +140,21 @@ test.describe('v2 smoke', () => {
     await expect(pages).toHaveAttribute('data-page-columns', '2')
     const columnCount = await editor.evaluate((node) => getComputedStyle(node).columnCount)
     expect(columnCount).toBe('2')
+    const padding = await editor.evaluate((node) => {
+      const style = getComputedStyle(node)
+      return {
+        top: Math.round(parseFloat(style.paddingTop)),
+        right: Math.round(parseFloat(style.paddingRight)),
+        bottom: Math.round(parseFloat(style.paddingBottom)),
+        left: Math.round(parseFloat(style.paddingLeft)),
+      }
+    })
+    expect(padding).toEqual({ top: 45, right: 60, bottom: 76, left: 91 })
     const pageUi = await page.evaluate(() => JSON.parse(localStorage.getItem('jan-v2-ui') || '{}')?.state)
     expect(pageUi.runningHeader).toBe('프로젝트 헤더')
     expect(pageUi.runningFooter).toBe('Page {page}')
     expect(pageUi.pageColumnCount).toBe(2)
+    expect(pageUi.pageMarginsMm).toEqual({ top: 12, right: 16, bottom: 20, left: 24 })
   })
 
   test('meeting notes flow inserts a structured v1-style note', async ({ page }) => {

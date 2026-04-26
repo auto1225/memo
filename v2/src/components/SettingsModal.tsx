@@ -7,7 +7,7 @@ import { useMemosStore } from '../store/memosStore'
 import { useI18nStore } from '../lib/i18n'
 import type { Lang } from '../lib/i18n'
 import { useThemeStore } from '../store/themeStore'
-import { PAPER_STYLES, useUIStore } from '../store/uiStore'
+import { PAPER_STYLES, pageMarginsSummary, useUIStore } from '../store/uiStore'
 import { useWritingGoalStore } from '../store/writingGoalStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { getSession, getSupabaseConfigStatus, signInGoogle, signOut, syncNow, syncConfigured } from '../lib/supabaseSync'
@@ -72,6 +72,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
   const paperLabel = PAPER_STYLES.find((style) => style.value === ui.paperStyle)?.label.replace(' (기본)', '') || '줄노트'
   const orientationLabel = ui.pageOrientation === 'landscape' ? '가로' : '세로'
   const columnLabel = `${ui.pageColumnCount || 1}단`
+  const marginLabel = pageMarginsSummary(ui.pageMarginsMm, ui.pageMarginMm)
 
   useEffect(() => {
     let cancelled = false
@@ -624,7 +625,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
             <div className="jan-settings-page-summary">
               <div>
                 <strong>{ui.pageSize} · {orientationLabel}</strong>
-                <span>{paperLabel} · {ui.pageMarginMm}mm · {columnLabel}</span>
+                <span>{paperLabel} · {marginLabel} · {columnLabel}</span>
               </div>
               <button onClick={() => setShowPageSettings(true)}>페이지 설정 열기</button>
             </div>

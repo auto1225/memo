@@ -5,6 +5,12 @@ export type PaperStyle = 'lined' | 'grid' | 'dot' | 'blank' | 'music' | 'cornell
 export type PageSizePreset = 'A4' | 'A3' | 'B4' | 'A5' | 'B5' | 'Letter'
 export type PageOrientation = 'portrait' | 'landscape'
 export type PageColumnCount = 1 | 2 | 3
+export interface PageMarginsMm {
+  top: number
+  right: number
+  bottom: number
+  left: number
+}
 
 export const PAPER_STYLES: Array<{ value: PaperStyle; label: string; description: string }> = [
   { value: 'lined', label: '줄노트 (기본)', description: 'v1 기본 노트 배경' },
@@ -44,6 +50,46 @@ export function normalizePageColumnCount(value: unknown): PageColumnCount {
   return 1
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === 'object' && !Array.isArray(value)
+}
+
+function clampPageMarginMm(value: unknown, fallback = 20): number {
+  const next = Number(value)
+  const base = Number.isFinite(next) ? next : fallback
+  return Math.max(8, Math.min(60, Math.round(base)))
+}
+
+export function normalizePageMarginsMm(value: unknown, fallback = 20): PageMarginsMm {
+  const uniform = clampPageMarginMm(fallback)
+  if (!isRecord(value)) {
+    return { top: uniform, right: uniform, bottom: uniform, left: uniform }
+  }
+  return {
+    top: clampPageMarginMm(value.top, uniform),
+    right: clampPageMarginMm(value.right, uniform),
+    bottom: clampPageMarginMm(value.bottom, uniform),
+    left: clampPageMarginMm(value.left, uniform),
+  }
+}
+
+export function pageMarginsCss(value: unknown, fallback = 20): string {
+  const margins = normalizePageMarginsMm(value, fallback)
+  return `${margins.top}mm ${margins.right}mm ${margins.bottom}mm ${margins.left}mm`
+}
+
+export function pageMarginsSummary(value: unknown, fallback = 20): string {
+  const margins = normalizePageMarginsMm(value, fallback)
+  if (
+    margins.top === margins.right &&
+    margins.right === margins.bottom &&
+    margins.bottom === margins.left
+  ) {
+    return `${margins.top}mm`
+  }
+  return `상${margins.top} 우${margins.right} 하${margins.bottom} 좌${margins.left}mm`
+}
+
 /**
  * Phase 17 — UI 상태 (포커스/읽기 모드 + 페이지 줌 + spellcheck + collapse + heading 번호).
  */
@@ -58,6 +104,7 @@ interface UIState {
   pageSize: PageSizePreset
   pageOrientation: PageOrientation
   pageMarginMm: number
+  pageMarginsMm: PageMarginsMm
   pageColumnCount: PageColumnCount
   runningHeader: string
   runningFooter: string
@@ -74,6 +121,7 @@ interface UIState {
   setPageSize: (size: PageSizePreset) => void
   setPageOrientation: (orientation: PageOrientation) => void
   setPageMarginMm: (margin: number) => void
+  setPageMarginsMm: (margins: PageMarginsMm) => void
   setPageColumnCount: (count: PageColumnCount) => void
   setRunningHeader: (value: string) => void
   setRunningFooter: (value: string) => void
@@ -92,6 +140,7 @@ export const useUIStore = create<UIState>()(
       pageSize: 'A4',
       pageOrientation: 'portrait',
       pageMarginMm: 20,
+      pageMarginsMm: { top: 20, right: 20, bottom: 20, left: 20 },
       pageColumnCount: 1,
       runningHeader: '',
       runningFooter: 'Page {page} / {total}',
@@ -107,7 +156,17 @@ export const useUIStore = create<UIState>()(
       setPaperStyle: (style) => set({ paperStyle: style }),
       setPageSize: (size) => set({ pageSize: size }),
       setPageOrientation: (orientation) => set({ pageOrientation: orientation }),
-      setPageMarginMm: (margin) => set({ pageMarginMm: Math.max(8, Math.min(60, Math.round(margin))) }),
+      setPageMarginMm: (margin) => {
+        const next = clampPageMarginMm(margin)
+        set({ pageMarginMm: next, pageMarginsMm: { top: next, right: next, bottom: next, left: next } })
+      },
+      setPageMarginsMm: (margins) => {
+        const next = normalizePageMarginsMm(margins)
+        set({
+          pageMarginMm: Math.round((next.top + next.right + next.bottom + next.left) / 4),
+          pageMarginsMm: next,
+        })
+      },
       setPageColumnCount: (count) => set({ pageColumnCount: normalizePageColumnCount(count) }),
       setRunningHeader: (value) => set({ runningHeader: value.trim() }),
       setRunningFooter: (value) => set({ runningFooter: value.trim() }),

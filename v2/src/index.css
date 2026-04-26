@@ -3219,7 +3219,11 @@ html, body, #root {
   max-width: none !important;
   min-height: var(--jan-page-h, 297mm) !important;
   box-sizing: border-box !important;
-  padding: var(--jan-page-margin, 20mm) !important;
+  padding:
+    var(--jan-page-margin-top, var(--jan-page-margin, 20mm))
+    var(--jan-page-margin-right, var(--jan-page-margin, 20mm))
+    var(--jan-page-margin-bottom, var(--jan-page-margin, 20mm))
+    var(--jan-page-margin-left, var(--jan-page-margin, 20mm)) !important;
   border: 1px solid var(--paper-edge, var(--jan-border, #e5e5e5)) !important;
   border-radius: 4px !important;
   background-color: var(--paper, var(--jan-paper, #ffffff)) !important;
@@ -3779,6 +3783,34 @@ html, body, #root {
   border-color: var(--accent, #FAE100);
 }
 
+.jan-page-margin-fields {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.jan-page-margin-fields label {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--ink-soft, #555);
+}
+
+.jan-page-margin-fields input {
+  width: 100%;
+  height: 32px;
+  box-sizing: border-box;
+  border: 1px solid var(--paper-edge, #e5e5e5);
+  border-radius: 6px;
+  background: var(--paper, #fff);
+  color: var(--ink, #191919);
+  padding: 0 8px;
+  font: inherit;
+}
+
 .jan-page-running-fields {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -4168,6 +4200,10 @@ html, body, #root {
     grid-template-columns: 1fr;
   }
 
+  .jan-page-margin-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .jan-page-running-fields {
     grid-template-columns: 1fr;
   }
@@ -4274,7 +4310,11 @@ html, body, #root {
     width: calc(100vw - 24px) !important;
     max-width: calc(100vw - 24px) !important;
     min-height: calc((100vw - 24px) * 1.414) !important;
-    padding: clamp(32px, 8vw, 56px) clamp(24px, 8vw, 56px) !important;
+    padding:
+      clamp(28px, var(--jan-page-margin-top, var(--jan-page-margin, 20mm)), 56px)
+      clamp(24px, var(--jan-page-margin-right, var(--jan-page-margin, 20mm)), 56px)
+      clamp(28px, var(--jan-page-margin-bottom, var(--jan-page-margin, 20mm)), 56px)
+      clamp(24px, var(--jan-page-margin-left, var(--jan-page-margin, 20mm)), 56px) !important;
     font-size: 14px !important;
   }
 

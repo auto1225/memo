@@ -53,7 +53,7 @@ import { useWheelZoom } from '../hooks/useWheelZoom'
 import { useWritingGoalStore } from '../store/writingGoalStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { dispatchWebhook } from '../lib/webhooks'
-import { pageDimensions, pageDimensionsPx, useUIStore } from '../store/uiStore'
+import { normalizePageMarginsMm, pageDimensions, pageDimensionsPx, useUIStore } from '../store/uiStore'
 import { useTypographyStore } from '../store/typographyStore'
 import { SmartTypography } from '../extensions/Typography'
 import { TextStyle } from '@tiptap/extension-text-style'
@@ -161,6 +161,7 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
   const pageSize = useUIStore((s) => s.pageSize)
   const pageOrientation = useUIStore((s) => s.pageOrientation)
   const pageMarginMm = useUIStore((s) => s.pageMarginMm)
+  const pageMarginsMm = useUIStore((s) => s.pageMarginsMm)
   const pageColumnCount = useUIStore((s) => s.pageColumnCount)
   const runningHeader = useUIStore((s) => s.runningHeader)
   const runningFooter = useUIStore((s) => s.runningFooter)
@@ -168,13 +169,26 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
 
   const pageMm = useMemo(() => pageDimensions(pageSize, pageOrientation), [pageSize, pageOrientation])
   const pagePx = useMemo(() => pageDimensionsPx(pageSize, pageOrientation), [pageSize, pageOrientation])
-  const pageMarginPx = useMemo(() => Math.round((pageMarginMm * 96) / 25.4), [pageMarginMm])
+  const pageMargins = useMemo(() => normalizePageMarginsMm(pageMarginsMm, pageMarginMm), [pageMarginsMm, pageMarginMm])
+  const pageMarginPx = useMemo(() => {
+    const mmToPx = (mm: number) => Math.round((mm * 96) / 25.4)
+    return {
+      top: mmToPx(pageMargins.top),
+      right: mmToPx(pageMargins.right),
+      bottom: mmToPx(pageMargins.bottom),
+      left: mmToPx(pageMargins.left),
+    }
+  }, [pageMargins])
   const pageStyle = useMemo<CSSProperties>(() => ({
     '--jan-page-w': `${pageMm.widthMm}mm`,
     '--jan-page-h': `${pageMm.heightMm}mm`,
     '--jan-page-margin': `${pageMarginMm}mm`,
+    '--jan-page-margin-top': `${pageMargins.top}mm`,
+    '--jan-page-margin-right': `${pageMargins.right}mm`,
+    '--jan-page-margin-bottom': `${pageMargins.bottom}mm`,
+    '--jan-page-margin-left': `${pageMargins.left}mm`,
     '--jan-page-columns': pageColumnCount,
-  } as CSSProperties), [pageMm.widthMm, pageMm.heightMm, pageMarginMm, pageColumnCount])
+  } as CSSProperties), [pageMm.widthMm, pageMm.heightMm, pageMarginMm, pageMargins, pageColumnCount])
 
   const initialContent = memo?.content || '<p></p>'
   const title = memo?.title || '새 메모'
@@ -269,10 +283,10 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
       PaginationPlus.configure({
         ...PAGE_SIZES.A4,
         ...pagePx,
-        marginTop: pageMarginPx,
-        marginBottom: pageMarginPx,
-        marginLeft: pageMarginPx,
-        marginRight: pageMarginPx,
+        marginTop: pageMarginPx.top,
+        marginBottom: pageMarginPx.bottom,
+        marginLeft: pageMarginPx.left,
+        marginRight: pageMarginPx.right,
         pageGap: 24,
         pageBreakBackground: 'var(--jan-bg)',
         pageGapBorderSize: 0,
@@ -323,18 +337,17 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
 
   useEffect(() => {
     if (!editor) return
-    const margin = {
-      top: pageMarginPx,
-      bottom: pageMarginPx,
-      left: pageMarginPx,
-      right: pageMarginPx,
-    }
     try {
       editor
         .chain()
         .updatePageWidth(pagePx.pageWidth)
         .updatePageHeight(pagePx.pageHeight)
-        .updateMargins(margin)
+        .updateMargins({
+          top: pageMarginPx.top,
+          bottom: pageMarginPx.bottom,
+          left: pageMarginPx.left,
+          right: pageMarginPx.right,
+        })
         .run()
     } catch {
       // PaginationPlus may not be ready during the first hydration frame.

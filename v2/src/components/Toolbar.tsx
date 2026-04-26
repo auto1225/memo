@@ -7,7 +7,7 @@ import { ColorPicker } from './ColorPicker'
 import { Icon } from './Icons'
 import type { IconName } from './Icons'
 import { normalizeFontFamily, useTypographyStore } from '../store/typographyStore'
-import { PAPER_STYLES, useUIStore } from '../store/uiStore'
+import { PAPER_STYLES, pageMarginsSummary, useUIStore } from '../store/uiStore'
 import { useMemosStore } from '../store/memosStore'
 import { exportV2ToJson, importV2FromJsonAsync } from '../lib/v1Import'
 import { fileToDataUrl } from '../lib/attachments'
@@ -188,6 +188,7 @@ export function Toolbar(p: ToolbarProps) {
   const orientationLabel = ui.pageOrientation === 'landscape' ? '가로' : '세로'
   const currentPaperLabel = PAPER_STYLES.find((style) => style.value === ui.paperStyle)?.label.replace(' (기본)', '') || '줄노트'
   const pageColumnLabel = `${ui.pageColumnCount || 1}단`
+  const pageMarginLabel = pageMarginsSummary(ui.pageMarginsMm, ui.pageMarginMm)
   const openPageSettings = () => p.onPageSettings()
 
   /* === 책갈피 / 텍스트 상자 / 구분선 스타일 === */
@@ -588,7 +589,7 @@ export function Toolbar(p: ToolbarProps) {
       label: '페이지', items: [
         { label: `페이지 크기 설정: ${ui.pageSize} · ${orientationLabel}`, icon: 'page', onClick: () => run(openPageSettings) },
         { label: `노트 배경 스타일: ${currentPaperLabel}`, icon: 'palette', onClick: () => run(openPageSettings) },
-        { label: `페이지 여백 설정: ${ui.pageMarginMm}mm`, icon: 'sliders', onClick: () => run(openPageSettings) },
+        { label: `페이지 여백 설정: ${pageMarginLabel}`, icon: 'sliders', onClick: () => run(openPageSettings) },
         { divider: '페이지 동작', label: '' },
         { label: '페이지 구분 삽입', hint: 'Ctrl+Enter', icon: 'page-break', onClick: () => run(insertPageBreak) },
         { label: `다단 레이아웃: ${pageColumnLabel}`, icon: 'columns', onClick: () => run(cyclePageColumns) },

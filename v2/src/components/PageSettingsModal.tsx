@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Icon } from './Icons'
 import {
+  normalizePageMarginsMm,
   PAGE_PRESETS,
   PAPER_STYLES,
   pageDimensions,
   useUIStore,
   type PageOrientation,
   type PageColumnCount,
+  type PageMarginsMm,
   type PageSizePreset,
   type PaperStyle,
 } from '../store/uiStore'
@@ -22,6 +24,12 @@ const COLUMN_OPTIONS: Array<{ value: PageColumnCount; label: string }> = [
   { value: 2, label: '2단' },
   { value: 3, label: '3단' },
 ]
+const MARGIN_FIELDS: Array<{ key: keyof PageMarginsMm; label: string; ariaLabel: string }> = [
+  { key: 'top', label: '위', ariaLabel: '위 여백 mm' },
+  { key: 'right', label: '오른쪽', ariaLabel: '오른쪽 여백 mm' },
+  { key: 'bottom', label: '아래', ariaLabel: '아래 여백 mm' },
+  { key: 'left', label: '왼쪽', ariaLabel: '왼쪽 여백 mm' },
+]
 
 export function PageSettingsModal({ onClose }: PageSettingsModalProps) {
   const ui = useUIStore()
@@ -29,6 +37,7 @@ export function PageSettingsModal({ onClose }: PageSettingsModalProps) {
   const [pageSize, setPageSize] = useState<PageSizePreset>(ui.pageSize)
   const [pageOrientation, setPageOrientation] = useState<PageOrientation>(ui.pageOrientation)
   const [pageMarginMm, setPageMarginMm] = useState(ui.pageMarginMm)
+  const [pageMarginsMm, setPageMarginsMm] = useState<PageMarginsMm>(() => normalizePageMarginsMm(ui.pageMarginsMm, ui.pageMarginMm))
   const [pageColumnCount, setPageColumnCount] = useState<PageColumnCount>(ui.pageColumnCount)
   const [runningHeader, setRunningHeader] = useState(ui.runningHeader || '')
   const [runningFooter, setRunningFooter] = useState(ui.runningFooter || 'Page {page} / {total}')
@@ -36,6 +45,11 @@ export function PageSettingsModal({ onClose }: PageSettingsModalProps) {
   const paperLabel = PAPER_STYLES.find((style) => style.value === paperStyle)?.label || '줄노트'
   const dimensions = useMemo(() => pageDimensions(pageSize, pageOrientation), [pageSize, pageOrientation])
   const orientationLabel = pageOrientation === 'landscape' ? '가로' : '세로'
+  const marginSummary = pageMarginsMm.top === pageMarginsMm.right &&
+    pageMarginsMm.right === pageMarginsMm.bottom &&
+    pageMarginsMm.bottom === pageMarginsMm.left
+    ? `${pageMarginsMm.top}mm`
+    : `상${pageMarginsMm.top} 우${pageMarginsMm.right} 하${pageMarginsMm.bottom} 좌${pageMarginsMm.left}mm`
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -50,16 +64,29 @@ export function PageSettingsModal({ onClose }: PageSettingsModalProps) {
     setPageSize('A4')
     setPageOrientation('portrait')
     setPageMarginMm(20)
+    setPageMarginsMm({ top: 20, right: 20, bottom: 20, left: 20 })
     setPageColumnCount(1)
     setRunningHeader('')
     setRunningFooter('Page {page} / {total}')
+  }
+
+  function setUniformMargin(margin: number) {
+    const next = normalizePageMarginsMm({ top: margin, right: margin, bottom: margin, left: margin })
+    setPageMarginMm(next.top)
+    setPageMarginsMm(next)
+  }
+
+  function setMarginSide(side: keyof PageMarginsMm, value: number) {
+    const next = normalizePageMarginsMm({ ...pageMarginsMm, [side]: value }, pageMarginMm)
+    setPageMarginsMm(next)
+    setPageMarginMm(Math.round((next.top + next.right + next.bottom + next.left) / 4))
   }
 
   function apply() {
     ui.setPaperStyle(paperStyle)
     ui.setPageSize(pageSize)
     ui.setPageOrientation(pageOrientation)
-    ui.setPageMarginMm(pageMarginMm)
+    ui.setPageMarginsMm(pageMarginsMm)
     ui.setPageColumnCount(pageColumnCount)
     ui.setRunningHeader(runningHeader)
     ui.setRunningFooter(runningFooter)
@@ -102,7 +129,7 @@ export function PageSettingsModal({ onClose }: PageSettingsModalProps) {
             </div>
             <div className="jan-page-preview-meta">
               <strong>{dimensions.widthMm} × {dimensions.heightMm} mm</strong>
-              <span>{pageMarginMm}mm · {pageColumnCount}단 · {paperLabel}</span>
+              <span>{marginSummary} · {pageColumnCount}단 · {paperLabel}</span>
             </div>
           </section>
 
@@ -222,24 +249,39 @@ export function PageSettingsModal({ onClose }: PageSettingsModalProps) {
                   min={8}
                   max={60}
                   value={pageMarginMm}
-                  onChange={(event) => setPageMarginMm(Number(event.target.value))}
-                  aria-label="페이지 여백"
+                  onChange={(event) => setUniformMargin(Number(event.target.value))}
+                  aria-label="전체 페이지 여백"
                 />
                 <input
                   type="number"
                   min={8}
                   max={60}
                   value={pageMarginMm}
-                  onChange={(event) => setPageMarginMm(Number(event.target.value) || 20)}
-                  aria-label="페이지 여백 mm"
+                  onChange={(event) => setUniformMargin(Number(event.target.value) || 20)}
+                  aria-label="전체 페이지 여백 mm"
                 />
                 <span>mm</span>
               </div>
               <div className="jan-page-margin-presets">
                 {MARGIN_PRESETS.map((margin) => (
-                  <button key={margin} type="button" onClick={() => setPageMarginMm(margin)}>
+                  <button key={margin} type="button" onClick={() => setUniformMargin(margin)}>
                     {margin}
                   </button>
+                ))}
+              </div>
+              <div className="jan-page-margin-fields">
+                {MARGIN_FIELDS.map((field) => (
+                  <label key={field.key}>
+                    <span>{field.label}</span>
+                    <input
+                      type="number"
+                      min={8}
+                      max={60}
+                      value={pageMarginsMm[field.key]}
+                      onChange={(event) => setMarginSide(field.key, Number(event.target.value) || 20)}
+                      aria-label={field.ariaLabel}
+                    />
+                  </label>
                 ))}
               </div>
             </section>

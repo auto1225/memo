@@ -8,6 +8,7 @@ const landscapeGrid: PrintPageSettings = {
   pageSize: 'Letter',
   pageOrientation: 'landscape',
   pageMarginMm: 12,
+  pageMarginsMm: { top: 12, right: 12, bottom: 12, left: 12 },
   pageColumnCount: 1,
 }
 
@@ -15,9 +16,19 @@ describe('pdfExport print document', () => {
   it('uses the requested page size, orientation, and margin', () => {
     const out = buildPrintHtml('<p>Hello</p>', 'Memo', landscapeGrid)
 
-    expect(out).toContain('@page { size: 279mm 216mm; margin: 12mm;')
+    expect(out).toContain('@page { size: 279mm 216mm; margin: 12mm 12mm 12mm 12mm;')
     expect(out).toContain('data-paper="grid"')
     expect(out).toContain('repeating-linear-gradient(to right, transparent 0, transparent 19px')
+  })
+
+  it('prints individual Word-style page margins', () => {
+    const out = buildPrintHtml('<p>Hello</p>', 'Memo', {
+      ...landscapeGrid,
+      pageMarginMm: 16,
+      pageMarginsMm: { top: 10, right: 12, bottom: 14, left: 16 },
+    })
+
+    expect(out).toContain('@page { size: 279mm 216mm; margin: 10mm 12mm 14mm 16mm;')
   })
 
   it('keeps blank paper visually blank', () => {
@@ -82,6 +93,7 @@ describe('pdfExport print document', () => {
       pageSize: 'A5',
       pageOrientation: 'portrait',
       pageMarginMm: 18,
+      pageMarginsMm: { top: 10, right: 12, bottom: 14, left: 16 },
       pageColumnCount: 3,
       runningHeader: '헤더',
       runningFooter: '쪽 {page}',
@@ -98,6 +110,7 @@ describe('pdfExport print document', () => {
       pageSize: 'A5',
       pageOrientation: 'portrait',
       pageMarginMm: 18,
+      pageMarginsMm: { top: 10, right: 12, bottom: 14, left: 16 },
       pageColumnCount: 3,
       runningHeader: '헤더',
       runningFooter: '쪽 {page}',

@@ -1,8 +1,10 @@
 import {
+  pageMarginsCss,
   pageDimensions,
   useUIStore,
   type PageOrientation,
   type PageColumnCount,
+  type PageMarginsMm,
   type PageSizePreset,
   type PaperStyle,
 } from '../store/uiStore'
@@ -15,6 +17,7 @@ export interface PrintPageSettings {
   pageSize: PageSizePreset
   pageOrientation: PageOrientation
   pageMarginMm: number
+  pageMarginsMm?: PageMarginsMm
   pageColumnCount?: PageColumnCount
   runningHeader?: string
   runningFooter?: string
@@ -32,6 +35,7 @@ export function currentPrintPageSettings(): PrintPageSettings {
     pageSize: ui.pageSize,
     pageOrientation: ui.pageOrientation,
     pageMarginMm: ui.pageMarginMm,
+    pageMarginsMm: ui.pageMarginsMm,
     pageColumnCount: ui.pageColumnCount,
     runningHeader: ui.runningHeader,
     runningFooter: ui.runningFooter,
@@ -92,7 +96,7 @@ export function buildPrintHtml(
   const titleCss = escCss(title)
   const page = pageDimensions(settings.pageSize, settings.pageOrientation)
   const pageSizeCss = `${page.widthMm}mm ${page.heightMm}mm`
-  const marginMm = Math.max(0, Math.round(settings.pageMarginMm))
+  const marginCss = pageMarginsCss(settings.pageMarginsMm, settings.pageMarginMm)
   const runningHeader = settings.runningHeader?.trim() || ''
   const runningFooter = settings.runningFooter?.trim() || 'Page {page} / {total}'
   const headerCss = runningHeader
@@ -118,7 +122,7 @@ export function buildPrintHtml(
   return `<!DOCTYPE html>
 <html lang="ko"><head><meta charset="UTF-8"><title>${titleAttr}</title>
 <style>
-@page { size: ${pageSizeCss}; margin: ${marginMm}mm;
+@page { size: ${pageSizeCss}; margin: ${marginCss};
   ${headerCss}
   ${footerCss}
 }
