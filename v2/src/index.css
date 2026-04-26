@@ -2738,3 +2738,139 @@ html, body, #root {
 .jan-theme-dark .jan-wb-research { background: #1f1d2a; border-bottom-color: #3d3650 }
 .jan-theme-dark .jan-wb-input, .jan-theme-dark .jan-wb-btn { background: #2a2a2c; color: #e5e5e5; border-color: #3a3a3d }
 .jan-theme-dark .jan-wb-frame-wrap { background: #232325 }
+
+
+/* =========================================================
+ * Phase 35 — 웹 리서치 어시스턴트 (검색 결과 + 본문 미리보기)
+ * ========================================================= */
+.jan-wb-body {
+  flex: 1;
+  overflow-y: auto;
+  background: #fafafa;
+}
+.jan-wb-results {
+  padding: 8px 12px;
+}
+.jan-wb-result-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px 14px;
+  margin: 6px 0;
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  align-items: flex-start;
+}
+.jan-wb-result-item:hover { border-color: #FAE100; box-shadow: 0 1px 6px rgba(0,0,0,0.05); }
+.jan-wb-result-main { flex: 1; min-width: 0; }
+.jan-wb-result-title {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a73e8;
+  text-decoration: none;
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+.jan-wb-result-title:hover { text-decoration: underline; }
+.jan-wb-result-snippet {
+  font-size: 12px;
+  color: #555;
+  line-height: 1.5;
+  margin: 4px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.jan-wb-result-url {
+  font-size: 11px;
+  color: #888;
+  font-family: monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.jan-wb-result-actions { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
+.jan-wb-empty { padding: 40px; text-align: center; color: #999; }
+
+/* 본문 미리보기 */
+.jan-wb-preview { padding: 12px 16px; }
+.jan-wb-preview-actions {
+  display: flex; gap: 6px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.jan-wb-preview-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 4px;
+}
+.jan-wb-preview-url {
+  font-size: 11px;
+  font-family: monospace;
+  color: #888;
+  margin-bottom: 12px;
+  word-break: break-all;
+}
+.jan-wb-section { margin: 16px 0; }
+.jan-wb-section-head {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; padding: 6px 0; margin-bottom: 8px;
+  border-bottom: 1px solid #eee;
+}
+.jan-wb-img-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+.jan-wb-img-cell {
+  position: relative;
+  aspect-ratio: 4/3;
+  background: #f0f0f0;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.jan-wb-img-cell.selected { border-color: #FAE100; }
+.jan-wb-img-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.jan-wb-img-check {
+  position: absolute; top: 6px; right: 6px;
+  width: 24px; height: 24px;
+  background: #FAE100;
+  color: #191919;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+.jan-wb-tables { display: flex; flex-wrap: wrap; gap: 6px; }
+.jan-wb-preview-html {
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  padding: 14px 18px;
+  max-height: 300px;
+  overflow-y: auto;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #333;
+}
+.jan-wb-preview-html img { max-width: 100%; }
+.jan-wb-preview-html h1, .jan-wb-preview-html h2, .jan-wb-preview-html h3 {
+  margin: 0.6em 0 0.3em; line-height: 1.3;
+}
+
+.jan-theme-dark .jan-wb-body { background: #1a1a1b }
+.jan-theme-dark .jan-wb-result-item, .jan-theme-dark .jan-wb-preview-actions, .jan-theme-dark .jan-wb-preview-html { background: #232325; border-color: #3a3a3d; color: #ddd }
+.jan-theme-dark .jan-wb-result-snippet { color: #aaa }
