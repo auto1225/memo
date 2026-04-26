@@ -184,6 +184,36 @@ test.describe('v2 smoke', () => {
     expect(pageUi.runningFooter).toBe('Page {page}')
     expect(pageUi.pageColumnCount).toBe(2)
     expect(pageUi.pageMarginsMm).toEqual({ top: 12, right: 16, bottom: 20, left: 24 })
+
+    await page.getByRole('textbox', { name: '메모 제목' }).fill('B4 layout memo')
+    await page.reload()
+    await expect(page.locator('.ProseMirror').first()).toBeVisible({ timeout: 15000 })
+    await expect(pages).toHaveAttribute('data-paper', 'grid')
+    await expect(pages).toHaveAttribute('data-page-size', 'B4')
+    await expect(pages).toHaveAttribute('data-page-orientation', 'landscape')
+    await expect(pages).toHaveAttribute('data-page-columns', '2')
+
+    await page.getByRole('button', { name: '페이지', exact: true }).click()
+    await page.locator('.jan-menu-dropdown').getByRole('button', { name: /인쇄 미리보기/ }).click()
+    await expect(page.locator('.jan-print-title')).toContainText('B4 가로')
+    await expect(page.locator('.jan-print-title')).toContainText('2단')
+    const printSrcdoc = await page.locator('.jan-print-iframe').evaluate((iframe) => (iframe as HTMLIFrameElement).srcdoc)
+    expect(printSrcdoc).toContain('@page { size: 353mm 250mm; margin: 12mm 16mm 20mm 24mm;')
+    expect(printSrcdoc).toContain('data-columns="2"')
+    expect(printSrcdoc).toContain('프로젝트 헤더')
+    await page.locator('.jan-print-shell').getByRole('button', { name: /닫기/ }).click()
+
+    await page.getByRole('button', { name: '+ 새 메모' }).click()
+    await expect(pages).toHaveAttribute('data-paper', 'lined')
+    await expect(pages).toHaveAttribute('data-page-size', 'A4')
+    await expect(pages).toHaveAttribute('data-page-orientation', 'portrait')
+    await expect(pages).toHaveAttribute('data-page-columns', '1')
+
+    await page.getByRole('listitem').filter({ hasText: 'B4 layout memo' }).click()
+    await expect(pages).toHaveAttribute('data-paper', 'grid')
+    await expect(pages).toHaveAttribute('data-page-size', 'B4')
+    await expect(pages).toHaveAttribute('data-page-orientation', 'landscape')
+    await expect(pages).toHaveAttribute('data-page-columns', '2')
   })
 
   test('view zoom controls support Word-style fit modes', async ({ page }) => {

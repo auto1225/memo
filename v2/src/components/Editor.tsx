@@ -53,7 +53,17 @@ import { useWheelZoom } from '../hooks/useWheelZoom'
 import { useWritingGoalStore } from '../store/writingGoalStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { dispatchWebhook } from '../lib/webhooks'
-import { DEFAULT_RUNNING_FOOTER, formatRunningText, normalizePageMarginsMm, pageDimensions, pageDimensionsPx, useUIStore } from '../store/uiStore'
+import {
+  DEFAULT_RUNNING_FOOTER,
+  formatRunningText,
+  normalizeMemoPageSettings,
+  normalizePageMarginsMm,
+  pageDimensions,
+  pageDimensionsPx,
+  pageSettingsFromUi,
+  sameMemoPageSettings,
+  useUIStore,
+} from '../store/uiStore'
 import { useTypographyStore } from '../store/typographyStore'
 import { SmartTypography } from '../extensions/Typography'
 import { TextStyle } from '@tiptap/extension-text-style'
@@ -109,7 +119,7 @@ const CONTENT_COMMIT_DELAY_MS = 350
 
 export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
   const { fileHandle, setFileHandle, setSavedAt, setEditor } = useDocStore()
-  const { currentId, current, updateCurrent, updateMemo } = useMemosStore()
+  const { currentId, current, updateCurrent, updateMemo, updateMemoPageSettings } = useMemosStore()
   const applyTheme = useThemeStore((s) => s.apply)
   const applyTypo = useTypographyStore((s) => s.apply)
   const aiAuto = useSettingsStore((s) => s.aiAutocomplete); void aiAuto
@@ -121,6 +131,7 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
   const pendingContentEditorRef = useRef<TiptapEditor | null>(null)
   const pendingContentMemoIdRef = useRef<string | null>(null)
   const pendingContentSeqRef = useRef(0)
+  const applyingMemoPageSettingsRef = useRef(false)
   const [showAi, setShowAi] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [showPrint, setShowPrint] = useState(false)
@@ -428,6 +439,29 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
       activeMemoIdRef.current = currentId
     }
   }, [currentId, flushPendingEditorContent])
+
+  useEffect(() => {
+    if (!memo) return
+    const memoPageSettings = normalizeMemoPageSettings(memo.pageSettings)
+    const currentPageSettings = pageSettingsFromUi(useUIStore.getState())
+    if (!sameMemoPageSettings(currentPageSettings, memoPageSettings)) {
+      applyingMemoPageSettingsRef.current = true
+      useUIStore.getState().applyPageSettings(memoPageSettings)
+      applyingMemoPageSettingsRef.current = false
+    }
+    if (!memo.pageSettings) updateMemoPageSettings(memo.id, memoPageSettings)
+  }, [currentId, memo, updateMemoPageSettings])
+
+  useEffect(() => {
+    return useUIStore.subscribe((state, previous) => {
+      if (applyingMemoPageSettingsRef.current) return
+      const next = pageSettingsFromUi(state)
+      if (sameMemoPageSettings(next, pageSettingsFromUi(previous))) return
+      const memoId = activeMemoIdRef.current
+      if (!memoId) return
+      updateMemoPageSettings(memoId, next)
+    })
+  }, [updateMemoPageSettings])
 
   useEffect(() => {
     const onPageHide = () => flushPendingEditorContent()

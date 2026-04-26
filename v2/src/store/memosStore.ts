@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import { createLocalFirstStorage } from '../lib/localFirstStorage'
+import { DEFAULT_MEMO_PAGE_SETTINGS, normalizeMemoPageSettings, sameMemoPageSettings, type MemoPageSettings } from './uiStore'
 
 export type SortMode = 'recent' | 'title' | 'created' | 'manual'
 
@@ -19,6 +20,7 @@ export interface Memo {
   createdAt: number
   updatedAt: number
   pinned?: boolean
+  pageSettings?: MemoPageSettings
 }
 
 export interface TrashedMemo extends Memo {
@@ -34,8 +36,9 @@ interface MemosState {
 
   newMemo: () => string
   setCurrent: (id: string) => void
-  updateMemo: (id: string, patch: { title?: string; content?: string }) => void
-  updateCurrent: (patch: { title?: string; content?: string }) => void
+  updateMemo: (id: string, patch: { title?: string; content?: string; pageSettings?: MemoPageSettings }) => void
+  updateCurrent: (patch: { title?: string; content?: string; pageSettings?: MemoPageSettings }) => void
+  updateMemoPageSettings: (id: string, pageSettings: MemoPageSettings) => void
   togglePin: (id: string) => void
   duplicate: (id: string) => string | null
   deleteMemo: (id: string) => void // → 휴지통으로
@@ -56,7 +59,14 @@ function makeId(): string {
 
 function makeBlankMemo(): Memo {
   const now = Date.now()
-  return { id: makeId(), title: '새 메모', content: '<p></p>', createdAt: now, updatedAt: now }
+  return {
+    id: makeId(),
+    title: '새 메모',
+    content: '<p></p>',
+    createdAt: now,
+    updatedAt: now,
+    pageSettings: DEFAULT_MEMO_PAGE_SETTINGS,
+  }
 }
 
 function makePreview(html: string): string {
@@ -93,7 +103,12 @@ export const useMemosStore = create<MemosState>()(
         set((s) => {
           const cur = s.memos[id]
           if (!cur) return s
-          const next: Memo = { ...cur, ...patch, updatedAt: Date.now() }
+          const next: Memo = {
+            ...cur,
+            ...patch,
+            pageSettings: patch.pageSettings ? normalizeMemoPageSettings(patch.pageSettings) : cur.pageSettings,
+            updatedAt: Date.now(),
+          }
           const newOrder = [id, ...s.order.filter((memoId) => memoId !== id)]
           return { memos: { ...s.memos, [id]: next }, order: newOrder }
         })
@@ -104,9 +119,26 @@ export const useMemosStore = create<MemosState>()(
           if (!s.currentId) return s
           const cur = s.memos[s.currentId]
           if (!cur) return s
-          const next: Memo = { ...cur, ...patch, updatedAt: Date.now() }
+          const next: Memo = {
+            ...cur,
+            ...patch,
+            pageSettings: patch.pageSettings ? normalizeMemoPageSettings(patch.pageSettings) : cur.pageSettings,
+            updatedAt: Date.now(),
+          }
           const newOrder = [s.currentId, ...s.order.filter((id) => id !== s.currentId)]
           return { memos: { ...s.memos, [s.currentId]: next }, order: newOrder }
+        })
+      },
+
+      updateMemoPageSettings: (id, pageSettings) => {
+        set((s) => {
+          const cur = s.memos[id]
+          if (!cur) return s
+          const nextPageSettings = normalizeMemoPageSettings(pageSettings)
+          if (sameMemoPageSettings(cur.pageSettings, nextPageSettings)) return s
+          const next: Memo = { ...cur, pageSettings: nextPageSettings, updatedAt: Date.now() }
+          const newOrder = [id, ...s.order.filter((memoId) => memoId !== id)]
+          return { memos: { ...s.memos, [id]: next }, order: newOrder }
         })
       },
 
@@ -130,6 +162,7 @@ export const useMemosStore = create<MemosState>()(
           createdAt: now,
           updatedAt: now,
           pinned: false,
+          pageSettings: normalizeMemoPageSettings(src.pageSettings),
         }
         set((st) => ({
           memos: { ...st.memos, [copy.id]: copy },

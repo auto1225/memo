@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatRunningText, normalizePageColumnCount, normalizePageMarginsMm, normalizeViewLayout, normalizeZoom, pageMarginsCss, pageMarginsSummary } from './uiStore'
+import { formatRunningText, normalizeMemoPageSettings, normalizePageColumnCount, normalizePageMarginsMm, normalizeViewLayout, normalizeZoom, pageMarginsCss, pageMarginsSummary, sameMemoPageSettings } from './uiStore'
 
 describe('uiStore helpers', () => {
   it('normalizes page column counts to Word-like supported values', () => {
@@ -46,5 +46,30 @@ describe('uiStore helpers', () => {
     expect(normalizeViewLayout('print')).toBe('print')
     expect(normalizeViewLayout('draft')).toBe('draft')
     expect(normalizeViewLayout('web')).toBe('print')
+  })
+
+  it('normalizes memo-specific page settings for v1-style tab persistence', () => {
+    const settings = normalizeMemoPageSettings({
+      paperStyle: 'grid',
+      pageSize: 'B4',
+      pageOrientation: 'landscape',
+      pageMarginMm: 14,
+      pageMarginsMm: { top: 12, right: 16, bottom: 20, left: 24 },
+      pageColumnCount: '2',
+      runningHeader: ' Project ',
+      runningFooter: 'Page {page}',
+    })
+    expect(settings).toMatchObject({
+      paperStyle: 'grid',
+      pageSize: 'B4',
+      pageOrientation: 'landscape',
+      pageMarginMm: 14,
+      pageMarginsMm: { top: 12, right: 16, bottom: 20, left: 24 },
+      pageColumnCount: 2,
+      runningHeader: 'Project',
+      runningFooter: 'Page {page}',
+    })
+    expect(sameMemoPageSettings(settings, { ...settings, pageColumnCount: 2 })).toBe(true)
+    expect(sameMemoPageSettings(settings, { ...settings, pageSize: 'A4' })).toBe(false)
   })
 })

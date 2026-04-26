@@ -49,6 +49,10 @@ function App() {
 
   useEffect(() => {
     if (memosHydrated) return
+    if (useMemosStore.persist.hasHydrated()) {
+      const timer = window.setTimeout(() => setMemosHydrated(true), 0)
+      return () => window.clearTimeout(timer)
+    }
     return useMemosStore.persist.onFinishHydration(() => setMemosHydrated(true))
   }, [memosHydrated])
 

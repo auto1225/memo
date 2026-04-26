@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { buildPrintHtml } from '../lib/pdfExport'
-import { PAGE_PRESETS, useUIStore } from '../store/uiStore'
+import { buildPrintHtml, currentPrintPageSettings } from '../lib/pdfExport'
+import { PAGE_PRESETS, pageMarginsSummary, useUIStore } from '../store/uiStore'
 
 interface PrintPreviewProps {
   html: string
@@ -15,8 +15,13 @@ export function PrintPreview({ html, title, onClose }: PrintPreviewProps) {
   const pageSize = useUIStore((s) => s.pageSize)
   const pageOrientation = useUIStore((s) => s.pageOrientation)
   const pageMarginMm = useUIStore((s) => s.pageMarginMm)
+  const pageMarginsMm = useUIStore((s) => s.pageMarginsMm)
+  const pageColumnCount = useUIStore((s) => s.pageColumnCount)
+  const runningHeader = useUIStore((s) => s.runningHeader)
+  const runningFooter = useUIStore((s) => s.runningFooter)
   const pageLabel = PAGE_PRESETS[pageSize]?.label || pageSize
   const orientationLabel = pageOrientation === 'landscape' ? '가로' : '세로'
+  const marginLabel = pageMarginsSummary(pageMarginsMm, pageMarginMm)
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -32,7 +37,7 @@ export function PrintPreview({ html, title, onClose }: PrintPreviewProps) {
     ifr.srcdoc = buildPrintHtml(
       html,
       title,
-      { paperStyle, pageSize, pageOrientation, pageMarginMm },
+      currentPrintPageSettings(),
       { previewChrome: true }
     )
     setStatus('페이지 분할 중...')
@@ -62,7 +67,7 @@ export function PrintPreview({ html, title, onClose }: PrintPreviewProps) {
       cancelled = true
       ifr.removeEventListener('load', handleLoad)
     }
-  }, [html, title, paperStyle, pageSize, pageOrientation, pageMarginMm])
+  }, [html, title, paperStyle, pageSize, pageOrientation, pageMarginMm, pageMarginsMm, pageColumnCount, runningHeader, runningFooter])
 
   function doPrint() {
     const ifr = iframeRef.current
@@ -75,7 +80,7 @@ export function PrintPreview({ html, title, onClose }: PrintPreviewProps) {
     <div className="jan-print-modal" onClick={onClose}>
       <div className="jan-print-shell" onClick={(e) => e.stopPropagation()}>
         <div className="jan-print-bar">
-          <span className="jan-print-title">인쇄 미리보기 - {pageLabel} {orientationLabel} / {pageMarginMm}mm</span>
+          <span className="jan-print-title">인쇄 미리보기 - {pageLabel} {orientationLabel} / 여백 {marginLabel} / {pageColumnCount}단</span>
           <span className="jan-print-status">{status}</span>
           <div style={{ flex: 1 }} />
           <button onClick={doPrint} className="jan-print-btn primary">인쇄 / PDF</button>

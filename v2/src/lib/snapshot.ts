@@ -9,7 +9,7 @@ import { useMacrosStore, type Macro } from '../store/macrosStore'
 import { useRoleToolsStore, type RoleToolData } from '../store/roleToolsStore'
 import { useVersionsStore, type Version } from '../store/versionsStore'
 import { useSettingsStore } from '../store/settingsStore'
-import { useUIStore } from '../store/uiStore'
+import { DEFAULT_MEMO_PAGE_SETTINGS, normalizeMemoPageSettings, useUIStore } from '../store/uiStore'
 import { useThemeStore } from '../store/themeStore'
 import { useTypographyStore } from '../store/typographyStore'
 import { useWritingGoalStore } from '../store/writingGoalStore'
@@ -76,6 +76,9 @@ interface V1Tab {
   pinned?: boolean
   tag?: string
   wsId?: string
+  pageSize?: string
+  pageMargins?: unknown
+  paperStyle?: string
 }
 
 interface V1Workspace {
@@ -107,6 +110,7 @@ function normalizeMemo(raw: unknown): Memo | null {
     createdAt: safeNumber(raw.createdAt, now),
     updatedAt: safeNumber(raw.updatedAt, now),
     pinned: raw.pinned === true,
+    pageSettings: normalizeMemoPageSettings(raw.pageSettings),
   }
 }
 
@@ -406,6 +410,7 @@ function snapshotFromV1(raw: Record<string, unknown>): V2Snapshot | null {
       createdAt: now,
       updatedAt: now,
       pinned: tab.pinned === true,
+      pageSettings: normalizeMemoPageSettings(v1PageSettings(tab.pageSize, tab.pageMargins, tab.paperStyle)),
     }
     order.push(id)
     if (tab.tag) tags[id] = [String(tab.tag).toLowerCase()]
@@ -457,6 +462,30 @@ function snapshotFromV1(raw: Record<string, unknown>): V2Snapshot | null {
       groups: normalizeStringArray(raw.cardGroups),
       myCardId,
     },
+  }
+}
+
+function v1PageSettings(pageSize: unknown, pageMargins: unknown, paperStyle: unknown) {
+  const key = typeof pageSize === 'string' ? pageSize.toLowerCase() : ''
+  const sizeMap: Record<string, { pageSize: string; pageOrientation: string }> = {
+    a4p: { pageSize: 'A4', pageOrientation: 'portrait' },
+    a4l: { pageSize: 'A4', pageOrientation: 'landscape' },
+    a3p: { pageSize: 'A3', pageOrientation: 'portrait' },
+    a3l: { pageSize: 'A3', pageOrientation: 'landscape' },
+    b4p: { pageSize: 'B4', pageOrientation: 'portrait' },
+    b4l: { pageSize: 'B4', pageOrientation: 'landscape' },
+    a5p: { pageSize: 'A5', pageOrientation: 'portrait' },
+    a5l: { pageSize: 'A5', pageOrientation: 'landscape' },
+    b5p: { pageSize: 'B5', pageOrientation: 'portrait' },
+    b5l: { pageSize: 'B5', pageOrientation: 'landscape' },
+    letterp: { pageSize: 'Letter', pageOrientation: 'portrait' },
+    letterl: { pageSize: 'Letter', pageOrientation: 'landscape' },
+  }
+  return {
+    ...DEFAULT_MEMO_PAGE_SETTINGS,
+    ...(sizeMap[key] || {}),
+    paperStyle,
+    pageMarginsMm: pageMargins,
   }
 }
 

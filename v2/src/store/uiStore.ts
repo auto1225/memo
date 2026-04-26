@@ -16,6 +16,28 @@ export interface PageMarginsMm {
   left: number
 }
 
+export interface MemoPageSettings {
+  paperStyle: PaperStyle
+  pageSize: PageSizePreset
+  pageOrientation: PageOrientation
+  pageMarginMm: number
+  pageMarginsMm: PageMarginsMm
+  pageColumnCount: PageColumnCount
+  runningHeader: string
+  runningFooter: string
+}
+
+export const DEFAULT_MEMO_PAGE_SETTINGS: MemoPageSettings = {
+  paperStyle: 'lined',
+  pageSize: 'A4',
+  pageOrientation: 'portrait',
+  pageMarginMm: 20,
+  pageMarginsMm: { top: 20, right: 20, bottom: 20, left: 20 },
+  pageColumnCount: 1,
+  runningHeader: '',
+  runningFooter: DEFAULT_RUNNING_FOOTER,
+}
+
 export const PAPER_STYLES: Array<{ value: PaperStyle; label: string; description: string }> = [
   { value: 'lined', label: '줄노트 (기본)', description: 'v1 기본 노트 배경' },
   { value: 'grid', label: '모눈종이', description: '20px 격자' },
@@ -104,6 +126,60 @@ export function normalizeViewLayout(value: unknown): ViewLayoutMode {
   return value === 'draft' ? 'draft' : 'print'
 }
 
+export function normalizeMemoPageSettings(value: unknown, fallback: MemoPageSettings = DEFAULT_MEMO_PAGE_SETTINGS): MemoPageSettings {
+  const raw = isRecord(value) ? value : {}
+  const pageSize = typeof raw.pageSize === 'string' && raw.pageSize in PAGE_PRESETS
+    ? raw.pageSize as PageSizePreset
+    : fallback.pageSize
+  const pageOrientation = raw.pageOrientation === 'landscape' || raw.pageOrientation === 'portrait'
+    ? raw.pageOrientation
+    : fallback.pageOrientation
+  const paperStyle = PAPER_STYLES.some((style) => style.value === raw.paperStyle)
+    ? raw.paperStyle as PaperStyle
+    : fallback.paperStyle
+  const pageMarginMm = clampPageMarginMm(raw.pageMarginMm, fallback.pageMarginMm)
+  const pageMarginsMm = normalizePageMarginsMm(raw.pageMarginsMm, pageMarginMm)
+  return {
+    paperStyle,
+    pageSize,
+    pageOrientation,
+    pageMarginMm,
+    pageMarginsMm,
+    pageColumnCount: normalizePageColumnCount(raw.pageColumnCount ?? fallback.pageColumnCount),
+    runningHeader: typeof raw.runningHeader === 'string' ? raw.runningHeader.trim() : fallback.runningHeader,
+    runningFooter: typeof raw.runningFooter === 'string' ? raw.runningFooter.trim() : fallback.runningFooter,
+  }
+}
+
+export function pageSettingsFromUi(state: Pick<UIState, keyof MemoPageSettings>): MemoPageSettings {
+  return normalizeMemoPageSettings({
+    paperStyle: state.paperStyle,
+    pageSize: state.pageSize,
+    pageOrientation: state.pageOrientation,
+    pageMarginMm: state.pageMarginMm,
+    pageMarginsMm: state.pageMarginsMm,
+    pageColumnCount: state.pageColumnCount,
+    runningHeader: state.runningHeader,
+    runningFooter: state.runningFooter,
+  })
+}
+
+export function sameMemoPageSettings(a: unknown, b: unknown): boolean {
+  const left = normalizeMemoPageSettings(a)
+  const right = normalizeMemoPageSettings(b)
+  return left.paperStyle === right.paperStyle &&
+    left.pageSize === right.pageSize &&
+    left.pageOrientation === right.pageOrientation &&
+    left.pageMarginMm === right.pageMarginMm &&
+    left.pageColumnCount === right.pageColumnCount &&
+    left.runningHeader === right.runningHeader &&
+    left.runningFooter === right.runningFooter &&
+    left.pageMarginsMm.top === right.pageMarginsMm.top &&
+    left.pageMarginsMm.right === right.pageMarginsMm.right &&
+    left.pageMarginsMm.bottom === right.pageMarginsMm.bottom &&
+    left.pageMarginsMm.left === right.pageMarginsMm.left
+}
+
 export function formatRunningText(template: string, page = 1, total = 1): string {
   return template
     .replace(/\{page\}/g, String(Math.max(1, Math.round(page))))
@@ -152,6 +228,7 @@ interface UIState {
   setPageColumnCount: (count: PageColumnCount) => void
   setRunningHeader: (value: string) => void
   setRunningFooter: (value: string) => void
+  applyPageSettings: (settings: Partial<MemoPageSettings>) => void
 }
 
 export const useUIStore = create<UIState>()(
@@ -203,6 +280,19 @@ export const useUIStore = create<UIState>()(
       setPageColumnCount: (count) => set({ pageColumnCount: normalizePageColumnCount(count) }),
       setRunningHeader: (value) => set({ runningHeader: value.trim() }),
       setRunningFooter: (value) => set({ runningFooter: value.trim() }),
+      applyPageSettings: (settings) => {
+        const next = normalizeMemoPageSettings(settings)
+        set({
+          paperStyle: next.paperStyle,
+          pageSize: next.pageSize,
+          pageOrientation: next.pageOrientation,
+          pageMarginMm: next.pageMarginMm,
+          pageMarginsMm: next.pageMarginsMm,
+          pageColumnCount: next.pageColumnCount,
+          runningHeader: next.runningHeader,
+          runningFooter: next.runningFooter,
+        })
+      },
     }),
     { name: 'jan-v2-ui' }
   )

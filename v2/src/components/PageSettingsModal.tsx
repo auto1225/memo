@@ -84,13 +84,16 @@ export function PageSettingsModal({ onClose }: PageSettingsModalProps) {
   }
 
   function apply() {
-    ui.setPaperStyle(paperStyle)
-    ui.setPageSize(pageSize)
-    ui.setPageOrientation(pageOrientation)
-    ui.setPageMarginsMm(pageMarginsMm)
-    ui.setPageColumnCount(pageColumnCount)
-    ui.setRunningHeader(runningHeader)
-    ui.setRunningFooter(runningFooter)
+    ui.applyPageSettings({
+      paperStyle,
+      pageSize,
+      pageOrientation,
+      pageMarginMm,
+      pageMarginsMm,
+      pageColumnCount,
+      runningHeader,
+      runningFooter,
+    })
     onClose()
   }
 
