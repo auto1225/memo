@@ -503,6 +503,7 @@ export function BusinessCardsModal({ editor, onClose }: BusinessCardsModalProps)
       return
     }
     setAiBusy(true)
+    let usedOcrFallback = false
     try {
       const result = await runAiVision(BUSINESS_CARD_VISION_PROMPT, dataUrl)
       if (result.ok && result.text) {
@@ -513,6 +514,8 @@ export function BusinessCardsModal({ editor, onClose }: BusinessCardsModalProps)
         }
       }
       setStatus(`AI 추출 실패: ${result.error || '응답 파싱 실패'} · OCR 보정 추출로 대신 시도합니다.`)
+      usedOcrFallback = true
+      setOcrBusy(true)
       setOcrProgress(0)
       const text = await extractImageText()
       if (!text) {
@@ -525,6 +528,10 @@ export function BusinessCardsModal({ editor, onClose }: BusinessCardsModalProps)
       setStatus(`AI 추출 오류: ${error instanceof Error ? error.message : String(error)}`)
     } finally {
       setAiBusy(false)
+      if (usedOcrFallback) {
+        setOcrBusy(false)
+        setOcrProgress(1)
+      }
     }
   }
 
