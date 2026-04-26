@@ -5,7 +5,7 @@
  *
  * 캐시 키는 /v2/* 만 — v1 (/app, /home) 은 영향 X.
  */
-const VERSION = 'jan-v2-sw-v15-webbrowser'
+const VERSION = 'jan-v2-sw-v16-wbfallback'
 const STATIC_CACHE = `${VERSION}-static`
 
 const PRECACHE = [
