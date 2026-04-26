@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react'
+﻿import { useEffect, useState, useMemo } from 'react'
 import type { Editor } from '@tiptap/react'
 import { useMemosStore } from '../store/memosStore'
 import { useUIStore } from '../store/uiStore'
@@ -281,17 +281,20 @@ export function CommandPalette({ editor }: CommandPaletteProps) {
 
   let runningIdx = 0
   return (
-    <div className="jan-cp-overlay" onClick={() => setOpen(false)}>
-      <div className="jan-cp" onClick={(e) => e.stopPropagation()}>
-        <input
-          type="text"
-          className="jan-cp-input"
-          autoFocus
-          placeholder={`명령 검색... (${flat.length}/${commands.length}개)  ·  Ctrl+K`}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={onKeyDown}
-        />
+    <div className="jan-cp-overlay-soft">
+      <div className="jan-cp" role="dialog" aria-label="명령 팔레트">
+        <div className="jan-cp-header">
+          <input
+            type="text"
+            className="jan-cp-input"
+            autoFocus
+            placeholder={`명령 검색... (${flat.length}/${commands.length}개)  ·  Ctrl+K`}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={onKeyDown}
+          />
+          <button className="jan-cp-close" onClick={() => setOpen(false)} title="닫기 (Esc)" aria-label="닫기">×</button>
+        </div>
         <ul className="jan-cp-list">
           {flat.length === 0 && <li className="jan-cp-empty">검색 결과 없음</li>}
           {Object.entries(groups).map(([cat, cmds]) => (

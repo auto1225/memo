@@ -2404,3 +2404,79 @@ html, body, #root {
 .jan-theme-dark .jan-cp-desc { color: #aaa; }
 .jan-theme-dark .jan-cp-group-label { background: rgba(255,255,255,0.05); }
 .jan-theme-dark .jan-cp-item:hover, .jan-theme-dark .jan-cp-item.is-selected { background: #2a2a2c; }
+
+
+/* =========================================================
+ * Phase 29 — 명령 팔레트 v1 스타일 정확 복제
+ *   - 외곽 클릭으로 안 닫힘 (사용자 요청)
+ *   - 520px 너비
+ *   - 우상단 X 버튼으로 닫기
+ *   - 부드러운 그림자
+ * ========================================================= */
+.jan-cp-overlay-soft {
+  position: fixed;
+  inset: 0;
+  background: transparent;
+  pointer-events: none;
+  z-index: 10000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 12vh;
+}
+.jan-cp-overlay-soft .jan-cp {
+  pointer-events: auto;
+  width: 520px;
+  max-width: 92vw;
+  max-height: 70vh;
+  background: var(--paper, #fff);
+  border-radius: 12px;
+  box-shadow:
+    0 1px 3px rgba(0,0,0,0.06),
+    0 8px 24px rgba(0,0,0,0.12),
+    0 16px 48px rgba(0,0,0,0.18);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.06);
+}
+.jan-cp-header {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--paper-edge, #eee);
+}
+.jan-cp-header .jan-cp-input {
+  flex: 1;
+  border: 0;
+  border-bottom: 0;
+  padding: 14px 18px;
+  font-size: 14px;
+  outline: none;
+  background: transparent;
+  color: var(--ink, #191919);
+}
+.jan-cp-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  background: transparent;
+  color: #888;
+  font-size: 20px;
+  font-weight: 300;
+  cursor: pointer;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.jan-cp-close:hover {
+  background: rgba(0,0,0,0.06);
+  color: #333;
+}
+.jan-theme-dark .jan-cp-close { color: #aaa }
+.jan-theme-dark .jan-cp-close:hover { background: rgba(255,255,255,0.1); color: #fff }
