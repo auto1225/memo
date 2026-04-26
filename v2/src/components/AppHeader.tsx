@@ -209,6 +209,8 @@ export function AppHeader(p: AppHeaderProps) {
     void action()
   }
   const mobileMoreActions: Array<{ label: string; icon: Parameters<typeof Icon>[0]['name']; onClick: () => void | Promise<void> }> = [
+    { label: '명령 팔레트', icon: 'cmd', onClick: p.onCmdPalette },
+    { label: 'AI 도우미', icon: 'ai', onClick: p.onAi || p.onChat },
     { label: '웹 검색', icon: 'globe', onClick: openWebSearch },
     { label: '캘린더', icon: 'page', onClick: p.onCalendar },
     { label: 'JustPin', icon: 'pin', onClick: openJustPin },
@@ -248,9 +250,9 @@ export function AppHeader(p: AppHeaderProps) {
             {pomoText}
           </button>
         )}
-        <button className="jan-header-btn" onClick={p.onCmdPalette} title="명령 팔레트 (Ctrl+Shift+P)" aria-label="명령 팔레트"><Icon name="cmd" /></button>
+        <button className="jan-header-btn jan-header-compact-extra" onClick={p.onCmdPalette} title="명령 팔레트 (Ctrl+Shift+P)" aria-label="명령 팔레트"><Icon name="cmd" /></button>
         <button className="jan-header-btn jan-header-extra" onClick={openWebSearch} title="웹 검색" aria-label="웹 검색"><Icon name="globe" /></button>
-        <button className="jan-header-btn" onClick={p.onAi || p.onChat} title="AI 어시스턴트 (Ctrl+/)" aria-label="AI"><Icon name="ai" /></button>
+        <button className="jan-header-btn jan-header-compact-extra" onClick={p.onAi || p.onChat} title="AI 어시스턴트 (Ctrl+/)" aria-label="AI"><Icon name="ai" /></button>
         <button className="jan-header-btn jan-header-extra" onClick={p.onCalendar} title="캘린더" aria-label="캘린더"><Icon name="page" /></button>
         <button className="jan-header-btn jan-header-extra" onClick={openJustPin} title="새 JustPin (Ctrl+Alt+P)" aria-label="JustPin"><Icon name="pin" /></button>
         <button className="jan-header-btn jan-header-extra" onClick={insertLectureTemplate} title="강의노트" aria-label="강의노트"><Icon name="mic" /></button>
@@ -280,13 +282,14 @@ export function AppHeader(p: AppHeaderProps) {
             title="더보기"
             aria-label="더보기"
             aria-expanded={showMobileMore}
+            aria-haspopup="menu"
           >
             <Icon name="sliders" />
           </button>
           {showMobileMore && (
-            <div className="jan-header-more-menu">
+            <div className="jan-header-more-menu" role="menu">
               {mobileMoreActions.map((action) => (
-                <button key={action.label} onClick={() => runMobileMore(action.onClick)}>
+                <button key={action.label} onClick={() => runMobileMore(action.onClick)} role="menuitem">
                   <Icon name={action.icon} size={14} />
                   <span>{action.label}</span>
                 </button>

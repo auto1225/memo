@@ -678,4 +678,55 @@ test.describe('v2 smoke', () => {
 
     await expect(editor).toContainText(marker)
   })
+
+  test('mobile header keeps dense v1 actions accessible from the more menu', async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 740 })
+    await page.addInitScript(() => localStorage.setItem('jan-v2-role-onboarded', '1'))
+    await page.goto('./')
+    await expect(page.locator('.ProseMirror').first()).toBeVisible({ timeout: 15000 })
+
+    const header = page.locator('.jan-app-header')
+    await expect(header).toBeVisible()
+    const headerBox = await header.boundingBox()
+    expect(headerBox).not.toBeNull()
+    expect(Math.ceil((headerBox?.x || 0) + (headerBox?.width || 0))).toBeLessThanOrEqual(360)
+    await expect(page.locator('.jan-header-compact-extra').first()).toBeHidden()
+
+    await page.locator('.jan-header-more-btn').click()
+    const menu = page.locator('.jan-header-more-menu')
+    await expect(menu).toBeVisible()
+    await expect(menu.locator('button').first()).toBeVisible()
+    expect(await menu.locator('button').count()).toBeGreaterThan(10)
+
+    const menuBox = await menu.boundingBox()
+    expect(menuBox).not.toBeNull()
+    expect(Math.floor(menuBox?.x || 0)).toBeGreaterThanOrEqual(0)
+    expect(Math.ceil((menuBox?.x || 0) + (menuBox?.width || 0))).toBeLessThanOrEqual(360)
+    expect(Math.ceil((menuBox?.y || 0) + (menuBox?.height || 0))).toBeLessThanOrEqual(740)
+
+    await menu.locator('button').first().click()
+    await expect(page.locator('.jan-cp')).toBeVisible()
+  })
+
+  test('mobile ribbon dropdown stays inside the viewport after toolbar wrapping', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 740 })
+    await page.addInitScript(() => localStorage.setItem('jan-v2-role-onboarded', '1'))
+    await page.goto('./')
+    await expect(page.locator('.ProseMirror').first()).toBeVisible({ timeout: 15000 })
+
+    await page.locator('.jan-menu-btn').nth(3).click()
+    const menu = page.locator('.jan-menu-dropdown')
+    await expect(menu).toBeVisible()
+    await expect(menu.locator('.jan-menu-item').first()).toBeVisible()
+
+    const box = await menu.boundingBox()
+    expect(box).not.toBeNull()
+    expect(Math.floor(box?.x || 0)).toBeGreaterThanOrEqual(0)
+    expect(Math.floor(box?.y || 0)).toBeGreaterThanOrEqual(0)
+    expect(Math.ceil((box?.x || 0) + (box?.width || 0))).toBeLessThanOrEqual(390)
+    expect(Math.ceil((box?.y || 0) + (box?.height || 0))).toBeLessThanOrEqual(740)
+
+    await menu.locator('.jan-menu-item').first().click()
+    await expect(page.locator('.jan-page-settings-modal')).toBeVisible()
+  })
 })

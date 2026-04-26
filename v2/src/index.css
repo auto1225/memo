@@ -4935,3 +4935,96 @@ html, body, #root {
     display: none;
   }
 }
+
+/* Mobile/Tablet v1 parity hardening: dense toolbars must remain usable. */
+@media (max-width: 800px) {
+  .jan-menu-dropdown {
+    position: fixed !important;
+    top: var(--jan-menu-top, 134px) !important;
+    left: var(--jan-menu-left, 12px) !important;
+    right: auto !important;
+    width: var(--jan-menu-width, calc(100vw - 24px)) !important;
+    min-width: 260px !important;
+    max-width: calc(100vw - 16px) !important;
+    max-height: min(70vh, calc(100vh - var(--jan-menu-top, 134px) - 12px)) !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+  }
+
+  .jan-menu-item {
+    min-height: 40px !important;
+    white-space: normal !important;
+  }
+}
+
+@media (max-width: 700px) {
+  .jan-app-header {
+    height: 46px !important;
+    min-height: 46px !important;
+  }
+
+  .jan-header-left {
+    min-width: 0;
+    gap: 2px !important;
+  }
+
+  .jan-app-header .jan-header-logo {
+    padding: 0 2px !important;
+  }
+
+  .jan-app-header .jan-header-title-input {
+    height: 32px !important;
+    min-width: 64px !important;
+    padding: 0 8px !important;
+  }
+
+  .jan-app-header .jan-header-btn {
+    width: 34px !important;
+    height: 34px !important;
+    flex: 0 0 34px;
+  }
+
+  .jan-header-more-menu {
+    position: fixed !important;
+    top: 50px !important;
+    right: 8px !important;
+    left: auto !important;
+    width: min(300px, calc(100vw - 16px)) !important;
+    max-height: calc(100vh - 64px) !important;
+    z-index: 9500 !important;
+  }
+
+  .jan-header-more-menu button {
+    min-height: 42px;
+  }
+
+  .jan-sidebar {
+    inset: 46px auto 0 0 !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .jan-header-compact-extra {
+    display: none !important;
+  }
+
+  .jan-app-header .jan-header-logo {
+    display: none !important;
+  }
+
+  .jan-header-right {
+    gap: 2px !important;
+  }
+
+  .jan-app-header .jan-header-title-input {
+    min-width: 54px !important;
+    margin: 0 2px !important;
+    padding: 0 6px !important;
+  }
+
+  .jan-app-header .jan-header-btn {
+    width: 32px !important;
+    height: 32px !important;
+    flex-basis: 32px;
+  }
+}

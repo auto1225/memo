@@ -1,5 +1,6 @@
 ﻿import { useState, useRef, useEffect } from 'react'
 import type { Editor } from '@tiptap/react'
+import type { CSSProperties } from 'react'
 import { downloadHwpx } from '../lib/hwpxExport'
 import { downloadMd } from '../lib/markdownIO'
 import { exportToPdf } from '../lib/pdfExport'
@@ -58,6 +59,7 @@ interface ToolbarProps {
 
 interface MenuItem { label: string; hint?: string; icon?: IconName; divider?: string; onClick?: () => void }
 interface MenuGroup { label: string; items: MenuItem[] }
+interface MenuPosition { left: number; top: number; width: number }
 
 /**
  * Phase 24 — v1 8개 카테고리 메뉴 모든 기능 실제 구현 (stub 제거).
@@ -67,7 +69,9 @@ interface MenuGroup { label: string; items: MenuItem[] }
 export function Toolbar(p: ToolbarProps) {
   const editor = p.editor
   const [openMenu, setOpenMenu] = useState<string | null>(null)
+  const [menuPosition, setMenuPosition] = useState<MenuPosition | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const menuButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({})
   const typo = useTypographyStore()
   const ui = useUIStore()
 
@@ -77,6 +81,36 @@ export function Toolbar(p: ToolbarProps) {
     }
     if (openMenu) document.addEventListener('mousedown', onClickOutside)
     return () => document.removeEventListener('mousedown', onClickOutside)
+  }, [openMenu])
+
+  useEffect(() => {
+    if (!openMenu || typeof window === 'undefined') {
+      setMenuPosition(null)
+      return
+    }
+
+    const update = () => {
+      const button = menuButtonRefs.current[openMenu]
+      if (!button || !window.matchMedia('(max-width: 800px)').matches) {
+        setMenuPosition(null)
+        return
+      }
+
+      const rect = button.getBoundingClientRect()
+      const width = Math.round(Math.min(340, Math.max(260, window.innerWidth - 16)))
+      const leftMax = Math.max(8, window.innerWidth - width - 8)
+      const left = Math.round(Math.min(Math.max(8, rect.left), leftMax))
+      const top = Math.round(Math.min(Math.max(8, rect.bottom + 6), Math.max(8, window.innerHeight - 96)))
+      setMenuPosition({ left, top, width })
+    }
+
+    update()
+    window.addEventListener('resize', update)
+    window.addEventListener('scroll', update, true)
+    return () => {
+      window.removeEventListener('resize', update)
+      window.removeEventListener('scroll', update, true)
+    }
   }, [openMenu])
 
   if (!editor) return null
@@ -723,18 +757,30 @@ export function Toolbar(p: ToolbarProps) {
 
   function MenuButton({ group }: { group: MenuGroup }) {
     const isOpen = openMenu === group.label
+    const menuStyle = isOpen && menuPosition
+      ? ({
+          '--jan-menu-left': `${menuPosition.left}px`,
+          '--jan-menu-top': `${menuPosition.top}px`,
+          '--jan-menu-width': `${menuPosition.width}px`,
+        } as CSSProperties)
+      : undefined
+
     return (
       <div className="jan-menu-wrap">
         <button
+          ref={(node) => { menuButtonRefs.current[group.label] = node }}
           className={'jan-menu-btn' + (isOpen ? ' is-open' : '')}
-          onClick={() => setOpenMenu(isOpen ? null : group.label)}
+          onClick={() => {
+            setOpenMenu(isOpen ? null : group.label)
+            if (isOpen) setMenuPosition(null)
+          }}
           aria-expanded={isOpen}
         >
           <span>{group.label}</span>
           <Icon name="chevron-down" size={10} className="jan-menu-arrow" />
         </button>
         {isOpen && (
-          <div className="jan-menu-dropdown" onMouseDown={(e) => e.stopPropagation()}>
+          <div className="jan-menu-dropdown" style={menuStyle} onMouseDown={(e) => e.stopPropagation()}>
             {group.items.map((it, i) => {
               if (it.divider) return <div key={i} className="jan-menu-divider">{it.divider}</div>
               return (
