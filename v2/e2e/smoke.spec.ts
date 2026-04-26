@@ -58,6 +58,8 @@ test.describe('v2 smoke', () => {
     await page.getByRole('button', { name: '페이지', exact: true }).click()
     await expect(page.getByRole('button', { name: /페이지 크기 설정/ })).toBeVisible()
     await expect(page.getByRole('button', { name: /노트 배경 스타일/ })).toBeVisible()
+    await page.getByRole('button', { name: /페이지 크기 설정/ }).click()
+    await expect(page.locator('.jan-page-settings-modal')).toBeVisible()
   })
 
   test('v1 note paper default and page settings are available', async ({ page }) => {
@@ -74,8 +76,18 @@ test.describe('v2 smoke', () => {
 
     await page.getByRole('button', { name: '설정' }).click()
     await expect(page.locator('.jan-settings-modal')).toBeVisible()
-    await expect(page.locator('.jan-settings-modal option[value="A3"]')).toHaveCount(1)
-    await expect(page.locator('.jan-settings-modal option[value="B4"]')).toHaveCount(1)
-    await expect(page.locator('.jan-settings-modal option[value="lined"]')).toHaveCount(1)
+    await page.getByRole('button', { name: '페이지 설정 열기' }).click()
+    await expect(page.locator('.jan-page-settings-modal')).toBeVisible()
+    await expect(page.locator('.jan-page-size-card', { hasText: 'A3' })).toBeVisible()
+    await expect(page.locator('.jan-page-size-card', { hasText: 'B4' })).toBeVisible()
+    await expect(page.locator('.jan-paper-style-card', { hasText: '줄노트' })).toBeVisible()
+
+    await page.locator('.jan-page-size-card', { hasText: 'B4' }).click()
+    await page.getByRole('button', { name: '가로' }).click()
+    await page.locator('.jan-paper-style-card', { hasText: '모눈종이' }).click()
+    await page.getByRole('button', { name: '적용' }).click()
+    await expect(pages).toHaveAttribute('data-paper', 'grid')
+    await expect(pages).toHaveAttribute('data-page-size', 'B4')
+    await expect(pages).toHaveAttribute('data-page-orientation', 'landscape')
   })
 })

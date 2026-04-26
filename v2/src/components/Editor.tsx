@@ -97,6 +97,7 @@ const TemplatesModal = lazy(() => import('./TemplatesModal').then((m) => ({ defa
 const GistModal = lazy(() => import('./GistModal').then((m) => ({ default: m.GistModal })))
 const WebBrowserModal = lazy(() => import('./WebBrowserModal').then((m) => ({ default: m.WebBrowserModal })))
 const BusinessCardsModal = lazy(() => import('./BusinessCardsModal').then((m) => ({ default: m.BusinessCardsModal })))
+const PageSettingsModal = lazy(() => import('./PageSettingsModal').then((m) => ({ default: m.PageSettingsModal })))
 
 export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
   const { fileHandle, setFileHandle, setSavedAt, setEditor } = useDocStore()
@@ -142,6 +143,7 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
   const [showGist, setShowGist] = useState(false)
   const [showWeb, setShowWeb] = useState(false)
   const [showCards, setShowCards] = useState(false)
+  const [showPageSettings, setShowPageSettings] = useState(false)
   const paperStyle = useUIStore((s) => s.paperStyle)
   const pageSize = useUIStore((s) => s.pageSize)
   const pageOrientation = useUIStore((s) => s.pageOrientation)
@@ -464,6 +466,7 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
         onOcr={() => setShowOcr(true)}
         onChat={() => setShowChat(true)}
         onSearch={() => setShowSearch(true)}
+        onPageSettings={() => setShowPageSettings(true)}
         onToggleOutline={() => setShowOutline((v) => !v)}
         outlineOpen={showOutline}
       />
@@ -484,7 +487,7 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
       </div>
       </div>
       <StatusBar editor={editor} />
-      <CommandPalette editor={editor} onAi={() => setShowAi(true)} onChat={() => setShowChat(true)} onSearch={() => setShowSearch(true)} onFind={() => setShowFind(true)} onOcr={() => setShowOcr(true)} onPaint={() => setShowPaint(true)} onPostit={() => setShowPostit(true)} onPaper={() => setShowPaper(true)} onRoles={() => { setInitialRoleTool(null); setShowRoles(true) }} onTemplates={() => setShowTemplates(true)} onSnippets={() => setShowSnippets(true)} onMacros={() => setShowMacros(true)} onTypo={() => setShowTypo(true)} onCalendar={() => setShowQuick(true)} onQuick={() => setShowQuick(true)} onMd={() => setShowMd(true)} onPrintPreview={() => setShowPrint(true)} onShare={() => setShowShare(true)} onGist={() => setShowGist(true)} onAtt={() => setShowAtt(true)} onLock={() => setShowLock(true)} onSettings={() => setShowSettings(true)} onHelp={() => setShowHelp(true)} onAbout={() => setShowAbout(true)} onStats={() => setShowStats(true)} onMindMap={() => setShowMindMap(true)} onHeatmap={() => setShowHeatmap(true)} onInfo={() => setShowInfo(true)} onDiff={() => setShowDiff(true)} onLinkCheck={() => setShowLinkCheck(true)} onTranslate={() => setShowTranslate(true)} onVersions={() => setShowVersions(true)} onCards={() => setShowCards(true)} onToggleOutline={() => setShowOutline((v) => !v)} onSave={handleSave} onOpen={handleOpen} />
+      <CommandPalette editor={editor} onAi={() => setShowAi(true)} onChat={() => setShowChat(true)} onSearch={() => setShowSearch(true)} onFind={() => setShowFind(true)} onOcr={() => setShowOcr(true)} onPaint={() => setShowPaint(true)} onPostit={() => setShowPostit(true)} onPaper={() => setShowPaper(true)} onRoles={() => { setInitialRoleTool(null); setShowRoles(true) }} onTemplates={() => setShowTemplates(true)} onSnippets={() => setShowSnippets(true)} onMacros={() => setShowMacros(true)} onTypo={() => setShowTypo(true)} onCalendar={() => setShowQuick(true)} onQuick={() => setShowQuick(true)} onMd={() => setShowMd(true)} onPrintPreview={() => setShowPrint(true)} onShare={() => setShowShare(true)} onGist={() => setShowGist(true)} onAtt={() => setShowAtt(true)} onLock={() => setShowLock(true)} onSettings={() => setShowSettings(true)} onHelp={() => setShowHelp(true)} onAbout={() => setShowAbout(true)} onStats={() => setShowStats(true)} onMindMap={() => setShowMindMap(true)} onHeatmap={() => setShowHeatmap(true)} onInfo={() => setShowInfo(true)} onDiff={() => setShowDiff(true)} onLinkCheck={() => setShowLinkCheck(true)} onTranslate={() => setShowTranslate(true)} onVersions={() => setShowVersions(true)} onCards={() => setShowCards(true)} onPageSettings={() => setShowPageSettings(true)} onToggleOutline={() => setShowOutline((v) => !v)} onSave={handleSave} onOpen={handleOpen} />
       <SlashMenu editor={editor} />
       <TableMenu editor={editor} />
       <BubbleToolbar editor={editor} />
@@ -523,6 +526,7 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
         {showGist && <GistModal editor={editor} onClose={() => setShowGist(false)} />}
         {showWeb && <WebBrowserModal editor={editor} onClose={() => setShowWeb(false)} />}
         {showCards && <BusinessCardsModal editor={editor} onClose={() => setShowCards(false)} />}
+        {showPageSettings && <PageSettingsModal onClose={() => setShowPageSettings(false)} />}
       </Suspense>
       <Lightbox />
     </div>

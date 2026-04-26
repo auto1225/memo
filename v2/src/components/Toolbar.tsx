@@ -7,7 +7,7 @@ import { ColorPicker } from './ColorPicker'
 import { Icon } from './Icons'
 import type { IconName } from './Icons'
 import { useTypographyStore, type FontFamily } from '../store/typographyStore'
-import { PAGE_PRESETS, PAPER_STYLES, useUIStore, type PageOrientation, type PageSizePreset, type PaperStyle } from '../store/uiStore'
+import { PAPER_STYLES, useUIStore } from '../store/uiStore'
 import { useMemosStore } from '../store/memosStore'
 
 interface ToolbarProps {
@@ -45,6 +45,7 @@ interface ToolbarProps {
   onSearch: () => void
   onSave: () => void
   onOpen: () => void
+  onPageSettings: () => void
 }
 
 interface MenuItem { label: string; hint?: string; icon?: IconName; divider?: string; onClick?: () => void }
@@ -180,52 +181,10 @@ export function Toolbar(p: ToolbarProps) {
     style.textContent = v ? `@page { @top-center { content: "${v.replace(/"/g,'\\"')}"; } } .ProseMirror::before { content:"${v.replace(/"/g,'\\"')}"; display:block;text-align:center;font-size:0.85em;color:#888;margin-bottom:1em;border-bottom:1px solid #eee;padding-bottom:0.4em; }` : ''
   }
 
-  /* === 페이지 크기 / 여백 === */
-  const pageSizeKeys = Object.keys(PAGE_PRESETS) as PageSizePreset[]
-  const paperStyleKeys = PAPER_STYLES.map((style) => style.value)
-  const normalizePageSize = (value: string): PageSizePreset | null => {
-    const trimmed = value.trim()
-    return pageSizeKeys.find((key) => key.toLowerCase() === trimmed.toLowerCase()) || null
-  }
-  const normalizeOrientation = (value: string): PageOrientation | null => {
-    const trimmed = value.trim().toLowerCase()
-    if (['portrait', 'p', '세로'].includes(trimmed)) return 'portrait'
-    if (['landscape', 'l', '가로'].includes(trimmed)) return 'landscape'
-    return null
-  }
-  const normalizePaperStyle = (value: string): PaperStyle | null => {
-    const trimmed = value.trim().toLowerCase()
-    return paperStyleKeys.find((key) => key === trimmed) || null
-  }
-  const setPageSize = () => {
-    const choice = window.prompt(`페이지 크기 (${pageSizeKeys.join(' / ')}):`, ui.pageSize)
-    if (!choice) return
-    const size = normalizePageSize(choice)
-    if (!size) { alert('지원: ' + pageSizeKeys.join(', ')); return }
-    const orientationChoice = window.prompt('방향 (세로 / 가로):', ui.pageOrientation === 'landscape' ? '가로' : '세로')
-    let orientation: PageOrientation = ui.pageOrientation
-    if (orientationChoice) {
-      const nextOrientation = normalizeOrientation(orientationChoice)
-      if (!nextOrientation) { alert('방향은 세로 또는 가로로 입력하세요.'); return }
-      orientation = nextOrientation
-    }
-    ui.setPageSize(size)
-    ui.setPageOrientation(orientation)
-  }
-  const setPageMargin = () => {
-    const v = window.prompt('페이지 여백 (mm):', String(ui.pageMarginMm)); if (!v) return
-    const margin = Number(v)
-    if (!Number.isFinite(margin)) { alert('숫자로 입력하세요.'); return }
-    ui.setPageMarginMm(margin)
-  }
-  const setPaperStyle = () => {
-    const guide = PAPER_STYLES.map((style) => `${style.value}: ${style.label}`).join('\n')
-    const choice = window.prompt(`노트 배경 스타일\n${guide}`, ui.paperStyle)
-    if (!choice) return
-    const style = normalizePaperStyle(choice)
-    if (!style) { alert('지원: ' + paperStyleKeys.join(', ')); return }
-    ui.setPaperStyle(style)
-  }
+  /* === 페이지 설정 === */
+  const orientationLabel = ui.pageOrientation === 'landscape' ? '가로' : '세로'
+  const currentPaperLabel = PAPER_STYLES.find((style) => style.value === ui.paperStyle)?.label.replace(' (기본)', '') || '줄노트'
+  const openPageSettings = () => p.onPageSettings()
 
   /* === 책갈피 / 텍스트 상자 / 구분선 스타일 === */
   const insertBookmark = () => {
@@ -626,9 +585,9 @@ export function Toolbar(p: ToolbarProps) {
     /* 4. 페이지 */
     {
       label: '페이지', items: [
-        { label: '페이지 크기 설정 (A4/A3/B4 등)', icon: 'page', onClick: () => run(setPageSize) },
-        { label: '노트 배경 스타일', icon: 'page', onClick: () => run(setPaperStyle) },
-        { label: '페이지 여백 설정 (mm)', icon: 'page', onClick: () => run(setPageMargin) },
+        { label: `페이지 크기 설정: ${ui.pageSize} · ${orientationLabel}`, icon: 'page', onClick: () => run(openPageSettings) },
+        { label: `노트 배경 스타일: ${currentPaperLabel}`, icon: 'palette', onClick: () => run(openPageSettings) },
+        { label: `페이지 여백 설정: ${ui.pageMarginMm}mm`, icon: 'sliders', onClick: () => run(openPageSettings) },
         { divider: '페이지 동작', label: '' },
         { label: '페이지 구분 삽입', hint: 'Ctrl+Enter', icon: 'page-break', onClick: () => run(insertPageBreak) },
         { label: '2단 레이아웃 토글', icon: 'columns', onClick: () => run(toggleTwoCol) },

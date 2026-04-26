@@ -3230,3 +3230,549 @@ html, body, #root {
     margin-right: 0 !important;
   }
 }
+
+
+/* =========================================================
+ * Phase 43 — refined page settings workflow
+ * ========================================================= */
+.jan-page-settings-overlay {
+  z-index: 12000 !important;
+  padding: 20px;
+  background: rgba(25, 25, 25, 0.34) !important;
+  backdrop-filter: blur(6px);
+}
+
+.jan-page-settings-modal {
+  width: min(1040px, calc(100vw - 32px)) !important;
+  max-width: none !important;
+  max-height: min(calc(100vh - 24px), 880px) !important;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 8px !important;
+  background: var(--paper, #fff) !important;
+  color: var(--ink, #191919);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.24) !important;
+}
+
+.jan-page-settings-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px 14px;
+  border-bottom: 1px solid var(--paper-edge, #e5e5e5);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--paper, #fff) 96%, var(--accent, #FAE100)), var(--paper, #fff));
+}
+
+.jan-page-settings-head h3 {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.25;
+  font-weight: 700;
+  color: var(--ink, #191919);
+}
+
+.jan-page-settings-head span {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--ink-soft, #555);
+}
+
+.jan-page-settings-head .jan-modal-close {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--paper-edge, #e5e5e5);
+  background: var(--paper, #fff);
+  color: var(--ink, #191919);
+}
+
+.jan-page-settings-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+  gap: 18px;
+  padding: 18px;
+  overflow-y: auto;
+}
+
+.jan-page-preview-panel {
+  border: 1px solid var(--paper-edge, #e5e5e5);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--paper, #fff) 88%, var(--tab-hover, #FFFBE5));
+  padding: 16px;
+  min-height: 500px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.jan-page-preview-stage {
+  flex: 1;
+  min-height: 380px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    linear-gradient(90deg, rgba(0,0,0,0.025) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(0,0,0,0.025) 1px, transparent 1px);
+  background-size: 24px 24px;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.jan-page-preview-sheet {
+  width: 170px;
+  height: 240px;
+  position: relative;
+  border: 1px solid var(--paper-edge, #e5e5e5);
+  border-radius: 4px;
+  background-color: var(--paper, #fff);
+  box-shadow: 0 10px 26px rgba(0,0,0,0.16);
+  transition: width 0.18s ease, height 0.18s ease, box-shadow 0.18s ease;
+  --jan-preview-line: color-mix(in srgb, var(--paper-edge, #e5e5e5) 78%, transparent);
+  --jan-preview-margin: color-mix(in srgb, #d97757 56%, transparent);
+}
+
+.jan-page-preview-sheet[data-orientation="landscape"] {
+  width: 240px;
+  height: 170px;
+}
+
+.jan-page-preview-sheet[data-paper="lined"] {
+  background-image:
+    linear-gradient(to right, transparent 30px, var(--jan-preview-margin) 30px, var(--jan-preview-margin) 31px, transparent 31px),
+    repeating-linear-gradient(to bottom, transparent 0, transparent 18px, var(--jan-preview-line) 18px, var(--jan-preview-line) 19px);
+  background-position: 0 0, 0 10px;
+}
+
+.jan-page-preview-sheet[data-paper="grid"] {
+  background-image:
+    repeating-linear-gradient(to right, transparent 0, transparent 15px, var(--jan-preview-line) 15px, var(--jan-preview-line) 16px),
+    repeating-linear-gradient(to bottom, transparent 0, transparent 15px, var(--jan-preview-line) 15px, var(--jan-preview-line) 16px);
+}
+
+.jan-page-preview-sheet[data-paper="dot"] {
+  background-image: radial-gradient(circle, var(--jan-preview-line) 1px, transparent 1.5px);
+  background-size: 16px 16px;
+  background-position: 8px 8px;
+}
+
+.jan-page-preview-sheet[data-paper="blank"] {
+  background-image: none;
+}
+
+.jan-page-preview-sheet[data-paper="music"] {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0, transparent 28px,
+    var(--jan-preview-line) 28px, var(--jan-preview-line) 29px,
+    transparent 29px, transparent 36px,
+    var(--jan-preview-line) 36px, var(--jan-preview-line) 37px,
+    transparent 37px, transparent 44px,
+    var(--jan-preview-line) 44px, var(--jan-preview-line) 45px,
+    transparent 45px, transparent 52px,
+    var(--jan-preview-line) 52px, var(--jan-preview-line) 53px,
+    transparent 53px, transparent 60px,
+    var(--jan-preview-line) 60px, var(--jan-preview-line) 61px,
+    transparent 61px, transparent 98px
+  );
+}
+
+.jan-page-preview-sheet[data-paper="cornell"] {
+  background-image:
+    linear-gradient(to right, transparent 35%, var(--jan-preview-line) 35%, var(--jan-preview-line) calc(35% + 1px), transparent calc(35% + 1px)),
+    repeating-linear-gradient(to bottom, transparent 0, transparent 18px, var(--jan-preview-line) 18px, var(--jan-preview-line) 19px);
+  background-position: 0 0, 0 10px;
+}
+
+.jan-page-preview-margin,
+.jan-page-preview-line {
+  position: absolute;
+  left: 45px;
+  right: 22px;
+  height: 8px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--ink, #191919) 10%, transparent);
+}
+
+.jan-page-preview-line.l1 { top: 74px; width: 56%; }
+.jan-page-preview-line.l2 { top: 106px; width: 44%; }
+.jan-page-preview-line.l3 { top: 138px; width: 62%; }
+.jan-page-preview-sheet[data-orientation="landscape"] .jan-page-preview-line.l1 { top: 56px; }
+.jan-page-preview-sheet[data-orientation="landscape"] .jan-page-preview-line.l2 { top: 84px; }
+.jan-page-preview-sheet[data-orientation="landscape"] .jan-page-preview-line.l3 { top: 112px; }
+
+.jan-page-preview-meta {
+  padding-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.jan-page-preview-meta strong {
+  font-size: 14px;
+}
+
+.jan-page-preview-meta span {
+  font-size: 12px;
+  color: var(--ink-soft, #555);
+}
+
+.jan-page-settings-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.jan-page-settings-section {
+  border: 1px solid var(--paper-edge, #e5e5e5);
+  border-radius: 8px;
+  padding: 14px;
+  background: var(--paper, #fff);
+}
+
+.jan-page-settings-section-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  color: var(--ink, #191919);
+}
+
+.jan-page-settings-section-head h4 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.jan-page-size-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.jan-page-size-card,
+.jan-paper-style-card {
+  min-height: 62px;
+  border: 1px solid var(--paper-edge, #e5e5e5);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--paper, #fff) 94%, var(--tab-hover, #FFFBE5));
+  color: var(--ink, #191919);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  text-align: left;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease, transform 0.08s ease;
+}
+
+.jan-page-size-card:hover,
+.jan-paper-style-card:hover {
+  border-color: var(--accent, #FAE100);
+  background: var(--tab-hover, #FFFBE5);
+}
+
+.jan-page-size-card:active,
+.jan-paper-style-card:active {
+  transform: translateY(1px);
+}
+
+.jan-page-size-card.is-selected,
+.jan-paper-style-card.is-selected,
+.jan-page-segmented button.is-selected {
+  border-color: color-mix(in srgb, var(--accent, #FAE100) 70%, #b8a400);
+  background: color-mix(in srgb, var(--accent, #FAE100) 28%, var(--paper, #fff));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent, #FAE100) 28%, transparent);
+}
+
+.jan-page-size-icon {
+  display: block;
+  width: 22px;
+  height: auto;
+  max-height: 34px;
+  min-height: 24px;
+  flex-shrink: 0;
+  border: 1.5px solid currentColor;
+  border-radius: 2px;
+  background:
+    repeating-linear-gradient(to bottom, transparent 0, transparent 5px, rgba(0,0,0,0.12) 5px, rgba(0,0,0,0.12) 6px),
+    var(--paper, #fff);
+  opacity: 0.8;
+}
+
+.jan-page-size-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.jan-page-size-text strong {
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.jan-page-size-text small {
+  font-size: 11px;
+  color: var(--ink-soft, #555);
+  white-space: nowrap;
+}
+
+.jan-page-segmented {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  padding: 4px;
+  border: 1px solid var(--paper-edge, #e5e5e5);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--paper, #fff) 86%, var(--paper-edge, #e5e5e5));
+}
+
+.jan-page-segmented button {
+  height: 36px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink, #191919);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.jan-paper-style-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.jan-paper-style-card {
+  min-height: 56px;
+}
+
+.jan-paper-style-thumb {
+  width: 38px;
+  height: 28px;
+  flex-shrink: 0;
+  border: 1px solid var(--paper-edge, #e5e5e5);
+  border-radius: 4px;
+  background-color: var(--paper, #fff);
+  --jan-thumb-line: color-mix(in srgb, var(--paper-edge, #e5e5e5) 84%, transparent);
+  --jan-thumb-margin: color-mix(in srgb, #d97757 60%, transparent);
+}
+
+.jan-paper-style-thumb[data-paper="lined"] {
+  background-image:
+    linear-gradient(to right, transparent 8px, var(--jan-thumb-margin) 8px, var(--jan-thumb-margin) 9px, transparent 9px),
+    repeating-linear-gradient(to bottom, transparent 0, transparent 6px, var(--jan-thumb-line) 6px, var(--jan-thumb-line) 7px);
+}
+
+.jan-paper-style-thumb[data-paper="grid"] {
+  background-image:
+    repeating-linear-gradient(to right, transparent 0, transparent 6px, var(--jan-thumb-line) 6px, var(--jan-thumb-line) 7px),
+    repeating-linear-gradient(to bottom, transparent 0, transparent 6px, var(--jan-thumb-line) 6px, var(--jan-thumb-line) 7px);
+}
+
+.jan-paper-style-thumb[data-paper="dot"] {
+  background-image: radial-gradient(circle, var(--jan-thumb-line) 1px, transparent 1.5px);
+  background-size: 7px 7px;
+}
+
+.jan-paper-style-thumb[data-paper="blank"] {
+  background-image: none;
+}
+
+.jan-paper-style-thumb[data-paper="music"] {
+  background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 5px, var(--jan-thumb-line) 5px, var(--jan-thumb-line) 6px, transparent 6px, transparent 18px);
+}
+
+.jan-paper-style-thumb[data-paper="cornell"] {
+  background-image:
+    linear-gradient(to right, transparent 35%, var(--jan-thumb-line) 35%, var(--jan-thumb-line) calc(35% + 1px), transparent calc(35% + 1px)),
+    repeating-linear-gradient(to bottom, transparent 0, transparent 6px, var(--jan-thumb-line) 6px, var(--jan-thumb-line) 7px);
+}
+
+.jan-paper-style-card span:last-child {
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.jan-page-margin-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) 76px auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.jan-page-margin-row input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent, #FAE100);
+}
+
+.jan-page-margin-row input[type="number"] {
+  width: 76px !important;
+  height: 34px;
+  margin: 0 !important;
+  padding: 0 8px !important;
+  border: 1px solid var(--paper-edge, #e5e5e5);
+  border-radius: 6px;
+  background: var(--paper, #fff);
+  color: var(--ink, #191919);
+}
+
+.jan-page-margin-row span {
+  font-size: 12px;
+  color: var(--ink-soft, #555);
+}
+
+.jan-page-margin-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.jan-page-margin-presets button {
+  height: 28px;
+  min-width: 38px;
+  border: 1px solid var(--paper-edge, #e5e5e5);
+  border-radius: 6px;
+  background: var(--paper, #fff);
+  color: var(--ink, #191919);
+  cursor: pointer;
+}
+
+.jan-page-margin-presets button:hover {
+  background: var(--tab-hover, #FFFBE5);
+  border-color: var(--accent, #FAE100);
+}
+
+.jan-page-settings-foot {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 8px;
+  align-items: center;
+  padding: 14px 18px;
+  border-top: 1px solid var(--paper-edge, #e5e5e5);
+  background: color-mix(in srgb, var(--paper, #fff) 92%, var(--tab-hover, #FFFBE5));
+}
+
+.jan-page-settings-foot button,
+.jan-settings-page-summary button {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.jan-page-settings-ghost,
+.jan-settings-page-summary button {
+  border: 1px solid var(--paper-edge, #e5e5e5);
+  background: var(--paper, #fff);
+  color: var(--ink, #191919);
+}
+
+.jan-page-settings-primary {
+  border: 1px solid color-mix(in srgb, var(--accent, #FAE100) 80%, #b8a400);
+  background: var(--accent, #FAE100);
+  color: #191919;
+}
+
+.jan-settings-page-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--paper-edge, #e5e5e5);
+  border-radius: 8px;
+  padding: 12px;
+  background: color-mix(in srgb, var(--paper, #fff) 92%, var(--tab-hover, #FFFBE5));
+}
+
+.jan-settings-page-summary div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.jan-settings-page-summary strong {
+  font-size: 13px;
+  color: var(--ink, #191919);
+}
+
+.jan-settings-page-summary span {
+  font-size: 12px;
+  color: var(--ink-soft, #555);
+}
+
+.jan-theme-dark .jan-page-settings-modal,
+.jan-theme-dark .jan-page-settings-section,
+.jan-theme-dark .jan-page-preview-panel,
+.jan-theme-dark .jan-page-size-card,
+.jan-theme-dark .jan-paper-style-card,
+.jan-theme-dark .jan-page-margin-presets button,
+.jan-theme-dark .jan-settings-page-summary,
+.jan-theme-dark .jan-settings-page-summary button {
+  border-color: var(--paper-edge, #3a3a3d);
+}
+
+.jan-theme-dark .jan-page-preview-stage {
+  background-color: #19191b;
+}
+
+.jan-theme-dark .jan-page-preview-sheet,
+.jan-theme-dark .jan-paper-style-thumb {
+  background-color: var(--paper, #1f1f20);
+}
+
+@media (max-width: 860px) {
+  .jan-page-settings-overlay {
+    padding: 8px;
+  }
+
+  .jan-page-settings-modal {
+    width: calc(100vw - 16px) !important;
+    max-height: 92vh !important;
+  }
+
+  .jan-page-settings-body {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .jan-page-preview-panel {
+    min-height: 250px;
+  }
+
+  .jan-page-preview-stage {
+    min-height: 200px;
+  }
+
+  .jan-page-size-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .jan-paper-style-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .jan-settings-page-summary {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
