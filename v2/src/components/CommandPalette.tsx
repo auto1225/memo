@@ -9,6 +9,7 @@ import { downloadHwpx } from '../lib/hwpxExport'
 import { downloadMd } from '../lib/markdownIO'
 import { exportToPdf } from '../lib/pdfExport'
 import { fitPageZoom, setPageZoom } from '../lib/pageZoom'
+import { PAGE_BREAK_HTML } from '../lib/pageBreak'
 
 interface Command {
   id: string
@@ -88,7 +89,7 @@ export function CommandPalette(p: CommandPaletteProps) {
     s.textContent = cur ? '.jan-2col .ProseMirror { column-count: 2; column-gap: 2em; column-rule: 1px solid #eee; }' : ''
   }
   const wrapAsPage = () => editor && editor.commands.setContent(`<div class="jan-page-wrap">${editor.getHTML()}</div>`)
-  const insertPageBreak = () => insertHTML('<hr class="jan-page-break"/><p></p>')
+  const insertPageBreak = () => insertHTML(PAGE_BREAK_HTML)
   const insertFootnote = () => {
     const n = (document.querySelectorAll('.paper-footnote').length || 0) + 1
     insertHTML(`<sup class="paper-fn-ref">[${n}]</sup>`)

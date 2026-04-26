@@ -266,6 +266,30 @@ test.describe('v2 smoke', () => {
     await expect(page.getByRole('img', { name: /가로 페이지 눈금자/ })).toBeVisible()
   })
 
+  test('page breaks use one canonical Word-style marker', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await page.goto('./')
+    const editor = page.locator('.ProseMirror').first()
+    const breaks = editor.locator('hr.jan-page-break[data-page-break="1"]')
+    await expect(editor).toBeVisible({ timeout: 15000 })
+    await editor.click()
+    await page.keyboard.press('Control+A')
+    await page.keyboard.type('First page')
+    await page.keyboard.press('Control+Enter')
+    await page.keyboard.type('Second page')
+    await expect(breaks).toHaveCount(1)
+    await expect(editor).toContainText('Second page')
+
+    await page.getByRole('button', { name: '페이지', exact: true }).click()
+    await page.locator('.jan-menu-dropdown').getByRole('button', { name: /페이지 구분 삽입/ }).click()
+    await expect(breaks).toHaveCount(2)
+
+    await page.keyboard.press('Control+Shift+P')
+    await page.locator('.jan-cp-input').fill('페이지 구분')
+    await page.getByRole('button', { name: /페이지 구분/ }).first().click()
+    await expect(breaks).toHaveCount(3)
+  })
+
   test('meeting notes flow inserts a structured v1-style note', async ({ page }) => {
     await page.goto('./')
     await page.locator('.ProseMirror').first().waitFor({ state: 'visible', timeout: 15000 })
@@ -344,7 +368,11 @@ test.describe('v2 smoke', () => {
   })
 
   test('table sorting keeps the header row and sorts data rows', async ({ page }) => {
-    await page.addInitScript(() => localStorage.setItem('jan-v2-role-onboarded', '1'))
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await page.addInitScript(() => {
+      localStorage.setItem('jan-v2-role-onboarded', '1')
+      localStorage.setItem('jan-v2-ui', JSON.stringify({ state: { zoom: 1, viewLayout: 'print', showRulers: true }, version: 0 }))
+    })
     await page.goto('./')
     const editor = page.locator('.ProseMirror').first()
     await editor.waitFor({ state: 'visible', timeout: 15000 })
@@ -362,7 +390,7 @@ test.describe('v2 smoke', () => {
       if (i < values.length - 1) await page.keyboard.press('Tab')
     }
 
-    await cells.nth(4).click({ force: true })
+    for (let i = 0; i < 4; i += 1) await page.keyboard.press('Shift+Tab')
     await page.getByTitle('현재 열 오름차순').click()
     const rows = page.locator('.ProseMirror table tr')
     await expect(rows.nth(0)).toContainText('Name')
@@ -371,7 +399,11 @@ test.describe('v2 smoke', () => {
   })
 
   test('table aggregates skip headers and the result cell', async ({ page }) => {
-    await page.addInitScript(() => localStorage.setItem('jan-v2-role-onboarded', '1'))
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await page.addInitScript(() => {
+      localStorage.setItem('jan-v2-role-onboarded', '1')
+      localStorage.setItem('jan-v2-ui', JSON.stringify({ state: { zoom: 1, viewLayout: 'print', showRulers: true }, version: 0 }))
+    })
     await page.goto('./')
     const editor = page.locator('.ProseMirror').first()
     await editor.waitFor({ state: 'visible', timeout: 15000 })
@@ -389,10 +421,10 @@ test.describe('v2 smoke', () => {
       if (i < values.length - 1) await page.keyboard.press('Tab')
     }
 
-    await cells.nth(7).click({ force: true })
     await page.getByTitle('아래 행 추가').click()
     await expect(cells).toHaveCount(12)
-    await cells.nth(10).click({ force: true })
+    await page.keyboard.press('Tab')
+    await page.keyboard.press('Tab')
     await page.getByTitle('현재 열 합계').click()
     await expect(cells.nth(10)).toContainText('합계: 12')
   })

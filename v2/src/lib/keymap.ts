@@ -1,4 +1,5 @@
 import type { Editor } from '@tiptap/react'
+import { PAGE_BREAK_HTML } from './pageBreak'
 
 export function installWordKeymap(editor: Editor, opts: {
   onSave?: () => void
@@ -39,7 +40,8 @@ export function installWordKeymap(editor: Editor, opts: {
     if (ctrl && shift && !alt && k === 'n') { e.preventDefault(); editor.chain().focus().setParagraph().run(); return }
     if (ctrl && !shift && !alt && k === 'enter') {
       e.preventDefault()
-      editor.chain().focus().insertContent('<div style="page-break-before:always;break-before:page;height:0;"></div><p></p>').run()
+      e.stopImmediatePropagation()
+      editor.chain().focus().insertContent(PAGE_BREAK_HTML).run()
       return
     }
     if (ctrl && alt && !shift && k === 'f') {

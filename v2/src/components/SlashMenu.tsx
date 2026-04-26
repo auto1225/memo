@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Editor } from '@tiptap/react'
+import { PAGE_BREAK_HTML } from '../lib/pageBreak'
 
 interface SlashMenuProps {
   editor: Editor | null
@@ -26,6 +27,7 @@ const ITEMS: SlashItem[] = [
   { label: '인용', run: (e) => e.chain().focus().toggleBlockquote().run() },
   { label: '코드 블록', run: (e) => e.chain().focus().toggleCodeBlock().run() },
   { label: '구분선', run: (e) => e.chain().focus().setHorizontalRule().run() },
+  { label: '페이지 구분', hint: 'Ctrl+Enter', run: (e) => e.chain().focus().insertContent(PAGE_BREAK_HTML).run() },
   { label: '표 (3×3)', run: (e) => e.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() },
   { label: '콜아웃: 정보', run: (e) => (e.chain() as any).focus().setCallout('info').run() },
   { label: '콜아웃: 경고', run: (e) => (e.chain() as any).focus().setCallout('warn').run() },

@@ -13,6 +13,7 @@ import { exportV2ToJson, importV2FromJsonAsync } from '../lib/v1Import'
 import { fileToDataUrl } from '../lib/attachments'
 import { saveDataUrlAsBlobRef } from '../lib/blobRefs'
 import { fitPageZoom, setPageZoom } from '../lib/pageZoom'
+import { PAGE_BREAK_HTML } from '../lib/pageBreak'
 
 interface ToolbarProps {
   editor: Editor | null
@@ -109,7 +110,7 @@ export function Toolbar(p: ToolbarProps) {
     else editor.chain().focus().setLink({ href: url }).run()
   }
   const insertHr = () => editor.chain().focus().setHorizontalRule().run()
-  const insertPageBreak = () => insertHTML('<hr class="jan-page-break" data-page-break="1" /><p></p>')
+  const insertPageBreak = () => insertHTML(PAGE_BREAK_HTML)
   const insertDateTime = () => {
     const d = new Date()
     const s = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`

@@ -60,6 +60,8 @@ import { TextStyle } from '@tiptap/extension-text-style'
 import { Color } from '@tiptap/extension-color'
 import { LinkCard } from '../extensions/LinkCard'
 import { AudioNode, VideoNode } from '../extensions/Media'
+import { PageBreak } from '../extensions/PageBreak'
+import { NormalHorizontalRule } from '../extensions/HorizontalRule'
 import Highlight from '@tiptap/extension-highlight'
 import { Lightbox } from './Lightbox'
 import type { RoleToolId } from '../lib/roles'
@@ -288,8 +290,11 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
         heading: { levels: [1, 2, 3, 4, 5, 6] },
         undoRedo: collab.ydoc ? false : undefined,
         link: false,
+        horizontalRule: false,
         underline: false,
       }),
+      PageBreak,
+      NormalHorizontalRule,
       Placeholder.configure({
         placeholder: '여기에 메모를 적어보세요... (/ 슬래시 명령, F1 단축키)',
       }),
@@ -507,9 +512,6 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
         if (pinned[idx]) useMemosStore.getState().setCurrent(pinned[idx].id)
       } else if (e.key === 'F3' && !e.shiftKey) {
         e.preventDefault(); setShowFind(true)
-      } else if (ctrl && !e.shiftKey && !e.altKey && e.key === 'Enter') {
-        e.preventDefault()
-        if (editor) editor.chain().focus().insertContent('<div style="page-break-before:always;break-before:page;height:0;"></div><p></p>').run()
       } else if (e.key === 'F1' || (ctrl && e.shiftKey && e.key === '?')) {
         e.preventDefault(); setShowHelp(true); trackEvent('open_help')
       }

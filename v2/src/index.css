@@ -1200,6 +1200,33 @@ body.jan-reading-mode .ProseMirror h2{font-size:22pt;}
 /* ==================== Phase 17 — Page break visual ==================== */
 .ProseMirror div[style*="page-break-before"]{display:block;height:8px;background:repeating-linear-gradient(90deg,#D97757 0,#D97757 6px,transparent 6px,transparent 12px);margin:16px 0;border-radius:2px;position:relative;}
 .ProseMirror div[style*="page-break-before"]::after{content:"⤓ 페이지 분할";position:absolute;right:0;top:-16px;font-size:9px;color:#D97757;font-weight:600;}
+.jan-editor-pages .ProseMirror hr.jan-page-break,
+.jan-editor-pages .ProseMirror [data-page-break="1"] {
+  display: block;
+  height: 12px;
+  margin: 20px 0;
+  border: 0;
+  border-radius: 3px;
+  background:
+    linear-gradient(to right, transparent, color-mix(in srgb, var(--accent, #D97757) 25%, transparent), transparent),
+    repeating-linear-gradient(90deg, color-mix(in srgb, var(--accent, #D97757) 64%, transparent) 0, color-mix(in srgb, var(--accent, #D97757) 64%, transparent) 7px, transparent 7px, transparent 14px);
+  position: relative;
+  break-before: page;
+  page-break-before: always;
+}
+.jan-editor-pages .ProseMirror hr.jan-page-break::after,
+.jan-editor-pages .ProseMirror [data-page-break="1"]::after {
+  content: "페이지 구분";
+  position: absolute;
+  right: 0;
+  top: -16px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--accent, #D97757) 12%, var(--paper, #fff));
+  color: color-mix(in srgb, var(--accent, #D97757) 86%, #222);
+  font-size: 9px;
+  font-weight: 700;
+}
 
 /* ==================== Phase 17b — Zoom override (transform 기반) ==================== */
 /* font-size 만 바꾸던 기존 방식 → transform: scale 로 페이지 자체 확대/축소 */
