@@ -16,13 +16,16 @@ import { getLocalFirstStorageStats } from '../lib/localFirstStorage'
 import { getBlobStorageStats } from '../lib/blobRefs'
 import {
   chooseLocalSyncFolder,
+  clearByocSyncError,
   getByocStatus,
   handleByocOAuthRedirectIfNeeded,
   pullByocSnapshot,
   pushByocSnapshot,
+  readByocSyncHealth,
   startDropboxOAuth,
   startOneDriveOAuth,
   syncByocNow,
+  type ByocSyncHealth,
   type ByocStatus,
 } from '../lib/byocSync'
 
@@ -41,11 +44,7 @@ function formatBytes(bytes: number): string {
 }
 
 function readLastSyncAt(): number {
-  try {
-    return Number(localStorage.getItem('jan.v2.sync.lastAt') || '0') || 0
-  } catch {
-    return 0
-  }
+  return readByocSyncHealth().lastAt
 }
 
 function formatLastSyncAt(value: number): string {
@@ -61,6 +60,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
   const [storageSummary, setStorageSummary] = useState<{ backend: string; stateBytes: number; blobCount: number; blobBytes: number } | null>(null)
   const [byocStatus, setByocStatus] = useState<ByocStatus | null>(null)
   const [lastSyncAt, setLastSyncAt] = useState<number>(() => readLastSyncAt())
+  const [syncHealth, setSyncHealth] = useState<ByocSyncHealth>(() => readByocSyncHealth())
   const memoCount = useMemosStore((s) => Object.keys(s.memos).length)
   const settings = useSettingsStore()
   const lang = useI18nStore((s) => s.lang)
@@ -74,6 +74,12 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
   const orientationLabel = ui.pageOrientation === 'landscape' ? '가로' : '세로'
   const columnLabel = `${ui.pageColumnCount || 1}단`
   const marginLabel = pageMarginsSummary(ui.pageMarginsMm, ui.pageMarginMm)
+
+  function refreshSyncHealth() {
+    const next = readByocSyncHealth()
+    setSyncHealth(next)
+    setLastSyncAt(next.lastAt)
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -134,6 +140,10 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
       })
       .catch((error: unknown) => setStatus('개인 저장소 연결 실패: ' + errorMessage(error)))
   }, [])
+
+  useEffect(() => {
+    refreshSyncHealth()
+  }, [status])
 
   async function handleV1Import() {
     setStatus('v1 데이터를 가져오는 중...')
@@ -236,7 +246,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
     const result = await pushByocSnapshot()
     if (result.ok) setStatus(`${result.provider} 백업 완료`)
     else setStatus(`백업 실패: ${result.error}`)
-    setLastSyncAt(readLastSyncAt())
+    refreshSyncHealth()
     getByocStatus().then(setByocStatus).catch(() => {})
   }
 
@@ -245,7 +255,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
     const result = await syncByocNow()
     if (result.ok) setStatus(`${result.provider} 동기화 완료: 가져오기 ${result.pulled}, 백업 ${result.pushed}`)
     else setStatus(`동기화 실패: ${result.error}`)
-    setLastSyncAt(readLastSyncAt())
+    refreshSyncHealth()
     getByocStatus().then(setByocStatus).catch(() => {})
   }
 
@@ -256,7 +266,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
     const result = await pullByocSnapshot()
     if (result.ok) setStatus(`${result.provider} 가져오기 완료: ${result.pulled}개 항목 반영`)
     else setStatus(`가져오기 실패: ${result.error}`)
-    setLastSyncAt(readLastSyncAt())
+    refreshSyncHealth()
     getByocStatus().then(setByocStatus).catch(() => {})
   }
 
@@ -381,7 +391,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                 onClick={handleOneDriveConnect}
               >
                 <strong>OneDrive 직접 연결</strong>
-                <span>Microsoft 계정의 OneDrive에 직접 저장</span>
+                <span>Microsoft 계정의 앱 전용 폴더에 저장</span>
               </button>
               <button disabled>
                 <strong>Google Drive</strong>
@@ -394,6 +404,23 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
             <div className="jan-settings-info">
               마지막 동기화: <b>{formatLastSyncAt(lastSyncAt)}</b>
             </div>
+            {syncHealth.lastError && (
+              <div className="jan-sync-health-alert" role="alert">
+                <div>
+                  <strong>최근 자동 백업 실패</strong>
+                  <span>{formatLastSyncAt(syncHealth.lastErrorAt)} · {syncHealth.lastError}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    clearByocSyncError()
+                    refreshSyncHealth()
+                  }}
+                >
+                  확인
+                </button>
+              </div>
+            )}
             <div className="jan-settings-row">
               <label>
                 <input
@@ -420,6 +447,9 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
             </details>
             <details>
               <summary>OneDrive 고급 설정</summary>
+              <div className="jan-settings-info">
+                Microsoft Azure 앱의 SPA Client ID가 필요합니다. 데이터는 OneDrive 앱 전용 폴더에 저장됩니다.
+              </div>
               <input
                 type="text"
                 placeholder="Microsoft Azure App Client ID (config.js 또는 여기 입력)"

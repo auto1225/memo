@@ -277,6 +277,11 @@ body.jan-show-pilcrow .ProseMirror p::after {
 .jan-storage-health span { display: block; margin-bottom: 4px; color: #777; font-size: 11px; }
 .jan-storage-health strong { display: block; overflow-wrap: anywhere; color: var(--jan-fg); font-size: 12px; font-weight: 650; }
 .jan-settings-byoc-section { border: 1px solid rgba(0,0,0,0.07); border-radius: 8px; padding: 12px; background: rgba(255,255,255,0.42); }
+.jan-sync-health-alert { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin: 8px 0 12px; padding: 10px 12px; border: 1px solid rgba(190,72,72,0.24); border-radius: 8px; background: rgba(190,72,72,0.08); color: var(--jan-fg); }
+.jan-sync-health-alert div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.jan-sync-health-alert strong { font-size: 12px; }
+.jan-sync-health-alert span { font-size: 12px; line-height: 1.45; color: #7a3737; overflow-wrap: anywhere; }
+.jan-sync-health-alert button { flex: 0 0 auto; padding: 4px 8px; border: 1px solid rgba(190,72,72,0.24); border-radius: 4px; background: rgba(255,255,255,0.76); color: #7a3737; cursor: pointer; font-size: 12px; }
 .jan-sync-provider-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 10px 0; }
 .jan-sync-provider-grid button { min-width: 0; min-height: 88px; padding: 10px; border: 1px solid rgba(0,0,0,0.1); border-radius: 6px; background: var(--jan-paper); color: var(--jan-fg); cursor: pointer; text-align: left; }
 .jan-sync-provider-grid button.active { border-color: var(--jan-accent); box-shadow: 0 0 0 2px rgba(217,119,87,0.12); }
@@ -291,6 +296,10 @@ body.jan-show-pilcrow .ProseMirror p::after {
 .jan-theme-dark .jan-storage-health div { border-color: rgba(255,255,255,0.09); }
 .jan-theme-dark .jan-storage-health span { color: #aaa; }
 .jan-theme-dark .jan-settings-byoc-section { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.09); }
+.jan-theme-dark .jan-sync-health-alert { background: rgba(255,93,93,0.1); border-color: rgba(255,93,93,0.25); }
+.jan-theme-dark .jan-sync-health-alert span,
+.jan-theme-dark .jan-sync-health-alert button { color: #ffc4c4; }
+.jan-theme-dark .jan-sync-health-alert button { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.12); }
 .jan-theme-dark .jan-sync-provider-grid button { border-color: rgba(255,255,255,0.1); }
 .jan-theme-dark .jan-sync-provider-grid span { color: #aaa; }
 

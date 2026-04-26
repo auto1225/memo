@@ -13,6 +13,10 @@ const META_PATH = 'JustANotepad-v2/_meta.json'
 const CONTENT_BLOB_PREFIX = 'jan-blob://'
 const ATTACHMENT_REF_PREFIX = 'jan-byoc-attachment://'
 const SIDECAR_EXT = '.dataurl'
+const SYNC_LAST_AT_KEY = 'jan.v2.sync.lastAt'
+const SYNC_LAST_ERROR_KEY = 'jan.v2.sync.lastError'
+const SYNC_LAST_ERROR_AT_KEY = 'jan.v2.sync.lastErrorAt'
+const SYNC_LAST_PROVIDER_KEY = 'jan.v2.sync.lastProvider'
 
 const DROPBOX_TOKEN_KEY = 'jan.v2.dropbox.token'
 const DROPBOX_REFRESH_KEY = 'jan.v2.dropbox.refresh'
@@ -82,6 +86,13 @@ export interface ByocStatus {
   ready: boolean
   label: string
   detail?: string
+}
+
+export interface ByocSyncHealth {
+  lastAt: number
+  lastError: string
+  lastErrorAt: number
+  provider: string
 }
 
 declare global {
@@ -171,6 +182,36 @@ function safeLocalRemove(key: string) {
   } catch {
     return
   }
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
+
+export function readByocSyncHealth(): ByocSyncHealth {
+  return {
+    lastAt: Number(safeLocalGet(SYNC_LAST_AT_KEY) || '0') || 0,
+    lastError: safeLocalGet(SYNC_LAST_ERROR_KEY),
+    lastErrorAt: Number(safeLocalGet(SYNC_LAST_ERROR_AT_KEY) || '0') || 0,
+    provider: safeLocalGet(SYNC_LAST_PROVIDER_KEY),
+  }
+}
+
+export function clearByocSyncError(): void {
+  safeLocalRemove(SYNC_LAST_ERROR_KEY)
+  safeLocalRemove(SYNC_LAST_ERROR_AT_KEY)
+}
+
+function recordByocSyncSuccess(provider: SyncProvider): void {
+  safeLocalSet(SYNC_LAST_AT_KEY, String(Date.now()))
+  safeLocalSet(SYNC_LAST_PROVIDER_KEY, provider)
+  clearByocSyncError()
+}
+
+function recordByocSyncFailure(provider: SyncProvider, error: unknown): void {
+  safeLocalSet(SYNC_LAST_ERROR_KEY, errorMessage(error))
+  safeLocalSet(SYNC_LAST_ERROR_AT_KEY, String(Date.now()))
+  safeLocalSet(SYNC_LAST_PROVIDER_KEY, provider)
 }
 
 async function sha256Base64Url(value: string): Promise<string> {
@@ -394,8 +435,9 @@ async function readMissingTolerant(provider: SyncProvider, path: string): Promis
 async function hydrateByocBlobRefs(provider: SyncProvider, json: string): Promise<string> {
   let next = json
   for (const id of collectBlobIdsFromText(json)) {
-    const dataUrl = await readMissingTolerant(provider, blobSidecarPath(id))
-    if (!dataUrl) continue
+    const path = blobSidecarPath(id)
+    const dataUrl = await readMissingTolerant(provider, path)
+    if (!dataUrl) throw new Error(`동기화 이미지 파일이 누락되었습니다: ${path}`)
     next = next.split(CONTENT_BLOB_PREFIX + id).join(dataUrl)
   }
   return next
@@ -408,8 +450,10 @@ async function hydrateByocAttachmentRefs(provider: SyncProvider, json: string): 
   snapshot.extras = snapshot.extras || {}
   snapshot.extras.attachments = await Promise.all(attachments.map(async (item) => {
     if (!item.dataUrl?.startsWith(ATTACHMENT_REF_PREFIX)) return item
-    const dataUrl = await readMissingTolerant(provider, attachmentSidecarPath(attachmentRefId(item.dataUrl)))
-    return { ...item, dataUrl: dataUrl || '' }
+    const path = attachmentSidecarPath(attachmentRefId(item.dataUrl))
+    const dataUrl = await readMissingTolerant(provider, path)
+    if (!dataUrl) throw new Error(`동기화 첨부 파일이 누락되었습니다: ${path}`)
+    return { ...item, dataUrl }
   }))
   return JSON.stringify(snapshot)
 }
@@ -515,7 +559,7 @@ function toOneDriveChildrenPath(parts: string[]): string {
 async function oneDriveFetch<T>(
   path: string,
   init: RequestInit = {},
-  options: { text?: boolean } = {}
+  options: { text?: boolean; retried?: boolean } = {}
 ): Promise<T> {
   const token = await getOneDriveAccessToken()
   const headers: Record<string, string> = {
@@ -527,6 +571,10 @@ async function oneDriveFetch<T>(
     headers,
   })
   if (response.status === 401) {
+    if (!options.retried && safeLocalGet(ONEDRIVE_REFRESH_KEY)) {
+      await refreshOneDriveToken(getOneDriveClientId())
+      return oneDriveFetch<T>(path, init, { ...options, retried: true })
+    }
     clearOneDriveTokens()
     throw new Error('OneDrive 인증이 만료되었습니다. 다시 로그인하세요')
   }
@@ -722,8 +770,11 @@ export async function handleByocOAuthRedirectIfNeeded(): Promise<ByocStatus | nu
   const error = url.searchParams.get('error')
   const state = url.searchParams.get('state')
   if (!code && !error) return null
-  if (state === safeLocalGet(DROPBOX_STATE_KEY)) return handleDropboxOAuthRedirectIfNeeded()
-  if (state === safeLocalGet(ONEDRIVE_STATE_KEY)) return handleOneDriveOAuthRedirectIfNeeded()
+  const dropboxState = safeLocalGet(DROPBOX_STATE_KEY)
+  const oneDriveState = safeLocalGet(ONEDRIVE_STATE_KEY)
+  if (state && state === dropboxState) return handleDropboxOAuthRedirectIfNeeded()
+  if (state && state === oneDriveState) return handleOneDriveOAuthRedirectIfNeeded()
+  if (!dropboxState && !oneDriveState) return null
   if (error) throw new Error(`OAuth 오류: ${url.searchParams.get('error_description') || error}`)
   throw new Error('알 수 없는 개인 저장소 OAuth 응답입니다')
 }
@@ -789,10 +840,11 @@ export async function pushByocSnapshot(): Promise<ByocSyncResult> {
     }
     await writeProviderFile(provider, SNAPSHOT_PATH, json)
     await writeProviderFile(provider, META_PATH, JSON.stringify(meta, null, 2))
-    safeLocalSet('jan.v2.sync.lastAt', String(Date.now()))
+    recordByocSyncSuccess(provider)
     return { ok: true, provider, pushed: 1, pulled: 0 }
   } catch (error: unknown) {
-    return { ok: false, provider, pushed: 0, pulled: 0, error: error instanceof Error ? error.message : String(error) }
+    recordByocSyncFailure(provider, error)
+    return { ok: false, provider, pushed: 0, pulled: 0, error: errorMessage(error) }
   }
 }
 
@@ -805,10 +857,11 @@ export async function pullByocSnapshot(): Promise<ByocSyncResult> {
     const json = await readProviderFile(provider, SNAPSHOT_PATH)
     const result = await importV2FromJsonAsync(await hydrateByocSnapshotJson(provider, json))
     if (result.errors.length) throw new Error(result.errors.join(', '))
-    safeLocalSet('jan.v2.sync.lastAt', String(Date.now()))
+    recordByocSyncSuccess(provider)
     return { ok: true, provider, pushed: 0, pulled: result.imported }
   } catch (error: unknown) {
-    return { ok: false, provider, pushed: 0, pulled: 0, error: error instanceof Error ? error.message : String(error) }
+    recordByocSyncFailure(provider, error)
+    return { ok: false, provider, pushed: 0, pulled: 0, error: errorMessage(error) }
   }
 }
 
@@ -831,9 +884,11 @@ export async function syncByocNow(): Promise<ByocSyncResult> {
 
     const pushed = await pushByocSnapshot()
     if (!pushed.ok) throw new Error(pushed.error || '개인 저장소 백업 실패')
+    recordByocSyncSuccess(provider)
     return { ok: true, provider, pushed: pushed.pushed, pulled }
   } catch (error: unknown) {
-    return { ok: false, provider, pushed: 0, pulled: 0, error: error instanceof Error ? error.message : String(error) }
+    recordByocSyncFailure(provider, error)
+    return { ok: false, provider, pushed: 0, pulled: 0, error: errorMessage(error) }
   }
 }
 
