@@ -52,6 +52,37 @@ function downloadText(filename: string, text: string, type: string) {
   setTimeout(() => URL.revokeObjectURL(url), 800)
 }
 
+function comparableDraft(draft: BusinessCardInput) {
+  return {
+    ...draft,
+    tags: [...draft.tags].sort(),
+    meetings: [...draft.meetings],
+    sns: Object.fromEntries(Object.entries(draft.sns || {}).sort(([a], [b]) => a.localeCompare(b))),
+  }
+}
+
+function hasDraftPayload(draft: BusinessCardInput): boolean {
+  return !!(
+    draft.name ||
+    draft.nameEn ||
+    draft.company ||
+    draft.department ||
+    draft.position ||
+    draft.mobile ||
+    draft.phone ||
+    draft.fax ||
+    draft.email ||
+    draft.website ||
+    draft.address ||
+    draft.group ||
+    draft.memo ||
+    draft.frontImage ||
+    draft.backImage ||
+    draft.tags.length ||
+    Object.values(draft.sns || {}).some(Boolean)
+  )
+}
+
 function mergeCardDraft(current: BusinessCardInput, patch: Partial<BusinessCardInput>): BusinessCardInput {
   const next: BusinessCardInput = {
     ...current,
@@ -76,14 +107,14 @@ function mergeCardDraft(current: BusinessCardInput, patch: Partial<BusinessCardI
   ]
   for (const field of stringFields) {
     const value = patch[field]
-    if (typeof value === 'string' && value.trim() && !String(next[field] || '').trim()) {
+    if (typeof value === 'string' && value.trim()) {
       next[field] = value.trim() as never
     }
   }
   if (patch.tags?.length) next.tags = Array.from(new Set([...next.tags, ...patch.tags]))
   if (patch.sns) {
     for (const [key, value] of Object.entries(patch.sns)) {
-      if (value && !next.sns[key]) next.sns[key] = value
+      if (value) next.sns[key] = value
     }
   }
   if (patch.frontImage) next.frontImage = patch.frontImage
@@ -327,6 +358,33 @@ export function BusinessCardsModal({ editor, onClose }: BusinessCardsModalProps)
         return (b[sort] || 0) - (a[sort] || 0)
       })
   }, [cards, filter, query, sort, recentCutoff])
+  const extractionBusy = ocrBusy || aiBusy
+  const draftDirty = useMemo(() => {
+    if (!editingId) return false
+    if (editingId === 'new') return hasDraftPayload(draft)
+    const original = cardsRecord[editingId]
+    if (!original) return hasDraftPayload(draft)
+    return JSON.stringify(comparableDraft(draft)) !== JSON.stringify(comparableDraft(makeCardDraft(original)))
+  }, [cardsRecord, draft, editingId])
+
+  function confirmDiscardDraft(): boolean {
+    if (extractionBusy) {
+      setStatus('추출이 끝난 뒤 닫거나 취소하세요')
+      return false
+    }
+    if (!draftDirty) return true
+    return window.confirm('저장하지 않은 명함 초안이 있습니다. 닫으면 변경 내용이 사라집니다.')
+  }
+
+  function requestClose() {
+    if (confirmDiscardDraft()) onClose()
+  }
+
+  function cancelEdit() {
+    if (!confirmDiscardDraft()) return
+    setEditingId(null)
+    setStatus('')
+  }
 
   function updateDraft<K extends keyof BusinessCardInput>(key: K, value: BusinessCardInput[K]) {
     setDraft((current) => ({ ...current, [key]: value }))
@@ -340,7 +398,7 @@ export function BusinessCardsModal({ editor, onClose }: BusinessCardsModalProps)
     setEditingId((current) => current || 'new')
     setDetailMode('detail')
     setDraft((current) => mergeCardDraft(current, patch))
-    setStatus(`${label}에서 명함 후보를 채웠습니다. 필요한 부분만 확인해 저장하세요.`)
+    setStatus(`${label}에서 명함 초안을 채웠습니다. 기존 값과 다른 항목은 새 추출값으로 교정했습니다. 확인 후 저장하세요.`)
   }
 
   function beginAdd() {
@@ -358,6 +416,10 @@ export function BusinessCardsModal({ editor, onClose }: BusinessCardsModalProps)
   }
 
   function saveDraft() {
+    if (extractionBusy) {
+      setStatus('추출이 끝난 뒤 저장하세요')
+      return
+    }
     if (!draft.name && !draft.company) {
       setStatus('이름 또는 회사명은 꼭 필요합니다')
       return
@@ -423,7 +485,7 @@ export function BusinessCardsModal({ editor, onClose }: BusinessCardsModalProps)
       setEditingId((current) => current || 'new')
       setDetailMode('detail')
       setDraft((current) => ({ ...current, [field]: dataUrl }))
-      setStatus(`${field === 'frontImage' ? '앞면' : '뒷면'} 이미지를 저장했습니다`)
+      setStatus(`${field === 'frontImage' ? '앞면' : '뒷면'} 이미지를 초안에 추가했습니다. 저장을 눌러 확정하세요.`)
     } catch (error) {
       setStatus(error instanceof Error ? error.message : String(error))
     }
@@ -571,19 +633,15 @@ export function BusinessCardsModal({ editor, onClose }: BusinessCardsModalProps)
   }
 
   function showMyCard() {
-    if (selectedCard) {
-      setMyCard(selectedCard.id)
-      setDetailMode('qr')
-      setStatus('선택한 명함을 내 명함으로 지정했습니다')
-      return
-    }
     if (myCard) {
       setSelectedId(myCard.id)
+      setEditingId(null)
       setDetailMode('qr')
+      setStatus('내 명함을 표시합니다')
       return
     }
     beginAdd()
-    setStatus('내 명함으로 사용할 정보를 먼저 저장하세요')
+    setStatus('내 명함으로 사용할 정보를 먼저 저장한 뒤 상세 화면에서 내 명함으로 지정하세요')
   }
 
   function copyText(value: string) {
@@ -596,7 +654,7 @@ export function BusinessCardsModal({ editor, onClose }: BusinessCardsModalProps)
   const qrCard = (myCardId ? cardsRecord[myCardId] : null) || selectedCard
 
   return (
-    <div className="jan-modal-overlay" onClick={onClose}>
+    <div className="jan-modal-overlay" onClick={requestClose}>
       <div className="jan-modal jan-cards-modal" onClick={(e) => e.stopPropagation()}>
         <div className="jan-modal-head jan-cards-head">
           <div className="jan-cards-title">
@@ -611,7 +669,7 @@ export function BusinessCardsModal({ editor, onClose }: BusinessCardsModalProps)
             <button onClick={showMyCard}><Icon name="qr" />내 명함</button>
             <button onClick={() => exportCsv(visibleCards)}><Icon name="upload" />CSV</button>
             <button onClick={() => exportVCard(visibleCards)}><Icon name="card" />vCard</button>
-            <button className="jan-modal-close" onClick={onClose}>닫기</button>
+            <button className="jan-modal-close" onClick={requestClose}>닫기</button>
           </div>
         </div>
 
@@ -697,9 +755,9 @@ export function BusinessCardsModal({ editor, onClose }: BusinessCardsModalProps)
                 </div>
                 <div className="jan-cards-actions wrap">
                   <button onClick={() => cameraInputRef.current?.click()}><Icon name="image" />카메라</button>
-                  <button onClick={() => void extractFromImageOcr()} disabled={ocrBusy}><Icon name="image-text" />{ocrBusy ? `OCR ${Math.round(ocrProgress * 100)}%` : 'OCR 추출'}</button>
-                  <button onClick={() => void extractFromImageAi()} disabled={aiBusy}><Icon name="ai" />{aiBusy ? 'AI 분석 중' : 'AI 추출'}</button>
-                  <button onClick={extractFromMemo}><Icon name="wand" />현재 메모에서 추출</button>
+                  <button onClick={() => void extractFromImageOcr()} disabled={ocrBusy || aiBusy}><Icon name="image-text" />{ocrBusy ? `OCR ${Math.round(ocrProgress * 100)}%` : 'OCR 추출'}</button>
+                  <button onClick={() => void extractFromImageAi()} disabled={ocrBusy || aiBusy}><Icon name="ai" />{aiBusy ? 'AI 분석 중' : 'AI 추출'}</button>
+                  <button onClick={extractFromMemo} disabled={extractionBusy}><Icon name="wand" />현재 메모에서 추출</button>
                 </div>
                 {status && <div className="jan-settings-status jan-cards-inline-status">{status}</div>}
                 <div className="jan-card-form-grid">
@@ -725,8 +783,8 @@ export function BusinessCardsModal({ editor, onClose }: BusinessCardsModalProps)
                 <label className="jan-card-check"><input type="checkbox" checked={draft.favorite} onChange={(e) => updateDraft('favorite', e.target.checked)} />즐겨찾기</label>
                 {duplicate && <div className="jan-card-warning">동일 이메일/전화의 명함이 있습니다: {duplicate.name || duplicate.company}</div>}
                 <div className="jan-cards-actions">
-                  <button onClick={() => setEditingId(null)}>취소</button>
-                  <button className="primary" onClick={saveDraft}><Icon name="check" />저장</button>
+                  <button onClick={cancelEdit} disabled={extractionBusy}>취소</button>
+                  <button className="primary" onClick={saveDraft} disabled={extractionBusy}><Icon name="check" />저장</button>
                 </div>
               </div>
             ) : detailMode === 'stats' ? (

@@ -504,22 +504,86 @@ export function cardToHtml(card: BusinessCard): string {
 const COMPANY_HINT_RE = /(주식회사|\(주\)|㈜|회사|법인|재단|협회|병원|의원|학원|학교|대학|연구소|센터|공사|공단|관광|건설|산업|상사|무역|전자|테크|시스템|솔루션|서비스|주차|\b(?:inc\.?|corp\.?|ltd\.?|labs?|studio|group|company)\b|\bco\.?\s*(?:ltd\.?|kr)?\b)/i
 const TITLE_RE = /(대표|팀장|실장|과장|차장|부장|이사|상무|전무|사장|연구원|매니저|디자이너|개발자|manager|director|ceo|cto|cfo|designer|engineer)/i
 const ADDRESS_RE = /(서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충청|전라|경상|제주|특별자치도|광역시|시 |구 |동 |읍 |면 |로 |길 |번지|building|street|road|suite)/i
+const PHONE_RE = /(?:\+?\d{1,3}[-.\s]?)?(?:\(?0\d{1,2}\)?|[1-9]\d{0,2})[-.\s]?\d{3,4}[-.\s]?\d{4}/g
+const MOBILE_LABEL_RE = /(?:mobile|cell|hp|휴대전화|휴대폰|핸드폰|모바일|(?:^|[\s/])m)\s*[:：.-]?\s*/i
+const PHONE_LABEL_RE = /(?:tel|telephone|phone|office|대표전화|전화|문의|(?:^|[\s/])t)\s*[:：.-]?\s*/i
+const FAX_LABEL_RE = /(?:fax|팩스|(?:^|[\s/])f)\s*[:：.-]?\s*/i
+const NAME_LABEL_RE = /^(?:name|이름|성함)\s*[:：.-]?\s*/i
+const COMPANY_LABEL_RE = /^(?:company|company name|회사|회사명|상호|법인명|organization|org)\s*[:：.-]?\s*/i
+const DEPARTMENT_LABEL_RE = /^(?:department|dept|부서|소속|division)\s*[:：.-]?\s*/i
+const POSITION_LABEL_RE = /^(?:position|title|job title|직책|직위|역할)\s*[:：.-]?\s*/i
+const EMAIL_LABEL_RE = /^(?:e-?mail|이메일|메일)\s*[:：.-]?\s*/i
+const WEBSITE_LABEL_RE = /^(?:website|homepage|url|web|웹사이트|홈페이지)\s*[:：.-]?\s*/i
+const ADDRESS_LABEL_RE = /^(?:address|addr|주소|소재지)\s*[:：.-]?\s*/i
+const NOISE_LINE_RE = /^(?:명함(?:에서)?\s*(?:읽은|추출한)?\s*정보|명함\s*정보|추출\s*결과|ocr\s*결과|분석\s*결과|business\s*card\s*(?:info|information|result))\s*[:：.-]?$/i
+const INLINE_LABEL_BOUNDARY_RE = /\s+(?=(?:name|이름|성함|company|company name|회사|회사명|상호|법인명|organization|org|department|dept|부서|소속|division|position|title|job title|직책|직위|역할|mobile|cell|hp|휴대전화|휴대폰|핸드폰|모바일|tel|telephone|phone|office|대표전화|전화|문의|fax|팩스|e-?mail|이메일|메일|website|homepage|url|web|웹사이트|홈페이지|address|addr|주소|소재지)\s*[:：.-]?\s+)/gi
 
 function isMobileNumber(value: string): boolean {
-  let digits = cleanPhone(value)
-  if (digits.startsWith('82')) digits = `0${digits.slice(2)}`
-  return /^01[016789]\d{7,8}$/.test(digits)
+  return /^01[016789]\d{7,8}$/.test(normalizeKoreanPhone(value))
+}
+
+function phonesFromText(value: string): string[] {
+  return Array.from(value.matchAll(PHONE_RE)).map((match) => match[0].trim()).filter(Boolean)
+}
+
+function normalizeKoreanPhone(value: string): string {
+  const digits = cleanPhone(value)
+  if (digits.startsWith('82')) return `0${digits.slice(2)}`
+  return digits
+}
+
+function samePhone(a: string, b: string): boolean {
+  return !!a && !!b && normalizeKoreanPhone(a) === normalizeKoreanPhone(b)
 }
 
 function extractPhoneFromLine(line: string): string {
-  return line.match(/(?:\+?\d{1,3}[-.\s]?)?(?:0\d{1,2}[-.\s]?)?\d{3,4}[-.\s]?\d{4}/)?.[0]?.trim() || ''
+  return phonesFromText(line)[0] || ''
 }
 
-function cleanCompanyLine(line: string): string {
+function extractPhoneAfterLabel(line: string, label: RegExp): string {
+  const match = label.exec(line)
+  if (!match) return ''
+  const rest = line.slice((match.index || 0) + match[0].length)
+  return phonesFromText(rest)[0] || extractPhoneFromLine(line)
+}
+
+function textAfterLabel(line: string, label: RegExp): string {
+  const match = label.exec(line)
+  if (!match) return ''
+  return line.slice((match.index || 0) + match[0].length).replace(/\s+/g, ' ').trim()
+}
+
+function firstLabeledValue(lines: string[], label: RegExp): string {
+  return lines.map((line) => textAfterLabel(line, label)).find(Boolean) || ''
+}
+
+function splitContactLines(text: string): string[] {
+  return text
+    .replace(INLINE_LABEL_BOUNDARY_RE, '\n')
+    .split(/\r?\n/)
+    .map((line) => line.replace(/\s+/g, ' ').trim())
+    .filter((line) => line && !NOISE_LINE_RE.test(line))
+}
+
+function likelyKoreanNameToken(value: string): boolean {
+  return /^[가-힣]{2,4}$/.test(value) && !COMPANY_HINT_RE.test(value) && !TITLE_RE.test(value) && !ADDRESS_RE.test(value)
+}
+
+function koreanNameTokenFromLine(line: string): string {
+  const fromTitle = nameFromTitleLine(line)
+  if (fromTitle) return fromTitle
+  const tokens = line.split(/\s+/).map((token) => token.replace(/[^\p{L}]/gu, '')).filter(Boolean)
+  return tokens.find(likelyKoreanNameToken) || ''
+}
+
+function cleanCompanyLine(line: string, nameToRemove = ''): string {
   const withoutLabel = line
-    .replace(/^(?:company|company name|회사|회사명|상호|법인명|organization|org)\s*[:：-]?\s*/i, '')
+    .replace(COMPANY_LABEL_RE, '')
     .trim()
-  const withoutOcrBullet = withoutLabel.replace(/^[^\p{L}\p{N}]+/u, '').trim()
+  const withoutEmbeddedName = nameToRemove
+    ? withoutLabel.split(nameToRemove).join(' ')
+    : withoutLabel
+  const withoutOcrBullet = withoutEmbeddedName.replace(/^[^\p{L}\p{N}]+/u, '').replace(/\s+/g, ' ').trim()
   const singleHangulPrefix = withoutOcrBullet.match(/^([가-힣])\s+(.+)$/)
   if (singleHangulPrefix && COMPANY_HINT_RE.test(singleHangulPrefix[2])) return singleHangulPrefix[2].trim()
   return withoutOcrBullet
@@ -538,27 +602,44 @@ function nameFromTitleLine(line: string): string {
 
 export function parseContactText(text: string): Partial<BusinessCardInput> {
   const normalized = text.replace(/\t/g, ' ').replace(/[|·•]/g, '\n')
-  const lines = normalized.split(/\r?\n/).map((line) => line.replace(/\s+/g, ' ').trim()).filter(Boolean)
+  const lines = splitContactLines(normalized)
   const email = normalized.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.(?:com|co\.kr|kr|net|org|io|ai|dev|edu|gov|jp|cn)\b/i)?.[0] || ''
   const websiteCandidates = normalized.match(/https?:\/\/[^\s<>()]+|www\.[^\s<>()]+|[a-z0-9-]+\.(?:com|co\.kr|kr|net|org|io|ai|dev)(?:\/[^\s<>()]*)?/gi) || []
-  const website = websiteCandidates.find((candidate) => !email.includes(candidate.replace(/^https?:\/\//i, '').replace(/^www\./i, ''))) || ''
-  const phoneMatches = Array.from(normalized.matchAll(/(?:\+?\d{1,3}[-.\s]?)?(?:0\d{1,2}[-.\s]?)?\d{3,4}[-.\s]?\d{4}/g)).map((match) => match[0].trim())
-  const mobileLine = lines.find((line) => /(mobile|cell|hp|휴대|핸드폰|휴대폰|모바일)/i.test(line) && extractPhoneFromLine(line))
-  const phoneLine = lines.find((line) => /(tel|전화|대표전화|문의|office)/i.test(line) && extractPhoneFromLine(line))
-  const faxLine = lines.find((line) => /fax|팩스/i.test(line) && extractPhoneFromLine(line))
-  const labeledMobile = mobileLine ? extractPhoneFromLine(mobileLine) : ''
-  const labeledPhone = phoneLine ? extractPhoneFromLine(phoneLine) : ''
-  const fax = faxLine ? extractPhoneFromLine(faxLine) : ''
+  const labeledEmail = firstLabeledValue(lines, EMAIL_LABEL_RE)
+  const labeledWebsite = firstLabeledValue(lines, WEBSITE_LABEL_RE)
+  const website = labeledWebsite || websiteCandidates.find((candidate) => !email.includes(candidate.replace(/^https?:\/\//i, '').replace(/^www\./i, ''))) || ''
+  const phoneMatches = phonesFromText(normalized)
+  const mobileLine = lines.find((line) => MOBILE_LABEL_RE.test(line) && extractPhoneFromLine(line))
+  const phoneLine = lines.find((line) => PHONE_LABEL_RE.test(line) && extractPhoneFromLine(line))
+  const faxLine = lines.find((line) => FAX_LABEL_RE.test(line) && extractPhoneFromLine(line))
+  const labeledMobile = mobileLine ? extractPhoneAfterLabel(mobileLine, MOBILE_LABEL_RE) : ''
+  const labeledPhone = phoneLine ? extractPhoneAfterLabel(phoneLine, PHONE_LABEL_RE) : ''
+  const fax = faxLine ? extractPhoneAfterLabel(faxLine, FAX_LABEL_RE) : ''
   const mobile = labeledMobile || phoneMatches.find(isMobileNumber) || ''
-  const phone = labeledPhone || phoneMatches.find((item) => item !== mobile && item !== fax) || ''
-  const companyLine = lines.find((line) => COMPANY_HINT_RE.test(line)) || ''
+  const phone = labeledPhone || phoneMatches.find((item) => !samePhone(item, mobile) && !samePhone(item, fax)) || ''
+  const labeledCompany = firstLabeledValue(lines, COMPANY_LABEL_RE)
+  const labeledDepartment = firstLabeledValue(lines, DEPARTMENT_LABEL_RE)
+  const labeledPosition = firstLabeledValue(lines, POSITION_LABEL_RE)
+  const labeledAddress = firstLabeledValue(lines, ADDRESS_LABEL_RE)
+  const companyLine = labeledCompany || lines.find((line) => COMPANY_HINT_RE.test(line)) || ''
   const titleLine = lines.find((line) => TITLE_RE.test(line)) || ''
-  const addressLine = lines.find((line) => ADDRESS_RE.test(line)) || ''
+  const addressLine = labeledAddress || lines.find((line) => ADDRESS_RE.test(line)) || ''
+  const labelLike = (line: string) =>
+    NAME_LABEL_RE.test(line) ||
+    COMPANY_LABEL_RE.test(line) ||
+    DEPARTMENT_LABEL_RE.test(line) ||
+    POSITION_LABEL_RE.test(line) ||
+    EMAIL_LABEL_RE.test(line) ||
+    WEBSITE_LABEL_RE.test(line) ||
+    ADDRESS_LABEL_RE.test(line)
   const contactLike = (line: string) =>
     line.includes('@') ||
     /https?:\/\/|www\.|\.com|\.co\.kr|\.kr|tel|fax|mobile|email|전화|휴대|팩스/i.test(line) ||
-    /\d{2,}/.test(line)
+    /\d{2,}/.test(line) ||
+    labelLike(line)
+  const labeledName = lines.map((line) => textAfterLabel(line, NAME_LABEL_RE)).find((value) => value && !COMPANY_HINT_RE.test(value) && !contactLike(value)) || ''
   const nameFromTitle = titleLine ? nameFromTitleLine(titleLine) : ''
+  const embeddedName = !labeledCompany && companyLine ? koreanNameTokenFromLine(companyLine) : ''
   const koreanNameLine = lines.find((line) =>
     /^[가-힣]{2,4}$/.test(line) &&
     line !== companyLine &&
@@ -567,7 +648,7 @@ export function parseContactText(text: string): Partial<BusinessCardInput> {
     !COMPANY_HINT_RE.test(line) &&
     !contactLike(line)
   ) || ''
-  const nameLine = nameFromTitle || koreanNameLine || lines.find((line) =>
+  const nameLine = labeledName || nameFromTitle || koreanNameLine || embeddedName || lines.find((line) =>
     line !== companyLine &&
     line !== titleLine &&
     line !== addressLine &&
@@ -584,12 +665,13 @@ export function parseContactText(text: string): Partial<BusinessCardInput> {
   return {
     name: nameLine,
     nameEn: englishName,
-    company: companyLine ? cleanCompanyLine(companyLine) : '',
-    position: titleFromLine(titleLine),
+    company: companyLine ? cleanCompanyLine(companyLine, nameLine) : '',
+    department: labeledDepartment,
+    position: labeledPosition || titleFromLine(titleLine),
     mobile,
     phone,
     fax,
-    email,
+    email: email || labeledEmail,
     website,
     address: addressLine,
     sns,
@@ -616,14 +698,50 @@ export function extractSnsFromText(text: string): Record<string, string> {
 export function parseAiBusinessCardJson(text: string): Partial<BusinessCardInput> | null {
   const cleaned = text.replace(/```(?:json)?/gi, '').replace(/```/g, '').trim()
   const match = cleaned.match(/\{[\s\S]*\}/)
-  if (!match) return null
-  try {
-    const data = JSON.parse(match[0]) as Record<string, unknown>
-    const card = aiRecordToBusinessCardPatch(data)
-    return card
-  } catch {
-    return null
+  if (!match) {
+    const fallback = parseContactText(cleaned)
+    return hasUsefulCardPatch(fallback) ? fallback : null
   }
+  try {
+    const raw = JSON.parse(match[0]) as unknown
+    const data = unwrapAiBusinessCardRecord(raw)
+    if (!data) return null
+    const card = aiRecordToBusinessCardPatch(data)
+    return hasUsefulCardPatch(card) ? card : null
+  } catch {
+    const fallback = parseContactText(cleaned)
+    return hasUsefulCardPatch(fallback) ? fallback : null
+  }
+}
+
+function hasUsefulCardPatch(card: Partial<BusinessCardInput> | null | undefined): card is Partial<BusinessCardInput> {
+  if (!card) return false
+  return !!(
+    card.name ||
+    card.company ||
+    card.mobile ||
+    card.phone ||
+    card.fax ||
+    card.email ||
+    card.website ||
+    card.address ||
+    card.position ||
+    Object.values(card.sns || {}).some(Boolean)
+  )
+}
+
+function unwrapAiBusinessCardRecord(value: unknown): Record<string, unknown> | null {
+  if (Array.isArray(value)) return value.find(isPlainRecord) || null
+  if (!isPlainRecord(value)) return null
+  if (Object.keys(value).some((key) => !!fieldAlias(key) || /^(sns|social|socials|contact|contacts|연락처)$/i.test(key))) {
+    return value
+  }
+  for (const key of ['businessCard', 'business_card', 'card', 'contact', 'result', 'data']) {
+    const nested = value[key]
+    if (isPlainRecord(nested)) return nested
+    if (Array.isArray(nested)) return nested.find(isPlainRecord) || null
+  }
+  return value
 }
 
 function aiRecordToBusinessCardPatch(record: Record<string, unknown>): Partial<BusinessCardInput> {
@@ -684,7 +802,7 @@ function stringValue(value: unknown): string {
   return ''
 }
 
-export const BUSINESS_CARD_VISION_PROMPT = `이 이미지는 명함입니다. 아래 JSON 형식으로 정보를 정확히 추출하여 JSON 객체만 반환하세요. 없는 필드는 빈 문자열로 두고 추측하지 마세요.
+export const BUSINESS_CARD_VISION_PROMPT = `이 이미지는 명함입니다. 아래 JSON 형식으로 정보를 정확히 추출하여 **JSON 객체만** 반환하세요. 마크다운이나 설명 없이, 중괄호로 시작하고 중괄호로 끝나야 합니다. 없는 필드는 빈 문자열 ""로 두고 추측하지 마세요.
 
 {
   "name": "이름",
@@ -717,7 +835,15 @@ export const BUSINESS_CARD_VISION_PROMPT = `이 이미지는 명함입니다. �
     "slack": "",
     "discord": ""
   }
-}`
+}
+
+주의사항:
+- 전화번호는 명함에 적힌 그대로의 형식을 유지하되, 가능하면 하이픈(-) 구분을 사용
+- 휴대폰은 010/011/016/017/018/019 또는 +82 10 형식으로 시작하는 번호
+- 이름이 한글과 영문 둘 다 있으면 name/nameEn으로 분리
+- 직책과 부서를 구분 (예: "영업1팀 팀장"이면 department=영업1팀, position=팀장)
+- 명함에 없는 필드는 절대 추측하지 말고 빈 문자열
+- SNS는 명함에 명시된 것만 추출하고, 없으면 sns: {} 빈 객체`
 
 export interface CardStats {
   total: number

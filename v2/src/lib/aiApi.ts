@@ -288,9 +288,11 @@ export async function runAiVision(prompt: string, dataUrl: string): Promise<AiCa
     if (!s.openaiKey) return { ok: false, error: '설정에서 OpenAI API 키를 입력하세요' }
     return callOpenAIVision(prompt, dataUrl, s.aiModel || 'gpt-4o-mini', s.openaiKey)
   }
-  if (s.aiProvider === 'proxy' || s.aiProvider === 'none') {
-    const model = s.aiProvider === 'none' ? DEFAULT_OPENAI_MODEL : (s.aiModel || DEFAULT_OPENAI_MODEL)
-    return callProxyWithFallback(prompt, model || DEFAULT_OPENAI_MODEL, dataUrl)
+  if (s.aiProvider === 'proxy') {
+    return callProxyWithFallback(prompt, s.aiModel || DEFAULT_OPENAI_MODEL, dataUrl)
+  }
+  if (s.aiProvider === 'none') {
+    return { ok: false, error: 'AI 제공자가 꺼져 있습니다. 설정에서 서버 프록시 또는 개인 API 키를 선택하세요.' }
   }
   return { ok: false, error: 'AI 제공자가 설정되지 않음 — OCR 추출을 사용하거나 설정에서 AI를 연결하세요' }
 }

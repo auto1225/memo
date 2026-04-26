@@ -216,6 +216,48 @@ test.describe('v2 smoke', () => {
     await expect(pages).toHaveAttribute('data-page-columns', '2')
   })
 
+  test('business card extraction from the current memo corrects draft fields before save', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('jan-v2-role-onboarded', '1'))
+    await page.goto('./')
+    const editor = page.locator('.ProseMirror').first()
+    await editor.waitFor({ state: 'visible', timeout: 15000 })
+    await editor.click()
+    await page.keyboard.press('Control+A')
+    await page.keyboard.type(`명함에서 읽은 정보:
+이름 최민호
+회사 우주주차
+전화 064.756.1633
+팩스 064.756.1634
+이메일 cmh@woojoocha.com
+주소 제주특별자치도 제주시 첨단로 245-13`)
+
+    await page.keyboard.press('Control+Shift+P')
+    await page.locator('.jan-cp-input').fill('명함')
+    await page.locator('.jan-cp-item', { hasText: '명함 관리' }).click()
+    const modal = page.locator('.jan-cards-modal')
+    await expect(modal).toBeVisible()
+    await modal.getByRole('button', { name: /명함 추가/ }).click()
+
+    const form = modal.locator('.jan-card-form')
+    await form.getByLabel('이름', { exact: true }).fill('오인식')
+    await form.getByLabel('전화', { exact: true }).fill('000-0000-0000')
+    await modal.getByRole('button', { name: /현재 메모에서 추출/ }).click()
+
+    await expect(form.getByLabel('이름', { exact: true })).toHaveValue('최민호')
+    await expect(form.getByLabel('회사', { exact: true })).toHaveValue('우주주차')
+    await expect(form.getByLabel('휴대폰', { exact: true })).toHaveValue('')
+    await expect(form.getByLabel('전화', { exact: true })).toHaveValue('064.756.1633')
+    await expect(form.getByLabel('팩스', { exact: true })).toHaveValue('064.756.1634')
+    await expect(form.getByLabel('이메일', { exact: true })).toHaveValue('cmh@woojoocha.com')
+    await expect(form.getByLabel('주소', { exact: true })).toHaveValue('제주특별자치도 제주시 첨단로 245-13')
+    await expect(modal.locator('.jan-cards-inline-status')).toContainText('초안')
+
+    await form.getByRole('button', { name: /저장/ }).click()
+    await expect(modal.locator('.jan-card-profile')).toContainText('최민호')
+    await expect(modal.locator('.jan-card-profile')).toContainText('우주주차')
+    await expect(modal.locator('.jan-card-profile')).toContainText('064.756.1633')
+  })
+
   test('view zoom controls support Word-style fit modes', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 })
     await page.goto('./')

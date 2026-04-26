@@ -62,6 +62,61 @@ cmh@woojoocha.com
     expect(parsed.address).toContain('제주특별자치도')
   })
 
+  it('splits OCR lines that merge company, name, telephone, and fax fields', () => {
+    const parsed = parseContactText(`추 우주주차 최민호
+T 064.756.1633 F 064.756.1634
+cmh@woojoocha.com
+제주특별자치도 제주시 첨단로 245-13 (영평동)`)
+
+    expect(parsed.name).toBe('최민호')
+    expect(parsed.company).toBe('우주주차')
+    expect(parsed.mobile).toBe('')
+    expect(parsed.phone).toBe('064.756.1633')
+    expect(parsed.fax).toBe('064.756.1634')
+    expect(parsed.email).toBe('cmh@woojoocha.com')
+    expect(parsed.address).toContain('제주특별자치도')
+  })
+
+  it('parses Korean labeled lines and ignores AI wrapper prose', () => {
+    const parsed = parseContactText(`명함에서 읽은 정보:
+이름 최민호
+회사 우주주차
+부서 운영팀
+직책 대표
+전화 064.756.1633
+팩스 064.756.1634
+이메일 cmh@woojoocha.com
+주소 제주특별자치도 제주시 첨단로 245-13`)
+
+    expect(parsed.name).toBe('최민호')
+    expect(parsed.company).toBe('우주주차')
+    expect(parsed.department).toBe('운영팀')
+    expect(parsed.position).toBe('대표')
+    expect(parsed.address).toBe('제주특별자치도 제주시 첨단로 245-13')
+  })
+
+  it('splits inline Korean labels when memo text is flattened into one line', () => {
+    const parsed = parseContactText('명함에서 읽은 정보: 이름 최민호 회사 우주주차 전화 064.756.1633 팩스 064.756.1634 이메일 cmh@woojoocha.com 주소 제주특별자치도 제주시 첨단로 245-13')
+
+    expect(parsed.name).toBe('최민호')
+    expect(parsed.company).toBe('우주주차')
+    expect(parsed.phone).toBe('064.756.1633')
+    expect(parsed.fax).toBe('064.756.1634')
+    expect(parsed.email).toBe('cmh@woojoocha.com')
+    expect(parsed.address).toBe('제주특별자치도 제주시 첨단로 245-13')
+  })
+
+  it('recognizes Korean mobile international format and parenthesized office numbers', () => {
+    const parsed = parseContactText(`이름 김하나
+회사 Example Labs
+Mobile +82 10-1234-5678
+Tel (02) 1234-5678
+hana@example.com`)
+
+    expect(parsed.mobile).toBe('+82 10-1234-5678')
+    expect(parsed.phone).toBe('(02) 1234-5678')
+  })
+
   it('parses AI business card JSON with Korean labels and nested contact fields', () => {
     const parsed = parseAiBusinessCardJson(`\`\`\`json
 {
@@ -87,6 +142,38 @@ cmh@woojoocha.com
     expect(parsed?.email).toBe('cmh@woojoocha.com')
     expect(parsed?.sns?.naver).toContain('blog.naver.com')
     expect(parsed?.tags).toEqual(['주차', '제주'])
+  })
+
+  it('falls back to contact text parsing when AI returns non-JSON text', () => {
+    const parsed = parseAiBusinessCardJson(`명함에서 읽은 정보:
+이름 최민호
+회사 우주주차
+전화 064.756.1633
+팩스 064.756.1634
+이메일 cmh@woojoocha.com
+주소 제주특별자치도 제주시 첨단로 245-13`)
+
+    expect(parsed?.name).toBe('최민호')
+    expect(parsed?.company).toBe('우주주차')
+    expect(parsed?.phone).toBe('064.756.1633')
+    expect(parsed?.fax).toBe('064.756.1634')
+    expect(parsed?.email).toBe('cmh@woojoocha.com')
+  })
+
+  it('unwraps AI JSON objects that nest the card under result or data', () => {
+    const parsed = parseAiBusinessCardJson(`{
+  "result": {
+    "name": "최민호",
+    "company": "우주주차",
+    "phone": "064.756.1633",
+    "email": "cmh@woojoocha.com"
+  }
+}`)
+
+    expect(parsed?.name).toBe('최민호')
+    expect(parsed?.company).toBe('우주주차')
+    expect(parsed?.phone).toBe('064.756.1633')
+    expect(parsed?.email).toBe('cmh@woojoocha.com')
   })
 
   it('round-trips CSV with Korean headers and SNS fields', () => {
