@@ -634,15 +634,6 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
         onMeetingNotes={() => openMeetingNotes('meeting')}
       />
       <MemoTabs />
-      <div className="jan-titlebar">
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => updateCurrent({ title: e.target.value })}
-          placeholder="제목"
-          className="jan-title-input"
-        />
-      </div>
       <Toolbar
         editor={editor}
         onSave={handleSave}

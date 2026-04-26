@@ -127,4 +127,32 @@ test.describe('local-first memo storage', () => {
     const hasHorizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 2)
     expect(hasHorizontalOverflow).toBe(false)
   })
+
+  test('keeps mobile header actions and toolbar menus reachable', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('./')
+
+    await page.locator('.ProseMirror').first().waitFor({ state: 'visible', timeout: 15000 })
+    const moreButton = page.getByRole('button', { name: '더보기' })
+    await expect(moreButton).toBeVisible()
+    await moreButton.click()
+
+    const moreMenu = page.locator('.jan-header-more-menu')
+    await expect(moreMenu).toBeVisible()
+    await expect(moreMenu.getByRole('button', { name: '명함' })).toBeVisible()
+    await moreMenu.getByRole('button', { name: '설정' }).click()
+    await expect(page.locator('.jan-settings-modal')).toBeVisible({ timeout: 15000 })
+    await page.locator('.jan-settings-modal').getByRole('button', { name: '닫기' }).click()
+
+    await page.getByRole('button', { name: '페이지', exact: true }).click()
+    const dropdown = page.locator('.jan-menu-dropdown')
+    await expect(dropdown).toBeVisible()
+    const box = await dropdown.boundingBox()
+    expect(box).toBeTruthy()
+    expect(box!.x).toBeGreaterThanOrEqual(0)
+    expect(box!.x + box!.width).toBeLessThanOrEqual(392)
+
+    const hasHorizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 2)
+    expect(hasHorizontalOverflow).toBe(false)
+  })
 })
