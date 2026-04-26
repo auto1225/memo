@@ -71,6 +71,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
   const supabaseStatus = getSupabaseConfigStatus()
   const paperLabel = PAPER_STYLES.find((style) => style.value === ui.paperStyle)?.label.replace(' (기본)', '') || '줄노트'
   const orientationLabel = ui.pageOrientation === 'landscape' ? '가로' : '세로'
+  const columnLabel = `${ui.pageColumnCount || 1}단`
 
   useEffect(() => {
     let cancelled = false
@@ -623,7 +624,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
             <div className="jan-settings-page-summary">
               <div>
                 <strong>{ui.pageSize} · {orientationLabel}</strong>
-                <span>{paperLabel} · {ui.pageMarginMm}mm</span>
+                <span>{paperLabel} · {ui.pageMarginMm}mm · {columnLabel}</span>
               </div>
               <button onClick={() => setShowPageSettings(true)}>페이지 설정 열기</button>
             </div>

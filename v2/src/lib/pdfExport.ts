@@ -2,6 +2,7 @@ import {
   pageDimensions,
   useUIStore,
   type PageOrientation,
+  type PageColumnCount,
   type PageSizePreset,
   type PaperStyle,
 } from '../store/uiStore'
@@ -14,6 +15,7 @@ export interface PrintPageSettings {
   pageSize: PageSizePreset
   pageOrientation: PageOrientation
   pageMarginMm: number
+  pageColumnCount?: PageColumnCount
   runningHeader?: string
   runningFooter?: string
   fontFamily?: FontFamily
@@ -30,6 +32,7 @@ export function currentPrintPageSettings(): PrintPageSettings {
     pageSize: ui.pageSize,
     pageOrientation: ui.pageOrientation,
     pageMarginMm: ui.pageMarginMm,
+    pageColumnCount: ui.pageColumnCount,
     runningHeader: ui.runningHeader,
     runningFooter: ui.runningFooter,
     fontFamily: typography.fontFamily,
@@ -107,6 +110,10 @@ export function buildPrintHtml(
   const fontSizePt = pxToPt(settings.fontSize || 14)
   const lineHeight = settings.lineHeight || 1.7
   const paragraphSpacing = Math.max(0, Math.round(settings.paragraphSpacing ?? 8))
+  const pageColumnCount = normalizePrintColumnCount(settings.pageColumnCount)
+  const columnCss = pageColumnCount > 1
+    ? `#content{column-count:${pageColumnCount};column-gap:${pageColumnCount === 2 ? '7mm' : '5mm'};column-rule:1px solid rgba(0,0,0,0.08);}#content :where(h1,h2,h3,table,pre,blockquote,img,.jan-page-break,.tiptap-pagination-page-break){break-inside:avoid-column;}`
+    : ''
 
   return `<!DOCTYPE html>
 <html lang="ko"><head><meta charset="UTF-8"><title>${titleAttr}</title>
@@ -136,9 +143,10 @@ pre{padding:8px 12px;overflow-x:auto;}
 blockquote{border-left:3px solid #D97757;padding:4px 12px;margin:0.6em 0;color:#555;background:rgba(217,119,87,0.05);}
 img{max-width:100%;height:auto;}
 .jan-page-break,hr.jan-page-break,[data-page-break="1"],div[style*="page-break-before"],.tiptap-pagination-page-break{break-before:page;page-break-before:always;height:0 !important;border:0 !important;margin:0 !important;background:transparent !important;overflow:hidden;}
+${columnCss}
 @media print{body{background:white;}.pagedjs_page{box-shadow:none !important;margin:0 !important;}}
 </style></head><body data-paper="${settings.paperStyle}">
-<div id="content" data-paper="${settings.paperStyle}">${html}</div>
+<div id="content" data-paper="${settings.paperStyle}" data-columns="${pageColumnCount}">${html}</div>
 <script src="${PAGED_CDN}"></script>
 </body></html>`
 }
@@ -185,4 +193,8 @@ function cssContentFromTemplate(template: string): string {
 
 function pxToPt(px: number): number {
   return Math.max(8, Math.round(px * 0.75 * 100) / 100)
+}
+
+function normalizePrintColumnCount(value: unknown): PageColumnCount {
+  return value === 2 || value === 3 ? value : 1
 }

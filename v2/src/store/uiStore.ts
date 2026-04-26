@@ -4,6 +4,7 @@ import { persist } from 'zustand/middleware'
 export type PaperStyle = 'lined' | 'grid' | 'dot' | 'blank' | 'music' | 'cornell'
 export type PageSizePreset = 'A4' | 'A3' | 'B4' | 'A5' | 'B5' | 'Letter'
 export type PageOrientation = 'portrait' | 'landscape'
+export type PageColumnCount = 1 | 2 | 3
 
 export const PAPER_STYLES: Array<{ value: PaperStyle; label: string; description: string }> = [
   { value: 'lined', label: '줄노트 (기본)', description: 'v1 기본 노트 배경' },
@@ -37,6 +38,12 @@ export function pageDimensionsPx(size: PageSizePreset, orientation: PageOrientat
   return { pageWidth: mmToPx(widthMm), pageHeight: mmToPx(heightMm) }
 }
 
+export function normalizePageColumnCount(value: unknown): PageColumnCount {
+  const count = Number(value)
+  if (count === 2 || count === 3) return count
+  return 1
+}
+
 /**
  * Phase 17 — UI 상태 (포커스/읽기 모드 + 페이지 줌 + spellcheck + collapse + heading 번호).
  */
@@ -51,6 +58,7 @@ interface UIState {
   pageSize: PageSizePreset
   pageOrientation: PageOrientation
   pageMarginMm: number
+  pageColumnCount: PageColumnCount
   runningHeader: string
   runningFooter: string
   toggleFocus: () => void
@@ -66,6 +74,7 @@ interface UIState {
   setPageSize: (size: PageSizePreset) => void
   setPageOrientation: (orientation: PageOrientation) => void
   setPageMarginMm: (margin: number) => void
+  setPageColumnCount: (count: PageColumnCount) => void
   setRunningHeader: (value: string) => void
   setRunningFooter: (value: string) => void
 }
@@ -83,6 +92,7 @@ export const useUIStore = create<UIState>()(
       pageSize: 'A4',
       pageOrientation: 'portrait',
       pageMarginMm: 20,
+      pageColumnCount: 1,
       runningHeader: '',
       runningFooter: 'Page {page} / {total}',
       toggleFocus: () => set({ focusMode: !get().focusMode }),
@@ -98,6 +108,7 @@ export const useUIStore = create<UIState>()(
       setPageSize: (size) => set({ pageSize: size }),
       setPageOrientation: (orientation) => set({ pageOrientation: orientation }),
       setPageMarginMm: (margin) => set({ pageMarginMm: Math.max(8, Math.min(60, Math.round(margin))) }),
+      setPageColumnCount: (count) => set({ pageColumnCount: normalizePageColumnCount(count) }),
       setRunningHeader: (value) => set({ runningHeader: value.trim() }),
       setRunningFooter: (value) => set({ runningFooter: value.trim() }),
     }),

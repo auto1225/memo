@@ -161,6 +161,7 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
   const pageSize = useUIStore((s) => s.pageSize)
   const pageOrientation = useUIStore((s) => s.pageOrientation)
   const pageMarginMm = useUIStore((s) => s.pageMarginMm)
+  const pageColumnCount = useUIStore((s) => s.pageColumnCount)
   const runningHeader = useUIStore((s) => s.runningHeader)
   const runningFooter = useUIStore((s) => s.runningFooter)
   const spellCheck = useUIStore((s) => s.spellCheck)
@@ -172,7 +173,8 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
     '--jan-page-w': `${pageMm.widthMm}mm`,
     '--jan-page-h': `${pageMm.heightMm}mm`,
     '--jan-page-margin': `${pageMarginMm}mm`,
-  } as CSSProperties), [pageMm.widthMm, pageMm.heightMm, pageMarginMm])
+    '--jan-page-columns': pageColumnCount,
+  } as CSSProperties), [pageMm.widthMm, pageMm.heightMm, pageMarginMm, pageColumnCount])
 
   const initialContent = memo?.content || '<p></p>'
   const title = memo?.title || '새 메모'
@@ -606,6 +608,7 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
           data-paper={paperStyle}
           data-page-size={pageSize}
           data-page-orientation={pageOrientation}
+          data-page-columns={pageColumnCount}
           style={pageStyle}
         >
           <EditorContent editor={editor} />

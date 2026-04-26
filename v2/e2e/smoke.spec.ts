@@ -109,6 +109,7 @@ test.describe('v2 smoke', () => {
     await expect(pages).toHaveAttribute('data-paper', 'lined')
     await expect(pages).toHaveAttribute('data-page-size', 'A4')
     await expect(pages).toHaveAttribute('data-page-orientation', 'portrait')
+    await expect(pages).toHaveAttribute('data-page-columns', '1')
 
     const backgroundImage = await editor.evaluate((node) => getComputedStyle(node).backgroundImage)
     expect(backgroundImage).toContain('repeating-linear-gradient')
@@ -123,6 +124,7 @@ test.describe('v2 smoke', () => {
 
     await page.locator('.jan-page-size-card', { hasText: 'B4' }).click()
     await page.getByRole('button', { name: '가로' }).click()
+    await page.getByRole('button', { name: '2단' }).click()
     await page.locator('.jan-paper-style-card', { hasText: '모눈종이' }).click()
     await page.getByLabel('페이지 머리글').fill('프로젝트 헤더')
     await page.getByLabel('페이지 꼬리말').fill('Page {page}')
@@ -130,9 +132,13 @@ test.describe('v2 smoke', () => {
     await expect(pages).toHaveAttribute('data-paper', 'grid')
     await expect(pages).toHaveAttribute('data-page-size', 'B4')
     await expect(pages).toHaveAttribute('data-page-orientation', 'landscape')
+    await expect(pages).toHaveAttribute('data-page-columns', '2')
+    const columnCount = await editor.evaluate((node) => getComputedStyle(node).columnCount)
+    expect(columnCount).toBe('2')
     const pageUi = await page.evaluate(() => JSON.parse(localStorage.getItem('jan-v2-ui') || '{}')?.state)
     expect(pageUi.runningHeader).toBe('프로젝트 헤더')
     expect(pageUi.runningFooter).toBe('Page {page}')
+    expect(pageUi.pageColumnCount).toBe(2)
   })
 
   test('meeting notes flow inserts a structured v1-style note', async ({ page }) => {

@@ -171,10 +171,9 @@ export function Toolbar(p: ToolbarProps) {
     const notes = root.querySelectorAll('.paper-footnote'); notes.forEach((el, i) => { const t = (el.textContent||'').replace(/^\[\d+\]\s*/, ''); el.textContent = `[${i+1}] ${t}` })
     editor.commands.setContent(root.innerHTML)
   }
-  const toggleTwoCol = () => {
-    const cur = document.body.classList.toggle('jan-2col')
-    const style = document.getElementById('jan-2col-style') || (() => { const s = document.createElement('style'); s.id = 'jan-2col-style'; document.head.appendChild(s); return s })()
-    style.textContent = cur ? '.jan-2col .ProseMirror { column-count: 2; column-gap: 2em; column-rule: 1px solid #eee; }' : ''
+  const cyclePageColumns = () => {
+    const current = ui.pageColumnCount || 1
+    ui.setPageColumnCount(current === 1 ? 2 : current === 2 ? 3 : 1)
   }
   const setRunningHeader = () => {
     const header = window.prompt('머리글:', ui.runningHeader)
@@ -188,6 +187,7 @@ export function Toolbar(p: ToolbarProps) {
   /* === 페이지 설정 === */
   const orientationLabel = ui.pageOrientation === 'landscape' ? '가로' : '세로'
   const currentPaperLabel = PAPER_STYLES.find((style) => style.value === ui.paperStyle)?.label.replace(' (기본)', '') || '줄노트'
+  const pageColumnLabel = `${ui.pageColumnCount || 1}단`
   const openPageSettings = () => p.onPageSettings()
 
   /* === 책갈피 / 텍스트 상자 / 구분선 스타일 === */
@@ -502,7 +502,7 @@ export function Toolbar(p: ToolbarProps) {
         { label: 'TOC (목차) 자동 생성', icon: 'list-bullet', onClick: () => run(p.onToggleOutline) },
         { label: 'Acknowledgments (감사의 말)', icon: 'heart', onClick: () => run(insertAcknowledgments) },
         { divider: '레이아웃', label: '' },
-        { label: '2단 레이아웃 토글', icon: 'columns', onClick: () => run(toggleTwoCol) },
+        { label: `다단 레이아웃: ${pageColumnLabel}`, icon: 'columns', onClick: () => run(cyclePageColumns) },
         { label: '페이지 구분 삽입', hint: 'Ctrl+Enter', icon: 'page-break', onClick: () => run(insertPageBreak) },
         { label: '페이지로 감싸기', icon: 'page', onClick: () => run(wrapAsPage) },
         { label: '러닝 헤더 · 꼬리말 설정', icon: 'pin', onClick: () => run(setRunningHeader) },
@@ -591,7 +591,7 @@ export function Toolbar(p: ToolbarProps) {
         { label: `페이지 여백 설정: ${ui.pageMarginMm}mm`, icon: 'sliders', onClick: () => run(openPageSettings) },
         { divider: '페이지 동작', label: '' },
         { label: '페이지 구분 삽입', hint: 'Ctrl+Enter', icon: 'page-break', onClick: () => run(insertPageBreak) },
-        { label: '2단 레이아웃 토글', icon: 'columns', onClick: () => run(toggleTwoCol) },
+        { label: `다단 레이아웃: ${pageColumnLabel}`, icon: 'columns', onClick: () => run(cyclePageColumns) },
         { label: '페이지로 감싸기', icon: 'page', onClick: () => run(wrapAsPage) },
         { label: '러닝 헤더 · 꼬리말', icon: 'pin', onClick: () => run(setRunningHeader) },
         { divider: '미리보기 / 인쇄', label: '' },

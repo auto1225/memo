@@ -6,6 +6,7 @@ import {
   pageDimensions,
   useUIStore,
   type PageOrientation,
+  type PageColumnCount,
   type PageSizePreset,
   type PaperStyle,
 } from '../store/uiStore'
@@ -16,6 +17,11 @@ interface PageSettingsModalProps {
 
 const PAGE_SIZE_OPTIONS = Object.keys(PAGE_PRESETS) as PageSizePreset[]
 const MARGIN_PRESETS = [12, 16, 20, 25, 30]
+const COLUMN_OPTIONS: Array<{ value: PageColumnCount; label: string }> = [
+  { value: 1, label: '1단' },
+  { value: 2, label: '2단' },
+  { value: 3, label: '3단' },
+]
 
 export function PageSettingsModal({ onClose }: PageSettingsModalProps) {
   const ui = useUIStore()
@@ -23,6 +29,7 @@ export function PageSettingsModal({ onClose }: PageSettingsModalProps) {
   const [pageSize, setPageSize] = useState<PageSizePreset>(ui.pageSize)
   const [pageOrientation, setPageOrientation] = useState<PageOrientation>(ui.pageOrientation)
   const [pageMarginMm, setPageMarginMm] = useState(ui.pageMarginMm)
+  const [pageColumnCount, setPageColumnCount] = useState<PageColumnCount>(ui.pageColumnCount)
   const [runningHeader, setRunningHeader] = useState(ui.runningHeader || '')
   const [runningFooter, setRunningFooter] = useState(ui.runningFooter || 'Page {page} / {total}')
 
@@ -43,6 +50,7 @@ export function PageSettingsModal({ onClose }: PageSettingsModalProps) {
     setPageSize('A4')
     setPageOrientation('portrait')
     setPageMarginMm(20)
+    setPageColumnCount(1)
     setRunningHeader('')
     setRunningFooter('Page {page} / {total}')
   }
@@ -52,6 +60,7 @@ export function PageSettingsModal({ onClose }: PageSettingsModalProps) {
     ui.setPageSize(pageSize)
     ui.setPageOrientation(pageOrientation)
     ui.setPageMarginMm(pageMarginMm)
+    ui.setPageColumnCount(pageColumnCount)
     ui.setRunningHeader(runningHeader)
     ui.setRunningFooter(runningFooter)
     onClose()
@@ -83,6 +92,7 @@ export function PageSettingsModal({ onClose }: PageSettingsModalProps) {
                 className="jan-page-preview-sheet"
                 data-paper={paperStyle}
                 data-orientation={pageOrientation}
+                data-columns={pageColumnCount}
               >
                 <span className="jan-page-preview-margin" />
                 <span className="jan-page-preview-line l1" />
@@ -92,7 +102,7 @@ export function PageSettingsModal({ onClose }: PageSettingsModalProps) {
             </div>
             <div className="jan-page-preview-meta">
               <strong>{dimensions.widthMm} × {dimensions.heightMm} mm</strong>
-              <span>{pageMarginMm}mm · {paperLabel}</span>
+              <span>{pageMarginMm}mm · {pageColumnCount}단 · {paperLabel}</span>
             </div>
           </section>
 
@@ -145,6 +155,29 @@ export function PageSettingsModal({ onClose }: PageSettingsModalProps) {
                       type="button"
                       className={selected ? 'is-selected' : ''}
                       onClick={() => setPageOrientation(value as PageOrientation)}
+                      aria-pressed={selected}
+                    >
+                      {label}
+                    </button>
+                  )
+                })}
+              </div>
+            </section>
+
+            <section className="jan-page-settings-section">
+              <div className="jan-page-settings-section-head">
+                <Icon name="columns" size={15} />
+                <h4>다단</h4>
+              </div>
+              <div className="jan-page-segmented jan-page-column-segmented" role="group" aria-label="다단 레이아웃">
+                {COLUMN_OPTIONS.map(({ value, label }) => {
+                  const selected = pageColumnCount === value
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      className={selected ? 'is-selected' : ''}
+                      onClick={() => setPageColumnCount(value)}
                       aria-pressed={selected}
                     >
                       {label}

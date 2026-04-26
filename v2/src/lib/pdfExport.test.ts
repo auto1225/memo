@@ -8,6 +8,7 @@ const landscapeGrid: PrintPageSettings = {
   pageSize: 'Letter',
   pageOrientation: 'landscape',
   pageMarginMm: 12,
+  pageColumnCount: 1,
 }
 
 describe('pdfExport print document', () => {
@@ -64,12 +65,24 @@ describe('pdfExport print document', () => {
     expect(out).toContain('.jan-page-break,hr.jan-page-break')
   })
 
+  it('prints Word-like multi-column page layouts', () => {
+    const out = buildPrintHtml('<h1>Title</h1><p>Body</p>', 'Memo', {
+      ...landscapeGrid,
+      pageColumnCount: 2,
+    })
+
+    expect(out).toContain('data-columns="2"')
+    expect(out).toContain('#content{column-count:2;column-gap:7mm;')
+    expect(out).toContain('break-inside:avoid-column')
+  })
+
   it('reads current settings from uiStore', () => {
     useUIStore.setState({
       paperStyle: 'dot',
       pageSize: 'A5',
       pageOrientation: 'portrait',
       pageMarginMm: 18,
+      pageColumnCount: 3,
       runningHeader: '헤더',
       runningFooter: '쪽 {page}',
     })
@@ -85,6 +98,7 @@ describe('pdfExport print document', () => {
       pageSize: 'A5',
       pageOrientation: 'portrait',
       pageMarginMm: 18,
+      pageColumnCount: 3,
       runningHeader: '헤더',
       runningFooter: '쪽 {page}',
       fontFamily: 'mono',

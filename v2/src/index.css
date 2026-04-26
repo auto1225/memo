@@ -3230,6 +3230,27 @@ html, body, #root {
   line-height: var(--jan-editor-line) !important;
   background-clip: padding-box;
 }
+
+.jan-editor-pages[data-page-columns="2"] .ProseMirror,
+.jan-editor-pages[data-page-columns="3"] .ProseMirror {
+  column-gap: 7mm;
+  column-rule: 1px solid color-mix(in srgb, var(--paper-edge, #e5e5e5) 72%, transparent);
+}
+
+.jan-editor-pages[data-page-columns="2"] .ProseMirror {
+  column-count: 2;
+}
+
+.jan-editor-pages[data-page-columns="3"] .ProseMirror {
+  column-count: 3;
+  column-gap: 5mm;
+}
+
+.jan-editor-pages[data-page-columns="2"] .ProseMirror :where(h1,h2,h3,table,pre,blockquote,img,.jan-page-break,.tiptap-pagination-page-break),
+.jan-editor-pages[data-page-columns="3"] .ProseMirror :where(h1,h2,h3,table,pre,blockquote,img,.jan-page-break,.tiptap-pagination-page-break) {
+  break-inside: avoid-column;
+}
+
 .jan-editor-pages .ProseMirror :where(:not(code):not(pre):not(kbd):not(samp)) {
   font-family: var(--jan-editor-font) !important;
 }
@@ -3423,6 +3444,25 @@ html, body, #root {
   height: 170px;
 }
 
+.jan-page-preview-sheet[data-columns="2"]::before,
+.jan-page-preview-sheet[data-columns="3"]::before {
+  content: "";
+  position: absolute;
+  inset: 28px 22px 22px 45px;
+  pointer-events: none;
+  opacity: 0.75;
+}
+
+.jan-page-preview-sheet[data-columns="2"]::before {
+  background: linear-gradient(to right, transparent calc(50% - 0.5px), color-mix(in srgb, var(--ink, #191919) 18%, transparent) calc(50% - 0.5px), color-mix(in srgb, var(--ink, #191919) 18%, transparent) calc(50% + 0.5px), transparent calc(50% + 0.5px));
+}
+
+.jan-page-preview-sheet[data-columns="3"]::before {
+  background:
+    linear-gradient(to right, transparent calc(33.333% - 0.5px), color-mix(in srgb, var(--ink, #191919) 16%, transparent) calc(33.333% - 0.5px), color-mix(in srgb, var(--ink, #191919) 16%, transparent) calc(33.333% + 0.5px), transparent calc(33.333% + 0.5px)),
+    linear-gradient(to right, transparent calc(66.666% - 0.5px), color-mix(in srgb, var(--ink, #191919) 16%, transparent) calc(66.666% - 0.5px), color-mix(in srgb, var(--ink, #191919) 16%, transparent) calc(66.666% + 0.5px), transparent calc(66.666% + 0.5px));
+}
+
 .jan-page-preview-sheet[data-paper="lined"] {
   background-image:
     linear-gradient(to right, transparent 30px, var(--jan-preview-margin) 30px, var(--jan-preview-margin) 31px, transparent 31px),
@@ -3612,6 +3652,10 @@ html, body, #root {
   border: 1px solid var(--paper-edge, #e5e5e5);
   border-radius: 8px;
   background: color-mix(in srgb, var(--paper, #fff) 86%, var(--paper-edge, #e5e5e5));
+}
+
+.jan-page-column-segmented {
+  grid-template-columns: repeat(3, 1fr);
 }
 
 .jan-page-segmented button {
@@ -4232,6 +4276,13 @@ html, body, #root {
     min-height: calc((100vw - 24px) * 1.414) !important;
     padding: clamp(32px, 8vw, 56px) clamp(24px, 8vw, 56px) !important;
     font-size: 14px !important;
+  }
+
+  .jan-editor-pages[data-page-columns="2"] .ProseMirror,
+  .jan-editor-pages[data-page-columns="3"] .ProseMirror {
+    column-count: 1 !important;
+    column-gap: normal !important;
+    column-rule: 0 !important;
   }
 
   .jan-statusbar {

@@ -257,6 +257,7 @@ function createExtrasSnapshot(): V2Snapshot['extras'] {
       'pageSize',
       'pageOrientation',
       'pageMarginMm',
+      'pageColumnCount',
     ]),
     theme: pickDataState(useThemeStore.getState() as unknown as Record<string, unknown>, ['theme', 'accent']),
     typography: pickDataState(useTypographyStore.getState() as unknown as Record<string, unknown>, [
