@@ -1,7 +1,31 @@
 import { useMemo, useRef, useState } from 'react'
-import type { ChangeEvent } from 'react'
+import type { ChangeEvent, ClipboardEvent, DragEvent } from 'react'
 import type { Editor } from '@tiptap/react'
 import { Icon } from './Icons'
+import { aiConfigured, runAiVision } from '../lib/aiApi'
+import { ocrImage } from '../lib/ocr'
+import {
+  BUSINESS_CARD_VISION_PROMPT,
+  SNS_PLATFORMS,
+  buildQrUrl,
+  cardToHtml,
+  cardToVCard,
+  cardsToCsv,
+  dataUrlToBlob,
+  findDuplicate,
+  getCardStats,
+  getSnsUrl,
+  makeCardDraft,
+  parseAiBusinessCardJson,
+  parseContactText,
+  parseCsv,
+  parseVCard,
+  readImageFile,
+  rotateImageDataUrl,
+  splitTags,
+  detectSnsFromUrl,
+  type CardStats,
+} from '../lib/businessCards'
 import { useBusinessCardsStore, type BusinessCard, type BusinessCardInput } from '../store/businessCardsStore'
 
 interface BusinessCardsModalProps {
@@ -11,44 +35,8 @@ interface BusinessCardsModalProps {
 
 type CardFilter = 'all' | 'favorite' | 'recent' | `group:${string}` | `tag:${string}`
 type CardSort = 'updatedAt' | 'createdAt' | 'name' | 'company'
-
-const EMPTY_CARD: BusinessCardInput = {
-  name: '',
-  nameEn: '',
-  company: '',
-  department: '',
-  position: '',
-  mobile: '',
-  phone: '',
-  fax: '',
-  email: '',
-  website: '',
-  address: '',
-  group: '',
-  tags: [],
-  memo: '',
-  favorite: false,
-  sns: {},
-  meetings: [],
-}
-
-function makeDraft(card?: BusinessCard | null): BusinessCardInput {
-  if (!card) return { ...EMPTY_CARD, tags: [], sns: {}, meetings: [] }
-  return {
-    ...card,
-    tags: [...card.tags],
-    sns: { ...card.sns },
-    meetings: [...card.meetings],
-  }
-}
-
-function cleanPhone(value: string): string {
-  return value.replace(/\D/g, '')
-}
-
-function splitTags(value: string): string[] {
-  return value.split(',').map((tag) => tag.trim().replace(/^#/, '').toLowerCase()).filter(Boolean)
-}
+type DetailMode = 'detail' | 'stats' | 'qr'
+type ImageField = 'frontImage' | 'backImage'
 
 function downloadText(filename: string, text: string, type: string) {
   const blob = new Blob([text], { type })
@@ -62,192 +50,211 @@ function downloadText(filename: string, text: string, type: string) {
   setTimeout(() => URL.revokeObjectURL(url), 800)
 }
 
-function escapeHtml(value: string): string {
-  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-}
-
-function escapeVCard(value: string): string {
-  return value.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;')
-}
-
-function cardToVCard(card: BusinessCard): string {
-  const lines = ['BEGIN:VCARD', 'VERSION:3.0']
-  if (card.name) {
-    lines.push(`FN:${escapeVCard(card.name)}`)
-    lines.push(`N:${escapeVCard(card.name)};;;;`)
+function mergeCardDraft(current: BusinessCardInput, patch: Partial<BusinessCardInput>): BusinessCardInput {
+  const next: BusinessCardInput = {
+    ...current,
+    sns: { ...current.sns },
+    tags: [...current.tags],
+    meetings: [...current.meetings],
   }
-  if (card.company) lines.push(`ORG:${escapeVCard(card.company)}${card.department ? ';' + escapeVCard(card.department) : ''}`)
-  if (card.position) lines.push(`TITLE:${escapeVCard(card.position)}`)
-  if (card.mobile) lines.push(`TEL;TYPE=CELL:${escapeVCard(card.mobile)}`)
-  if (card.phone) lines.push(`TEL;TYPE=WORK:${escapeVCard(card.phone)}`)
-  if (card.fax) lines.push(`TEL;TYPE=FAX:${escapeVCard(card.fax)}`)
-  if (card.email) lines.push(`EMAIL;TYPE=WORK:${escapeVCard(card.email)}`)
-  if (card.website) lines.push(`URL:${escapeVCard(card.website)}`)
-  if (card.address) lines.push(`ADR;TYPE=WORK:;;${escapeVCard(card.address)};;;;`)
-  if (card.memo) lines.push(`NOTE:${escapeVCard(card.memo)}`)
-  for (const [key, value] of Object.entries(card.sns)) {
-    if (value) lines.push(`X-SOCIALPROFILE;TYPE=${escapeVCard(key)}:${escapeVCard(value)}`)
-  }
-  lines.push('END:VCARD')
-  return lines.join('\r\n')
-}
-
-function cardsToCsv(cards: BusinessCard[]): string {
-  const headers = ['name', 'nameEn', 'company', 'department', 'position', 'mobile', 'phone', 'fax', 'email', 'website', 'address', 'group', 'tags', 'memo']
-  const rows = cards.map((card) => [
-    card.name,
-    card.nameEn,
-    card.company,
-    card.department,
-    card.position,
-    card.mobile,
-    card.phone,
-    card.fax,
-    card.email,
-    card.website,
-    card.address,
-    card.group,
-    card.tags.join(';'),
-    card.memo,
-  ])
-  const cell = (value: string) => `"${value.replace(/"/g, '""')}"`
-  return [headers.join(','), ...rows.map((row) => row.map(cell).join(','))].join('\n')
-}
-
-function parseCsvLine(line: string): string[] {
-  const cells: string[] = []
-  let cur = ''
-  let quoted = false
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i]
-    if (ch === '"' && quoted && line[i + 1] === '"') {
-      cur += '"'
-      i++
-    } else if (ch === '"') {
-      quoted = !quoted
-    } else if (ch === ',' && !quoted) {
-      cells.push(cur)
-      cur = ''
-    } else {
-      cur += ch
+  const stringFields: Array<keyof BusinessCardInput> = [
+    'name',
+    'nameEn',
+    'company',
+    'department',
+    'position',
+    'mobile',
+    'phone',
+    'fax',
+    'email',
+    'website',
+    'address',
+    'group',
+    'memo',
+  ]
+  for (const field of stringFields) {
+    const value = patch[field]
+    if (typeof value === 'string' && value.trim() && !String(next[field] || '').trim()) {
+      next[field] = value.trim() as never
     }
   }
-  cells.push(cur)
-  return cells
-}
-
-function parseCsv(text: string): BusinessCardInput[] {
-  const lines = text.split(/\r?\n/).filter((line) => line.trim())
-  if (lines.length < 2) return []
-  const headers = parseCsvLine(lines[0]).map((header) => header.trim())
-  return lines.slice(1).map((line) => {
-    const cells = parseCsvLine(line)
-    const row: Record<string, string> = {}
-    headers.forEach((header, index) => {
-      row[header] = cells[index] || ''
-    })
-    return {
-      ...EMPTY_CARD,
-      name: row.name || row.이름 || '',
-      nameEn: row.nameEn || '',
-      company: row.company || row.회사 || '',
-      department: row.department || row.부서 || '',
-      position: row.position || row.직책 || '',
-      mobile: row.mobile || row.휴대폰 || '',
-      phone: row.phone || row.전화 || '',
-      fax: row.fax || '',
-      email: row.email || row.이메일 || '',
-      website: row.website || row.url || '',
-      address: row.address || row.주소 || '',
-      group: row.group || row.그룹 || '',
-      tags: splitTags((row.tags || row.태그 || '').replace(/;/g, ',')),
-      memo: row.memo || row.메모 || '',
+  if (patch.tags?.length) next.tags = Array.from(new Set([...next.tags, ...patch.tags]))
+  if (patch.sns) {
+    for (const [key, value] of Object.entries(patch.sns)) {
+      if (value && !next.sns[key]) next.sns[key] = value
     }
-  })
-}
-
-function parseVCard(text: string): BusinessCardInput[] {
-  return text
-    .split(/BEGIN:VCARD/i)
-    .slice(1)
-    .map((block) => {
-      const lines = block.split(/\r?\n/)
-      const card: BusinessCardInput = { ...EMPTY_CARD, tags: [], sns: {}, meetings: [] }
-      for (const line of lines) {
-        const [rawKey, ...rest] = line.split(':')
-        const value = rest.join(':').replace(/\\n/g, '\n').replace(/\\,/g, ',').replace(/\\;/g, ';').trim()
-        const key = rawKey.toUpperCase()
-        if (key.startsWith('FN')) card.name = value
-        else if (key.startsWith('ORG')) {
-          const [company, department] = value.split(';')
-          card.company = company || ''
-          card.department = department || ''
-        } else if (key.startsWith('TITLE')) card.position = value
-        else if (key.startsWith('EMAIL')) card.email = value
-        else if (key.startsWith('URL')) card.website = value
-        else if (key.startsWith('ADR')) card.address = value.split(';').filter(Boolean).join(' ')
-        else if (key.startsWith('NOTE')) card.memo = value
-        else if (key.startsWith('TEL')) {
-          if (key.includes('CELL')) card.mobile = value
-          else if (key.includes('FAX')) card.fax = value
-          else card.phone = value
-        } else if (key.startsWith('X-SOCIALPROFILE')) {
-          const type = rawKey.match(/TYPE=([^;:]+)/i)?.[1]?.toLowerCase() || 'profile'
-          card.sns[type] = value
-        }
-      }
-      return card
-    })
-    .filter((card) => card.name || card.company || card.email || card.mobile || card.phone)
-}
-
-function parseMemoText(text: string): Partial<BusinessCardInput> {
-  const email = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] || ''
-  const phone = text.match(/(?:\+?\d{1,3}[-.\s]?)?(?:0\d{1,2}[-.\s]?)?\d{3,4}[-.\s]?\d{4}/)?.[0] || ''
-  const website = text.match(/https?:\/\/[^\s<]+|(?:www\.)[^\s<]+/i)?.[0] || ''
-  const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
-  return {
-    name: lines[0] || '',
-    company: lines[1] || '',
-    position: lines[2] || '',
-    email,
-    mobile: phone,
-    website,
-    memo: lines.slice(3, 8).join('\n'),
   }
+  if (patch.frontImage) next.frontImage = patch.frontImage
+  if (patch.backImage) next.backImage = patch.backImage
+  return next
 }
 
-function findDuplicate(cards: BusinessCard[], draft: BusinessCardInput): BusinessCard | null {
-  const email = draft.email.trim().toLowerCase()
-  const mobile = cleanPhone(draft.mobile)
-  const phone = cleanPhone(draft.phone)
-  return cards.find((card) => {
-    if (draft.id && card.id === draft.id) return false
-    if (email && card.email.trim().toLowerCase() === email) return true
-    if (mobile && cleanPhone(card.mobile) === mobile) return true
-    return !!(phone && cleanPhone(card.phone) === phone)
-  }) || null
+function makeMailto(card: BusinessCard): string {
+  return `mailto:${encodeURIComponent(card.email)}`
 }
 
-function cardToHtml(card: BusinessCard): string {
-  const rows = [
-    ['이름', card.name],
-    ['회사', [card.company, card.department].filter(Boolean).join(' / ')],
-    ['직책', card.position],
-    ['휴대폰', card.mobile],
-    ['전화', card.phone],
-    ['이메일', card.email],
-    ['웹사이트', card.website],
-    ['주소', card.address],
-    ['태그', card.tags.map((tag) => `#${tag}`).join(' ')],
-    ['메모', card.memo],
-  ].filter(([, value]) => value)
-  return `<div class="jan-business-card-embed"><h3>${escapeHtml(card.name || card.company || '명함')}</h3>${rows.map(([key, value]) => `<p><strong>${escapeHtml(key)}:</strong> ${escapeHtml(value)}</p>`).join('')}</div><p></p>`
+function makeTel(card: BusinessCard): string {
+  return `tel:${(card.mobile || card.phone).replace(/[^\d+]/g, '')}`
+}
+
+function normalizeWebsite(value: string): string {
+  if (!value) return ''
+  return /^https?:\/\//i.test(value) ? value : `https://${value}`
+}
+
+function ImageSlot({
+  label,
+  image,
+  onPick,
+  onDropFile,
+  onRotate,
+  onClear,
+}: {
+  label: string
+  image?: string
+  onPick: () => void
+  onDropFile: (file: File) => void
+  onRotate: () => void
+  onClear: () => void
+}) {
+  function handleDrop(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault()
+    const file = event.dataTransfer.files?.[0]
+    if (file) onDropFile(file)
+  }
+
+  return (
+    <div className="jan-card-image-slot" onDragOver={(e) => e.preventDefault()} onDrop={handleDrop}>
+      <div className="jan-card-image-label">{label}</div>
+      {image ? (
+        <>
+          <button className="jan-card-image-preview" onClick={onPick} title={`${label} 변경`}>
+            <img src={image} alt={`${label} 미리보기`} />
+          </button>
+          <div className="jan-card-image-tools">
+            <button onClick={onRotate} title="회전"><Icon name="refresh-cw" /></button>
+            <button onClick={onClear} title="제거"><Icon name="trash" /></button>
+          </div>
+        </>
+      ) : (
+        <button className="jan-card-image-empty" onClick={onPick}>
+          <Icon name="image" />
+          <span>이미지 업로드 또는 드래그</span>
+        </button>
+      )}
+    </div>
+  )
+}
+
+function SnsEditor({
+  sns,
+  onChange,
+}: {
+  sns: Record<string, string>
+  onChange: (key: string, value: string) => void
+}) {
+  return (
+    <div className="jan-card-sns-grid">
+      {SNS_PLATFORMS.map((platform) => (
+        <label className="jan-card-sns-field" key={platform.key}>
+          <span><i style={{ background: platform.color }} />{platform.name}</span>
+          <input
+            value={sns[platform.key] || ''}
+            placeholder={platform.placeholder}
+            onChange={(e) => onChange(platform.key, e.target.value)}
+            onPaste={(e) => {
+              const text = e.clipboardData.getData('text')
+              const detected = detectSnsFromUrl(text)
+              if (detected && detected.key !== platform.key) {
+                e.preventDefault()
+                onChange(detected.key, detected.value)
+              }
+            }}
+          />
+        </label>
+      ))}
+    </div>
+  )
+}
+
+function SnsChips({ card, onCopy }: { card: BusinessCard; onCopy: (value: string) => void }) {
+  const entries = SNS_PLATFORMS
+    .map((platform) => ({ platform, value: card.sns?.[platform.key] || '' }))
+    .filter((entry) => entry.value)
+  if (!entries.length) return null
+  return (
+    <div className="jan-card-sns-chips">
+      <h5>SNS · 메신저</h5>
+      <div>
+        {entries.map(({ platform, value }) => {
+          const url = getSnsUrl(platform.key, value)
+          return (
+            <button
+              key={platform.key}
+              style={{ borderColor: platform.color + '55', color: platform.color }}
+              onClick={() => url ? window.open(url, '_blank') : onCopy(value)}
+              title={`${platform.name}: ${value}`}
+            >
+              {platform.name}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function StatsView({ stats }: { stats: CardStats }) {
+  const metric = [
+    ['전체', stats.total],
+    ['즐겨찾기', stats.favorites],
+    ['휴대폰', stats.withMobile],
+    ['이메일', stats.withEmail],
+    ['주소', stats.withAddress],
+    ['이미지', stats.withImage],
+  ]
+  return (
+    <div className="jan-card-stats">
+      <h4>명함 통계</h4>
+      <div className="jan-card-stat-grid">
+        {metric.map(([label, value]) => (
+          <div key={label}><strong>{value}</strong><span>{label}</span></div>
+        ))}
+      </div>
+      <div className="jan-card-rank">
+        <h5>상위 회사</h5>
+        {stats.topCompanies.length ? stats.topCompanies.map(([name, count]) => (
+          <p key={name}><span>{name}</span><b>{count}</b></p>
+        )) : <em>회사 데이터 없음</em>}
+      </div>
+      <div className="jan-card-rank">
+        <h5>상위 태그</h5>
+        {stats.topTags.length ? stats.topTags.map(([name, count]) => (
+          <p key={name}><span>#{name}</span><b>{count}</b></p>
+        )) : <em>태그 데이터 없음</em>}
+      </div>
+      <small>가장 오래된 명함: {stats.oldestDate}</small>
+    </div>
+  )
+}
+
+function QrView({ card, onEdit }: { card: BusinessCard; onEdit: () => void }) {
+  return (
+    <div className="jan-card-qr">
+      <h4>내 명함 QR</h4>
+      <img src={buildQrUrl(card)} alt="내 명함 QR 코드" />
+      <strong>{card.name || card.company}</strong>
+      <span>{[card.company, card.position].filter(Boolean).join(' · ')}</span>
+      <p>상대방이 스캔하면 연락처 앱에 바로 저장할 수 있습니다.</p>
+      <button onClick={onEdit}><Icon name="settings" />정보 수정</button>
+    </div>
+  )
 }
 
 export function BusinessCardsModal({ editor, onClose }: BusinessCardsModalProps) {
   const cardsRecord = useBusinessCardsStore((state) => state.cards)
   const groups = useBusinessCardsStore((state) => state.groups)
+  const myCardId = useBusinessCardsStore((state) => state.myCardId)
   const addCard = useBusinessCardsStore((state) => state.addCard)
   const updateCard = useBusinessCardsStore((state) => state.updateCard)
   const deleteCard = useBusinessCardsStore((state) => state.deleteCard)
@@ -255,20 +262,31 @@ export function BusinessCardsModal({ editor, onClose }: BusinessCardsModalProps)
   const addGroup = useBusinessCardsStore((state) => state.addGroup)
   const removeGroup = useBusinessCardsStore((state) => state.removeGroup)
   const renameGroup = useBusinessCardsStore((state) => state.renameGroup)
+  const setMyCard = useBusinessCardsStore((state) => state.setMyCard)
   const importCards = useBusinessCardsStore((state) => state.importCards)
   const addMeeting = useBusinessCardsStore((state) => state.addMeeting)
   const [filter, setFilter] = useState<CardFilter>('all')
   const [sort, setSort] = useState<CardSort>('updatedAt')
   const [query, setQuery] = useState('')
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(myCardId || null)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [draft, setDraft] = useState<BusinessCardInput>(() => makeDraft())
+  const [detailMode, setDetailMode] = useState<DetailMode>('detail')
+  const [draft, setDraft] = useState<BusinessCardInput>(() => makeCardDraft())
   const [status, setStatus] = useState('')
+  const [ocrBusy, setOcrBusy] = useState(false)
+  const [ocrProgress, setOcrProgress] = useState(0)
+  const [aiBusy, setAiBusy] = useState(false)
+  const [recentCutoff] = useState(() => Date.now() - 7 * 24 * 60 * 60 * 1000)
   const importInputRef = useRef<HTMLInputElement>(null)
+  const frontInputRef = useRef<HTMLInputElement>(null)
+  const backInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
 
   const cards = useMemo(() => Object.values(cardsRecord), [cardsRecord])
   const selectedCard = selectedId ? cardsRecord[selectedId] : null
+  const myCard = myCardId ? cardsRecord[myCardId] : null
   const duplicate = useMemo(() => findDuplicate(cards, draft), [cards, draft])
+  const stats = useMemo(() => getCardStats(cards), [cards])
   const tags = useMemo(() => {
     const counts = new Map<string, number>()
     for (const card of cards) {
@@ -277,40 +295,63 @@ export function BusinessCardsModal({ editor, onClose }: BusinessCardsModalProps)
     return Array.from(counts.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'ko'))
   }, [cards])
   const visibleCards = useMemo(() => {
-    const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000
     const lower = query.trim().toLowerCase()
     return cards
       .filter((card) => {
         if (filter === 'favorite' && !card.favorite) return false
-        if (filter === 'recent' && card.createdAt < cutoff) return false
+        if (filter === 'recent' && card.createdAt < recentCutoff) return false
         if (filter.startsWith('group:') && card.group !== filter.slice(6)) return false
         if (filter.startsWith('tag:') && !card.tags.includes(filter.slice(4))) return false
         if (!lower) return true
-        return [card.name, card.nameEn, card.company, card.department, card.position, card.mobile, card.phone, card.email, card.website, card.address, card.memo, card.tags.join(' ')]
-          .join(' ')
-          .toLowerCase()
-          .includes(lower)
+        return [
+          card.name,
+          card.nameEn,
+          card.company,
+          card.department,
+          card.position,
+          card.mobile,
+          card.phone,
+          card.email,
+          card.website,
+          card.address,
+          card.memo,
+          card.tags.join(' '),
+          Object.values(card.sns || {}).join(' '),
+        ].join(' ').toLowerCase().includes(lower)
       })
       .sort((a, b) => {
         if (sort === 'name') return a.name.localeCompare(b.name, 'ko')
         if (sort === 'company') return a.company.localeCompare(b.company, 'ko')
         return (b[sort] || 0) - (a[sort] || 0)
       })
-  }, [cards, filter, query, sort])
+  }, [cards, filter, query, sort, recentCutoff])
 
   function updateDraft<K extends keyof BusinessCardInput>(key: K, value: BusinessCardInput[K]) {
     setDraft((current) => ({ ...current, [key]: value }))
   }
 
+  function updateSns(key: string, value: string) {
+    setDraft((current) => ({ ...current, sns: { ...current.sns, [key]: value } }))
+  }
+
+  function applyExtracted(patch: Partial<BusinessCardInput>, label: string) {
+    setEditingId((current) => current || 'new')
+    setDetailMode('detail')
+    setDraft((current) => mergeCardDraft(current, patch))
+    setStatus(`${label}에서 명함 후보를 채웠습니다. 필요한 부분만 확인해 저장하세요.`)
+  }
+
   function beginAdd() {
     setEditingId('new')
-    setDraft(makeDraft())
+    setDetailMode('detail')
+    setDraft(makeCardDraft())
     setStatus('')
   }
 
   function beginEdit(card: BusinessCard) {
     setEditingId(card.id)
-    setDraft(makeDraft(card))
+    setDetailMode('detail')
+    setDraft(makeCardDraft(card))
     setStatus('')
   }
 
@@ -329,6 +370,7 @@ export function BusinessCardsModal({ editor, onClose }: BusinessCardsModalProps)
       setStatus('새 명함을 추가했습니다')
     }
     setEditingId(null)
+    setDetailMode('detail')
   }
 
   function removeSelected(card: BusinessCard) {
@@ -340,13 +382,19 @@ export function BusinessCardsModal({ editor, onClose }: BusinessCardsModalProps)
   }
 
   function exportVCard(cardsToExport: BusinessCard[]) {
-    if (!cardsToExport.length) return
+    if (!cardsToExport.length) {
+      setStatus('내보낼 명함이 없습니다')
+      return
+    }
     downloadText('justanotepad-contacts.vcf', cardsToExport.map(cardToVCard).join('\r\n'), 'text/vcard;charset=utf-8')
     setStatus(`${cardsToExport.length}개 명함을 vCard로 내보냈습니다`)
   }
 
   function exportCsv(cardsToExport: BusinessCard[]) {
-    if (!cardsToExport.length) return
+    if (!cardsToExport.length) {
+      setStatus('내보낼 명함이 없습니다')
+      return
+    }
     downloadText('justanotepad-contacts.csv', cardsToCsv(cardsToExport), 'text/csv;charset=utf-8')
     setStatus(`${cardsToExport.length}개 명함을 CSV로 내보냈습니다`)
   }
@@ -354,22 +402,118 @@ export function BusinessCardsModal({ editor, onClose }: BusinessCardsModalProps)
   async function handleImport(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    const text = await file.text()
-    const imported = file.name.toLowerCase().endsWith('.vcf') ? parseVCard(text) : parseCsv(text)
-    const count = importCards(imported)
-    setStatus(`${count}개 명함을 가져왔습니다`)
-    e.target.value = ''
+    try {
+      const text = await file.text()
+      const imported = file.name.toLowerCase().endsWith('.vcf') ? parseVCard(text) : parseCsv(text)
+      const count = importCards(imported)
+      setStatus(`${count}개 명함을 가져왔습니다`)
+    } catch (error) {
+      setStatus(`가져오기 실패: ${error instanceof Error ? error.message : String(error)}`)
+    } finally {
+      e.target.value = ''
+    }
+  }
+
+  async function handleImageFile(file: File, field: ImageField) {
+    try {
+      const dataUrl = await readImageFile(file)
+      setEditingId((current) => current || 'new')
+      setDetailMode('detail')
+      setDraft((current) => ({ ...current, [field]: dataUrl }))
+      setStatus(`${field === 'frontImage' ? '앞면' : '뒷면'} 이미지를 저장했습니다`)
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error))
+    }
+  }
+
+  async function rotateImage(field: ImageField) {
+    const dataUrl = draft[field]
+    if (!dataUrl) return
+    try {
+      const rotated = await rotateImageDataUrl(dataUrl)
+      updateDraft(field, rotated)
+      setStatus('이미지를 회전했습니다')
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error))
+    }
+  }
+
+  function handlePasteImage(e: ClipboardEvent<HTMLDivElement>) {
+    const items = e.clipboardData?.items
+    if (!items) return
+    for (const item of Array.from(items)) {
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile()
+        if (file) {
+          e.preventDefault()
+          void handleImageFile(file, 'frontImage')
+        }
+        return
+      }
+    }
   }
 
   function extractFromMemo() {
-    const text = editor?.state.doc.textContent || ''
+    const text = editor?.getText({ blockSeparator: '\n' }) || editor?.state.doc.textContent || ''
     if (!text.trim()) {
       setStatus('현재 메모에 추출할 텍스트가 없습니다')
       return
     }
-    setEditingId(editingId || 'new')
-    setDraft((current) => ({ ...current, ...parseMemoText(text) }))
-    setStatus('현재 메모에서 연락처 후보를 추출했습니다')
+    applyExtracted(parseContactText(text), '현재 메모')
+  }
+
+  async function extractFromImageOcr() {
+    const dataUrl = draft.frontImage || draft.backImage
+    if (!dataUrl) {
+      setStatus('먼저 명함 이미지를 업로드하세요')
+      return
+    }
+    setOcrBusy(true)
+    setOcrProgress(0)
+    try {
+      const blob = await dataUrlToBlob(dataUrl)
+      const text = (await ocrImage(blob, 'kor+eng', setOcrProgress)).trim()
+      if (!text) {
+        setStatus('OCR 결과가 비어 있습니다. 더 선명한 이미지를 사용해보세요.')
+        return
+      }
+      applyExtracted(parseContactText(text), 'OCR')
+    } catch (error) {
+      setStatus(`OCR 실패: ${error instanceof Error ? error.message : String(error)}`)
+    } finally {
+      setOcrBusy(false)
+      setOcrProgress(1)
+    }
+  }
+
+  async function extractFromImageAi() {
+    const dataUrl = draft.frontImage || draft.backImage
+    if (!dataUrl) {
+      setStatus('먼저 명함 이미지를 업로드하세요')
+      return
+    }
+    if (!aiConfigured()) {
+      setStatus('AI가 설정되지 않았습니다. 설정에서 AI를 연결하거나 OCR 추출을 사용하세요.')
+      return
+    }
+    setAiBusy(true)
+    try {
+      const result = await runAiVision(BUSINESS_CARD_VISION_PROMPT, dataUrl)
+      if (!result.ok || !result.text) {
+        setStatus(`AI 추출 실패: ${result.error || '응답 없음'}`)
+        return
+      }
+      const parsed = parseAiBusinessCardJson(result.text)
+      if (!parsed) {
+        setStatus('AI 응답을 명함 JSON으로 파싱하지 못했습니다')
+        return
+      }
+      applyExtracted(parsed, 'AI')
+    } catch (error) {
+      setStatus(`AI 추출 오류: ${error instanceof Error ? error.message : String(error)}`)
+    } finally {
+      setAiBusy(false)
+    }
   }
 
   function insertCard(card: BusinessCard) {
@@ -407,6 +551,31 @@ export function BusinessCardsModal({ editor, onClose }: BusinessCardsModalProps)
     setFilter('all')
   }
 
+  function showMyCard() {
+    if (selectedCard) {
+      setMyCard(selectedCard.id)
+      setDetailMode('qr')
+      setStatus('선택한 명함을 내 명함으로 지정했습니다')
+      return
+    }
+    if (myCard) {
+      setSelectedId(myCard.id)
+      setDetailMode('qr')
+      return
+    }
+    beginAdd()
+    setStatus('내 명함으로 사용할 정보를 먼저 저장하세요')
+  }
+
+  function copyText(value: string) {
+    navigator.clipboard?.writeText(value).then(
+      () => setStatus('복사했습니다'),
+      () => setStatus(value)
+    )
+  }
+
+  const qrCard = (myCardId ? cardsRecord[myCardId] : null) || selectedCard
+
   return (
     <div className="jan-modal-overlay" onClick={onClose}>
       <div className="jan-modal jan-cards-modal" onClick={(e) => e.stopPropagation()}>
@@ -419,6 +588,8 @@ export function BusinessCardsModal({ editor, onClose }: BusinessCardsModalProps)
           <div className="jan-cards-actions">
             <button onClick={beginAdd}><Icon name="plus" />명함 추가</button>
             <button onClick={() => importInputRef.current?.click()}><Icon name="download" />가져오기</button>
+            <button onClick={() => { setEditingId(null); setDetailMode('stats') }}><Icon name="sliders" />통계</button>
+            <button onClick={showMyCard}><Icon name="qr" />내 명함</button>
             <button onClick={() => exportCsv(visibleCards)}><Icon name="upload" />CSV</button>
             <button onClick={() => exportVCard(visibleCards)}><Icon name="card" />vCard</button>
             <button className="jan-modal-close" onClick={onClose}>닫기</button>
@@ -449,7 +620,7 @@ export function BusinessCardsModal({ editor, onClose }: BusinessCardsModalProps)
             <div className="jan-cards-searchbar">
               <div className="jan-cards-search">
                 <Icon name="search" />
-                <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="이름, 회사, 전화, 이메일, 태그 검색" />
+                <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="이름, 회사, 전화, 이메일, SNS, 태그 검색" />
               </div>
               <select value={sort} onChange={(e) => setSort(e.target.value as CardSort)}>
                 <option value="updatedAt">최근 수정순</option>
@@ -469,11 +640,11 @@ export function BusinessCardsModal({ editor, onClose }: BusinessCardsModalProps)
                 <button
                   className={'jan-card-tile' + (selectedId === card.id ? ' is-selected' : '')}
                   key={card.id}
-                  onClick={() => { setSelectedId(card.id); setEditingId(null) }}
+                  onClick={() => { setSelectedId(card.id); setEditingId(null); setDetailMode('detail') }}
                 >
-                  <span className="jan-card-avatar">{(card.name || card.company || '?').slice(0, 1).toUpperCase()}</span>
+                  {card.frontImage ? <img className="jan-card-tile-img" src={card.frontImage} alt="" /> : <span className="jan-card-avatar">{(card.name || card.company || '?').slice(0, 1).toUpperCase()}</span>}
                   <span className="jan-card-main">
-                    <strong>{card.name || '이름 없음'}</strong>
+                    <strong>{card.name || '이름 없음'}{myCardId === card.id ? ' · 내 명함' : ''}</strong>
                     <span>{[card.company, card.position].filter(Boolean).join(' · ') || '회사/직책 없음'}</span>
                     <em>{card.email || card.mobile || card.phone || '연락처 없음'}</em>
                   </span>
@@ -485,8 +656,32 @@ export function BusinessCardsModal({ editor, onClose }: BusinessCardsModalProps)
 
           <aside className="jan-cards-detail">
             {editingId ? (
-              <div className="jan-card-form">
+              <div className="jan-card-form" onPaste={handlePasteImage}>
                 <h4>{editingId === 'new' ? '명함 추가' : '명함 편집'}</h4>
+                <div className="jan-card-image-panel">
+                  <ImageSlot
+                    label="명함 앞면"
+                    image={draft.frontImage}
+                    onPick={() => frontInputRef.current?.click()}
+                    onDropFile={(file) => void handleImageFile(file, 'frontImage')}
+                    onRotate={() => void rotateImage('frontImage')}
+                    onClear={() => updateDraft('frontImage', undefined)}
+                  />
+                  <ImageSlot
+                    label="명함 뒷면"
+                    image={draft.backImage}
+                    onPick={() => backInputRef.current?.click()}
+                    onDropFile={(file) => void handleImageFile(file, 'backImage')}
+                    onRotate={() => void rotateImage('backImage')}
+                    onClear={() => updateDraft('backImage', undefined)}
+                  />
+                </div>
+                <div className="jan-cards-actions wrap">
+                  <button onClick={() => cameraInputRef.current?.click()}><Icon name="image" />카메라</button>
+                  <button onClick={() => void extractFromImageOcr()} disabled={ocrBusy}><Icon name="image-text" />{ocrBusy ? `OCR ${Math.round(ocrProgress * 100)}%` : 'OCR 추출'}</button>
+                  <button onClick={() => void extractFromImageAi()} disabled={aiBusy}><Icon name="ai" />{aiBusy ? 'AI 분석 중' : 'AI 추출'}</button>
+                  <button onClick={extractFromMemo}><Icon name="wand" />현재 메모에서 추출</button>
+                </div>
                 <div className="jan-card-form-grid">
                   <label>이름<input value={draft.name} onChange={(e) => updateDraft('name', e.target.value)} /></label>
                   <label>영문명<input value={draft.nameEn} onChange={(e) => updateDraft('nameEn', e.target.value)} /></label>
@@ -495,6 +690,7 @@ export function BusinessCardsModal({ editor, onClose }: BusinessCardsModalProps)
                   <label>직책<input value={draft.position} onChange={(e) => updateDraft('position', e.target.value)} /></label>
                   <label>휴대폰<input value={draft.mobile} onChange={(e) => updateDraft('mobile', e.target.value)} /></label>
                   <label>전화<input value={draft.phone} onChange={(e) => updateDraft('phone', e.target.value)} /></label>
+                  <label>팩스<input value={draft.fax} onChange={(e) => updateDraft('fax', e.target.value)} /></label>
                   <label>이메일<input type="email" value={draft.email} onChange={(e) => updateDraft('email', e.target.value)} /></label>
                   <label>웹사이트<input value={draft.website} onChange={(e) => updateDraft('website', e.target.value)} /></label>
                   <label className="span-2">주소<input value={draft.address} onChange={(e) => updateDraft('address', e.target.value)} /></label>
@@ -505,22 +701,38 @@ export function BusinessCardsModal({ editor, onClose }: BusinessCardsModalProps)
                 <datalist id="jan-card-groups">
                   {groups.map((group) => <option value={group} key={group} />)}
                 </datalist>
+                <SnsEditor sns={draft.sns} onChange={updateSns} />
                 <label className="jan-card-check"><input type="checkbox" checked={draft.favorite} onChange={(e) => updateDraft('favorite', e.target.checked)} />즐겨찾기</label>
                 {duplicate && <div className="jan-card-warning">동일 이메일/전화의 명함이 있습니다: {duplicate.name || duplicate.company}</div>}
                 <div className="jan-cards-actions">
-                  <button onClick={extractFromMemo}><Icon name="wand" />현재 메모에서 추출</button>
                   <button onClick={() => setEditingId(null)}>취소</button>
                   <button className="primary" onClick={saveDraft}><Icon name="check" />저장</button>
                 </div>
               </div>
+            ) : detailMode === 'stats' ? (
+              <StatsView stats={stats} />
+            ) : detailMode === 'qr' && qrCard ? (
+              <QrView card={qrCard} onEdit={() => beginEdit(qrCard)} />
             ) : selectedCard ? (
               <div className="jan-card-profile">
+                {(selectedCard.frontImage || selectedCard.backImage) && (
+                  <div className="jan-card-profile-images">
+                    {selectedCard.frontImage && <button onClick={() => window.open(selectedCard.frontImage, '_blank')}><img src={selectedCard.frontImage} alt="명함 앞면" /></button>}
+                    {selectedCard.backImage && <button onClick={() => window.open(selectedCard.backImage, '_blank')}><img src={selectedCard.backImage} alt="명함 뒷면" /></button>}
+                  </div>
+                )}
                 <div className="jan-card-profile-head">
                   <span className="jan-card-avatar big">{(selectedCard.name || selectedCard.company || '?').slice(0, 1).toUpperCase()}</span>
                   <div>
-                    <h4>{selectedCard.name || '이름 없음'}</h4>
+                    <h4>{selectedCard.name || '이름 없음'}{myCardId === selectedCard.id ? ' · 내 명함' : ''}</h4>
                     <p>{[selectedCard.company, selectedCard.department, selectedCard.position].filter(Boolean).join(' · ') || '회사 정보 없음'}</p>
                   </div>
+                </div>
+                <div className="jan-card-quick-actions">
+                  {(selectedCard.mobile || selectedCard.phone) && <button onClick={() => window.open(makeTel(selectedCard), '_blank')}><Icon name="phone" />전화</button>}
+                  {selectedCard.email && <button onClick={() => window.open(makeMailto(selectedCard), '_blank')}><Icon name="send" />메일</button>}
+                  {selectedCard.website && <button onClick={() => window.open(normalizeWebsite(selectedCard.website), '_blank')}><Icon name="globe" />웹</button>}
+                  {selectedCard.address && <button onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(selectedCard.address)}`, '_blank')}><Icon name="map" />지도</button>}
                 </div>
                 <dl>
                   {[
@@ -537,6 +749,7 @@ export function BusinessCardsModal({ editor, onClose }: BusinessCardsModalProps)
                     <div key={key}><dt>{key}</dt><dd>{value}</dd></div>
                   ))}
                 </dl>
+                <SnsChips card={selectedCard} onCopy={copyText} />
                 <div className="jan-card-meetings">
                   <h5>미팅 기록</h5>
                   {selectedCard.meetings.length === 0 ? <p>기록 없음</p> : selectedCard.meetings.map((meeting) => (
@@ -545,6 +758,7 @@ export function BusinessCardsModal({ editor, onClose }: BusinessCardsModalProps)
                 </div>
                 <div className="jan-cards-actions wrap">
                   <button onClick={() => toggleFavorite(selectedCard.id)}><Icon name="heart" />{selectedCard.favorite ? '즐겨찾기 해제' : '즐겨찾기'}</button>
+                  <button onClick={() => { setMyCard(myCardId === selectedCard.id ? null : selectedCard.id); setStatus(myCardId === selectedCard.id ? '내 명함 지정을 해제했습니다' : '내 명함으로 지정했습니다') }}><Icon name="qr" />{myCardId === selectedCard.id ? '내 명함 해제' : '내 명함 지정'}</button>
                   <button onClick={() => beginEdit(selectedCard)}><Icon name="settings" />편집</button>
                   <button onClick={() => insertCard(selectedCard)}><Icon name="send" />메모에 삽입</button>
                   <button onClick={() => exportVCard([selectedCard])}><Icon name="card" />vCard</button>
@@ -556,7 +770,7 @@ export function BusinessCardsModal({ editor, onClose }: BusinessCardsModalProps)
               <div className="jan-cards-empty detail">
                 <Icon name="user" size={32} />
                 <strong>명함을 선택하세요</strong>
-                <span>상세 보기, 메모 삽입, vCard 내보내기를 여기서 처리합니다.</span>
+                <span>사진 OCR, 상세 보기, 메모 삽입, vCard 내보내기를 여기서 처리합니다.</span>
               </div>
             )}
           </aside>
@@ -564,6 +778,9 @@ export function BusinessCardsModal({ editor, onClose }: BusinessCardsModalProps)
 
         {status && <div className="jan-settings-status jan-cards-status">{status}</div>}
         <input ref={importInputRef} type="file" accept=".csv,.vcf,text/csv,text/vcard" onChange={handleImport} hidden />
+        <input ref={frontInputRef} type="file" accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if (file) void handleImageFile(file, 'frontImage'); e.target.value = '' }} hidden />
+        <input ref={backInputRef} type="file" accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if (file) void handleImageFile(file, 'backImage'); e.target.value = '' }} hidden />
+        <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={(e) => { const file = e.target.files?.[0]; if (file) void handleImageFile(file, 'frontImage'); e.target.value = '' }} hidden />
       </div>
     </div>
   )

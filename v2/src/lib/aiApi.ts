@@ -27,16 +27,39 @@ export interface AiCallResult {
 }
 
 const TIMEOUT_MS = 30000
+const VISION_TIMEOUT_MS = 45000
 
-function withTimeout(): { signal: AbortSignal; cancel: () => void } {
+interface AnthropicResponse {
+  content?: Array<{ text?: string }>
+}
+
+interface OpenAIResponse {
+  choices?: Array<{ message?: { content?: string } }>
+}
+
+interface ProxyResponse {
+  ok?: boolean
+  text?: string
+  error?: string
+}
+
+function withTimeout(timeoutMs = TIMEOUT_MS): { signal: AbortSignal; cancel: () => void } {
   const ac = new AbortController()
-  const id = setTimeout(() => ac.abort(), TIMEOUT_MS)
+  const id = setTimeout(() => ac.abort(), timeoutMs)
   return { signal: ac.signal, cancel: () => clearTimeout(id) }
 }
 
 function safeError(prefix: string, raw: string): string {
   const trimmed = raw.replace(/sk-[a-zA-Z0-9-_]+/g, '[redacted-key]').slice(0, 250)
   return `${prefix}: ${trimmed}`
+}
+
+function errorName(error: unknown): string {
+  return typeof error === 'object' && error !== null && 'name' in error ? String(error.name) : ''
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
 }
 
 async function callAnthropic(prompt: string, model: string, key: string): Promise<AiCallResult> {
@@ -61,15 +84,21 @@ async function callAnthropic(prompt: string, model: string, key: string): Promis
       const err = await r.text().catch(() => '')
       return { ok: false, error: safeError(`Anthropic ${r.status}`, err) }
     }
-    const data = await r.json()
-    const text = (data.content || []).map((b: any) => b.text || '').join('')
+    const data = await r.json() as AnthropicResponse
+    const text = (data.content || []).map((block) => block.text || '').join('')
     return { ok: true, text }
-  } catch (e: any) {
-    if (e?.name === 'AbortError') return { ok: false, error: 'Anthropic 타임아웃 (30초 초과)' }
-    return { ok: false, error: 'Anthropic 네트워크 오류: ' + (e?.message || String(e)) }
+  } catch (e: unknown) {
+    if (errorName(e) === 'AbortError') return { ok: false, error: 'Anthropic 타임아웃 (30초 초과)' }
+    return { ok: false, error: 'Anthropic 네트워크 오류: ' + errorMessage(e) }
   } finally {
     t.cancel()
   }
+}
+
+function imagePayload(dataUrl: string): { mimeType: string; data: string } {
+  const [meta, data] = dataUrl.split(',')
+  const mimeType = /data:([^;]+)/.exec(meta)?.[1] || 'image/jpeg'
+  return { mimeType, data: data || '' }
 }
 
 async function callOpenAI(prompt: string, model: string, key: string): Promise<AiCallResult> {
@@ -92,35 +121,116 @@ async function callOpenAI(prompt: string, model: string, key: string): Promise<A
       const err = await r.text().catch(() => '')
       return { ok: false, error: safeError(`OpenAI ${r.status}`, err) }
     }
-    const data = await r.json()
+    const data = await r.json() as OpenAIResponse
     const text = data.choices?.[0]?.message?.content || ''
     return { ok: true, text }
-  } catch (e: any) {
-    if (e?.name === 'AbortError') return { ok: false, error: 'OpenAI 타임아웃 (30초 초과)' }
-    return { ok: false, error: 'OpenAI 네트워크 오류: ' + (e?.message || String(e)) }
+  } catch (e: unknown) {
+    if (errorName(e) === 'AbortError') return { ok: false, error: 'OpenAI 타임아웃 (30초 초과)' }
+    return { ok: false, error: 'OpenAI 네트워크 오류: ' + errorMessage(e) }
+  } finally {
+    t.cancel()
+  }
+}
+
+async function callOpenAIVision(prompt: string, dataUrl: string, model: string, key: string): Promise<AiCallResult> {
+  const t = withTimeout(VISION_TIMEOUT_MS)
+  try {
+    const r = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      signal: t.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${key}`,
+      },
+      body: JSON.stringify({
+        model: model || 'gpt-4o-mini',
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'text', text: prompt },
+            { type: 'image_url', image_url: { url: dataUrl } },
+          ],
+        }],
+        max_tokens: 1800,
+      }),
+    })
+    if (!r.ok) {
+      const err = await r.text().catch(() => '')
+      return { ok: false, error: safeError(`OpenAI Vision ${r.status}`, err) }
+    }
+    const data = await r.json() as OpenAIResponse
+    return { ok: true, text: data.choices?.[0]?.message?.content || '' }
+  } catch (e: unknown) {
+    if (errorName(e) === 'AbortError') return { ok: false, error: 'OpenAI Vision 타임아웃 (45초 초과)' }
+    return { ok: false, error: 'OpenAI Vision 네트워크 오류: ' + errorMessage(e) }
+  } finally {
+    t.cancel()
+  }
+}
+
+async function callAnthropicVision(prompt: string, dataUrl: string, model: string, key: string): Promise<AiCallResult> {
+  const t = withTimeout(VISION_TIMEOUT_MS)
+  const image = imagePayload(dataUrl)
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      signal: t.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: model || 'claude-sonnet-4-6',
+        max_tokens: 1800,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: image.mimeType, data: image.data } },
+            { type: 'text', text: prompt },
+          ],
+        }],
+      }),
+    })
+    if (!r.ok) {
+      const err = await r.text().catch(() => '')
+      return { ok: false, error: safeError(`Anthropic Vision ${r.status}`, err) }
+    }
+    const data = await r.json() as AnthropicResponse
+    const text = (data.content || []).map((block) => block.text || '').join('')
+    return { ok: true, text }
+  } catch (e: unknown) {
+    if (errorName(e) === 'AbortError') return { ok: false, error: 'Anthropic Vision 타임아웃 (45초 초과)' }
+    return { ok: false, error: 'Anthropic Vision 네트워크 오류: ' + errorMessage(e) }
   } finally {
     t.cancel()
   }
 }
 
 /** Vercel /api/v2-ai 프록시 호출 — 사용자 키 불필요. */
-async function callProxy(prompt: string, providerHint: 'anthropic' | 'openai', model: string): Promise<AiCallResult> {
-  const t = withTimeout()
+async function callProxy(prompt: string, providerHint: 'anthropic' | 'openai', model: string, dataUrl?: string): Promise<AiCallResult> {
+  const t = withTimeout(dataUrl ? VISION_TIMEOUT_MS : TIMEOUT_MS)
   try {
     const r = await fetch('/api/v2-ai', {
       method: 'POST',
       signal: t.signal,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ provider: providerHint, model, prompt }),
+      body: JSON.stringify({
+        provider: providerHint,
+        model,
+        prompt,
+        image: dataUrl ? imagePayload(dataUrl) : undefined,
+      }),
     })
-    const data = await r.json().catch(() => ({ ok: false, error: 'JSON 파싱 실패' }))
+    const data = await r.json().catch(() => ({ ok: false, error: 'JSON 파싱 실패' })) as ProxyResponse
     if (!r.ok || !data.ok) {
       return { ok: false, error: safeError(`Proxy ${r.status}`, data.error || '') }
     }
     return { ok: true, text: data.text || '' }
-  } catch (e: any) {
-    if (e?.name === 'AbortError') return { ok: false, error: 'Proxy 타임아웃 (30초)' }
-    return { ok: false, error: 'Proxy 네트워크 오류: ' + (e?.message || String(e)) }
+  } catch (e: unknown) {
+    if (errorName(e) === 'AbortError') return { ok: false, error: 'Proxy 타임아웃 (30초)' }
+    return { ok: false, error: 'Proxy 네트워크 오류: ' + errorMessage(e) }
   } finally {
     t.cancel()
   }
@@ -144,6 +254,23 @@ export async function runAi(mode: AiMode, text: string): Promise<AiCallResult> {
     return callProxy(prompt, backend, s.aiModel || (backend === 'openai' ? 'gpt-4o-mini' : 'claude-sonnet-4-6'))
   }
   return { ok: false, error: 'AI 제공자가 설정되지 않음 — 설정 모달에서 선택' }
+}
+
+export async function runAiVision(prompt: string, dataUrl: string): Promise<AiCallResult> {
+  const s = useSettingsStore.getState()
+  if (s.aiProvider === 'anthropic') {
+    if (!s.anthropicKey) return { ok: false, error: '설정에서 Anthropic API 키를 입력하세요' }
+    return callAnthropicVision(prompt, dataUrl, s.aiModel || 'claude-sonnet-4-6', s.anthropicKey)
+  }
+  if (s.aiProvider === 'openai') {
+    if (!s.openaiKey) return { ok: false, error: '설정에서 OpenAI API 키를 입력하세요' }
+    return callOpenAIVision(prompt, dataUrl, s.aiModel || 'gpt-4o-mini', s.openaiKey)
+  }
+  if (s.aiProvider === 'proxy') {
+    const backend: 'anthropic' | 'openai' = (s.aiModel || '').startsWith('gpt') ? 'openai' : 'anthropic'
+    return callProxy(prompt, backend, s.aiModel || (backend === 'openai' ? 'gpt-4o-mini' : 'claude-sonnet-4-6'), dataUrl)
+  }
+  return { ok: false, error: 'AI 제공자가 설정되지 않음 — OCR 추출을 사용하거나 설정에서 AI를 연결하세요' }
 }
 
 export function aiConfigured(): boolean {

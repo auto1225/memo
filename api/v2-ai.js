@@ -6,7 +6,7 @@
  * 사용자가 자기 키 없이도 AI 도우미를 쓸 수 있게 서버에서 forward.
  * ANTHROPIC_API_KEY 또는 OPENAI_API_KEY 가 Vercel env 에 설정되어야 함.
  *
- * Body: { provider: 'anthropic'|'openai', model?: string, prompt: string }
+ * Body: { provider: 'anthropic'|'openai', model?: string, prompt: string, image?: { mimeType, data } }
  * Response: { ok: bool, text?: string, error?: string }
  *
  * 보호:
@@ -51,13 +51,22 @@ export default async function handler(req, res) {
   }
   body = body || {}
 
-  const { provider, model, prompt } = body
+  const { provider, model, prompt, image } = body
   if (!prompt || typeof prompt !== 'string') {
     res.status(400).json({ ok: false, error: 'prompt 필요' })
     return
   }
   if (prompt.length > 16384) {
     res.status(400).json({ ok: false, error: 'prompt 너무 김 (16KB 초과)' })
+    return
+  }
+  const hasImage = image && typeof image === 'object' && typeof image.data === 'string' && typeof image.mimeType === 'string'
+  if (image && !hasImage) {
+    res.status(400).json({ ok: false, error: 'image 형식 오류' })
+    return
+  }
+  if (hasImage && image.data.length > 5_000_000) {
+    res.status(400).json({ ok: false, error: 'image 너무 큼 (5MB 초과)' })
     return
   }
 
@@ -78,7 +87,15 @@ export default async function handler(req, res) {
         body: JSON.stringify({
           model: model || 'claude-sonnet-4-6',
           max_tokens: 2048,
-          messages: [{ role: 'user', content: prompt }],
+          messages: [{
+            role: 'user',
+            content: hasImage
+              ? [
+                  { type: 'image', source: { type: 'base64', media_type: image.mimeType, data: image.data } },
+                  { type: 'text', text: prompt },
+                ]
+              : prompt,
+          }],
         }),
       })
       if (!r.ok) {
@@ -106,7 +123,15 @@ export default async function handler(req, res) {
         },
         body: JSON.stringify({
           model: model || 'gpt-4o-mini',
-          messages: [{ role: 'user', content: prompt }],
+          messages: [{
+            role: 'user',
+            content: hasImage
+              ? [
+                  { type: 'text', text: prompt },
+                  { type: 'image_url', image_url: { url: `data:${image.mimeType};base64,${image.data}` } },
+                ]
+              : prompt,
+          }],
           max_tokens: 2048,
         }),
       })

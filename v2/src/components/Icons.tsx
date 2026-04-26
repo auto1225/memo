@@ -29,7 +29,7 @@ export type IconName =
   | 'eye' | 'eye-off' | 'lock' | 'unlock'
   | 'file-text' | 'file-plus' | 'folder' | 'trash'
   | 'settings' | 'help' | 'info' | 'bell'
-  | 'users' | 'user' | 'login'
+  | 'users' | 'user' | 'login' | 'phone' | 'map'
   | 'paperclip' | 'language' | 'translate'
   | 'image-text' | 'page' | 'globe' | 'cloud'
   | 'maximize' | 'minimize' | 'focus' | 'tag' | 'hash'
@@ -119,6 +119,8 @@ const PATHS: Record<IconName, string> = {
   users: 'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2 M9 11a4 4 0 100-8 4 4 0 000 8z M23 21v-2a4 4 0 00-3-3.87 M16 3.13a4 4 0 010 7.75',
   user: 'M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2 M12 11a4 4 0 100-8 4 4 0 000 8z',
   login: 'M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4 M10 17l5-5-5-5 M15 12H3',
+  phone: 'M22 16.92v3a2 2 0 01-2.18 2 19.8 19.8 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.8 19.8 0 012.08 4.18 2 2 0 014.06 2h3a2 2 0 012 1.72c.13 1 .36 1.96.7 2.87a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.21-1.21a2 2 0 012.11-.45c.91.34 1.87.57 2.87.7A2 2 0 0122 16.92z',
+  map: 'M9 18l-6 3V6l6-3 6 3 6-3v15l-6 3-6-3z M9 3v15 M15 6v15',
   paperclip: 'M21.44 11.05l-9.19 9.19a6 6 0 11-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 11-2.83-2.83l8.49-8.49',
   language: 'M12 22a10 10 0 100-20 10 10 0 000 20z M2 12h20 M12 2c2 3 3 6 3 10 0 4-1 7-3 10-2-3-3-6-3-10 0-4 1-7 3-10z',
   translate: 'M5 8l6 6 M4 14l6-6 2-3 M2 5h12 M7 2h1 M22 22l-5-10-5 10 M14 18h6',

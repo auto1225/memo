@@ -163,13 +163,19 @@ function normalizeBusinessCard(raw: unknown, fallbackId: string): BusinessCard |
     for (const [key, value] of Object.entries(raw.sns)) {
       if (typeof value === 'string' && value.trim()) sns[key] = value.trim()
     }
+  } else if (typeof raw.sns === 'string' && raw.sns.trim()) {
+    sns.profile = raw.sns.trim()
   }
-  const meetings = Array.isArray(raw.meetings)
-    ? raw.meetings.filter(isRecord).map((meeting, index) => ({
+  if (typeof raw.linkedin === 'string' && raw.linkedin.trim() && !sns.linkedin) {
+    sns.linkedin = raw.linkedin.trim()
+  }
+  const rawMeetings = Array.isArray(raw.meetings) ? raw.meetings : Array.isArray(raw.meetingHistory) ? raw.meetingHistory : []
+  const meetings = rawMeetings.length
+    ? rawMeetings.filter(isRecord).map((meeting, index) => ({
         id: safeString(meeting.id, `mt_${id}_${index}`),
         date: safeString(meeting.date, ''),
         place: safeString(meeting.place, ''),
-        note: safeString(meeting.note, ''),
+        note: safeString(meeting.note || meeting.memo, ''),
         createdAt: safeNumber(meeting.createdAt, now),
       }))
     : []
@@ -192,8 +198,8 @@ function normalizeBusinessCard(raw: unknown, fallbackId: string): BusinessCard |
     favorite: raw.favorite === true,
     sns,
     meetings,
-    frontImage: typeof raw.frontImage === 'string' ? raw.frontImage : undefined,
-    backImage: typeof raw.backImage === 'string' ? raw.backImage : undefined,
+    frontImage: typeof raw.frontImage === 'string' ? raw.frontImage : typeof raw.frontImg === 'string' ? raw.frontImg : undefined,
+    backImage: typeof raw.backImage === 'string' ? raw.backImage : typeof raw.backImg === 'string' ? raw.backImg : undefined,
     createdAt: safeNumber(raw.createdAt, now),
     updatedAt: safeNumber(raw.updatedAt, now),
   }
@@ -299,6 +305,13 @@ function snapshotFromV1(raw: Record<string, unknown>): V2Snapshot | null {
     workspaces[DEFAULT_WORKSPACE_ID] = { id: DEFAULT_WORKSPACE_ID, name: '기본', color: '#D97757', createdAt: 0 }
   }
 
+  const cards = normalizeBusinessCardRecord(raw.businessCards)
+  const myCard = normalizeBusinessCard(raw.myCard, 'bc_my_card')
+  const myCardId = myCard && (myCard.name || myCard.company || myCard.email || myCard.mobile || myCard.phone)
+    ? myCard.id
+    : null
+  if (myCardId && myCard) cards[myCard.id] = { ...myCard, favorite: true }
+
   return {
     app: 'justanotepad',
     version: 2,
@@ -315,9 +328,9 @@ function snapshotFromV1(raw: Record<string, unknown>): V2Snapshot | null {
       currentWsId: null,
     },
     businessCards: {
-      cards: normalizeBusinessCardRecord(raw.businessCards),
+      cards,
       groups: normalizeStringArray(raw.cardGroups),
-      myCardId: null,
+      myCardId,
     },
   }
 }
