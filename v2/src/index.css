@@ -2278,3 +2278,129 @@ html, body, #root {
 }
 
 /* End of Phase 22b */
+
+
+/* =========================================================
+ * Phase 28 — 명령 팔레트 풍부 스타일 (그룹/설명/단축키)
+ * ========================================================= */
+.jan-cp-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 10000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 10vh;
+}
+.jan-cp {
+  width: 720px;
+  max-width: 92vw;
+  max-height: 75vh;
+  background: var(--paper, #fff);
+  border-radius: 10px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.jan-cp-input {
+  width: 100%;
+  padding: 14px 18px;
+  border: 0;
+  border-bottom: 1px solid var(--paper-edge, #e5e5e5);
+  font-size: 15px;
+  outline: none;
+  font-family: inherit;
+  background: transparent;
+  color: var(--ink, #191919);
+}
+.jan-cp-input:focus {
+  border-bottom-color: var(--accent, #FAE100);
+}
+.jan-cp-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px 0;
+  overflow-y: auto;
+  flex: 1;
+}
+.jan-cp-group {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.jan-cp-group-label {
+  padding: 6px 16px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: rgba(0,0,0,0.02);
+  border-top: 1px solid var(--paper-edge, #eee);
+}
+.jan-cp-group:first-child .jan-cp-group-label {
+  border-top: 0;
+}
+.jan-cp-item {
+  padding: 8px 16px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-left: 3px solid transparent;
+}
+.jan-cp-item.is-selected,
+.jan-cp-item:hover {
+  background: var(--tab-hover, #FFFBE5);
+  border-left-color: var(--accent, #FAE100);
+}
+.jan-cp-item-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.jan-cp-label {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ink, #191919);
+}
+.jan-cp-hint {
+  font-size: 11px;
+  font-family: 'SF Mono', Consolas, monospace;
+  color: #888;
+  background: rgba(0,0,0,0.04);
+  padding: 2px 6px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.jan-cp-item.is-selected .jan-cp-hint {
+  background: rgba(0,0,0,0.08);
+  color: #555;
+}
+.jan-cp-desc {
+  font-size: 11.5px;
+  color: #777;
+  line-height: 1.4;
+  padding-right: 60px;
+}
+.jan-cp-empty {
+  padding: 24px;
+  text-align: center;
+  color: #999;
+  font-size: 13px;
+}
+.jan-cp-footer {
+  padding: 8px 16px;
+  font-size: 11px;
+  color: #888;
+  border-top: 1px solid var(--paper-edge, #eee);
+  background: rgba(0,0,0,0.02);
+}
+.jan-theme-dark .jan-cp { background: #1a1a1b; }
+.jan-theme-dark .jan-cp-input { color: #e5e5e5; }
+.jan-theme-dark .jan-cp-label { color: #e5e5e5; }
+.jan-theme-dark .jan-cp-desc { color: #aaa; }
+.jan-theme-dark .jan-cp-group-label { background: rgba(255,255,255,0.05); }
+.jan-theme-dark .jan-cp-item:hover, .jan-theme-dark .jan-cp-item.is-selected { background: #2a2a2c; }
