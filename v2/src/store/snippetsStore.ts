@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { createJSONStorage, persist } from 'zustand/middleware'
+import { createLocalFirstStorage } from '../lib/localFirstStorage'
 
 /**
  * Phase 14 — 스니펫 라이브러리.
@@ -68,6 +69,9 @@ export const useSnippetsStore = create<SnippetsState>()(
           snippets: s.snippets.map((sn) => (sn.id === id ? { ...sn, ...patch } : sn)),
         })),
     }),
-    { name: 'jan-v2-snippets' }
+    {
+      name: 'jan-v2-snippets',
+      storage: createJSONStorage(() => createLocalFirstStorage()),
+    }
   )
 )

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Editor } from './components/Editor'
 import { Sidebar } from './components/Sidebar'
 import { useMemosStore } from './store/memosStore'
@@ -8,6 +8,7 @@ import { useUIStore } from './store/uiStore'
 function App() {
   const lang = useI18nStore((s) => s.lang)
   const { focusMode, toggleFocus, zoom, zoomIn, zoomOut, zoomReset, headingNumbers, readingMode, toggleReading, spellCheck, sidebarCollapsed } = useUIStore()
+  const [memosHydrated, setMemosHydrated] = useState(() => useMemosStore.persist.hasHydrated())
 
   useEffect(() => {
     document.documentElement.lang = lang
@@ -47,12 +48,26 @@ function App() {
   const { currentId, newMemo, list } = useMemosStore()
 
   useEffect(() => {
+    if (memosHydrated) return
+    return useMemosStore.persist.onFinishHydration(() => setMemosHydrated(true))
+  }, [memosHydrated])
+
+  useEffect(() => {
+    if (!memosHydrated) return
     if (!currentId && list().length === 0) newMemo()
     else if (!currentId && list().length > 0) {
       const first = list()[0]
       if (first) useMemosStore.getState().setCurrent(first.id)
     }
-  }, [])
+  }, [currentId, list, memosHydrated, newMemo])
+
+  if (!memosHydrated) {
+    return (
+      <div className="jan-app">
+        <div className="jan-boot">로컬 노트를 불러오는 중...</div>
+      </div>
+    )
+  }
 
   return (
     <div className="jan-app">

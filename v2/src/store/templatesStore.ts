@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { createJSONStorage, persist } from 'zustand/middleware'
+import { createLocalFirstStorage } from '../lib/localFirstStorage'
 
 /**
  * Phase 16 — 사용자 메모 템플릿.
@@ -35,6 +36,9 @@ export const useTemplatesStore = create<TemplatesState>()(
       update: (id, patch) =>
         set((s) => ({ templates: s.templates.map((t) => (t.id === id ? { ...t, ...patch } : t)) })),
     }),
-    { name: 'jan-v2-templates' }
+    {
+      name: 'jan-v2-templates',
+      storage: createJSONStorage(() => createLocalFirstStorage()),
+    }
   )
 )

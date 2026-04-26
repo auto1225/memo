@@ -24,6 +24,14 @@ html, body, #root {
   line-height: 1.65;
 }
 
+.jan-boot {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  color: var(--ink-soft, #6f6f6f);
+  font-size: 13px;
+}
+
 .jan-editor-wrap {
   min-height: 100vh;
   padding: 24px 0 80px;

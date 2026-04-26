@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { createJSONStorage, persist } from 'zustand/middleware'
+import { createLocalFirstStorage } from '../lib/localFirstStorage'
 
 /**
  * Phase 12 — 자동완성 매크로.
@@ -43,7 +44,10 @@ export const useMacrosStore = create<MacrosState>()(
           macros: s.macros.map((m) => (m.trigger === trigger ? { ...m, ...patch } : m)),
         })),
     }),
-    { name: 'jan-v2-macros' }
+    {
+      name: 'jan-v2-macros',
+      storage: createJSONStorage(() => createLocalFirstStorage()),
+    }
   )
 )
 

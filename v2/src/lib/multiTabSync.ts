@@ -1,17 +1,22 @@
 /**
- * Phase 11 — 다중 탭 동기화.
- * BroadcastChannel API 로 같은 origin 탭들 간 메모 변경 즉시 전파.
- * Zustand persist 의 `storage` 이벤트도 동작하지만 폴링 + 비동기.
- * BroadcastChannel 은 동기적이고 더 빠름.
+ * Same-origin tab sync.
+ *
+ * v2 now persists memo data through IndexedDB-backed local-first storage.
+ * BroadcastChannel therefore carries the latest memo payload directly so a
+ * second tab does not race an async IndexedDB write.
  */
 import { useMemosStore } from '../store/memosStore'
+import { readPersistedJson } from './localFirstStorage'
 
 const CHANNEL = 'jan-v2-sync'
+
+type MemosPayload = Pick<ReturnType<typeof useMemosStore.getState>, 'memos' | 'trashed' | 'currentId' | 'order' | 'sortMode'>
 
 interface SyncMessage {
   type: 'memos-changed' | 'theme-changed' | 'settings-changed'
   ts: number
   origin: string
+  memos?: MemosPayload
 }
 
 let channel: BroadcastChannel | null = null
@@ -23,25 +28,35 @@ export function startMultiTabSync() {
   if (channel) return
   channel = new BroadcastChannel(CHANNEL)
 
-  channel.addEventListener('message', (e: MessageEvent<SyncMessage>) => {
+  channel.addEventListener('message', async (e: MessageEvent<SyncMessage>) => {
     if (e.data.origin === ORIGIN_ID) return
-    if (e.data.type === 'memos-changed') {
-      // localStorage 에서 최신 상태 다시 hydrate
-      try {
-        const raw = localStorage.getItem('jan:v2:memos')
-        if (!raw) return
-        const data = JSON.parse(raw)
-        suppressBroadcast = true
-        useMemosStore.setState(data.state || {})
-        suppressBroadcast = false
-      } catch {}
+    if (e.data.type !== 'memos-changed') return
+
+    try {
+      const data = e.data.memos || (await readPersistedJson<MemosPayload>('jan:v2:memos'))?.state
+      if (!data) return
+      suppressBroadcast = true
+      useMemosStore.setState(data)
+      suppressBroadcast = false
+    } catch {
+      suppressBroadcast = false
     }
   })
 
-  // memosStore 변경 감지 → broadcast
-  useMemosStore.subscribe((_state, _prev) => {
+  useMemosStore.subscribe((state) => {
     if (suppressBroadcast) return
-    channel?.postMessage({ type: 'memos-changed', ts: Date.now(), origin: ORIGIN_ID } as SyncMessage)
+    channel?.postMessage({
+      type: 'memos-changed',
+      ts: Date.now(),
+      origin: ORIGIN_ID,
+      memos: {
+        memos: state.memos,
+        trashed: state.trashed,
+        currentId: state.currentId,
+        order: state.order,
+        sortMode: state.sortMode,
+      },
+    } as SyncMessage)
   })
 }
 

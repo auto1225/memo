@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { createJSONStorage, persist } from 'zustand/middleware'
+import { createLocalFirstStorage } from '../lib/localFirstStorage'
 
 /**
  * Phase 12 — 워크스페이스 / 그룹.
@@ -101,7 +102,10 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         return Object.values(w).sort((a, b) => a.createdAt - b.createdAt)
       },
     }),
-    { name: 'jan-v2-workspaces' }
+    {
+      name: 'jan-v2-workspaces',
+      storage: createJSONStorage(() => createLocalFirstStorage()),
+    }
   )
 )
 

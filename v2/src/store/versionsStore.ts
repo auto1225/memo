@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { createJSONStorage, persist } from 'zustand/middleware'
+import { createLocalFirstStorage } from '../lib/localFirstStorage'
 
 /**
  * Phase 11 — 메모 자동 버전 히스토리.
@@ -67,6 +68,9 @@ export const useVersionsStore = create<VersionsState>()(
         })
       },
     }),
-    { name: 'jan-v2-versions' }
+    {
+      name: 'jan-v2-versions',
+      storage: createJSONStorage(() => createLocalFirstStorage()),
+    }
   )
 )

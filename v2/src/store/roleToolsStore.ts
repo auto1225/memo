@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { createJSONStorage, persist } from 'zustand/middleware'
+import { createLocalFirstStorage } from '../lib/localFirstStorage'
 import type { RoleToolId } from '../lib/roles'
 
 export interface TimetableCell { name: string; room?: string; prof?: string; color: string }
@@ -80,6 +81,7 @@ export const useRoleToolsStore = create<RoleToolsState>()(
     {
       name: 'jan-v2-role-tools',
       version: 1,
+      storage: createJSONStorage(() => createLocalFirstStorage()),
     }
   )
 )

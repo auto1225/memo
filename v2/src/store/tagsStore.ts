@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { createJSONStorage, persist } from 'zustand/middleware'
+import { createLocalFirstStorage } from '../lib/localFirstStorage'
 
 /**
  * Phase 6 — 태그 시스템.
@@ -52,6 +53,9 @@ export const useTagsStore = create<TagsState>()(
           .map(([id]) => id)
       },
     }),
-    { name: 'jan-v2-tags' }
+    {
+      name: 'jan-v2-tags',
+      storage: createJSONStorage(() => createLocalFirstStorage()),
+    }
   )
 )

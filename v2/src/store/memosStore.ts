@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { createJSONStorage, persist } from 'zustand/middleware'
+import { createLocalFirstStorage } from '../lib/localFirstStorage'
 
 export type SortMode = 'recent' | 'title' | 'created' | 'manual'
 
@@ -134,7 +135,7 @@ export const useMemosStore = create<MemosState>()(
           const newMemos = { ...s.memos }
           delete newMemos[id]
           const newOrder = s.order.filter((x) => x !== id)
-          let newCurrent = s.currentId === id ? newOrder[0] || null : s.currentId
+          const newCurrent = s.currentId === id ? newOrder[0] || null : s.currentId
           const newTrashed = { ...s.trashed, [id]: { ...m, trashedAt: Date.now() } as TrashedMemo }
           if (newOrder.length === 0) {
             const blank = makeBlankMemo()
@@ -155,7 +156,8 @@ export const useMemosStore = create<MemosState>()(
           if (!t) return s
           const newTrashed = { ...s.trashed }
           delete newTrashed[id]
-          const { trashedAt: _ta, ...rest } = t
+          const { trashedAt: _trashedAt, ...rest } = t
+          void _trashedAt
           const restored: Memo = { ...rest, updatedAt: Date.now() }
           return {
             memos: { ...s.memos, [id]: restored },
@@ -246,6 +248,10 @@ export const useMemosStore = create<MemosState>()(
         return s.currentId ? s.memos[s.currentId] : null
       },
     }),
-    { name: 'jan:v2:memos', version: 2 }
+    {
+      name: 'jan:v2:memos',
+      version: 2,
+      storage: createJSONStorage(() => createLocalFirstStorage()),
+    }
   )
 )

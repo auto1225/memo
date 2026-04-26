@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { createJSONStorage, persist } from 'zustand/middleware'
+import { createLocalFirstStorage } from '../lib/localFirstStorage'
 
 export interface CardMeeting {
   id: string
@@ -216,6 +217,10 @@ export const useBusinessCardsStore = create<BusinessCardsState>()(
         })
       },
     }),
-    { name: 'jan-v2-business-cards', version: 1 }
+    {
+      name: 'jan-v2-business-cards',
+      version: 1,
+      storage: createJSONStorage(() => createLocalFirstStorage()),
+    }
   )
 )
