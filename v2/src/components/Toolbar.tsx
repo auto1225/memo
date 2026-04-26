@@ -7,7 +7,7 @@ import { ColorPicker } from './ColorPicker'
 import { Icon } from './Icons'
 import type { IconName } from './Icons'
 import { useTypographyStore, type FontFamily } from '../store/typographyStore'
-import { useUIStore } from '../store/uiStore'
+import { PAGE_PRESETS, PAPER_STYLES, useUIStore, type PageOrientation, type PageSizePreset, type PaperStyle } from '../store/uiStore'
 import { useMemosStore } from '../store/memosStore'
 
 interface ToolbarProps {
@@ -181,23 +181,50 @@ export function Toolbar(p: ToolbarProps) {
   }
 
   /* === 페이지 크기 / 여백 === */
+  const pageSizeKeys = Object.keys(PAGE_PRESETS) as PageSizePreset[]
+  const paperStyleKeys = PAPER_STYLES.map((style) => style.value)
+  const normalizePageSize = (value: string): PageSizePreset | null => {
+    const trimmed = value.trim()
+    return pageSizeKeys.find((key) => key.toLowerCase() === trimmed.toLowerCase()) || null
+  }
+  const normalizeOrientation = (value: string): PageOrientation | null => {
+    const trimmed = value.trim().toLowerCase()
+    if (['portrait', 'p', '세로'].includes(trimmed)) return 'portrait'
+    if (['landscape', 'l', '가로'].includes(trimmed)) return 'landscape'
+    return null
+  }
+  const normalizePaperStyle = (value: string): PaperStyle | null => {
+    const trimmed = value.trim().toLowerCase()
+    return paperStyleKeys.find((key) => key === trimmed) || null
+  }
   const setPageSize = () => {
-    const sizes: Record<string, [number, number]> = { A4: [210, 297], A5: [148, 210], Letter: [216, 279], B5: [176, 250] }
-    const choice = window.prompt('페이지 크기 (A4 / A5 / Letter / B5):', 'A4')
+    const choice = window.prompt(`페이지 크기 (${pageSizeKeys.join(' / ')}):`, ui.pageSize)
     if (!choice) return
-    const sz = sizes[choice]; if (!sz) { alert('지원: ' + Object.keys(sizes).join(', ')); return }
-    document.documentElement.style.setProperty('--jan-page-w', sz[0] + 'mm')
-    document.documentElement.style.setProperty('--jan-page-h', sz[1] + 'mm')
-    document.querySelectorAll('.ProseMirror,.jan-page,.jan-editor-pages').forEach(el => { (el as HTMLElement).style.maxWidth = sz[0] + 'mm' })
-    localStorage.setItem('jan-page-size', choice)
-    if (confirm(`페이지 크기를 ${choice} 로 변경했습니다. 페이지 분할에 즉시 반영하려면 새로고침할까요?`)) location.reload()
+    const size = normalizePageSize(choice)
+    if (!size) { alert('지원: ' + pageSizeKeys.join(', ')); return }
+    const orientationChoice = window.prompt('방향 (세로 / 가로):', ui.pageOrientation === 'landscape' ? '가로' : '세로')
+    let orientation: PageOrientation = ui.pageOrientation
+    if (orientationChoice) {
+      const nextOrientation = normalizeOrientation(orientationChoice)
+      if (!nextOrientation) { alert('방향은 세로 또는 가로로 입력하세요.'); return }
+      orientation = nextOrientation
+    }
+    ui.setPageSize(size)
+    ui.setPageOrientation(orientation)
   }
   const setPageMargin = () => {
-    const cur = localStorage.getItem('jan-page-margin') || '20'
-    const v = window.prompt('페이지 여백 (mm):', cur); if (!v) return
-    document.documentElement.style.setProperty('--jan-page-margin', v + 'mm')
-    document.querySelectorAll('.ProseMirror').forEach(el => { (el as HTMLElement).style.padding = v + 'mm ' + v + 'mm' })
-    localStorage.setItem('jan-page-margin', v)
+    const v = window.prompt('페이지 여백 (mm):', String(ui.pageMarginMm)); if (!v) return
+    const margin = Number(v)
+    if (!Number.isFinite(margin)) { alert('숫자로 입력하세요.'); return }
+    ui.setPageMarginMm(margin)
+  }
+  const setPaperStyle = () => {
+    const guide = PAPER_STYLES.map((style) => `${style.value}: ${style.label}`).join('\n')
+    const choice = window.prompt(`노트 배경 스타일\n${guide}`, ui.paperStyle)
+    if (!choice) return
+    const style = normalizePaperStyle(choice)
+    if (!style) { alert('지원: ' + paperStyleKeys.join(', ')); return }
+    ui.setPaperStyle(style)
   }
 
   /* === 책갈피 / 텍스트 상자 / 구분선 스타일 === */
@@ -599,7 +626,8 @@ export function Toolbar(p: ToolbarProps) {
     /* 4. 페이지 */
     {
       label: '페이지', items: [
-        { label: '페이지 크기 설정 (A4/Letter/A5/B5)', icon: 'page', onClick: () => run(setPageSize) },
+        { label: '페이지 크기 설정 (A4/A3/B4 등)', icon: 'page', onClick: () => run(setPageSize) },
+        { label: '노트 배경 스타일', icon: 'page', onClick: () => run(setPaperStyle) },
         { label: '페이지 여백 설정 (mm)', icon: 'page', onClick: () => run(setPageMargin) },
         { divider: '페이지 동작', label: '' },
         { label: '페이지 구분 삽입', hint: 'Ctrl+Enter', icon: 'page-break', onClick: () => run(insertPageBreak) },

@@ -3119,3 +3119,114 @@ html, body, #root {
 .jan-theme-dark .jan-wb-body { background: #1a1a1b }
 .jan-theme-dark .jan-wb-result-item, .jan-theme-dark .jan-wb-preview-actions, .jan-theme-dark .jan-wb-preview-html { background: #232325; border-color: #3a3a3d; color: #ddd }
 .jan-theme-dark .jan-wb-result-snippet { color: #aaa }
+
+
+/* =========================================================
+ * Phase 42 — v1 note paper replica
+ *   - default lined note background
+ *   - A4/A3/B4/A5/B5/Letter page sizing from settings
+ *   - same background styles as v1 paper menu
+ * ========================================================= */
+.jan-editor-main {
+  background: var(--jan-bg, #f7f7f7) !important;
+  overflow: auto;
+}
+
+.jan-editor-pages {
+  width: fit-content;
+  max-width: none !important;
+  margin: 0 auto !important;
+  padding: 0 16px 40px !important;
+  transform-origin: top center;
+  --jan-note-line: color-mix(in srgb, var(--paper-edge, #e5e5e5) 78%, transparent);
+  --jan-note-margin-line: color-mix(in srgb, #d97757 50%, transparent);
+}
+
+.jan-editor-pages .ProseMirror {
+  width: var(--jan-page-w, 210mm) !important;
+  max-width: none !important;
+  min-height: var(--jan-page-h, 297mm) !important;
+  box-sizing: border-box !important;
+  padding: var(--jan-page-margin, 20mm) !important;
+  border: 1px solid var(--paper-edge, var(--jan-border, #e5e5e5)) !important;
+  border-radius: 4px !important;
+  background-color: var(--paper, var(--jan-paper, #ffffff)) !important;
+  color: var(--ink, var(--jan-fg, #191919)) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05), 0 12px 28px rgba(0,0,0,0.08) !important;
+  line-height: 28px;
+  background-clip: padding-box;
+}
+
+.jan-editor-pages[data-paper="lined"] .ProseMirror,
+.jan-editor-pages:not([data-paper]) .ProseMirror {
+  background-image:
+    linear-gradient(to right, transparent 34px, var(--jan-note-margin-line) 34px, var(--jan-note-margin-line) 35px, transparent 35px),
+    repeating-linear-gradient(to bottom, transparent 0, transparent 27px, var(--jan-note-line) 27px, var(--jan-note-line) 28px) !important;
+  background-position: 0 0, 0 8px !important;
+}
+
+.jan-editor-pages[data-paper="grid"] .ProseMirror {
+  background-image:
+    repeating-linear-gradient(to right, transparent 0, transparent 19px, var(--jan-note-line) 19px, var(--jan-note-line) 20px),
+    repeating-linear-gradient(to bottom, transparent 0, transparent 19px, var(--jan-note-line) 19px, var(--jan-note-line) 20px) !important;
+}
+
+.jan-editor-pages[data-paper="dot"] .ProseMirror {
+  background-image: radial-gradient(circle, var(--jan-note-line) 1px, transparent 1.5px) !important;
+  background-size: 20px 20px !important;
+  background-position: 10px 18px !important;
+}
+
+.jan-editor-pages[data-paper="blank"] .ProseMirror {
+  background-image: none !important;
+}
+
+.jan-editor-pages[data-paper="music"] .ProseMirror {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0, transparent 34px,
+    var(--jan-note-line) 34px, var(--jan-note-line) 35px,
+    transparent 35px, transparent 42px,
+    var(--jan-note-line) 42px, var(--jan-note-line) 43px,
+    transparent 43px, transparent 50px,
+    var(--jan-note-line) 50px, var(--jan-note-line) 51px,
+    transparent 51px, transparent 58px,
+    var(--jan-note-line) 58px, var(--jan-note-line) 59px,
+    transparent 59px, transparent 66px,
+    var(--jan-note-line) 66px, var(--jan-note-line) 67px,
+    transparent 67px, transparent 110px
+  ) !important;
+}
+
+.jan-editor-pages[data-paper="cornell"] .ProseMirror {
+  background-image:
+    linear-gradient(to right, transparent 35%, var(--jan-note-line) 35%, var(--jan-note-line) calc(35% + 1px), transparent calc(35% + 1px)),
+    repeating-linear-gradient(to bottom, transparent 0, transparent 27px, var(--jan-note-line) 27px, var(--jan-note-line) 28px) !important;
+  background-position: 0 0, 0 8px !important;
+}
+
+.jan-editor-pages .ProseMirror blockquote,
+.jan-editor-pages .ProseMirror pre,
+.jan-editor-pages .ProseMirror table,
+.jan-editor-pages .ProseMirror th,
+.jan-editor-pages .ProseMirror td {
+  background-color: var(--paper, var(--jan-paper, #ffffff));
+}
+
+.jan-editor-pages .rm-pagination-gap,
+.jan-editor-pages .tiptap-pagination-page-break {
+  background: var(--jan-bg, #f7f7f7) !important;
+  border-color: var(--jan-bg, #f7f7f7) !important;
+}
+
+.jan-theme-dark .jan-editor-pages {
+  --jan-note-line: rgba(255,255,255,0.12);
+  --jan-note-margin-line: rgba(250,225,0,0.28);
+}
+
+@media (max-width: 900px) {
+  .jan-editor-pages {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+}

@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import type { Editor } from '@tiptap/react'
 import { useMemosStore } from '../store/memosStore'
-import { useUIStore } from '../store/uiStore'
+import { PAGE_PRESETS, PAPER_STYLES, useUIStore, type PageOrientation, type PageSizePreset, type PaperStyle } from '../store/uiStore'
 import { useThemeStore } from '../store/themeStore'
 import { Icon } from './Icons'
 import type { IconName } from './Icons'
@@ -45,7 +45,8 @@ export function CommandPalette(p: CommandPaletteProps) {
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState(0)
   const { newMemo, duplicate, togglePin, list, setCurrent } = useMemosStore() as any
-  const { toggleFocus, zoomIn, zoomOut, zoomReset, toggleSidebar, toggleHeadingNumbers, toggleReading, toggleSpellCheck } = useUIStore()
+  const ui = useUIStore()
+  const { toggleFocus, zoomIn, zoomOut, zoomReset, toggleSidebar, toggleHeadingNumbers, toggleReading, toggleSpellCheck } = ui
   const { theme, setTheme } = useThemeStore()
 
   useEffect(() => {
@@ -102,16 +103,44 @@ export function CommandPalette(p: CommandPaletteProps) {
   }
   const insertCitation = () => { const c = window.prompt('인용 (예: Smith, 2024):', 'Author, 2024'); if (c) insertHTML(`<sup>(${c})</sup>`) }
   const insertReference = () => { const r = window.prompt('참고문헌:', 'Author. (2024). Title.'); if (r) insertHTML(`<div class="paper-ref" style="text-indent:-1.5em;padding-left:1.5em;">${r}</div>`) }
+  const pageSizeKeys = Object.keys(PAGE_PRESETS) as PageSizePreset[]
+  const paperStyleKeys = PAPER_STYLES.map((style) => style.value)
+  const normalizePageSize = (value: string): PageSizePreset | null =>
+    pageSizeKeys.find((key) => key.toLowerCase() === value.trim().toLowerCase()) || null
+  const normalizeOrientation = (value: string): PageOrientation | null => {
+    const trimmed = value.trim().toLowerCase()
+    if (['portrait', 'p', '세로'].includes(trimmed)) return 'portrait'
+    if (['landscape', 'l', '가로'].includes(trimmed)) return 'landscape'
+    return null
+  }
+  const normalizePaperStyle = (value: string): PaperStyle | null =>
+    paperStyleKeys.find((key) => key === value.trim().toLowerCase()) || null
   const setPageSize = () => {
-    const sizes: Record<string, [number,number]> = { A4:[210,297], A5:[148,210], Letter:[216,279], B5:[176,250] }
-    const c = window.prompt('페이지 크기 (A4/A5/Letter/B5):', 'A4'); if (!c || !sizes[c]) return
-    const sz = sizes[c]
-    document.querySelectorAll('.ProseMirror,.jan-page,.jan-editor-pages').forEach(el => { (el as HTMLElement).style.maxWidth = sz[0] + 'mm' })
-    if (confirm('새로고침할까요?')) location.reload()
+    const c = window.prompt(`페이지 크기 (${pageSizeKeys.join(' / ')}):`, ui.pageSize); if (!c) return
+    const size = normalizePageSize(c)
+    if (!size) { alert('지원: ' + pageSizeKeys.join(', ')); return }
+    const rawOrientation = window.prompt('방향 (세로 / 가로):', ui.pageOrientation === 'landscape' ? '가로' : '세로')
+    let orientation: PageOrientation = ui.pageOrientation
+    if (rawOrientation) {
+      const nextOrientation = normalizeOrientation(rawOrientation)
+      if (!nextOrientation) { alert('방향은 세로 또는 가로로 입력하세요.'); return }
+      orientation = nextOrientation
+    }
+    ui.setPageSize(size)
+    ui.setPageOrientation(orientation)
   }
   const setPageMargin = () => {
-    const v = window.prompt('여백 (mm):', '20'); if (!v) return
-    document.querySelectorAll('.ProseMirror').forEach(el => { (el as HTMLElement).style.padding = v + 'mm ' + v + 'mm' })
+    const v = window.prompt('여백 (mm):', String(ui.pageMarginMm)); if (!v) return
+    const margin = Number(v)
+    if (!Number.isFinite(margin)) { alert('숫자로 입력하세요.'); return }
+    ui.setPageMarginMm(margin)
+  }
+  const setPaperStyle = () => {
+    const guide = PAPER_STYLES.map((style) => `${style.value}: ${style.label}`).join('\n')
+    const choice = window.prompt(`노트 배경 스타일\n${guide}`, ui.paperStyle); if (!choice) return
+    const style = normalizePaperStyle(choice)
+    if (!style) { alert('지원: ' + paperStyleKeys.join(', ')); return }
+    ui.setPaperStyle(style)
   }
   const setLetterSpacing = () => {
     const v = window.prompt('자간 (em, 예: -0.05 좁게 / 0.1 넓게):', '0'); if (v === null) return
@@ -362,7 +391,8 @@ export function CommandPalette(p: CommandPaletteProps) {
       { id:'highlight-box', cat:'타이포', icon:'highlight', label:'강조 배경 상자', desc:'노랑 배경 강조 박스.', run: insertHighlightBox },
       { id:'typo-modal', cat:'타이포', icon:'palette', label:'타이포그래피 패널', desc:'폰트/줄간격 조정.', run: () => p.onTypo?.() },
       /* 페이지 */
-      { id:'page-size', cat:'페이지', icon:'page', label:'페이지 크기', desc:'A4/A5/Letter/B5.', run: setPageSize },
+      { id:'page-size', cat:'페이지', icon:'page', label:'페이지 크기', desc:'A4/A3/B4/A5/B5/Letter.', run: setPageSize },
+      { id:'paper-style', cat:'페이지', icon:'page', label:'노트 배경 스타일', desc:'줄노트/모눈/점격자/무지/오선지/코넬.', run: setPaperStyle },
       { id:'page-margin', cat:'페이지', icon:'page', label:'페이지 여백', desc:'본문 여백 mm.', run: setPageMargin },
       { id:'pilcrow', cat:'페이지', icon:'paragraph', label:'엔터 표시 ¶ 켬/끔', desc:'단락 끝 ¶ 표시.', run: togglePilcrow },
       { id:'print-prev', cat:'페이지', icon:'preview', label:'인쇄 미리보기', desc:'Paged.js 페이지 미리보기.', hint:'Ctrl+Alt+P', run: () => p.onPrintPreview?.() },

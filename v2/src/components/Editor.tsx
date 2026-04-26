@@ -14,7 +14,7 @@ import { Collaboration } from '@tiptap/extension-collaboration'
 import { CollaborationCursor } from '@tiptap/extension-collaboration-cursor'
 import TaskList from '@tiptap/extension-task-list'
 import TaskItem from '@tiptap/extension-task-item'
-import { useEffect, useState, lazy, Suspense, useMemo } from 'react'
+import { useEffect, useState, lazy, Suspense, useMemo, type CSSProperties } from 'react'
 import { Toolbar } from './Toolbar'
 import { AppHeader } from './AppHeader'
 import { MemoTabs } from './MemoTabs'
@@ -53,7 +53,7 @@ import { useWheelZoom } from '../hooks/useWheelZoom'
 import { useWritingGoalStore } from '../store/writingGoalStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { dispatchWebhook } from '../lib/webhooks'
-import { useUIStore } from '../store/uiStore'
+import { pageDimensions, pageDimensionsPx, useUIStore } from '../store/uiStore'
 import { useTypographyStore } from '../store/typographyStore'
 import { SmartTypography } from '../extensions/Typography'
 import { TextStyle } from '@tiptap/extension-text-style'
@@ -142,6 +142,20 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
   const [showGist, setShowGist] = useState(false)
   const [showWeb, setShowWeb] = useState(false)
   const [showCards, setShowCards] = useState(false)
+  const paperStyle = useUIStore((s) => s.paperStyle)
+  const pageSize = useUIStore((s) => s.pageSize)
+  const pageOrientation = useUIStore((s) => s.pageOrientation)
+  const pageMarginMm = useUIStore((s) => s.pageMarginMm)
+  const spellCheck = useUIStore((s) => s.spellCheck)
+
+  const pageMm = useMemo(() => pageDimensions(pageSize, pageOrientation), [pageSize, pageOrientation])
+  const pagePx = useMemo(() => pageDimensionsPx(pageSize, pageOrientation), [pageSize, pageOrientation])
+  const pageMarginPx = useMemo(() => Math.round((pageMarginMm * 96) / 25.4), [pageMarginMm])
+  const pageStyle = useMemo<CSSProperties>(() => ({
+    '--jan-page-w': `${pageMm.widthMm}mm`,
+    '--jan-page-h': `${pageMm.heightMm}mm`,
+    '--jan-page-margin': `${pageMarginMm}mm`,
+  } as CSSProperties), [pageMm.widthMm, pageMm.heightMm, pageMarginMm])
 
   const initialContent = memo?.content || '<p></p>'
   const title = memo?.title || '새 메모'
@@ -181,8 +195,13 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
       TaskItem.configure({ nested: true }),
       PaginationPlus.configure({
         ...PAGE_SIZES.A4,
+        ...pagePx,
+        marginTop: pageMarginPx,
+        marginBottom: pageMarginPx,
+        marginLeft: pageMarginPx,
+        marginRight: pageMarginPx,
         pageGap: 24,
-        pageBreakBackground: '#ffeef2',
+        pageBreakBackground: 'var(--jan-bg)',
         pageGapBorderSize: 0,
         pageGapBorderColor: 'transparent',
         contentMarginTop: 0,
@@ -202,14 +221,14 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
       )
     }
     return base
-  }, [collab.ydoc, collab.provider])
+  }, [collab.ydoc, collab.provider, pagePx, pageMarginPx])
 
   const editor = useEditor(
     {
       extensions: editorExtensions,
       content: collab.ydoc ? '' : initialContent,
       editorProps: {
-        attributes: { class: 'ProseMirror', spellcheck: useUIStore.getState().spellCheck ? 'true' : 'false' },
+        attributes: { class: 'ProseMirror', spellcheck: spellCheck ? 'true' : 'false' },
       },
       onUpdate: ({ editor, transaction }) => {
         const html = editor.getHTML()
@@ -223,6 +242,31 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
     },
     [editorExtensions]
   )
+
+  useEffect(() => {
+    if (!editor) return
+    editor.view.dom.setAttribute('spellcheck', spellCheck ? 'true' : 'false')
+  }, [editor, spellCheck])
+
+  useEffect(() => {
+    if (!editor) return
+    const margin = {
+      top: pageMarginPx,
+      bottom: pageMarginPx,
+      left: pageMarginPx,
+      right: pageMarginPx,
+    }
+    try {
+      editor
+        .chain()
+        .updatePageWidth(pagePx.pageWidth)
+        .updatePageHeight(pagePx.pageHeight)
+        .updateMargins(margin)
+        .run()
+    } catch {
+      // PaginationPlus may not be ready during the first hydration frame.
+    }
+  }, [editor, pagePx.pageWidth, pagePx.pageHeight, pageMarginPx])
 
   useImageDropPaste(editor)
   useMacroExpansion(editor)
@@ -428,7 +472,13 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
         {sidebar}
         <div className={'jan-editor-main' + (showOutline ? ' has-outline' : '')}>
         {showOutline && <OutlinePanel editor={editor} />}
-        <div className="jan-editor-pages">
+        <div
+          className="jan-editor-pages"
+          data-paper={paperStyle}
+          data-page-size={pageSize}
+          data-page-orientation={pageOrientation}
+          style={pageStyle}
+        >
           <EditorContent editor={editor} />
         </div>
       </div>

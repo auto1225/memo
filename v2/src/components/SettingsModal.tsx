@@ -7,7 +7,7 @@ import { useMemosStore } from '../store/memosStore'
 import { useI18nStore } from '../lib/i18n'
 import type { Lang } from '../lib/i18n'
 import { useThemeStore } from '../store/themeStore'
-import { useUIStore } from '../store/uiStore'
+import { PAGE_PRESETS, PAPER_STYLES, useUIStore, type PageOrientation, type PageSizePreset, type PaperStyle } from '../store/uiStore'
 import { useWritingGoalStore } from '../store/writingGoalStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { getSession, getSupabaseConfigStatus, signInGoogle, signOut, syncNow, syncConfigured } from '../lib/supabaseSync'
@@ -407,7 +407,50 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
             </div>
           </section>
 
-                    <section className="jan-settings-section">
+          <section className="jan-settings-section">
+            <h4>페이지 설정</h4>
+            <div className="jan-settings-info">
+              v1처럼 기본 줄노트 배경을 쓰고, 종이 크기는 A4/A3/B4 등으로 바꿀 수 있습니다.
+            </div>
+            <div className="jan-settings-row">
+              <label>노트 배경</label>
+              <select value={ui.paperStyle} onChange={(e) => ui.setPaperStyle(e.target.value as PaperStyle)}>
+                {PAPER_STYLES.map((style) => (
+                  <option key={style.value} value={style.value}>{style.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="jan-settings-row">
+              <label>페이지 크기</label>
+              <select value={ui.pageSize} onChange={(e) => ui.setPageSize(e.target.value as PageSizePreset)}>
+                {(Object.keys(PAGE_PRESETS) as PageSizePreset[]).map((size) => (
+                  <option key={size} value={size}>
+                    {PAGE_PRESETS[size].label} ({PAGE_PRESETS[size].widthMm} × {PAGE_PRESETS[size].heightMm} mm)
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="jan-settings-row">
+              <label>방향</label>
+              <select value={ui.pageOrientation} onChange={(e) => ui.setPageOrientation(e.target.value as PageOrientation)}>
+                <option value="portrait">세로</option>
+                <option value="landscape">가로</option>
+              </select>
+            </div>
+            <div className="jan-settings-row">
+              <label>여백 (mm)</label>
+              <input
+                type="number"
+                min={8}
+                max={60}
+                value={ui.pageMarginMm}
+                onChange={(e) => ui.setPageMarginMm(Number(e.target.value) || 20)}
+                style={{ width: 100, padding: 4, border: '1px solid #ccc', borderRadius: 4 }}
+              />
+            </div>
+          </section>
+
+          <section className="jan-settings-section">
             <h4>편집 환경</h4>
             <div className="jan-settings-row">
               <label>
