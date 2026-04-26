@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { handleByocOAuthRedirectIfNeeded, readByocSyncHealth, syncByocNow } from './byocSync'
+import { indexedDB as fakeIndexedDB } from 'fake-indexeddb'
+import { chooseLocalSyncFolder, getByocStatus, handleByocOAuthRedirectIfNeeded, readByocSyncHealth, readLocalSyncLabel, syncByocNow } from './byocSync'
 import type { V2Snapshot } from './snapshot'
 import { useMemosStore, type Memo } from '../store/memosStore'
 import { useSettingsStore } from '../store/settingsStore'
@@ -68,6 +69,7 @@ function configureOneDriveSync() {
 describe('BYOC personal storage sync', () => {
   beforeEach(async () => {
     vi.restoreAllMocks()
+    vi.unstubAllGlobals()
     localStorage.clear()
     window.history.pushState({}, '', '/v2/')
     await clearAttachmentsForTests()
@@ -82,6 +84,23 @@ describe('BYOC personal storage sync', () => {
     })
     useBusinessCardsStore.setState({ cards: {}, groups: [], myCardId: null })
     configureDropboxSync()
+  })
+
+  it('labels local folder sync for Google Drive desktop folders', async () => {
+    vi.stubGlobal('indexedDB', fakeIndexedDB)
+    const handle = {
+      name: 'Google Drive',
+    } as unknown as FileSystemDirectoryHandle
+    vi.stubGlobal('showDirectoryPicker', vi.fn(async () => handle))
+
+    const status = await chooseLocalSyncFolder('Google Drive 데스크톱 폴더')
+    const stored = await getByocStatus('local')
+
+    expect(status).toMatchObject({ provider: 'local', ready: true, label: 'Google Drive 데스크톱 폴더', detail: 'Google Drive' })
+    expect(stored).toMatchObject({ provider: 'local', ready: true, label: 'Google Drive 데스크톱 폴더', detail: 'Google Drive' })
+    expect(readLocalSyncLabel()).toBe('Google Drive 데스크톱 폴더')
+    expect(useSettingsStore.getState().syncProvider).toBe('local')
+    expect(useSettingsStore.getState().syncEnabled).toBe(true)
   })
 
   it('pulls a remote snapshot before pushing the merged local snapshot', async () => {
@@ -409,6 +428,52 @@ describe('BYOC personal storage sync', () => {
     expect(authHeaders).toContain('Bearer new-token')
   })
 
+  it('refreshes a Dropbox token once when the API returns 401', async () => {
+    configureDropboxSync()
+    localStorage.setItem('jan.v2.dropbox.refresh', 'dropbox-refresh')
+    const local = memo('m_dropbox_refresh', 'dropbox refresh note', 1_000)
+    let snapshotReads = 0
+    let tokenRefreshes = 0
+    const authHeaders: string[] = []
+    useMemosStore.setState({
+      memos: { [local.id]: local },
+      trashed: {},
+      currentId: local.id,
+      order: [local.id],
+      sortMode: 'recent',
+    })
+
+    vi.stubGlobal('fetch', vi.fn(async (url: string | URL, init?: RequestInit) => {
+      const target = String(url)
+      if (target.includes('/oauth2/token')) {
+        tokenRefreshes += 1
+        return new Response(JSON.stringify({ access_token: 'dropbox-token-2', expires_in: 3600 }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      }
+      if (target.includes('/2/files/download')) {
+        snapshotReads += 1
+        authHeaders.push(String((init?.headers as Record<string, string>)?.Authorization || ''))
+        if (snapshotReads === 1) return new Response('expired', { status: 401 })
+        return new Response('path/not_found', { status: 409 })
+      }
+      if (target.includes('/2/files/upload')) {
+        authHeaders.push(String((init?.headers as Record<string, string>)?.Authorization || ''))
+        return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } })
+      }
+      return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } })
+    }))
+
+    const result = await syncByocNow()
+
+    expect(result).toMatchObject({ ok: true, provider: 'dropbox', pulled: 0, pushed: 1 })
+    expect(tokenRefreshes).toBe(1)
+    expect(authHeaders[0]).toBe('Bearer token')
+    expect(authHeaders.some((header) => header === 'Bearer dropbox-token-2')).toBe(true)
+    expect(snapshotReads).toBe(2)
+  })
+
   it('ignores unrelated OAuth callbacks when no BYOC provider is pending', async () => {
     window.history.pushState({}, '', '/v2/?code=external&state=not-byoc')
 
@@ -476,6 +541,39 @@ describe('BYOC personal storage sync', () => {
     const result = await syncByocNow()
 
     expect(result.ok).toBe(false)
+    expect(snapshotUploaded).toBe(false)
+  })
+
+  it('does not commit a snapshot when a referenced local blob is missing', async () => {
+    const local = memo('m_missing_local_blob', 'missing local blob', 1_000)
+    local.content = '<p><img src="jan-blob://missinglocalblob" /></p>'
+    let snapshotUploaded = false
+    useMemosStore.setState({
+      memos: { [local.id]: local },
+      trashed: {},
+      currentId: local.id,
+      order: [local.id],
+      sortMode: 'recent',
+    })
+
+    vi.stubGlobal('fetch', vi.fn(async (url: string | URL, init?: RequestInit) => {
+      const target = String(url)
+      if (target.includes('/2/files/download')) return new Response('path/not_found', { status: 409 })
+      if (target.includes('/2/files/upload')) {
+        const headers = init?.headers as Record<string, string>
+        const args = JSON.parse(headers['Dropbox-API-Arg']) as { path: string }
+        if (args.path === '/JustANotepad-v2/snapshot.json') snapshotUploaded = true
+        return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } })
+      }
+      return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } })
+    }))
+
+    const result = await syncByocNow()
+    const health = readByocSyncHealth()
+
+    expect(result.ok).toBe(false)
+    expect(result.error).toContain('missinglocalblob')
+    expect(health.lastError).toContain('missinglocalblob')
     expect(snapshotUploaded).toBe(false)
   })
 

@@ -238,6 +238,30 @@ test.describe('v2 smoke', () => {
     await expect(page.locator('.jan-sync-health-alert')).toContainText('OneDrive token expired')
   })
 
+  test('open settings refreshes personal sync health events without reopening', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('jan-v2-role-onboarded', '1')
+      localStorage.setItem(
+        'jan-v2-settings',
+        JSON.stringify({ state: { syncEnabled: true, syncProvider: 'dropbox' }, version: 0 })
+      )
+    })
+    await page.goto('./')
+    await page.locator('.ProseMirror').first().waitFor({ state: 'visible', timeout: 15000 })
+    await page.keyboard.press('Control+,')
+    await expect(page.locator('.jan-settings-modal')).toBeVisible()
+    await expect(page.locator('.jan-sync-health-alert')).toHaveCount(0)
+
+    await page.evaluate(() => {
+      localStorage.setItem('jan.v2.sync.lastError', 'Dropbox autosync failed')
+      localStorage.setItem('jan.v2.sync.lastErrorAt', String(Date.now()))
+      localStorage.setItem('jan.v2.sync.lastProvider', 'dropbox')
+      window.dispatchEvent(new Event('jan-byoc-sync-health'))
+    })
+
+    await expect(page.locator('.jan-sync-health-alert')).toContainText('Dropbox autosync failed')
+  })
+
   test('business card extraction from the current memo corrects draft fields before save', async ({ page }) => {
     await page.addInitScript(() => localStorage.setItem('jan-v2-role-onboarded', '1'))
     await page.goto('./')

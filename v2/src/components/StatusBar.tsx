@@ -9,7 +9,7 @@ import { useSettingsStore } from '../store/settingsStore'
 import { PomodoroWidget } from './PomodoroWidget'
 import { Icon } from './Icons'
 import { fitPageZoom, setPageZoom } from '../lib/pageZoom'
-import { readByocSyncHealth, type ByocSyncHealth } from '../lib/byocSync'
+import { readByocSyncHealth, readLocalSyncLabel, type ByocSyncHealth } from '../lib/byocSync'
 
 interface StatusBarProps {
   editor: Editor | null
@@ -256,7 +256,7 @@ function getSyncStatus(
 }
 
 function formatSyncProvider(provider: string): string {
-  if (provider === 'local') return '내 컴퓨터'
+  if (provider === 'local') return readLocalSyncLabel()
   if (provider === 'dropbox') return 'Dropbox'
   if (provider === 'onedrive') return 'OneDrive'
   if (provider === 'supabase') return 'Supabase'

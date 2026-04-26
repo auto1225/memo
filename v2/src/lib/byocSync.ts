@@ -13,6 +13,7 @@ const META_PATH = 'JustANotepad-v2/_meta.json'
 const CONTENT_BLOB_PREFIX = 'jan-blob://'
 const ATTACHMENT_REF_PREFIX = 'jan-byoc-attachment://'
 const SIDECAR_EXT = '.dataurl'
+const LOCAL_SYNC_LABEL_KEY = 'jan.v2.localSync.label'
 const SYNC_LAST_AT_KEY = 'jan.v2.sync.lastAt'
 const SYNC_LAST_ERROR_KEY = 'jan.v2.sync.lastError'
 const SYNC_LAST_ERROR_AT_KEY = 'jan.v2.sync.lastErrorAt'
@@ -212,6 +213,10 @@ export function clearByocSyncError(): void {
   notifyByocSyncHealthChanged()
 }
 
+export function readLocalSyncLabel(): string {
+  return safeLocalGet(LOCAL_SYNC_LABEL_KEY) || '내 PC/클라우드 폴더'
+}
+
 function recordByocSyncSuccess(provider: SyncProvider): void {
   safeLocalSet(SYNC_LAST_AT_KEY, String(Date.now()))
   safeLocalSet(SYNC_LAST_PROVIDER_KEY, provider)
@@ -341,7 +346,7 @@ async function getDropboxAccessToken(): Promise<string> {
 async function dropboxFetch<T>(
   endpoint: string,
   args: Record<string, unknown>,
-  options: { content?: boolean; body?: string; download?: boolean } = {}
+  options: { content?: boolean; body?: string; download?: boolean; retried?: boolean } = {}
 ): Promise<T> {
   const token = await getDropboxAccessToken()
   const host = options.content ? 'content.dropboxapi.com' : 'api.dropboxapi.com'
@@ -358,6 +363,10 @@ async function dropboxFetch<T>(
     body: options.body != null ? options.body : options.content ? undefined : JSON.stringify(args),
   })
   if (response.status === 401) {
+    if (!options.retried && safeLocalGet(DROPBOX_REFRESH_KEY)) {
+      await refreshDropboxToken(getDropboxClientId())
+      return dropboxFetch<T>(endpoint, args, { ...options, retried: true })
+    }
     clearDropboxTokens()
     throw new Error('Dropbox 인증이 만료되었습니다. 다시 로그인하세요')
   }
@@ -411,7 +420,7 @@ function collectBlobIdsFromText(text: string): string[] {
 async function writeBlobSidecars(provider: SyncProvider, snapshot: V2Snapshot): Promise<void> {
   for (const id of collectBlobIdsFromText(JSON.stringify(snapshot))) {
     const dataUrl = await readBlobRef(CONTENT_BLOB_PREFIX + id)
-    if (!dataUrl) continue
+    if (!dataUrl) throw new Error(`동기화 이미지 파일이 로컬 저장소에서 누락되었습니다: ${id}`)
     await writeProviderFile(provider, blobSidecarPath(id), dataUrl)
   }
 }
@@ -636,7 +645,7 @@ async function ensureOneDriveParent(path: string): Promise<void> {
   }
 }
 
-export async function chooseLocalSyncFolder(): Promise<ByocStatus> {
+export async function chooseLocalSyncFolder(label = '내 PC/클라우드 폴더'): Promise<ByocStatus> {
   const picker = (window as Window & {
     showDirectoryPicker?: (options?: { id?: string; mode?: 'read' | 'readwrite' }) => Promise<FileSystemDirectoryHandle>
   }).showDirectoryPicker
@@ -644,9 +653,10 @@ export async function chooseLocalSyncFolder(): Promise<ByocStatus> {
   const handle = await picker({ id: 'justanotepad-v2-sync', mode: 'readwrite' })
   if (!(await ensureWritePermission(handle))) throw new Error('폴더 쓰기 권한이 필요합니다')
   await putLocalRoot(handle)
+  safeLocalSet(LOCAL_SYNC_LABEL_KEY, label)
   useSettingsStore.getState().setKey('syncProvider', 'local')
   useSettingsStore.getState().setKey('syncEnabled', true)
-  return { provider: 'local', ready: true, label: '내 PC/클라우드 폴더', detail: handle.name }
+  return { provider: 'local', ready: true, label, detail: handle.name }
 }
 
 export async function startDropboxOAuth(): Promise<void> {
@@ -797,7 +807,7 @@ export async function getByocStatus(provider = getSettingsProvider()): Promise<B
     return {
       provider,
       ready: !!root,
-      label: '내 PC/클라우드 폴더',
+      label: readLocalSyncLabel(),
       detail: root?.name || '폴더 선택 필요',
     }
   }

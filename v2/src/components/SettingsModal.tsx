@@ -74,6 +74,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
   const orientationLabel = ui.pageOrientation === 'landscape' ? '가로' : '세로'
   const columnLabel = `${ui.pageColumnCount || 1}단`
   const marginLabel = pageMarginsSummary(ui.pageMarginsMm, ui.pageMarginMm)
+  const localFolderLabel = byocStatus?.provider === 'local' ? byocStatus.label : ''
 
   function refreshSyncHealth() {
     const next = readByocSyncHealth()
@@ -145,6 +146,15 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
     refreshSyncHealth()
   }, [status])
 
+  useEffect(() => {
+    window.addEventListener('jan-byoc-sync-health', refreshSyncHealth)
+    window.addEventListener('storage', refreshSyncHealth)
+    return () => {
+      window.removeEventListener('jan-byoc-sync-health', refreshSyncHealth)
+      window.removeEventListener('storage', refreshSyncHealth)
+    }
+  }, [])
+
   async function handleV1Import() {
     setStatus('v1 데이터를 가져오는 중...')
     const result = await importV1FromLocalStorage()
@@ -212,10 +222,10 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
     if (!result.ok) setStatus(`로그인 실패: ${result.error}`)
   }
 
-  async function handleChooseLocalFolder() {
+  async function handleChooseLocalFolder(label = '내 PC/클라우드 폴더') {
     setStatus('동기화 폴더를 선택하는 중...')
     try {
-      const next = await chooseLocalSyncFolder()
+      const next = await chooseLocalSyncFolder(label)
       setByocStatus(next)
       setStatus(`개인 저장소 연결 완료: ${next.detail || next.label}`)
     } catch (error: unknown) {
@@ -373,8 +383,8 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
             </div>
             <div className="jan-sync-provider-grid">
               <button
-                className={settings.syncProvider === 'local' ? 'active' : ''}
-                onClick={handleChooseLocalFolder}
+                className={settings.syncProvider === 'local' && !localFolderLabel.includes('Google Drive') ? 'active' : ''}
+                onClick={() => void handleChooseLocalFolder()}
               >
                 <strong>내 PC/클라우드 폴더</strong>
                 <span>Chrome·Edge 권장 · 가장 v1에 가까운 방식</span>
@@ -393,9 +403,12 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                 <strong>OneDrive 직접 연결</strong>
                 <span>Microsoft 계정의 앱 전용 폴더에 저장</span>
               </button>
-              <button disabled>
-                <strong>Google Drive</strong>
-                <span>현재는 폴더 방식으로 지원</span>
+              <button
+                className={settings.syncProvider === 'local' && localFolderLabel.includes('Google Drive') ? 'active' : ''}
+                onClick={() => void handleChooseLocalFolder('Google Drive 데스크톱 폴더')}
+              >
+                <strong>Google Drive 데스크톱 폴더</strong>
+                <span>Drive for desktop 폴더를 선택해 기기 간 동기화</span>
               </button>
             </div>
             <div className="jan-settings-info">

@@ -123,6 +123,9 @@ test.describe('local-first memo storage', () => {
     await expect(page.locator('.jan-settings-byoc-section')).toContainText('개인 저장소 동기화')
     await expect(page.locator('.jan-settings-byoc-section')).toContainText('내 PC/클라우드 폴더')
     await expect(page.locator('.jan-settings-byoc-section')).toContainText('Dropbox 직접 연결')
+    const googleDriveFolder = page.locator('.jan-settings-byoc-section').getByRole('button', { name: /Google Drive 데스크톱 폴더/ })
+    await expect(googleDriveFolder).toBeEnabled()
+    await expect(googleDriveFolder).toContainText('Drive for desktop')
 
     const hasHorizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 2)
     expect(hasHorizontalOverflow).toBe(false)
