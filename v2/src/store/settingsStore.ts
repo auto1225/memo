@@ -44,7 +44,7 @@ const DEFAULTS = {
   supabaseAnonKey: '',
   supabaseEmail: '',
   syncEnabled: false,
-  syncProvider: 'supabase' as SyncProvider,
+  syncProvider: 'none' as SyncProvider,
   dropboxClientId: '',
   citationStyle: 'apa' as CitationStyle,
   collabEnabled: false,

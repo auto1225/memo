@@ -6,6 +6,8 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import { registerV2ServiceWorker } from './lib/swRegister'
 import { startMultiTabSync } from './lib/multiTabSync'
 import { readShareFragment } from './lib/shareLink'
+import { handleDropboxOAuthRedirectIfNeeded } from './lib/byocSync'
+import { startByocAutosync } from './lib/byocAutosync'
 
 async function main() {
   // share fragment가 있으면 읽기 전용 공유 보기로 전환한다.
@@ -36,6 +38,14 @@ async function main() {
 
   registerV2ServiceWorker()
   startMultiTabSync()
+  startByocAutosync()
+  handleDropboxOAuthRedirectIfNeeded().catch((error: unknown) => {
+    try {
+      localStorage.setItem('jan.v2.dropbox.oauth.error', error instanceof Error ? error.message : String(error))
+    } catch {
+      return
+    }
+  })
 }
 
 function escape(s: string): string {
