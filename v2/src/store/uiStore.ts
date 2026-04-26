@@ -51,6 +51,8 @@ interface UIState {
   pageSize: PageSizePreset
   pageOrientation: PageOrientation
   pageMarginMm: number
+  runningHeader: string
+  runningFooter: string
   toggleFocus: () => void
   setFocus: (v: boolean) => void
   toggleReading: () => void
@@ -64,6 +66,8 @@ interface UIState {
   setPageSize: (size: PageSizePreset) => void
   setPageOrientation: (orientation: PageOrientation) => void
   setPageMarginMm: (margin: number) => void
+  setRunningHeader: (value: string) => void
+  setRunningFooter: (value: string) => void
 }
 
 export const useUIStore = create<UIState>()(
@@ -79,6 +83,8 @@ export const useUIStore = create<UIState>()(
       pageSize: 'A4',
       pageOrientation: 'portrait',
       pageMarginMm: 20,
+      runningHeader: '',
+      runningFooter: 'Page {page} / {total}',
       toggleFocus: () => set({ focusMode: !get().focusMode }),
       toggleReading: () => set({ readingMode: !get().readingMode }),
       toggleSpellCheck: () => set({ spellCheck: !get().spellCheck }),
@@ -92,6 +98,8 @@ export const useUIStore = create<UIState>()(
       setPageSize: (size) => set({ pageSize: size }),
       setPageOrientation: (orientation) => set({ pageOrientation: orientation }),
       setPageMarginMm: (margin) => set({ pageMarginMm: Math.max(8, Math.min(60, Math.round(margin))) }),
+      setRunningHeader: (value) => set({ runningHeader: value.trim() }),
+      setRunningFooter: (value) => set({ runningFooter: value.trim() }),
     }),
     { name: 'jan-v2-ui' }
   )

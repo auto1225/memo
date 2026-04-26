@@ -161,6 +161,8 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
   const pageSize = useUIStore((s) => s.pageSize)
   const pageOrientation = useUIStore((s) => s.pageOrientation)
   const pageMarginMm = useUIStore((s) => s.pageMarginMm)
+  const runningHeader = useUIStore((s) => s.runningHeader)
+  const runningFooter = useUIStore((s) => s.runningFooter)
   const spellCheck = useUIStore((s) => s.spellCheck)
 
   const pageMm = useMemo(() => pageDimensions(pageSize, pageOrientation), [pageSize, pageOrientation])
@@ -275,10 +277,10 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
         pageGapBorderColor: 'transparent',
         contentMarginTop: 0,
         contentMarginBottom: 0,
-        headerLeft: '',
+        headerLeft: runningHeader,
         headerRight: '',
         footerLeft: '',
-        footerRight: 'Page {page} / {total}',
+        footerRight: runningFooter,
         customHeader: {},
         customFooter: {},
       }),
@@ -290,7 +292,7 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
       )
     }
     return base
-  }, [collab.ydoc, collab.provider, pagePx, pageMarginPx])
+  }, [collab.ydoc, collab.provider, pagePx, pageMarginPx, runningHeader, runningFooter])
 
   const editor = useEditor(
     {

@@ -177,13 +177,12 @@ export function Toolbar(p: ToolbarProps) {
     style.textContent = cur ? '.jan-2col .ProseMirror { column-count: 2; column-gap: 2em; column-rule: 1px solid #eee; }' : ''
   }
   const setRunningHeader = () => {
-    const cur = localStorage.getItem('jan-run-header') || ''
-    const v = window.prompt('러닝 헤더 (모든 페이지 상단):', cur)
-    if (v === null) return
-    localStorage.setItem('jan-run-header', v)
-    const id = 'jan-run-header-style'
-    const style = document.getElementById(id) || (() => { const s = document.createElement('style'); s.id = id; document.head.appendChild(s); return s })()
-    style.textContent = v ? `@page { @top-center { content: "${v.replace(/"/g,'\\"')}"; } } .ProseMirror::before { content:"${v.replace(/"/g,'\\"')}"; display:block;text-align:center;font-size:0.85em;color:#888;margin-bottom:1em;border-bottom:1px solid #eee;padding-bottom:0.4em; }` : ''
+    const header = window.prompt('머리글:', ui.runningHeader)
+    if (header === null) return
+    const footer = window.prompt('꼬리말:', ui.runningFooter || 'Page {page} / {total}')
+    if (footer === null) return
+    ui.setRunningHeader(header)
+    ui.setRunningFooter(footer)
   }
 
   /* === 페이지 설정 === */

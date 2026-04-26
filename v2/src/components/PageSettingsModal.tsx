@@ -23,6 +23,8 @@ export function PageSettingsModal({ onClose }: PageSettingsModalProps) {
   const [pageSize, setPageSize] = useState<PageSizePreset>(ui.pageSize)
   const [pageOrientation, setPageOrientation] = useState<PageOrientation>(ui.pageOrientation)
   const [pageMarginMm, setPageMarginMm] = useState(ui.pageMarginMm)
+  const [runningHeader, setRunningHeader] = useState(ui.runningHeader || '')
+  const [runningFooter, setRunningFooter] = useState(ui.runningFooter || 'Page {page} / {total}')
 
   const paperLabel = PAPER_STYLES.find((style) => style.value === paperStyle)?.label || '줄노트'
   const dimensions = useMemo(() => pageDimensions(pageSize, pageOrientation), [pageSize, pageOrientation])
@@ -41,6 +43,8 @@ export function PageSettingsModal({ onClose }: PageSettingsModalProps) {
     setPageSize('A4')
     setPageOrientation('portrait')
     setPageMarginMm(20)
+    setRunningHeader('')
+    setRunningFooter('Page {page} / {total}')
   }
 
   function apply() {
@@ -48,6 +52,8 @@ export function PageSettingsModal({ onClose }: PageSettingsModalProps) {
     ui.setPageSize(pageSize)
     ui.setPageOrientation(pageOrientation)
     ui.setPageMarginMm(pageMarginMm)
+    ui.setRunningHeader(runningHeader)
+    ui.setRunningFooter(runningFooter)
     onClose()
   }
 
@@ -202,6 +208,35 @@ export function PageSettingsModal({ onClose }: PageSettingsModalProps) {
                     {margin}
                   </button>
                 ))}
+              </div>
+            </section>
+
+            <section className="jan-page-settings-section">
+              <div className="jan-page-settings-section-head">
+                <Icon name="pin" size={15} />
+                <h4>머리글 · 꼬리말</h4>
+              </div>
+              <div className="jan-page-running-fields">
+                <label>
+                  <span>머리글</span>
+                  <input
+                    type="text"
+                    value={runningHeader}
+                    onChange={(event) => setRunningHeader(event.target.value)}
+                    placeholder="문서 제목 또는 장 이름"
+                    aria-label="페이지 머리글"
+                  />
+                </label>
+                <label>
+                  <span>꼬리말</span>
+                  <input
+                    type="text"
+                    value={runningFooter}
+                    onChange={(event) => setRunningFooter(event.target.value)}
+                    placeholder="Page {page} / {total}"
+                    aria-label="페이지 꼬리말"
+                  />
+                </label>
               </div>
             </section>
           </div>

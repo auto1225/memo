@@ -104,10 +104,15 @@ test.describe('v2 smoke', () => {
     await page.locator('.jan-page-size-card', { hasText: 'B4' }).click()
     await page.getByRole('button', { name: '가로' }).click()
     await page.locator('.jan-paper-style-card', { hasText: '모눈종이' }).click()
+    await page.getByLabel('페이지 머리글').fill('프로젝트 헤더')
+    await page.getByLabel('페이지 꼬리말').fill('Page {page}')
     await page.getByRole('button', { name: '적용' }).click()
     await expect(pages).toHaveAttribute('data-paper', 'grid')
     await expect(pages).toHaveAttribute('data-page-size', 'B4')
     await expect(pages).toHaveAttribute('data-page-orientation', 'landscape')
+    const pageUi = await page.evaluate(() => JSON.parse(localStorage.getItem('jan-v2-ui') || '{}')?.state)
+    expect(pageUi.runningHeader).toBe('프로젝트 헤더')
+    expect(pageUi.runningFooter).toBe('Page {page}')
   })
 
   test('meeting notes flow inserts a structured v1-style note', async ({ page }) => {
