@@ -54,8 +54,7 @@ export function CommandPalette(p: CommandPaletteProps) {
     const handler = (e: KeyboardEvent) => {
       if (e.isComposing || e.keyCode === 229) return
       const ctrl = e.ctrlKey || e.metaKey
-      if ((ctrl && e.shiftKey && e.key.toLowerCase() === 'p') ||
-          (ctrl && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'k')) {
+      if (ctrl && e.shiftKey && !e.altKey && e.key.toLowerCase() === 'p') {
         e.preventDefault()
         setOpen((v) => !v); setQuery(''); setSelected(0); return
       }

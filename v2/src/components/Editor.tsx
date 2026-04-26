@@ -458,7 +458,7 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
     <div className="jan-editor-wrap">
       <AppHeader
         onCmdK={() => {}}
-        onCmdPalette={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }))}
+        onCmdPalette={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'P', ctrlKey: true, shiftKey: true, bubbles: true }))}
         onSearch={() => setShowWeb(true)}
         onLanguage={() => setShowSettings(true)}
         onCalendar={() => setShowQuick(true)}

@@ -105,7 +105,7 @@ export function StatusBar({ editor }: StatusBarProps) {
       )}
       <PomodoroWidget />
       <span className="flex-spacer" />
-      <span className="hint">Ctrl+S · Ctrl+/ · Ctrl+K · F1</span>
+      <span className="hint">Ctrl+S · Ctrl+K 링크 · Ctrl+Shift+P · F1</span>
     </div>
   )
 }

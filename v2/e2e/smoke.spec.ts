@@ -45,6 +45,25 @@ test.describe('v2 smoke', () => {
     await expect(page.locator('.jan-help-modal')).toBeVisible()
   })
 
+  test('MS Word shortcuts keep Ctrl+K for links and Ctrl+Shift+P for commands', async ({ page }) => {
+    await page.goto('./')
+    const editor = page.locator('.ProseMirror').first()
+    await editor.waitFor({ state: 'visible', timeout: 15000 })
+    await editor.click()
+    await page.keyboard.type('OpenAI')
+    await page.keyboard.press('Control+A')
+
+    page.once('dialog', async (dialog) => {
+      expect(dialog.message()).toContain('링크 URL')
+      await dialog.accept('https://openai.com')
+    })
+    await page.keyboard.press('Control+K')
+    await expect(editor.locator('a[href="https://openai.com"]')).toContainText('OpenAI')
+
+    await page.keyboard.press('Control+Shift+P')
+    await expect(page.locator('.jan-cp')).toBeVisible()
+  })
+
   test('toolbar buttons present', async ({ page }) => {
     await page.goto('./')
     await page.locator('.ProseMirror').first().waitFor()

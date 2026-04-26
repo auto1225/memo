@@ -481,7 +481,7 @@ export function Toolbar(p: ToolbarProps) {
   }
 
   /* === 명령 팔레트 / 검색 등 === */
-  const cmdPalette = () => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }))
+  const cmdPalette = () => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'P', ctrlKey: true, shiftKey: true, bubbles: true }))
 
   function close() { setOpenMenu(null) }
   function run(fn: () => void) { fn(); close() }
@@ -630,7 +630,7 @@ export function Toolbar(p: ToolbarProps) {
     /* 6. 도구 */
     {
       label: '도구', items: [
-        { label: '명령 팔레트', hint: 'Ctrl+K', icon: 'sparkle', onClick: () => run(cmdPalette) },
+        { label: '명령 팔레트', hint: 'Ctrl+Shift+P', icon: 'sparkle', onClick: () => run(cmdPalette) },
         { label: 'AI 도우미', hint: 'Ctrl+/', icon: 'ai', onClick: () => run(p.onAi) },
         { label: 'AI 챗 패널', icon: 'ai', onClick: () => run(p.onChat) },
         { divider: '검색 / 편집', label: '' },

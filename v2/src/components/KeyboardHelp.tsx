@@ -41,7 +41,8 @@ const SHORTCUTS: Array<{ category: string; items: Array<[string, string]> }> = [
   {
     category: '도구',
     items: [
-      ['Ctrl+K / Ctrl+Shift+P', '명령 팔레트'],
+      ['Ctrl+K', '링크 삽입/수정'],
+      ['Ctrl+Shift+P', '명령 팔레트'],
       ['Ctrl+/', 'AI 도우미'],
       ['Ctrl+,', '설정'],
       ['Ctrl+Shift+F', '전체 검색'],

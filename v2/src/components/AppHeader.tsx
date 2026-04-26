@@ -216,7 +216,7 @@ export function AppHeader(p: AppHeaderProps) {
             {pomoText}
           </button>
         )}
-        <button className="jan-header-btn" onClick={p.onCmdPalette} title="명령 팔레트 (Ctrl+K)" aria-label="명령 팔레트"><Icon name="cmd" /></button>
+        <button className="jan-header-btn" onClick={p.onCmdPalette} title="명령 팔레트 (Ctrl+Shift+P)" aria-label="명령 팔레트"><Icon name="cmd" /></button>
         <button className="jan-header-btn" onClick={openWebSearch} title="웹 검색" aria-label="웹 검색"><Icon name="globe" /></button>
         <button className="jan-header-btn" onClick={p.onAi || p.onChat} title="AI 어시스턴트 (Ctrl+/)" aria-label="AI"><Icon name="ai" /></button>
         <button className="jan-header-btn" onClick={p.onCalendar} title="캘린더" aria-label="캘린더"><Icon name="page" /></button>
