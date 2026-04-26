@@ -5,7 +5,7 @@ import { pushOne } from './supabaseSync'
 import { useSettingsStore } from '../store/settingsStore'
 
 vi.mock('./byocSync', () => ({
-  isByocProvider: vi.fn((provider: string) => provider === 'local' || provider === 'dropbox'),
+  isByocProvider: vi.fn((provider: string) => provider === 'local' || provider === 'dropbox' || provider === 'onedrive'),
   syncByocNow: vi.fn(async () => ({ ok: true, provider: 'dropbox', pulled: 1, pushed: 1 })),
 }))
 

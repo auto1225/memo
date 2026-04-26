@@ -17,10 +17,11 @@ import { getBlobStorageStats } from '../lib/blobRefs'
 import {
   chooseLocalSyncFolder,
   getByocStatus,
-  handleDropboxOAuthRedirectIfNeeded,
+  handleByocOAuthRedirectIfNeeded,
   pullByocSnapshot,
   pushByocSnapshot,
   startDropboxOAuth,
+  startOneDriveOAuth,
   syncByocNow,
   type ByocStatus,
 } from '../lib/byocSync'
@@ -125,13 +126,13 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
   }, [settings.syncProvider, status])
 
   useEffect(() => {
-    handleDropboxOAuthRedirectIfNeeded()
+    handleByocOAuthRedirectIfNeeded()
       .then((next) => {
         if (!next) return
         setByocStatus(next)
-        setStatus('Dropbox 연결 완료')
+        setStatus(`${next.label} 연결 완료`)
       })
-      .catch((error: unknown) => setStatus('Dropbox 연결 실패: ' + errorMessage(error)))
+      .catch((error: unknown) => setStatus('개인 저장소 연결 실패: ' + errorMessage(error)))
   }, [])
 
   async function handleV1Import() {
@@ -218,6 +219,15 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
       await startDropboxOAuth()
     } catch (error: unknown) {
       setStatus('Dropbox 연결 실패: ' + errorMessage(error))
+    }
+  }
+
+  async function handleOneDriveConnect() {
+    setStatus('OneDrive 연결 준비 중...')
+    try {
+      await startOneDriveOAuth()
+    } catch (error: unknown) {
+      setStatus('OneDrive 연결 실패: ' + errorMessage(error))
     }
   }
 
@@ -366,9 +376,16 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                 <strong>Dropbox 직접 연결</strong>
                 <span>데스크톱 앱 없이 Dropbox 계정으로 저장</span>
               </button>
+              <button
+                className={settings.syncProvider === 'onedrive' ? 'active' : ''}
+                onClick={handleOneDriveConnect}
+              >
+                <strong>OneDrive 직접 연결</strong>
+                <span>Microsoft 계정의 OneDrive에 직접 저장</span>
+              </button>
               <button disabled>
-                <strong>Google Drive / OneDrive</strong>
-                <span>직접 API는 준비 중 · 현재는 폴더 방식으로 지원</span>
+                <strong>Google Drive</strong>
+                <span>현재는 폴더 방식으로 지원</span>
               </button>
             </div>
             <div className="jan-settings-info">
@@ -381,7 +398,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
               <label>
                 <input
                   type="checkbox"
-                  checked={settings.syncEnabled && (settings.syncProvider === 'local' || settings.syncProvider === 'dropbox')}
+                  checked={settings.syncEnabled && (settings.syncProvider === 'local' || settings.syncProvider === 'dropbox' || settings.syncProvider === 'onedrive')}
                   onChange={(e) => settings.setKey('syncEnabled', e.target.checked)}
                 />
                 {' '}개인 저장소 자동 백업
@@ -399,6 +416,15 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                 placeholder="Dropbox Client ID (config.js 또는 여기 입력)"
                 value={settings.dropboxClientId}
                 onChange={(e) => settings.setKey('dropboxClientId', e.target.value)}
+              />
+            </details>
+            <details>
+              <summary>OneDrive 고급 설정</summary>
+              <input
+                type="text"
+                placeholder="Microsoft Azure App Client ID (config.js 또는 여기 입력)"
+                value={settings.onedriveClientId}
+                onChange={(e) => settings.setKey('onedriveClientId', e.target.value)}
               />
             </details>
           </section>

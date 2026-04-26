@@ -243,6 +243,7 @@ function createExtrasSnapshot(): V2Snapshot['extras'] {
       'syncEnabled',
       'syncProvider',
       'dropboxClientId',
+      'onedriveClientId',
       'citationStyle',
       'collabEnabled',
       'collabWsUrl',

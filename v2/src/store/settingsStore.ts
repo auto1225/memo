@@ -6,7 +6,7 @@ import { persist } from 'zustand/middleware'
  */
 export type CitationStyle = 'apa' | 'ieee' | 'mla'
 export type AiProvider = 'anthropic' | 'openai' | 'proxy' | 'none'
-export type SyncProvider = 'none' | 'local' | 'dropbox' | 'supabase'
+export type SyncProvider = 'none' | 'local' | 'dropbox' | 'onedrive' | 'supabase'
 
 interface SettingsState {
   anthropicKey: string
@@ -20,6 +20,7 @@ interface SettingsState {
   syncEnabled: boolean
   syncProvider: SyncProvider
   dropboxClientId: string
+  onedriveClientId: string
 
   citationStyle: CitationStyle
 
@@ -46,6 +47,7 @@ const DEFAULTS = {
   syncEnabled: false,
   syncProvider: 'none' as SyncProvider,
   dropboxClientId: '',
+  onedriveClientId: '',
   citationStyle: 'apa' as CitationStyle,
   collabEnabled: false,
   collabWsUrl: 'wss://demos.yjs.dev/ws',

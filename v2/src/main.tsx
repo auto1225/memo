@@ -6,7 +6,7 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import { registerV2ServiceWorker } from './lib/swRegister'
 import { startMultiTabSync } from './lib/multiTabSync'
 import { readShareFragment } from './lib/shareLink'
-import { handleDropboxOAuthRedirectIfNeeded } from './lib/byocSync'
+import { handleByocOAuthRedirectIfNeeded } from './lib/byocSync'
 import { startByocAutosync } from './lib/byocAutosync'
 
 async function main() {
@@ -39,9 +39,9 @@ async function main() {
   registerV2ServiceWorker()
   startMultiTabSync()
   startByocAutosync()
-  handleDropboxOAuthRedirectIfNeeded().catch((error: unknown) => {
+  handleByocOAuthRedirectIfNeeded().catch((error: unknown) => {
     try {
-      localStorage.setItem('jan.v2.dropbox.oauth.error', error instanceof Error ? error.message : String(error))
+      localStorage.setItem('jan.v2.byoc.oauth.error', error instanceof Error ? error.message : String(error))
     } catch {
       return
     }

@@ -1,5 +1,8 @@
 import { useSettingsStore, type SyncProvider } from '../store/settingsStore'
-import { exportV2ToJson, importV2FromJsonAsync } from './v1Import'
+import { importV2FromJsonAsync } from './v1Import'
+import { createV2Snapshot, type V2Snapshot } from './snapshot'
+import { exportAttachments, type AttachmentSnapshot } from './attachments'
+import { readBlobRef } from './blobRefs'
 
 const DB_NAME = 'jan-v2-byoc'
 const DB_VERSION = 1
@@ -7,6 +10,9 @@ const HANDLE_STORE = 'handles'
 const LOCAL_ROOT_KEY = 'local-root'
 const SNAPSHOT_PATH = 'JustANotepad-v2/snapshot.json'
 const META_PATH = 'JustANotepad-v2/_meta.json'
+const CONTENT_BLOB_PREFIX = 'jan-blob://'
+const ATTACHMENT_REF_PREFIX = 'jan-byoc-attachment://'
+const SIDECAR_EXT = '.dataurl'
 
 const DROPBOX_TOKEN_KEY = 'jan.v2.dropbox.token'
 const DROPBOX_REFRESH_KEY = 'jan.v2.dropbox.refresh'
@@ -14,7 +20,22 @@ const DROPBOX_EXPIRES_KEY = 'jan.v2.dropbox.expires'
 const DROPBOX_PKCE_KEY = 'jan.v2.dropbox.pkce'
 const DROPBOX_STATE_KEY = 'jan.v2.dropbox.state'
 
+const ONEDRIVE_TOKEN_KEY = 'jan.v2.onedrive.token'
+const ONEDRIVE_REFRESH_KEY = 'jan.v2.onedrive.refresh'
+const ONEDRIVE_EXPIRES_KEY = 'jan.v2.onedrive.expires'
+const ONEDRIVE_PKCE_KEY = 'jan.v2.onedrive.pkce'
+const ONEDRIVE_STATE_KEY = 'jan.v2.onedrive.state'
+const ONEDRIVE_SCOPE = 'offline_access Files.ReadWrite.AppFolder User.Read'
+
 interface DropboxTokenResponse {
+  access_token?: string
+  refresh_token?: string
+  expires_in?: number
+  error?: string
+  error_description?: string
+}
+
+interface OneDriveTokenResponse {
   access_token?: string
   refresh_token?: string
   expires_in?: number
@@ -27,6 +48,12 @@ interface DropboxAccountResponse {
   name?: {
     display_name?: string
   }
+}
+
+interface OneDriveAccountResponse {
+  displayName?: string
+  mail?: string
+  userPrincipalName?: string
 }
 
 interface ByocMeta {
@@ -60,6 +87,7 @@ export interface ByocStatus {
 declare global {
   interface Window {
     DROPBOX_CLIENT_ID?: string
+    ONEDRIVE_CLIENT_ID?: string
   }
 }
 
@@ -101,9 +129,24 @@ function getDropboxClientId(): string {
   return typeof window !== 'undefined' ? window.DROPBOX_CLIENT_ID?.trim() || '' : ''
 }
 
+function getOneDriveClientId(): string {
+  const fromSettings = useSettingsStore.getState().onedriveClientId.trim()
+  if (fromSettings) return fromSettings
+  return typeof window !== 'undefined' ? window.ONEDRIVE_CLIENT_ID?.trim() || '' : ''
+}
+
 function getDropboxRedirectUri(): string {
   if (typeof window === 'undefined') return 'https://justanotepad.com/v2/'
   return `${window.location.origin}${window.location.pathname}`
+}
+
+function getOneDriveRedirectUri(): string {
+  if (typeof window === 'undefined') return 'https://justanotepad.com/v2/'
+  return `${window.location.origin}${window.location.pathname}`
+}
+
+function isPersonalStorageProvider(provider: SyncProvider): provider is 'local' | 'dropbox' | 'onedrive' {
+  return provider === 'local' || provider === 'dropbox' || provider === 'onedrive'
 }
 
 function safeLocalGet(key: string): string {
@@ -279,15 +322,114 @@ function isMissingRemoteSnapshot(error: unknown): boolean {
   return /not.?found|path\/not_found|파일.*찾을 수 없습니다|not exist|404|409/i.test(error.message)
 }
 
+function encodePathSegment(value: string): string {
+  return encodeURIComponent(value).replace(/\./g, '%2E')
+}
+
+function blobSidecarPath(id: string): string {
+  return `JustANotepad-v2/blobs/${encodePathSegment(id)}${SIDECAR_EXT}`
+}
+
+function attachmentSidecarPath(id: string): string {
+  return `JustANotepad-v2/attachments/${encodePathSegment(id)}${SIDECAR_EXT}`
+}
+
+function attachmentRef(id: string): string {
+  return ATTACHMENT_REF_PREFIX + encodeURIComponent(id)
+}
+
+function attachmentRefId(ref: string): string {
+  const raw = ref.slice(ATTACHMENT_REF_PREFIX.length)
+  try {
+    return decodeURIComponent(raw)
+  } catch {
+    return raw
+  }
+}
+
+function collectBlobIdsFromText(text: string): string[] {
+  const ids = new Set<string>()
+  for (const match of text.matchAll(/jan-blob:\/\/([a-z0-9]+)/gi)) {
+    if (match[1]) ids.add(match[1])
+  }
+  return Array.from(ids).sort()
+}
+
+async function writeBlobSidecars(provider: SyncProvider, snapshot: V2Snapshot): Promise<void> {
+  for (const id of collectBlobIdsFromText(JSON.stringify(snapshot))) {
+    const dataUrl = await readBlobRef(CONTENT_BLOB_PREFIX + id)
+    if (!dataUrl) continue
+    await writeProviderFile(provider, blobSidecarPath(id), dataUrl)
+  }
+}
+
+async function addAttachmentSidecars(provider: SyncProvider, snapshot: V2Snapshot): Promise<void> {
+  const attachments = await exportAttachments()
+  if (!attachments.length) return
+  snapshot.extras = snapshot.extras || {}
+  const manifest: AttachmentSnapshot[] = []
+  for (const item of attachments) {
+    await writeProviderFile(provider, attachmentSidecarPath(item.id), item.dataUrl)
+    manifest.push({ ...item, dataUrl: attachmentRef(item.id) })
+  }
+  snapshot.extras.attachments = manifest
+}
+
+async function createByocSnapshotJson(provider: SyncProvider): Promise<string> {
+  const snapshot = createV2Snapshot()
+  await writeBlobSidecars(provider, snapshot)
+  await addAttachmentSidecars(provider, snapshot)
+  return JSON.stringify(snapshot, null, 2)
+}
+
+async function readMissingTolerant(provider: SyncProvider, path: string): Promise<string | null> {
+  try {
+    return await readProviderFile(provider, path)
+  } catch (error: unknown) {
+    if (isMissingRemoteSnapshot(error)) return null
+    throw error
+  }
+}
+
+async function hydrateByocBlobRefs(provider: SyncProvider, json: string): Promise<string> {
+  let next = json
+  for (const id of collectBlobIdsFromText(json)) {
+    const dataUrl = await readMissingTolerant(provider, blobSidecarPath(id))
+    if (!dataUrl) continue
+    next = next.split(CONTENT_BLOB_PREFIX + id).join(dataUrl)
+  }
+  return next
+}
+
+async function hydrateByocAttachmentRefs(provider: SyncProvider, json: string): Promise<string> {
+  const snapshot = JSON.parse(json) as V2Snapshot
+  const attachments = snapshot.extras?.attachments
+  if (!attachments?.length) return json
+  snapshot.extras = snapshot.extras || {}
+  snapshot.extras.attachments = await Promise.all(attachments.map(async (item) => {
+    if (!item.dataUrl?.startsWith(ATTACHMENT_REF_PREFIX)) return item
+    const dataUrl = await readMissingTolerant(provider, attachmentSidecarPath(attachmentRefId(item.dataUrl)))
+    return { ...item, dataUrl: dataUrl || '' }
+  }))
+  return JSON.stringify(snapshot)
+}
+
+async function hydrateByocSnapshotJson(provider: SyncProvider, json: string): Promise<string> {
+  const withBlobPayloads = await hydrateByocBlobRefs(provider, json)
+  return hydrateByocAttachmentRefs(provider, withBlobPayloads)
+}
+
 async function writeProviderFile(provider: SyncProvider, path: string, data: string): Promise<void> {
   if (provider === 'local') await writeLocalFile(path, data)
   else if (provider === 'dropbox') await writeDropboxFile(path, data)
+  else if (provider === 'onedrive') await writeOneDriveFile(path, data)
   else throw new Error('개인 저장소 provider가 선택되지 않았습니다')
 }
 
 async function readProviderFile(provider: SyncProvider, path: string): Promise<string> {
   if (provider === 'local') return readLocalFile(path)
   if (provider === 'dropbox') return readDropboxFile(path)
+  if (provider === 'onedrive') return readOneDriveFile(path)
   throw new Error('개인 저장소 provider가 선택되지 않았습니다')
 }
 
@@ -303,6 +445,135 @@ async function writeDropboxFile(path: string, data: string): Promise<void> {
 
 async function readDropboxFile(path: string): Promise<string> {
   return dropboxFetch<string>('/2/files/download', { path: toDropboxPath(path) }, { content: true, download: true })
+}
+
+function saveOneDriveTokens(tokens: OneDriveTokenResponse) {
+  if (tokens.access_token) safeLocalSet(ONEDRIVE_TOKEN_KEY, tokens.access_token)
+  if (tokens.refresh_token) safeLocalSet(ONEDRIVE_REFRESH_KEY, tokens.refresh_token)
+  if (tokens.expires_in) safeLocalSet(ONEDRIVE_EXPIRES_KEY, String(Date.now() + tokens.expires_in * 1000))
+}
+
+function clearOneDriveTokens() {
+  safeLocalRemove(ONEDRIVE_TOKEN_KEY)
+  safeLocalRemove(ONEDRIVE_REFRESH_KEY)
+  safeLocalRemove(ONEDRIVE_EXPIRES_KEY)
+}
+
+function hasOneDriveToken(): boolean {
+  return !!safeLocalGet(ONEDRIVE_TOKEN_KEY) || !!safeLocalGet(ONEDRIVE_REFRESH_KEY)
+}
+
+async function refreshOneDriveToken(clientId: string): Promise<string> {
+  const refreshToken = safeLocalGet(ONEDRIVE_REFRESH_KEY)
+  if (!refreshToken) throw new Error('OneDrive 재로그인이 필요합니다')
+
+  const body = new URLSearchParams({
+    client_id: clientId,
+    grant_type: 'refresh_token',
+    refresh_token: refreshToken,
+    scope: ONEDRIVE_SCOPE,
+  })
+  const response = await fetch('https://login.microsoftonline.com/common/oauth2/v2.0/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body,
+  })
+  const data = (await response.json()) as OneDriveTokenResponse
+  if (!response.ok || data.error) throw new Error(data.error_description || data.error || 'OneDrive 토큰 갱신 실패')
+  saveOneDriveTokens(data)
+  return safeLocalGet(ONEDRIVE_TOKEN_KEY)
+}
+
+async function getOneDriveAccessToken(): Promise<string> {
+  const clientId = getOneDriveClientId()
+  if (!clientId) throw new Error('OneDrive Client ID를 설정하세요')
+
+  const accessToken = safeLocalGet(ONEDRIVE_TOKEN_KEY)
+  const expiresAt = Number(safeLocalGet(ONEDRIVE_EXPIRES_KEY) || '0')
+  if (accessToken && Date.now() < expiresAt - 30_000) return accessToken
+  if (safeLocalGet(ONEDRIVE_REFRESH_KEY)) return refreshOneDriveToken(clientId)
+  if (accessToken) return accessToken
+  throw new Error('OneDrive 로그인이 필요합니다')
+}
+
+function toOneDriveContentPath(path: string): string {
+  const encoded = path.split('/').filter(Boolean).map(encodeURIComponent).join('/')
+  return `/me/drive/special/approot:/${encoded}:/content`
+}
+
+function toOneDriveItemPath(path: string): string {
+  const encoded = path.split('/').filter(Boolean).map(encodeURIComponent).join('/')
+  return encoded ? `/me/drive/special/approot:/${encoded}` : '/me/drive/special/approot'
+}
+
+function toOneDriveChildrenPath(parts: string[]): string {
+  if (!parts.length) return '/me/drive/special/approot/children'
+  const encoded = parts.map(encodeURIComponent).join('/')
+  return `/me/drive/special/approot:/${encoded}:/children`
+}
+
+async function oneDriveFetch<T>(
+  path: string,
+  init: RequestInit = {},
+  options: { text?: boolean } = {}
+): Promise<T> {
+  const token = await getOneDriveAccessToken()
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+    ...(init.headers as Record<string, string> | undefined),
+  }
+  const response = await fetch(`https://graph.microsoft.com/v1.0${path}`, {
+    ...init,
+    headers,
+  })
+  if (response.status === 401) {
+    clearOneDriveTokens()
+    throw new Error('OneDrive 인증이 만료되었습니다. 다시 로그인하세요')
+  }
+  if (!response.ok) throw new Error(`OneDrive API 오류: ${response.status} ${await response.text()}`)
+  if (options.text) return (await response.text()) as T
+  if (response.status === 204) return {} as T
+  return (await response.json()) as T
+}
+
+async function writeOneDriveFile(path: string, data: string): Promise<void> {
+  await ensureOneDriveParent(path)
+  await oneDriveFetch(toOneDriveContentPath(path), {
+    method: 'PUT',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: data,
+  })
+}
+
+async function readOneDriveFile(path: string): Promise<string> {
+  return oneDriveFetch<string>(toOneDriveContentPath(path), { method: 'GET' }, { text: true })
+}
+
+async function ensureOneDriveParent(path: string): Promise<void> {
+  const parts = path.split('/').filter(Boolean)
+  parts.pop()
+  const current: string[] = []
+  for (const part of parts) {
+    current.push(part)
+    try {
+      await oneDriveFetch(toOneDriveItemPath(current.join('/')), { method: 'GET' })
+    } catch (error: unknown) {
+      if (!isMissingRemoteSnapshot(error)) throw error
+      try {
+        await oneDriveFetch(toOneDriveChildrenPath(current.slice(0, -1)), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: part,
+            folder: {},
+            '@microsoft.graph.conflictBehavior': 'fail',
+          }),
+        })
+      } catch (createError: unknown) {
+        if (!/409|conflict/i.test(createError instanceof Error ? createError.message : String(createError))) throw createError
+      }
+    }
+  }
 }
 
 export async function chooseLocalSyncFolder(): Promise<ByocStatus> {
@@ -338,6 +609,27 @@ export async function startDropboxOAuth(): Promise<void> {
   window.location.assign(url.toString())
 }
 
+export async function startOneDriveOAuth(): Promise<void> {
+  const clientId = getOneDriveClientId()
+  if (!clientId) throw new Error('OneDrive Client ID를 먼저 입력하세요')
+  const verifier = randomToken(48)
+  const challenge = await sha256Base64Url(verifier)
+  const state = randomToken(20)
+  safeLocalSet(ONEDRIVE_PKCE_KEY, verifier)
+  safeLocalSet(ONEDRIVE_STATE_KEY, state)
+
+  const url = new URL('https://login.microsoftonline.com/common/oauth2/v2.0/authorize')
+  url.searchParams.set('client_id', clientId)
+  url.searchParams.set('response_type', 'code')
+  url.searchParams.set('redirect_uri', getOneDriveRedirectUri())
+  url.searchParams.set('response_mode', 'query')
+  url.searchParams.set('scope', ONEDRIVE_SCOPE)
+  url.searchParams.set('code_challenge', challenge)
+  url.searchParams.set('code_challenge_method', 'S256')
+  url.searchParams.set('state', state)
+  window.location.assign(url.toString())
+}
+
 export async function handleDropboxOAuthRedirectIfNeeded(): Promise<ByocStatus | null> {
   if (typeof window === 'undefined') return null
   const url = new URL(window.location.href)
@@ -345,6 +637,7 @@ export async function handleDropboxOAuthRedirectIfNeeded(): Promise<ByocStatus |
   const code = url.searchParams.get('code')
   const state = url.searchParams.get('state')
   if (!error && !code) return null
+  if (state && state !== safeLocalGet(DROPBOX_STATE_KEY)) return null
   if (error) throw new Error(`Dropbox OAuth 오류: ${url.searchParams.get('error_description') || error}`)
   if (!code) return null
   if (state !== safeLocalGet(DROPBOX_STATE_KEY)) throw new Error('Dropbox OAuth state가 일치하지 않습니다')
@@ -379,6 +672,62 @@ export async function handleDropboxOAuthRedirectIfNeeded(): Promise<ByocStatus |
   return getByocStatus('dropbox')
 }
 
+export async function handleOneDriveOAuthRedirectIfNeeded(): Promise<ByocStatus | null> {
+  if (typeof window === 'undefined') return null
+  const url = new URL(window.location.href)
+  const error = url.searchParams.get('error')
+  const code = url.searchParams.get('code')
+  const state = url.searchParams.get('state')
+  if (!error && !code) return null
+  if (state && state !== safeLocalGet(ONEDRIVE_STATE_KEY)) return null
+  if (error) throw new Error(`OneDrive OAuth 오류: ${url.searchParams.get('error_description') || error}`)
+  if (!code) return null
+  if (state !== safeLocalGet(ONEDRIVE_STATE_KEY)) throw new Error('OneDrive OAuth state가 일치하지 않습니다')
+  const verifier = safeLocalGet(ONEDRIVE_PKCE_KEY)
+  const clientId = getOneDriveClientId()
+  if (!verifier || !clientId) throw new Error('OneDrive OAuth 검증 정보가 없습니다')
+
+  const body = new URLSearchParams({
+    code,
+    grant_type: 'authorization_code',
+    client_id: clientId,
+    code_verifier: verifier,
+    redirect_uri: getOneDriveRedirectUri(),
+    scope: ONEDRIVE_SCOPE,
+  })
+  const response = await fetch('https://login.microsoftonline.com/common/oauth2/v2.0/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body,
+  })
+  const data = (await response.json()) as OneDriveTokenResponse
+  if (!response.ok || data.error) throw new Error(data.error_description || data.error || 'OneDrive 토큰 교환 실패')
+  saveOneDriveTokens(data)
+  safeLocalRemove(ONEDRIVE_PKCE_KEY)
+  safeLocalRemove(ONEDRIVE_STATE_KEY)
+  url.searchParams.delete('code')
+  url.searchParams.delete('state')
+  url.searchParams.delete('error')
+  url.searchParams.delete('error_description')
+  window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`)
+  useSettingsStore.getState().setKey('syncProvider', 'onedrive')
+  useSettingsStore.getState().setKey('syncEnabled', true)
+  return getByocStatus('onedrive')
+}
+
+export async function handleByocOAuthRedirectIfNeeded(): Promise<ByocStatus | null> {
+  if (typeof window === 'undefined') return null
+  const url = new URL(window.location.href)
+  const code = url.searchParams.get('code')
+  const error = url.searchParams.get('error')
+  const state = url.searchParams.get('state')
+  if (!code && !error) return null
+  if (state === safeLocalGet(DROPBOX_STATE_KEY)) return handleDropboxOAuthRedirectIfNeeded()
+  if (state === safeLocalGet(ONEDRIVE_STATE_KEY)) return handleOneDriveOAuthRedirectIfNeeded()
+  if (error) throw new Error(`OAuth 오류: ${url.searchParams.get('error_description') || error}`)
+  throw new Error('알 수 없는 개인 저장소 OAuth 응답입니다')
+}
+
 export async function getByocStatus(provider = getSettingsProvider()): Promise<ByocStatus> {
   if (provider === 'local') {
     const root = await getStoredLocalRoot()
@@ -405,17 +754,33 @@ export async function getByocStatus(provider = getSettingsProvider()): Promise<B
       return { provider, ready: false, label: 'Dropbox', detail: error instanceof Error ? error.message : String(error) }
     }
   }
+  if (provider === 'onedrive') {
+    if (!hasOneDriveToken()) {
+      return { provider, ready: false, label: 'OneDrive', detail: '로그인 필요' }
+    }
+    try {
+      const account = await oneDriveFetch<OneDriveAccountResponse>('/me')
+      return {
+        provider,
+        ready: true,
+        label: 'OneDrive',
+        detail: account.mail || account.userPrincipalName || account.displayName || '연결됨',
+      }
+    } catch (error: unknown) {
+      return { provider, ready: false, label: 'OneDrive', detail: error instanceof Error ? error.message : String(error) }
+    }
+  }
   if (provider === 'supabase') return { provider, ready: true, label: 'Supabase', detail: '관리형 서버 동기화' }
   return { provider: 'none', ready: false, label: '오프라인', detail: '이 기기에만 저장' }
 }
 
 export async function pushByocSnapshot(): Promise<ByocSyncResult> {
   const provider = getSettingsProvider()
-  if (provider !== 'local' && provider !== 'dropbox') {
+  if (!isPersonalStorageProvider(provider)) {
     return { ok: false, provider, pushed: 0, pulled: 0, error: '개인 저장소 provider가 선택되지 않았습니다' }
   }
   try {
-    const json = await exportV2ToJson()
+    const json = await createByocSnapshotJson(provider)
     const meta: ByocMeta = {
       app: 'justanotepad',
       version: 2,
@@ -433,12 +798,12 @@ export async function pushByocSnapshot(): Promise<ByocSyncResult> {
 
 export async function pullByocSnapshot(): Promise<ByocSyncResult> {
   const provider = getSettingsProvider()
-  if (provider !== 'local' && provider !== 'dropbox') {
+  if (!isPersonalStorageProvider(provider)) {
     return { ok: false, provider, pushed: 0, pulled: 0, error: '개인 저장소 provider가 선택되지 않았습니다' }
   }
   try {
     const json = await readProviderFile(provider, SNAPSHOT_PATH)
-    const result = await importV2FromJsonAsync(json)
+    const result = await importV2FromJsonAsync(await hydrateByocSnapshotJson(provider, json))
     if (result.errors.length) throw new Error(result.errors.join(', '))
     safeLocalSet('jan.v2.sync.lastAt', String(Date.now()))
     return { ok: true, provider, pushed: 0, pulled: result.imported }
@@ -449,7 +814,7 @@ export async function pullByocSnapshot(): Promise<ByocSyncResult> {
 
 export async function syncByocNow(): Promise<ByocSyncResult> {
   const provider = getSettingsProvider()
-  if (provider !== 'local' && provider !== 'dropbox') {
+  if (!isPersonalStorageProvider(provider)) {
     return { ok: false, provider, pushed: 0, pulled: 0, error: '개인 저장소 provider가 선택되지 않았습니다' }
   }
 
@@ -457,7 +822,7 @@ export async function syncByocNow(): Promise<ByocSyncResult> {
     let pulled = 0
     try {
       const json = await readProviderFile(provider, SNAPSHOT_PATH)
-      const result = await importV2FromJsonAsync(json)
+      const result = await importV2FromJsonAsync(await hydrateByocSnapshotJson(provider, json))
       if (result.errors.length) throw new Error(result.errors.join(', '))
       pulled = result.imported
     } catch (error: unknown) {
@@ -473,5 +838,5 @@ export async function syncByocNow(): Promise<ByocSyncResult> {
 }
 
 export function isByocProvider(provider = getSettingsProvider()): boolean {
-  return provider === 'local' || provider === 'dropbox'
+  return isPersonalStorageProvider(provider)
 }

@@ -6,6 +6,8 @@ import { useSettingsStore } from '../store/settingsStore'
 import { useTagsStore } from '../store/tagsStore'
 import { useBusinessCardsStore } from '../store/businessCardsStore'
 import { DEFAULT_WORKSPACE_ID, useWorkspaceStore } from '../store/workspaceStore'
+import { clearAttachmentsForTests, loadAttachment, saveAttachment } from './attachments'
+import { saveDataUrlAsBlobRef } from './blobRefs'
 
 function memo(id: string, title: string, updatedAt: number): Memo {
   return {
@@ -53,10 +55,21 @@ function configureDropboxSync() {
   localStorage.setItem('jan.v2.dropbox.expires', String(Date.now() + 60_000))
 }
 
+function configureOneDriveSync() {
+  useSettingsStore.setState({
+    syncProvider: 'onedrive',
+    syncEnabled: true,
+    onedriveClientId: 'onedrive-client',
+  })
+  localStorage.setItem('jan.v2.onedrive.token', 'token')
+  localStorage.setItem('jan.v2.onedrive.expires', String(Date.now() + 60_000))
+}
+
 describe('BYOC personal storage sync', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.restoreAllMocks()
     localStorage.clear()
+    await clearAttachmentsForTests()
     useMemosStore.setState({ memos: {}, trashed: {}, currentId: null, order: [], sortMode: 'recent' })
     useTagsStore.setState({ byMemo: {} })
     useWorkspaceStore.setState({
@@ -208,5 +221,141 @@ describe('BYOC personal storage sync', () => {
     const uploadedSnapshot = uploads.find((item) => item.path === '/JustANotepad-v2/snapshot.json')
     const uploaded = JSON.parse(uploadedSnapshot?.body || '{}') as V2Snapshot
     expect(uploaded.memos.m_conflict.title).toBe('local newer')
+  })
+
+  it('stores BYOC images and attachments as sidecar files instead of inline snapshot data', async () => {
+    const now = Date.now()
+    const imageDataUrl = `data:image/png;base64,${'A'.repeat(20000)}`
+    const imageRef = await saveDataUrlAsBlobRef(imageDataUrl)
+    const uploads: Array<{ path: string; body: string }> = []
+    useMemosStore.setState({
+      memos: {
+        m_blob: {
+          id: 'm_blob',
+          title: 'blob memo',
+          content: `<p><img src="${imageRef}" /></p><p><a href="indexeddb:att_sidecar" data-att="att_sidecar">sidecar.txt</a></p>`,
+          createdAt: now,
+          updatedAt: now,
+        },
+      },
+      trashed: {},
+      currentId: 'm_blob',
+      order: ['m_blob'],
+      sortMode: 'recent',
+    })
+    const attachmentId = await saveAttachment(new File(['hello sidecar'], 'sidecar.txt', { type: 'text/plain' }), 'm_blob')
+
+    vi.stubGlobal('fetch', vi.fn(async (url: string | URL, init?: RequestInit) => {
+      const target = String(url)
+      if (target.includes('/2/files/download')) {
+        return new Response('path/not_found', { status: 409 })
+      }
+      if (target.includes('/2/files/upload')) {
+        const headers = init?.headers as Record<string, string>
+        const args = JSON.parse(headers['Dropbox-API-Arg']) as { path: string }
+        uploads.push({ path: args.path, body: String(init?.body || '') })
+        return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } })
+      }
+      return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } })
+    }))
+
+    const result = await syncByocNow()
+
+    expect(result).toMatchObject({ ok: true, provider: 'dropbox', pulled: 0, pushed: 1 })
+    const uploadedSnapshot = uploads.find((item) => item.path === '/JustANotepad-v2/snapshot.json')
+    expect(uploadedSnapshot?.body).toContain(imageRef)
+    expect(uploadedSnapshot?.body).toContain(`jan-byoc-attachment://${attachmentId}`)
+    expect(uploadedSnapshot?.body).not.toContain(imageDataUrl)
+    expect(uploadedSnapshot?.body).not.toContain('data:text/plain')
+    expect(uploads.some((item) => item.path.startsWith('/JustANotepad-v2/blobs/') && item.body === imageDataUrl)).toBe(true)
+    expect(uploads.some((item) => item.path.startsWith('/JustANotepad-v2/attachments/') && item.body.startsWith('data:text/plain'))).toBe(true)
+  })
+
+  it('hydrates BYOC sidecar files before importing remote snapshots', async () => {
+    const now = Date.now()
+    const imageDataUrl = `data:image/png;base64,${'B'.repeat(20000)}`
+    const attachmentDataUrl = 'data:text/plain;base64,aGVsbG8gcmVtb3Rl'
+    const remote = memo('m_remote_sidecar', 'remote sidecar', now)
+    remote.content = '<p><img src="jan-blob://remoteimage" /></p><p><a href="indexeddb:att_remote" data-att="att_remote">remote.txt</a></p>'
+    const remoteSnapshot = snapshot({ [remote.id]: remote }, [remote.id])
+    remoteSnapshot.extras = {
+      attachments: [{
+        id: 'att_remote',
+        name: 'remote.txt',
+        type: 'text/plain',
+        size: 12,
+        memoId: remote.id,
+        createdAt: now,
+        dataUrl: 'jan-byoc-attachment://att_remote',
+      }],
+    }
+
+    vi.stubGlobal('fetch', vi.fn(async (url: string | URL, init?: RequestInit) => {
+      const target = String(url)
+      if (target.includes('/2/files/download')) {
+        const headers = init?.headers as Record<string, string>
+        const args = JSON.parse(headers['Dropbox-API-Arg']) as { path: string }
+        if (args.path === '/JustANotepad-v2/snapshot.json') {
+          return new Response(JSON.stringify(remoteSnapshot), { status: 200 })
+        }
+        if (args.path.startsWith('/JustANotepad-v2/blobs/')) {
+          return new Response(imageDataUrl, { status: 200 })
+        }
+        if (args.path.startsWith('/JustANotepad-v2/attachments/')) {
+          return new Response(attachmentDataUrl, { status: 200 })
+        }
+        return new Response('path/not_found', { status: 409 })
+      }
+      if (target.includes('/2/files/upload')) {
+        return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } })
+      }
+      return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } })
+    }))
+
+    const result = await syncByocNow()
+
+    expect(result).toMatchObject({ ok: true, provider: 'dropbox', pulled: expect.any(Number), pushed: 1 })
+    const imported = useMemosStore.getState().memos.m_remote_sidecar
+    expect(imported.content).toContain('jan-blob://')
+    expect(imported.content).not.toContain(imageDataUrl)
+    const restored = await loadAttachment('att_remote')
+    expect(restored?.name).toBe('remote.txt')
+    await expect(restored?.data.text()).resolves.toBe('hello remote')
+  })
+
+  it('syncs personal storage through OneDrive app folder content endpoints', async () => {
+    configureOneDriveSync()
+    const local = memo('m_onedrive', 'onedrive note', 1_000)
+    const uploads: Array<{ url: string; body: string }> = []
+    useMemosStore.setState({
+      memos: { [local.id]: local },
+      trashed: {},
+      currentId: local.id,
+      order: [local.id],
+      sortMode: 'recent',
+    })
+
+    vi.stubGlobal('fetch', vi.fn(async (url: string | URL, init?: RequestInit) => {
+      const target = String(url)
+      const method = init?.method || 'GET'
+      if (target.includes('graph.microsoft.com')) {
+        if (method === 'GET' && target.endsWith('/snapshot.json:/content')) {
+          return new Response('not found', { status: 404 })
+        }
+        if (method === 'PUT') {
+          uploads.push({ url: target, body: String(init?.body || '') })
+          return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } })
+        }
+        return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } })
+      }
+      return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } })
+    }))
+
+    const result = await syncByocNow()
+
+    expect(result).toMatchObject({ ok: true, provider: 'onedrive', pulled: 0, pushed: 1 })
+    const snapshotUpload = uploads.find((item) => item.url.includes('/JustANotepad-v2/snapshot.json:/content'))
+    expect(snapshotUpload?.url).toContain('/me/drive/special/approot:')
+    expect(JSON.parse(snapshotUpload?.body || '{}').memos.m_onedrive.title).toBe('onedrive note')
   })
 })
