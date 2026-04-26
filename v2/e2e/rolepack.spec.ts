@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 
 test.describe('role pack and my tools', () => {
   test('selects roles, opens a tool, and inserts a template', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('./')
     await page.evaluate(() => {
       localStorage.setItem('jan-v2-role-onboarded', '1')
       localStorage.removeItem('jan-v2-role-tools')
