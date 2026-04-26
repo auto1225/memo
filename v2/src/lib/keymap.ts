@@ -2,6 +2,7 @@ import type { Editor } from '@tiptap/react'
 import { PAGE_BREAK_HTML } from './pageBreak'
 
 export function installWordKeymap(editor: Editor, opts: {
+  onNew?: () => void
   onSave?: () => void
   onOpen?: () => void
   onPrint?: () => void
@@ -13,6 +14,7 @@ export function installWordKeymap(editor: Editor, opts: {
     const alt = e.altKey
     const k = e.key.toLowerCase()
 
+    if (ctrl && !shift && !alt && k === 'n') { e.preventDefault(); opts.onNew?.(); return }
     if (ctrl && !shift && !alt && k === 's') { e.preventDefault(); opts.onSave?.(); return }
     if (ctrl && !shift && !alt && k === 'o') { e.preventDefault(); opts.onOpen?.(); return }
     if (ctrl && !shift && !alt && k === 'p') { e.preventDefault(); opts.onPrint?.(); return }

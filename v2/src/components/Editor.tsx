@@ -119,7 +119,7 @@ const CONTENT_COMMIT_DELAY_MS = 350
 
 export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
   const { fileHandle, setFileHandle, setSavedAt, setEditor } = useDocStore()
-  const { currentId, current, updateCurrent, updateMemo, updateMemoPageSettings } = useMemosStore()
+  const { currentId, current, newMemo, updateCurrent, updateMemo, updateMemoPageSettings } = useMemosStore()
   const applyTheme = useThemeStore((s) => s.apply)
   const applyTypo = useTypographyStore((s) => s.apply)
   const aiAuto = useSettingsStore((s) => s.aiAutocomplete); void aiAuto
@@ -515,6 +515,7 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
   useEffect(() => {
     if (!editor) return
     const detach = installWordKeymap(editor, {
+      onNew: handleNewMemo,
       onSave: handleSave,
       onOpen: handleOpen,
       onPrint: () => window.print(),
@@ -597,12 +598,24 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
   async function handleOpen() {
     if (!editor) return
     flushPendingEditorContent()
-    const result = await openFile()
-    if (!result) return
-    updateCurrent({ title: result.title, content: result.content })
-    setFileHandle(result.handle)
-    editor.commands.setContent(result.content)
-    trackEvent('open_file')
+    try {
+      const result = await openFile()
+      if (!result) return
+      updateCurrent({ title: result.title, content: result.content })
+      setFileHandle(result.handle ?? null)
+      editor.commands.setContent(result.content)
+      trackEvent('open_file')
+    } catch (err: any) {
+      alert('열기 실패: ' + String(err?.message || err))
+    }
+  }
+
+  function handleNewMemo() {
+    flushPendingEditorContent()
+    const id = newMemo()
+    setFileHandle(null)
+    trackEvent('new_memo')
+    if (id) pushActiveSnapshot(id).catch(() => {})
   }
 
   function openMeetingNotes(kind: MeetingKind) {
@@ -636,6 +649,7 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
       <MemoTabs />
       <Toolbar
         editor={editor}
+        onNewMemo={handleNewMemo}
         onSave={handleSave}
         onOpen={handleOpen}
         onPrintPreview={() => setShowPrint(true)}

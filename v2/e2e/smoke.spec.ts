@@ -101,6 +101,49 @@ test.describe('v2 smoke', () => {
     await expect(page.locator('.jan-page-settings-modal')).toBeVisible()
   })
 
+  test('file menu and Ctrl+N create real memos', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('jan-v2-role-onboarded', '1'))
+    await page.goto('./')
+    const editor = page.locator('.ProseMirror').first()
+    await expect(editor).toBeVisible({ timeout: 15000 })
+    const tabs = page.locator('.jan-memo-tab')
+    await expect(tabs).toHaveCount(1)
+
+    await editor.click()
+    await page.keyboard.type('Memo before new file action')
+    await page.locator('.jan-menu-btn').nth(7).click()
+    await page.locator('.jan-menu-dropdown .jan-menu-item').first().click()
+    await expect(tabs).toHaveCount(2)
+    await expect(editor).not.toContainText('Memo before new file action')
+
+    await page.keyboard.press('Control+N')
+    await expect(tabs).toHaveCount(3)
+  })
+
+  test('file menu open uses the HTML input fallback without File System Access', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('jan-v2-role-onboarded', '1')
+      ;(window as any).showOpenFilePicker = undefined
+    })
+    await page.goto('./')
+    const editor = page.locator('.ProseMirror').first()
+    await expect(editor).toBeVisible({ timeout: 15000 })
+
+    const chooserPromise = page.waitForEvent('filechooser')
+    await page.locator('.jan-menu-btn').nth(7).click()
+    await page.locator('.jan-menu-dropdown .jan-menu-item').nth(1).click()
+    const chooser = await chooserPromise
+    await chooser.setFiles({
+      name: 'opened-fallback.html',
+      mimeType: 'text/html',
+      buffer: Buffer.from('<!doctype html><html><body><h1>Opened from fallback</h1><p>Works on mobile-style browsers.</p></body></html>'),
+    })
+
+    await expect(editor).toContainText('Opened from fallback')
+    await expect(page.locator('.jan-header-title-input')).toHaveValue('opened-fallback')
+    await expect(page.locator('.jan-memo-tab.is-active')).toContainText('opened-fallback')
+  })
+
   test('v1 note paper default and page settings are available', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 })
     await page.goto('./')

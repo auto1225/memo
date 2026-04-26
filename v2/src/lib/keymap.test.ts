@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { PAGE_BREAK_HTML } from './pageBreak'
-import { getActiveListItemType } from './keymap'
+import { getActiveListItemType, installWordKeymap } from './keymap'
 
 describe('Word keymap helpers', () => {
   it('targets task list items before regular list items', () => {
@@ -16,5 +16,17 @@ describe('Word keymap helpers', () => {
 
   it('uses one canonical page-break HTML fragment', () => {
     expect(PAGE_BREAK_HTML).toBe('<hr class="jan-page-break" data-page-break="1" /><p></p>')
+  })
+
+  it('routes Ctrl+N to the new document handler', () => {
+    const onNew = vi.fn()
+    const detach = installWordKeymap({} as any, { onNew })
+    const event = new KeyboardEvent('keydown', { key: 'n', ctrlKey: true, bubbles: true, cancelable: true })
+
+    document.dispatchEvent(event)
+
+    expect(onNew).toHaveBeenCalledTimes(1)
+    expect(event.defaultPrevented).toBe(true)
+    detach()
   })
 })

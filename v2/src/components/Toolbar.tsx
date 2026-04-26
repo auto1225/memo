@@ -48,6 +48,7 @@ interface ToolbarProps {
   onOcr: () => void
   onChat: () => void
   onSearch: () => void
+  onNewMemo: () => void
   onSave: () => void
   onOpen: () => void
   onPageSettings: () => void
@@ -694,7 +695,7 @@ export function Toolbar(p: ToolbarProps) {
     /* 8. 파일 */
     {
       label: '파일', items: [
-        { label: '새 메모', hint: 'Ctrl+N', icon: 'plus', onClick: () => run(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'n', ctrlKey: true, bubbles: true }))) },
+        { label: '새 메모', hint: 'Ctrl+N', icon: 'plus', onClick: () => run(p.onNewMemo) },
         { label: '열기...', hint: 'Ctrl+O', icon: 'open', onClick: () => run(p.onOpen) },
         { label: '저장', hint: 'Ctrl+S', icon: 'save', onClick: () => run(p.onSave) },
         { label: '다른 이름으로 저장', icon: 'save', onClick: () => run(p.onSave) },

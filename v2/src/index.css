@@ -746,7 +746,13 @@ body.jan-show-pilcrow .ProseMirror p::after {
 
 /* 터치 장치 — 버튼 최소 44x44 */
 @media (pointer: coarse) {
-  .jan-titlebar button,.jan-toolbar button{min-height:36px;min-width:36px;}
+  .jan-titlebar button,
+  .jan-toolbar button,
+  .jan-toolbar-row button,
+  .jan-toolbar-row .jan-tb-btn,
+  .jan-menu-btn{min-height:44px;min-width:44px;}
+  .jan-menu-item{min-height:44px;}
+  .jan-toolbar-select{min-height:44px;}
   .jan-tag button{min-height:24px;min-width:24px;}
 }
 

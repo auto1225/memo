@@ -10,10 +10,16 @@ export interface SaveResult {
   error?: string
 }
 
-export async function saveToFile(opts: SaveOptions): Promise<SaveResult> {
-  const { title = '메모', content, handle } = opts
+export interface OpenFileResult {
+  content: string
+  handle?: FileSystemFileHandle | null
+  title: string
+}
 
-  if ('showSaveFilePicker' in window) {
+export async function saveToFile(opts: SaveOptions): Promise<SaveResult> {
+  const { title = '새 메모', content, handle } = opts
+
+  if (typeof (window as any).showSaveFilePicker === 'function') {
     try {
       let targetHandle = handle
       if (!targetHandle) {
@@ -51,27 +57,79 @@ export async function saveToFile(opts: SaveOptions): Promise<SaveResult> {
   }
 }
 
-export async function openFile(): Promise<{ content: string; handle: FileSystemFileHandle; title: string } | null> {
-  if (!('showOpenFilePicker' in window)) {
-    throw new Error('이 브라우저는 파일 열기 API 를 지원하지 않습니다')
+export async function openFile(): Promise<OpenFileResult | null> {
+  if (typeof (window as any).showOpenFilePicker === 'function') {
+    try {
+      const [handle] = await (window as any).showOpenFilePicker({
+        types: [{
+          description: 'HTML 문서',
+          accept: { 'text/html': ['.html', '.htm'] },
+        }],
+        multiple: false,
+      })
+      const file = await handle.getFile()
+      return readOpenedFile(file, handle)
+    } catch (err: any) {
+      if (err.name === 'AbortError') return null
+      console.warn('[fileOps] FSA open failed, fallback:', err)
+    }
   }
-  try {
-    const [handle] = await (window as any).showOpenFilePicker({
-      types: [{
-        description: 'HTML 문서',
-        accept: { 'text/html': ['.html', '.htm'] },
-      }],
-      multiple: false,
-    })
-    const file = await handle.getFile()
-    const text = await file.text()
-    const title = file.name.replace(/\.(html|htm)$/i, '')
-    const content = extractBody(text)
-    return { content, handle, title }
-  } catch (err: any) {
-    if (err.name === 'AbortError') return null
-    throw err
-  }
+
+  return openFileWithInput()
+}
+
+function openFileWithInput(): Promise<OpenFileResult | null> {
+  return new Promise((resolve, reject) => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'text/html,.html,.htm'
+    input.style.position = 'fixed'
+    input.style.left = '-9999px'
+
+    let settled = false
+    const cleanup = () => {
+      input.removeEventListener('change', onChange)
+      window.removeEventListener('focus', onFocus)
+      input.remove()
+    }
+    const settle = (value: OpenFileResult | null) => {
+      if (settled) return
+      settled = true
+      cleanup()
+      resolve(value)
+    }
+    const fail = (err: unknown) => {
+      if (settled) return
+      settled = true
+      cleanup()
+      reject(err)
+    }
+    const onFocus = () => {
+      window.setTimeout(() => {
+        if (!input.files?.length) settle(null)
+      }, 500)
+    }
+    const onChange = () => {
+      const file = input.files?.[0]
+      if (!file) {
+        settle(null)
+        return
+      }
+      readOpenedFile(file, null).then(settle).catch(fail)
+    }
+
+    input.addEventListener('change', onChange)
+    window.addEventListener('focus', onFocus, { once: true })
+    document.body.appendChild(input)
+    input.click()
+  })
+}
+
+async function readOpenedFile(file: File, handle?: FileSystemFileHandle | null): Promise<OpenFileResult> {
+  const text = await file.text()
+  const title = file.name.replace(/\.(html|htm)$/i, '')
+  const content = extractBody(text)
+  return { content, handle, title }
 }
 
 function wrapHtml(title: string, content: string): string {
