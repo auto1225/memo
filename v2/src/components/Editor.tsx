@@ -53,7 +53,7 @@ import { useWheelZoom } from '../hooks/useWheelZoom'
 import { useWritingGoalStore } from '../store/writingGoalStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { dispatchWebhook } from '../lib/webhooks'
-import { normalizePageMarginsMm, pageDimensions, pageDimensionsPx, useUIStore } from '../store/uiStore'
+import { DEFAULT_RUNNING_FOOTER, formatRunningText, normalizePageMarginsMm, pageDimensions, pageDimensionsPx, useUIStore } from '../store/uiStore'
 import { useTypographyStore } from '../store/typographyStore'
 import { SmartTypography } from '../extensions/Typography'
 import { TextStyle } from '@tiptap/extension-text-style'
@@ -192,6 +192,12 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
 
   const initialContent = memo?.content || '<p></p>'
   const title = memo?.title || '새 메모'
+  const runningHeaderPreview = useMemo(() => formatRunningText(runningHeader, 1, 1), [runningHeader])
+  const runningFooterPreview = useMemo(() => {
+    if (!runningHeader.trim() && runningFooter.trim() === DEFAULT_RUNNING_FOOTER) return ''
+    return formatRunningText(runningFooter, 1, 1)
+  }, [runningFooter, runningHeader])
+  const hasRunningPreview = !!(runningHeaderPreview || runningFooterPreview)
 
   const commitEditorContent = useCallback((targetEditor: TiptapEditor, memoId: string | null, seq: number) => {
     if (!memoId || targetEditor.isDestroyed) return
@@ -624,7 +630,20 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
           data-page-columns={pageColumnCount}
           style={pageStyle}
         >
-          <EditorContent editor={editor} />
+          <div className="jan-page-shell" data-has-running-preview={hasRunningPreview ? 'true' : 'false'}>
+            <EditorContent editor={editor} />
+            <div className="jan-page-margin-frame" aria-hidden="true" />
+            {runningHeaderPreview && (
+              <div className="jan-page-running jan-page-running-header" aria-label="편집 화면 머리글 미리보기">
+                {runningHeaderPreview}
+              </div>
+            )}
+            {runningFooterPreview && (
+              <div className="jan-page-running jan-page-running-footer" aria-label="편집 화면 꼬리말 미리보기">
+                {runningFooterPreview}
+              </div>
+            )}
+          </div>
         </div>
       </div>
       </div>

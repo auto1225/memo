@@ -3214,6 +3214,12 @@ html, body, #root {
   --jan-note-margin-line: color-mix(in srgb, #d97757 50%, transparent);
 }
 
+.jan-page-shell {
+  position: relative;
+  width: var(--jan-page-w, 210mm);
+  min-height: var(--jan-page-h, 297mm);
+}
+
 .jan-editor-pages .ProseMirror {
   width: var(--jan-page-w, 210mm) !important;
   max-width: none !important;
@@ -3233,6 +3239,56 @@ html, body, #root {
   font-size: var(--jan-editor-size) !important;
   line-height: var(--jan-editor-line) !important;
   background-clip: padding-box;
+}
+
+.jan-page-margin-frame {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  top: var(--jan-page-margin-top, var(--jan-page-margin, 20mm));
+  right: var(--jan-page-margin-right, var(--jan-page-margin, 20mm));
+  bottom: var(--jan-page-margin-bottom, var(--jan-page-margin, 20mm));
+  left: var(--jan-page-margin-left, var(--jan-page-margin, 20mm));
+  border: 1px dashed color-mix(in srgb, var(--accent, #D97757) 22%, transparent);
+  border-radius: 2px;
+  opacity: 0;
+  transition: opacity 0.16s ease;
+}
+
+.jan-page-shell:hover .jan-page-margin-frame,
+.jan-page-shell:focus-within .jan-page-margin-frame,
+.jan-page-shell[data-has-running-preview="true"] .jan-page-margin-frame {
+  opacity: 1;
+}
+
+.jan-page-running {
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+  left: var(--jan-page-margin-left, var(--jan-page-margin, 20mm));
+  right: var(--jan-page-margin-right, var(--jan-page-margin, 20mm));
+  min-height: 18px;
+  display: flex;
+  align-items: center;
+  color: color-mix(in srgb, var(--ink-soft, #666) 82%, transparent);
+  font-family: var(--jan-editor-font);
+  font-size: 10.5px;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.jan-page-running-header {
+  top: max(4mm, calc(var(--jan-page-margin-top, var(--jan-page-margin, 20mm)) / 2));
+  justify-content: flex-start;
+  border-bottom: 1px solid color-mix(in srgb, var(--paper-edge, #e5e5e5) 82%, transparent);
+}
+
+.jan-page-running-footer {
+  bottom: max(4mm, calc(var(--jan-page-margin-bottom, var(--jan-page-margin, 20mm)) / 2));
+  justify-content: flex-end;
+  border-top: 1px solid color-mix(in srgb, var(--paper-edge, #e5e5e5) 82%, transparent);
 }
 
 .jan-editor-pages[data-page-columns="2"] .ProseMirror,
@@ -4316,6 +4372,15 @@ html, body, #root {
       clamp(28px, var(--jan-page-margin-bottom, var(--jan-page-margin, 20mm)), 56px)
       clamp(24px, var(--jan-page-margin-left, var(--jan-page-margin, 20mm)), 56px) !important;
     font-size: 14px !important;
+  }
+
+  .jan-page-shell {
+    width: calc(100vw - 24px) !important;
+    min-height: calc((100vw - 24px) * 1.414) !important;
+  }
+
+  .jan-page-running {
+    font-size: 10px;
   }
 
   .jan-editor-pages[data-page-columns="2"] .ProseMirror,

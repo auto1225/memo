@@ -1,4 +1,5 @@
 import {
+  DEFAULT_RUNNING_FOOTER,
   pageMarginsCss,
   pageDimensions,
   useUIStore,
@@ -98,7 +99,7 @@ export function buildPrintHtml(
   const pageSizeCss = `${page.widthMm}mm ${page.heightMm}mm`
   const marginCss = pageMarginsCss(settings.pageMarginsMm, settings.pageMarginMm)
   const runningHeader = settings.runningHeader?.trim() || ''
-  const runningFooter = settings.runningFooter?.trim() || 'Page {page} / {total}'
+  const runningFooter = settings.runningFooter?.trim() || DEFAULT_RUNNING_FOOTER
   const headerCss = runningHeader
     ? `@top-left { content: ${cssContentFromTemplate(runningHeader)}; font-size: 9pt; color:#666; }`
     : options.includeHeaderTitle === false

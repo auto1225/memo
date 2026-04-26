@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Icon } from './Icons'
 import {
+  DEFAULT_RUNNING_FOOTER,
   normalizePageMarginsMm,
   PAGE_PRESETS,
   PAPER_STYLES,
@@ -40,7 +41,7 @@ export function PageSettingsModal({ onClose }: PageSettingsModalProps) {
   const [pageMarginsMm, setPageMarginsMm] = useState<PageMarginsMm>(() => normalizePageMarginsMm(ui.pageMarginsMm, ui.pageMarginMm))
   const [pageColumnCount, setPageColumnCount] = useState<PageColumnCount>(ui.pageColumnCount)
   const [runningHeader, setRunningHeader] = useState(ui.runningHeader || '')
-  const [runningFooter, setRunningFooter] = useState(ui.runningFooter || 'Page {page} / {total}')
+  const [runningFooter, setRunningFooter] = useState(ui.runningFooter || DEFAULT_RUNNING_FOOTER)
 
   const paperLabel = PAPER_STYLES.find((style) => style.value === paperStyle)?.label || '줄노트'
   const dimensions = useMemo(() => pageDimensions(pageSize, pageOrientation), [pageSize, pageOrientation])
@@ -67,7 +68,7 @@ export function PageSettingsModal({ onClose }: PageSettingsModalProps) {
     setPageMarginsMm({ top: 20, right: 20, bottom: 20, left: 20 })
     setPageColumnCount(1)
     setRunningHeader('')
-    setRunningFooter('Page {page} / {total}')
+    setRunningFooter(DEFAULT_RUNNING_FOOTER)
   }
 
   function setUniformMargin(margin: number) {

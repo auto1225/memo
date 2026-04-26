@@ -5,6 +5,7 @@ export type PaperStyle = 'lined' | 'grid' | 'dot' | 'blank' | 'music' | 'cornell
 export type PageSizePreset = 'A4' | 'A3' | 'B4' | 'A5' | 'B5' | 'Letter'
 export type PageOrientation = 'portrait' | 'landscape'
 export type PageColumnCount = 1 | 2 | 3
+export const DEFAULT_RUNNING_FOOTER = 'Page {page} / {total}'
 export interface PageMarginsMm {
   top: number
   right: number
@@ -90,6 +91,13 @@ export function pageMarginsSummary(value: unknown, fallback = 20): string {
   return `상${margins.top} 우${margins.right} 하${margins.bottom} 좌${margins.left}mm`
 }
 
+export function formatRunningText(template: string, page = 1, total = 1): string {
+  return template
+    .replace(/\{page\}/g, String(Math.max(1, Math.round(page))))
+    .replace(/\{total\}/g, String(Math.max(1, Math.round(total))))
+    .trim()
+}
+
 /**
  * Phase 17 — UI 상태 (포커스/읽기 모드 + 페이지 줌 + spellcheck + collapse + heading 번호).
  */
@@ -143,7 +151,7 @@ export const useUIStore = create<UIState>()(
       pageMarginsMm: { top: 20, right: 20, bottom: 20, left: 20 },
       pageColumnCount: 1,
       runningHeader: '',
-      runningFooter: 'Page {page} / {total}',
+      runningFooter: DEFAULT_RUNNING_FOOTER,
       toggleFocus: () => set({ focusMode: !get().focusMode }),
       toggleReading: () => set({ readingMode: !get().readingMode }),
       toggleSpellCheck: () => set({ spellCheck: !get().spellCheck }),
