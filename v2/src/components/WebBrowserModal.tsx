@@ -18,32 +18,55 @@ const ENGINES: Record<string, { label: string; url: (q: string) => string }> = {
   so:        { label: 'StackOverflow',  url: (q) => 'https://stackoverflow.com/search?q=' + encodeURIComponent(q) },
 }
 
-/* iframe 차단 사이트 — X-Frame-Options/CSP 로 로딩 안 됨 → 자동 외부 탭 폴백 */
-const BLOCKED_DOMAINS = [
-  'google.com', 'google.co.kr', 'naver.com', 'daum.net', 'kakao.com',
-  'facebook.com', 'instagram.com', 'twitter.com', 'x.com',
-  'youtube.com', 'youtu.be',
-  'amazon.com', 'amazon.co.kr',
-  'linkedin.com', 'pinterest.com',
-  'gmail.com', 'mail.google.com',
-  'banking.', '.bank',
+/* CORS 프록시 — X-Frame-Options 우회 (allorigins / corsproxy 등 공개 프록시) */
+const CORS_PROXIES = [
+  (u: string) => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
+  (u: string) => 'https://corsproxy.io/?' + encodeURIComponent(u),
 ]
-const isBlocked = (url: string) => {
-  try { const u = new URL(url); return BLOCKED_DOMAINS.some(d => u.hostname.includes(d)) } catch { return false }
+
+/* iframe 직접 로딩 차단되는 도메인 — CORS 프록시 srcdoc 으로 폴백 */
+const NEEDS_PROXY = [
+  'google.com', 'google.co.kr', 'naver.com', 'daum.net',
+  'facebook.com', 'instagram.com', 'twitter.com', 'x.com',
+  'amazon.com', 'amazon.co.kr', 'linkedin.com', 'pinterest.com',
+]
+const needsProxy = (url: string) => {
+  try { const u = new URL(url); return NEEDS_PROXY.some(d => u.hostname.includes(d)) } catch { return false }
+}
+
+/* YouTube URL 을 embed URL 로 변환 */
+const toEmbedUrl = (url: string): string => {
+  const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/results\?search_query=)([\w-]+)/)
+  if (!m) return url
+  const v = m[1]
+  if (url.includes('search_query')) return url /* 검색 결과 페이지는 그대로 (embed 아님) */
+  return `https://www.youtube.com/embed/${v}`
+}
+
+/* HTML 을 srcdoc 으로 사용할 수 있게 보강 (base href 추가, 스크립트 제거) */
+const sanitizeForSrcdoc = (html: string, baseUrl: string): string => {
+  /* base href 주입 — 상대경로 이미지/CSS 가 원본 사이트에서 로드되도록 */
+  const base = `<base href="${baseUrl}" />`
+  if (/<head[^>]*>/i.test(html)) {
+    return html.replace(/<head[^>]*>/i, (m) => m + base)
+  } else if (/<html[^>]*>/i.test(html)) {
+    return html.replace(/<html[^>]*>/i, (m) => m + '<head>' + base + '</head>')
+  }
+  return '<head>' + base + '</head>' + html
 }
 
 /**
- * Phase 32 — v1 인앱 웹 브라우저 + iframe 차단 감지 + 외부 탭 폴백.
- * Google/Naver/Facebook/YouTube 등 차단 사이트는 자동으로 새 탭에서 열고,
- * Wikipedia/MDN/GitHub/StackOverflow 등 CORS 허용 사이트는 iframe 으로 로딩.
+ * Phase 33 — v1 인앱 웹 브라우저 + CORS 프록시 폴백.
+ * 차단 사이트는 fetch HTML → srcdoc 으로 우회 로딩.
  */
 export function WebBrowserModal({ editor, onClose }: WebBrowserModalProps) {
   const [url, setUrl] = useState('')
   const [history, setHistory] = useState<string[]>([])
   const [hIdx, setHIdx] = useState(-1)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(false)
-  const [externalNote, setExternalNote] = useState('')
+  const [error, setError] = useState('')
+  const [statusMsg, setStatusMsg] = useState('')
+  const [srcdocHtml, setSrcdocHtml] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const loadTimer = useRef<number | null>(null)
@@ -55,7 +78,22 @@ export function WebBrowserModal({ editor, onClose }: WebBrowserModalProps) {
     return () => document.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  const navigate = (target: string, opts?: { skipBlockCheck?: boolean }) => {
+  const fetchViaProxy = async (target: string): Promise<string> => {
+    let lastErr: any
+    for (const mkProxy of CORS_PROXIES) {
+      try {
+        const proxyUrl = mkProxy(target)
+        const res = await fetch(proxyUrl, { method: 'GET' })
+        if (!res.ok) throw new Error('HTTP ' + res.status)
+        const html = await res.text()
+        if (html.length < 100) throw new Error('너무 짧은 응답')
+        return html
+      } catch (e: any) { lastErr = e }
+    }
+    throw lastErr || new Error('모든 프록시 실패')
+  }
+
+  const navigate = async (target: string) => {
     if (!target.trim()) return
     let final = target.trim()
     if (!/^https?:\/\//.test(final) && !/^[\w-]+\.[\w]+/.test(final)) {
@@ -63,47 +101,61 @@ export function WebBrowserModal({ editor, onClose }: WebBrowserModalProps) {
     } else if (!/^https?:\/\//.test(final)) {
       final = 'https://' + final
     }
+    /* YouTube watch URL 은 embed 로 변환 */
+    final = toEmbedUrl(final)
 
-    /* 차단 사이트는 자동으로 새 탭에서 열기 */
-    if (!opts?.skipBlockCheck && isBlocked(final)) {
-      window.open(final, '_blank', 'noopener,noreferrer')
-      setExternalNote(`이 사이트는 임베드를 차단해서 새 탭에서 열었습니다 — ${new URL(final).hostname}`)
-      setUrl(final)
-      if (hIdx === -1 || history[hIdx] !== final) {
-        const h = [...history.slice(0, hIdx + 1), final]; setHistory(h); setHIdx(h.length - 1)
-      }
-      return
-    }
-
-    setError(false)
+    setError('')
+    setSrcdocHtml('')
     setLoading(true)
-    setExternalNote('')
+    setStatusMsg('')
     setUrl(final)
     if (hIdx === -1 || history[hIdx] !== final) {
       const h = [...history.slice(0, hIdx + 1), final]; setHistory(h); setHIdx(h.length - 1)
     }
-    /* 5초 안에 onLoad 안 fire 되면 차단으로 간주 */
     if (loadTimer.current) window.clearTimeout(loadTimer.current)
-    loadTimer.current = window.setTimeout(() => { setError(true); setLoading(false) }, 5000) as any
+
+    /* 차단 사이트는 즉시 CORS 프록시 사용 */
+    if (needsProxy(final)) {
+      setStatusMsg('iframe 차단 사이트 — CORS 프록시로 로딩 중...')
+      try {
+        const html = await fetchViaProxy(final)
+        setSrcdocHtml(sanitizeForSrcdoc(html, final))
+        setLoading(false)
+        setStatusMsg('CORS 프록시로 로딩됨 (일부 동적 콘텐츠는 제한됨)')
+      } catch (e: any) {
+        setError('CORS 프록시 실패: ' + e.message)
+        setLoading(false)
+      }
+      return
+    }
+
+    /* 일반 사이트: iframe src 로 시도, 5초 안에 onLoad 안 fire 면 프록시 폴백 */
+    loadTimer.current = window.setTimeout(async () => {
+      setStatusMsg('iframe 로딩 지연 — CORS 프록시 폴백 시도...')
+      try {
+        const html = await fetchViaProxy(final)
+        setSrcdocHtml(sanitizeForSrcdoc(html, final))
+        setLoading(false)
+        setStatusMsg('CORS 프록시로 폴백됨')
+      } catch (e: any) {
+        setError('iframe 차단 + 프록시 실패: ' + e.message)
+        setLoading(false)
+      }
+    }, 5000) as any
   }
   const onIframeLoad = () => {
     if (loadTimer.current) { window.clearTimeout(loadTimer.current); loadTimer.current = null }
     setLoading(false)
+    if (!srcdocHtml) setStatusMsg('인앱 로딩 완료')
   }
 
   const goEngine = (key: string) => {
     const q = inputRef.current?.value || window.prompt(ENGINES[key].label + ' 검색어:')
     if (q) navigate(ENGINES[key].url(q))
   }
-  const goBack = () => {
-    if (hIdx > 0) { const i = hIdx - 1; setHIdx(i); navigate(history[i], { skipBlockCheck: false }) }
-  }
-  const goFwd = () => {
-    if (hIdx < history.length - 1) { const i = hIdx + 1; setHIdx(i); navigate(history[i], { skipBlockCheck: false }) }
-  }
-  const reload = () => {
-    if (iframeRef.current && url) { iframeRef.current.src = ''; setTimeout(() => { if (iframeRef.current) iframeRef.current.src = url }, 50) }
-  }
+  const goBack = () => { if (hIdx > 0) { const i = hIdx - 1; setHIdx(i); navigate(history[i]) } }
+  const goFwd = () => { if (hIdx < history.length - 1) { const i = hIdx + 1; setHIdx(i); navigate(history[i]) } }
+  const reload = () => { if (url) navigate(url) }
   const openExternal = () => {
     const target = url || inputRef.current?.value
     if (!target) return alert('URL 이 없습니다.')
@@ -132,45 +184,42 @@ export function WebBrowserModal({ editor, onClose }: WebBrowserModalProps) {
   const readerMode = async () => {
     if (!url) return
     try {
-      const res = await fetch(url, { mode: 'cors' })
-      const html = await res.text()
+      let html = srcdocHtml
+      if (!html) html = await fetchViaProxy(url)
       const doc = new DOMParser().parseFromString(html, 'text/html')
       doc.querySelectorAll('script,style,nav,header,footer,iframe,form,button').forEach(e => e.remove())
       const article = doc.querySelector('article, main, [role=main]') || doc.body
       const title = doc.title || url
       insertHTML(`<h2>${title}</h2>${article.innerHTML.slice(0, 5000)}<p><em>출처: <a href="${url}">${url}</a></em></p>`)
-    } catch (e: any) { alert('CORS 차단: ' + e.message + '\n\nWikipedia/MDN 등은 CORS OK · Google/Naver 등은 차단') }
+    } catch (e: any) { alert('실패: ' + e.message) }
   }
-  const aiSummary = () => {
-    if (!url) return
-    alert('AI 요약은 별도 API 키 설정이 필요합니다.')
-  }
+  const aiSummary = () => alert('AI 요약은 별도 API 키 설정이 필요합니다.')
   const extractImages = async () => {
     if (!url) return
     try {
-      const res = await fetch(url, { mode: 'cors' })
-      const html = await res.text()
+      let html = srcdocHtml
+      if (!html) html = await fetchViaProxy(url)
       const doc = new DOMParser().parseFromString(html, 'text/html')
       const imgs = Array.from(doc.querySelectorAll('img')).map(i => (i as HTMLImageElement).src).filter(s => s.startsWith('http')).slice(0, 12)
       if (!imgs.length) return alert('이미지를 찾지 못함.')
-      const sel = window.prompt(`${imgs.length}개 발견. 번호 (1-${imgs.length}, 쉼표 또는 'all'):`, 'all')
+      const sel = window.prompt(`${imgs.length}개 발견. 번호 (쉼표 또는 'all'):`, 'all')
       if (!sel) return
       const idxs = sel === 'all' ? imgs.map((_, i) => i) : sel.split(',').map(s => parseInt(s.trim()) - 1).filter(i => i >= 0 && i < imgs.length)
       idxs.forEach(i => insertHTML(`<img src="${imgs[i]}" style="max-width:100%;margin:0.5em 0;"/>`))
-    } catch (e: any) { alert('CORS 차단: ' + e.message) }
+    } catch (e: any) { alert('실패: ' + e.message) }
   }
   const extractTables = async () => {
     if (!url) return
     try {
-      const res = await fetch(url, { mode: 'cors' })
-      const html = await res.text()
+      let html = srcdocHtml
+      if (!html) html = await fetchViaProxy(url)
       const doc = new DOMParser().parseFromString(html, 'text/html')
       const tables = doc.querySelectorAll('table')
       if (!tables.length) return alert('표를 찾지 못함.')
-      const sel = window.prompt(`${tables.length}개 발견. 번호 (1-${tables.length}):`, '1')
+      const sel = window.prompt(`${tables.length}개 발견. 번호:`, '1')
       const idx = parseInt(sel || '1') - 1
       if (tables[idx]) insertHTML(tables[idx].outerHTML)
-    } catch (e: any) { alert('CORS 차단: ' + e.message) }
+    } catch (e: any) { alert('실패: ' + e.message) }
   }
 
   return (
@@ -204,8 +253,8 @@ export function WebBrowserModal({ editor, onClose }: WebBrowserModalProps) {
             <button key={k} className="jan-wb-btn small" onClick={() => goEngine(k)}>{e.label}</button>
           ))}
           <span style={{ flex: 1 }} />
-          <button className="jan-wb-btn small action" onClick={insertLink} title="현재 URL 을 메모에 링크로 삽입"><Icon name="link" size={12} /> 링크 저장</button>
-          <button className="jan-wb-btn small action" onClick={insertExcerpt} title="클립보드 또는 입력 텍스트를 출처와 함께 인용"><Icon name="quote" size={12} /> 선택 인용</button>
+          <button className="jan-wb-btn small action" onClick={insertLink}><Icon name="link" size={12} /> 링크 저장</button>
+          <button className="jan-wb-btn small action" onClick={insertExcerpt}><Icon name="quote" size={12} /> 선택 인용</button>
         </div>
 
         <div className="jan-wb-research">
@@ -216,49 +265,48 @@ export function WebBrowserModal({ editor, onClose }: WebBrowserModalProps) {
           <button className="jan-wb-btn small action" onClick={extractImages}><Icon name="image" size={12} /> 이미지</button>
           <button className="jan-wb-btn small action" onClick={extractTables}><Icon name="table" size={12} /> 표 추출</button>
           <span style={{ flex: 1 }} />
-          <span style={{ fontSize: 10, color: '#888' }}>※ Wikipedia/MDN: CORS OK · Google/Naver: 차단</span>
+          {statusMsg && <span style={{ fontSize: 10, color: '#6a4cbb' }}>{statusMsg}</span>}
         </div>
 
         <div className="jan-wb-frame-wrap">
-          {url && !error && !externalNote && (
+          {srcdocHtml ? (
             <iframe
+              key="srcdoc"
+              srcDoc={srcdocHtml}
+              sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+              referrerPolicy="no-referrer"
+              title="In-app browser (proxy)"
+            />
+          ) : url && !error ? (
+            <iframe
+              key="src"
               ref={iframeRef}
               src={url}
               referrerPolicy="no-referrer"
               onLoad={onIframeLoad}
               title="In-app browser"
             />
-          )}
-          {!url && !externalNote && (
+          ) : null}
+          {!url && (
             <div className="jan-wb-placeholder">
               <Icon name="globe" size={70} />
               <h4>메모장 내부 웹 브라우저</h4>
               <p>위 검색창에 검색어를 입력하거나 URL 을 붙여넣으세요<br />또는 빠른 검색 버튼으로 바로 이동할 수 있어요.</p>
               <p className="muted">
-                Google · Naver · YouTube · Facebook 등 차단 사이트는 자동으로 새 탭에서 열립니다.<br />
-                Wikipedia · 나무위키 · GitHub · StackOverflow 등은 인앱으로 잘 열립니다.
+                Google · Naver · Facebook 등 차단 사이트는 자동으로 <strong>CORS 프록시</strong>를 통해 인앱 로딩됩니다.<br />
+                Wikipedia · 나무위키 · GitHub · YouTube · StackOverflow 등은 직접 iframe 으로 빠르게 로딩됩니다.
               </p>
-            </div>
-          )}
-          {externalNote && (
-            <div className="jan-wb-placeholder">
-              <Icon name="globe" size={70} />
-              <h4>외부 브라우저에서 열렸습니다</h4>
-              <p>{externalNote}</p>
-              <p className="muted">현재 인앱 브라우저에서는 표시할 수 없습니다.<br />새 탭에서 검색 결과를 확인하세요.</p>
-              <button className="jan-wb-btn primary" onClick={openExternal} style={{ marginTop: 12 }}><Icon name="globe" /> 다시 외부에서 열기</button>
             </div>
           )}
           {error && url && (
             <div className="jan-wb-error">
               <Icon name="info" size={60} />
-              <h4>페이지를 불러올 수 없습니다</h4>
-              <p>이 사이트는 보안정책으로 임베드가 차단되었습니다.<br /><br />
-                <button className="jan-wb-btn primary" onClick={openExternal}><Icon name="globe" /> 외부 브라우저로 열기</button>
-              </p>
+              <h4>로딩 실패</h4>
+              <p>{error}</p>
+              <button className="jan-wb-btn primary" onClick={openExternal}><Icon name="globe" /> 외부 브라우저로 열기</button>
             </div>
           )}
-          {loading && url && !error && <div className="jan-wb-loading">불러오는 중... (5초 안에 응답 없으면 차단으로 간주)</div>}
+          {loading && url && !error && <div className="jan-wb-loading">{statusMsg || '불러오는 중...'}</div>}
         </div>
 
         <div className="jan-wb-statusbar">
