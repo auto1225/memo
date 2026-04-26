@@ -639,14 +639,21 @@ body.jan-show-pilcrow .ProseMirror p::after {
 /* ==================== Phase 6 — Outline Panel ==================== */
 .jan-editor-main{display:flex;flex:1;overflow:hidden;}
 .jan-editor-main.has-outline .jan-editor-pages{flex:1;}
-.jan-outline{width:240px;border-right:1px solid var(--border,#ddd);background:var(--bg-soft,#fafafa);overflow-y:auto;flex-shrink:0;}
-.jan-outline-head{padding:10px 14px;font-weight:600;font-size:13px;border-bottom:1px solid var(--border,#eee);color:#666;}
+.jan-outline{width:260px;border-right:1px solid var(--border,#ddd);background:var(--bg-soft,#fafafa);overflow-y:auto;flex-shrink:0;}
+.jan-outline-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px 8px;font-weight:700;font-size:13px;border-bottom:1px solid var(--border,#eee);color:#555;}
+.jan-outline-head small{min-width:22px;height:20px;display:inline-flex;align-items:center;justify-content:center;border-radius:10px;background:rgba(0,0,0,0.06);font-size:11px;color:#777;}
+.jan-outline-search{padding:8px 10px;border-bottom:1px solid var(--border,#eee);}
+.jan-outline-search input{width:100%;height:30px;box-sizing:border-box;border:1px solid var(--border,#ddd);border-radius:6px;background:var(--paper,#fff);color:var(--ink,#191919);padding:0 9px;font-size:12px;}
 .jan-outline-empty{padding:14px;color:#999;font-size:12px;}
 .jan-outline-list{list-style:none;padding:6px 0;margin:0;}
-.jan-outline-item{padding:4px 14px;cursor:pointer;font-size:12px;line-height:1.4;border-left:2px solid transparent;}
+.jan-outline-list li{margin:0;}
+.jan-outline-item{width:100%;display:grid;grid-template-columns:28px minmax(0,1fr);gap:6px;align-items:center;padding:5px 12px;cursor:pointer;font-size:12px;line-height:1.35;border:0;border-left:3px solid transparent;background:transparent;color:inherit;text-align:left;}
 .jan-outline-item:hover{background:rgba(217,119,87,0.08);border-left-color:#D97757;}
+.jan-outline-item.is-active{background:rgba(217,119,87,0.13);border-left-color:#D97757;font-weight:700;}
 .jan-outline-item.lvl1{font-weight:700;font-size:13px;}
 .jan-outline-item.lvl2{font-weight:600;}
+.jan-outline-level{font-size:10px;color:#888;font-weight:700;}
+.jan-outline-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
 /* ==================== Phase 6 — Keyboard Help ==================== */
 .jan-help-modal{width:min(640px,92vw);max-height:80vh;}
@@ -684,6 +691,7 @@ body.jan-show-pilcrow .ProseMirror p::after {
 .jan-theme-dark .jan-modal-overlay{background:rgba(0,0,0,0.7);}
 .jan-theme-dark .jan-modal input,.jan-theme-dark .jan-modal textarea,.jan-theme-dark .jan-modal select{background:#1e1e1e;color:#e0e0e0;border-color:#444;}
 .jan-theme-dark .jan-tagsbar,.jan-theme-dark .jan-outline{background:#202020;border-color:#3a3a3a;}
+.jan-theme-dark .jan-outline-search input{background:#1e1e1e;color:#e0e0e0;border-color:#444;}
 .jan-theme-dark .jan-help-table kbd{background:#333;color:#eee;border-color:#555;}
 .jan-theme-dark th{background:#333 !important;color:#eee;}
 .jan-theme-dark table th,.jan-theme-dark table td{border-color:#444 !important;}
