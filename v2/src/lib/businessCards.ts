@@ -661,36 +661,66 @@ export function getCardStats(cards: BusinessCard[]): CardStats {
   }
 }
 
-export function readImageFile(file: File, maxWidth = 1600): Promise<string> {
+const IMAGE_FILE_RE = /\.(avif|bmp|gif|jpe?g|png|svg|webp|hei[cf])$/i
+const HEIC_FILE_RE = /\.(hei[cf])$/i
+
+function isHeicFile(file: File): boolean {
+  const type = file.type.toLowerCase()
+  return type === 'image/heic' || type === 'image/heif' || HEIC_FILE_RE.test(file.name)
+}
+
+function readBlobAsDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
-    if (!file.type.startsWith('image/')) {
-      reject(new Error('이미지 파일만 사용할 수 있습니다'))
-      return
-    }
     const reader = new FileReader()
-    reader.onload = () => {
-      const image = new Image()
-      image.onload = () => {
-        const scale = Math.min(1, maxWidth / image.width)
-        const canvas = document.createElement('canvas')
-        canvas.width = Math.max(1, Math.round(image.width * scale))
-        canvas.height = Math.max(1, Math.round(image.height * scale))
-        const ctx = canvas.getContext('2d')
-        if (!ctx) {
-          reject(new Error('이미지 캔버스를 만들 수 없습니다'))
-          return
-        }
-        ctx.fillStyle = '#fff'
-        ctx.fillRect(0, 0, canvas.width, canvas.height)
-        ctx.drawImage(image, 0, 0, canvas.width, canvas.height)
-        resolve(canvas.toDataURL('image/jpeg', 0.88))
-      }
-      image.onerror = () => reject(new Error('이미지를 읽을 수 없습니다'))
-      image.src = String(reader.result || '')
-    }
+    reader.onload = () => resolve(String(reader.result || ''))
     reader.onerror = () => reject(new Error('파일을 읽을 수 없습니다'))
-    reader.readAsDataURL(file)
+    reader.readAsDataURL(blob)
   })
+}
+
+function loadImage(dataUrl: string, errorMessage: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image()
+    image.onload = () => resolve(image)
+    image.onerror = () => reject(new Error(errorMessage))
+    image.src = dataUrl
+  })
+}
+
+function drawImageToJpeg(image: HTMLImageElement, maxWidth: number): string {
+  const scale = Math.min(1, maxWidth / image.width)
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.max(1, Math.round(image.width * scale))
+  canvas.height = Math.max(1, Math.round(image.height * scale))
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('이미지 캔버스를 만들 수 없습니다')
+  ctx.fillStyle = '#fff'
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'high'
+  ctx.drawImage(image, 0, 0, canvas.width, canvas.height)
+  return canvas.toDataURL('image/jpeg', 0.88)
+}
+
+async function convertHeicToJpeg(file: File): Promise<Blob> {
+  try {
+    const { default: heic2any } = await import('heic2any')
+    const converted = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 })
+    return Array.isArray(converted) ? converted[0] : converted
+  } catch {
+    throw new Error('HEIC 이미지를 JPEG로 변환하지 못했습니다. JPG 또는 PNG로 저장한 뒤 다시 시도하세요.')
+  }
+}
+
+export async function readImageFile(file: File, maxWidth = 1600): Promise<string> {
+  const isHeic = isHeicFile(file)
+  if (!file.type.startsWith('image/') && !IMAGE_FILE_RE.test(file.name)) {
+    throw new Error('이미지 파일만 사용할 수 있습니다')
+  }
+  const source = isHeic ? await convertHeicToJpeg(file) : file
+  const dataUrl = await readBlobAsDataUrl(source)
+  const image = await loadImage(dataUrl, '이미지를 읽을 수 없습니다. JPG, PNG, WebP 또는 HEIC 이미지를 사용하세요.')
+  return drawImageToJpeg(image, maxWidth)
 }
 
 export function rotateImageDataUrl(dataUrl: string): Promise<string> {
@@ -715,6 +745,49 @@ export function rotateImageDataUrl(dataUrl: string): Promise<string> {
     image.onerror = () => reject(new Error('이미지를 회전할 수 없습니다'))
     image.src = dataUrl
   })
+}
+
+function canvasToBlob(canvas: HTMLCanvasElement, type: string): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) resolve(blob)
+      else reject(new Error('이미지를 OCR용으로 변환할 수 없습니다'))
+    }, type)
+  })
+}
+
+export async function preprocessImageForOcr(dataUrl: string, targetLongEdge = 2200): Promise<Blob> {
+  const image = await loadImage(dataUrl, 'OCR용 이미지를 읽을 수 없습니다')
+  const longEdge = Math.max(image.width, image.height)
+  const scale = longEdge > targetLongEdge
+    ? targetLongEdge / longEdge
+    : longEdge < 1200
+      ? Math.min(2, 1200 / longEdge)
+      : 1
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.max(1, Math.round(image.width * scale))
+  canvas.height = Math.max(1, Math.round(image.height * scale))
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })
+  if (!ctx) throw new Error('이미지 캔버스를 만들 수 없습니다')
+  ctx.fillStyle = '#fff'
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'high'
+  ctx.drawImage(image, 0, 0, canvas.width, canvas.height)
+
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+  const data = imageData.data
+  for (let index = 0; index < data.length; index += 4) {
+    const gray = data[index] * 0.299 + data[index + 1] * 0.587 + data[index + 2] * 0.114
+    const contrasted = Math.max(0, Math.min(255, (gray - 128) * 1.35 + 128))
+    const value = contrasted > 232 ? 255 : contrasted < 32 ? 0 : contrasted
+    data[index] = value
+    data[index + 1] = value
+    data[index + 2] = value
+    data[index + 3] = 255
+  }
+  ctx.putImageData(imageData, 0, 0)
+  return canvasToBlob(canvas, 'image/png')
 }
 
 export async function dataUrlToBlob(dataUrl: string): Promise<Blob> {

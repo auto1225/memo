@@ -20,6 +20,7 @@ import {
   parseContactText,
   parseCsv,
   parseVCard,
+  preprocessImageForOcr,
   readImageFile,
   rotateImageDataUrl,
   splitTags,
@@ -37,6 +38,7 @@ type CardFilter = 'all' | 'favorite' | 'recent' | `group:${string}` | `tag:${str
 type CardSort = 'updatedAt' | 'createdAt' | 'name' | 'company'
 type DetailMode = 'detail' | 'stats' | 'qr'
 type ImageField = 'frontImage' | 'backImage'
+const CARD_IMAGE_ACCEPT = 'image/*,.heic,.heif'
 
 function downloadText(filename: string, text: string, type: string) {
   const blob = new Blob([text], { type })
@@ -416,6 +418,7 @@ export function BusinessCardsModal({ editor, onClose }: BusinessCardsModalProps)
 
   async function handleImageFile(file: File, field: ImageField) {
     try {
+      setStatus(`${field === 'frontImage' ? '앞면' : '뒷면'} 이미지 처리 중입니다...`)
       const dataUrl = await readImageFile(file)
       setEditingId((current) => current || 'new')
       setDetailMode('detail')
@@ -471,7 +474,8 @@ export function BusinessCardsModal({ editor, onClose }: BusinessCardsModalProps)
     setOcrBusy(true)
     setOcrProgress(0)
     try {
-      const blob = await dataUrlToBlob(dataUrl)
+      setStatus('OCR용 이미지 보정 중입니다...')
+      const blob = await preprocessImageForOcr(dataUrl).catch(() => dataUrlToBlob(dataUrl))
       const text = (await ocrImage(blob, 'kor+eng', setOcrProgress)).trim()
       if (!text) {
         setStatus('OCR 결과가 비어 있습니다. 더 선명한 이미지를 사용해보세요.')
@@ -778,9 +782,9 @@ export function BusinessCardsModal({ editor, onClose }: BusinessCardsModalProps)
 
         {status && <div className="jan-settings-status jan-cards-status">{status}</div>}
         <input ref={importInputRef} type="file" accept=".csv,.vcf,text/csv,text/vcard" onChange={handleImport} hidden />
-        <input ref={frontInputRef} type="file" accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if (file) void handleImageFile(file, 'frontImage'); e.target.value = '' }} hidden />
-        <input ref={backInputRef} type="file" accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if (file) void handleImageFile(file, 'backImage'); e.target.value = '' }} hidden />
-        <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={(e) => { const file = e.target.files?.[0]; if (file) void handleImageFile(file, 'frontImage'); e.target.value = '' }} hidden />
+        <input ref={frontInputRef} type="file" accept={CARD_IMAGE_ACCEPT} onChange={(e) => { const file = e.target.files?.[0]; if (file) void handleImageFile(file, 'frontImage'); e.target.value = '' }} hidden />
+        <input ref={backInputRef} type="file" accept={CARD_IMAGE_ACCEPT} onChange={(e) => { const file = e.target.files?.[0]; if (file) void handleImageFile(file, 'backImage'); e.target.value = '' }} hidden />
+        <input ref={cameraInputRef} type="file" accept={CARD_IMAGE_ACCEPT} capture="environment" onChange={(e) => { const file = e.target.files?.[0]; if (file) void handleImageFile(file, 'frontImage'); e.target.value = '' }} hidden />
       </div>
     </div>
   )
