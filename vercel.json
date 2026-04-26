@@ -98,6 +98,7 @@
     { "source": "/app", "destination": "/app.html" },
     { "source": "/v2", "destination": "/dist-v2/index.html" },
     { "source": "/v2/", "destination": "/dist-v2/index.html" },
+    { "source": "/v2/config.js", "destination": "/config.js" },
     { "source": "/v2/assets/:path+", "destination": "/dist-v2/assets/:path+" },
     { "source": "/v2/favicon.svg", "destination": "/dist-v2/favicon.svg" },
     { "source": "/v2/icons.svg", "destination": "/dist-v2/icons.svg" },
