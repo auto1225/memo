@@ -53,3 +53,12 @@ This document tracks the migration target: v2 must reproduce the v1 design and u
 3. Audit meeting-note recording/transcription parity.
 4. Add targeted E2E smoke tests that can run against Chrome or bundled Playwright browsers.
 5. Audit v1 mention links between memos and business cards.
+
+## Operating Reference
+
+- Long-running project agents, release gates, and QA coverage are tracked in `docs/v2-agent-ops.md`.
+- Every large feature should pass three checks before release: v1 reference audit, v2 implementation audit, and QA/release audit.
+- Current agent roles:
+  - Aquinas: v1 reference auditor.
+  - Gauss: v2 implementation auditor.
+  - Kant: QA and release auditor.
