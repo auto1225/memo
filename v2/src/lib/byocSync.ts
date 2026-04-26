@@ -197,21 +197,33 @@ export function readByocSyncHealth(): ByocSyncHealth {
   }
 }
 
-export function clearByocSyncError(): void {
+function notifyByocSyncHealthChanged(): void {
+  if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function') return
+  window.dispatchEvent(new Event('jan-byoc-sync-health'))
+}
+
+function clearByocSyncErrorStorage(): void {
   safeLocalRemove(SYNC_LAST_ERROR_KEY)
   safeLocalRemove(SYNC_LAST_ERROR_AT_KEY)
+}
+
+export function clearByocSyncError(): void {
+  clearByocSyncErrorStorage()
+  notifyByocSyncHealthChanged()
 }
 
 function recordByocSyncSuccess(provider: SyncProvider): void {
   safeLocalSet(SYNC_LAST_AT_KEY, String(Date.now()))
   safeLocalSet(SYNC_LAST_PROVIDER_KEY, provider)
-  clearByocSyncError()
+  clearByocSyncErrorStorage()
+  notifyByocSyncHealthChanged()
 }
 
 function recordByocSyncFailure(provider: SyncProvider, error: unknown): void {
   safeLocalSet(SYNC_LAST_ERROR_KEY, errorMessage(error))
   safeLocalSet(SYNC_LAST_ERROR_AT_KEY, String(Date.now()))
   safeLocalSet(SYNC_LAST_PROVIDER_KEY, provider)
+  notifyByocSyncHealthChanged()
 }
 
 async function sha256Base64Url(value: string): Promise<string> {

@@ -216,6 +216,28 @@ test.describe('v2 smoke', () => {
     await expect(pages).toHaveAttribute('data-page-columns', '2')
   })
 
+  test('status bar surfaces personal storage sync failures on mobile', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.addInitScript(() => {
+      localStorage.setItem('jan-v2-role-onboarded', '1')
+      localStorage.setItem(
+        'jan-v2-settings',
+        JSON.stringify({ state: { syncEnabled: true, syncProvider: 'onedrive' }, version: 0 })
+      )
+      localStorage.setItem('jan.v2.sync.lastError', 'OneDrive token expired')
+      localStorage.setItem('jan.v2.sync.lastErrorAt', String(Date.now()))
+      localStorage.setItem('jan.v2.sync.lastProvider', 'onedrive')
+    })
+    await page.goto('./')
+    const syncChip = page.locator('.jan-sync-status-chip.is-error')
+    await expect(syncChip).toBeVisible({ timeout: 15000 })
+    await expect(syncChip).toContainText('OneDrive')
+
+    await syncChip.click()
+    await expect(page.locator('.jan-settings-modal')).toBeVisible()
+    await expect(page.locator('.jan-sync-health-alert')).toContainText('OneDrive token expired')
+  })
+
   test('business card extraction from the current memo corrects draft fields before save', async ({ page }) => {
     await page.addInitScript(() => localStorage.setItem('jan-v2-role-onboarded', '1'))
     await page.goto('./')

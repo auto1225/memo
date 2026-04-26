@@ -2538,6 +2538,49 @@ html, body, #root {
   color: color-mix(in srgb, var(--accent, #D97757) 82%, #222);
 }
 
+.jan-sync-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 21px;
+  max-width: min(180px, 22vw);
+  padding: 0 8px;
+  border: 1px solid color-mix(in srgb, var(--paper-edge, #e5e5e5) 90%, transparent);
+  border-radius: 4px;
+  background: #fff;
+  color: color-mix(in srgb, var(--ink-soft, #666) 92%, #111);
+  font: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.jan-sync-status-chip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.jan-sync-status-chip.is-ok {
+  border-color: rgba(66, 153, 86, 0.24);
+  background: rgba(66, 153, 86, 0.08);
+  color: #256a3a;
+}
+
+.jan-sync-status-chip.is-idle {
+  border-color: rgba(190, 137, 33, 0.24);
+  background: rgba(190, 137, 33, 0.08);
+  color: #7a5a12;
+}
+
+.jan-sync-status-chip.is-error {
+  border-color: rgba(190, 72, 72, 0.3);
+  background: rgba(190, 72, 72, 0.1);
+  color: #8a2f2f;
+}
+
+.jan-sync-status-chip:hover {
+  filter: brightness(0.98);
+}
+
 .jan-zoom-control {
   display: inline-flex;
   align-items: center;
@@ -2600,6 +2643,30 @@ html, body, #root {
 .jan-theme-dark .jan-page-status-chip:hover {
   background: rgba(217,119,87,0.18);
   color: #f0c0aa;
+}
+
+.jan-theme-dark .jan-sync-status-chip {
+  background: var(--jan-paper, #1f1f20);
+  border-color: var(--jan-border, #2a2a2c);
+  color: var(--jan-fg-muted, #aaa);
+}
+
+.jan-theme-dark .jan-sync-status-chip.is-ok {
+  background: rgba(77, 180, 105, 0.14);
+  border-color: rgba(77, 180, 105, 0.28);
+  color: #a9e6b6;
+}
+
+.jan-theme-dark .jan-sync-status-chip.is-idle {
+  background: rgba(255, 193, 76, 0.13);
+  border-color: rgba(255, 193, 76, 0.24);
+  color: #f5d184;
+}
+
+.jan-theme-dark .jan-sync-status-chip.is-error {
+  background: rgba(255, 93, 93, 0.13);
+  border-color: rgba(255, 93, 93, 0.28);
+  color: #ffc4c4;
 }
 
 .jan-theme-dark .jan-zoom-control button {
@@ -4852,6 +4919,10 @@ html, body, #root {
 
   .jan-page-status-chip {
     max-width: 190px;
+  }
+
+  .jan-sync-status-chip {
+    max-width: 132px;
   }
 
   .jan-zoom-slider {

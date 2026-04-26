@@ -5,13 +5,16 @@ import { useMemosStore } from '../store/memosStore'
 import { useCollab } from '../hooks/useCollab'
 import { useWritingGoalStore } from '../store/writingGoalStore'
 import { PAPER_STYLES, pageMarginsSummary, useUIStore } from '../store/uiStore'
+import { useSettingsStore } from '../store/settingsStore'
 import { PomodoroWidget } from './PomodoroWidget'
 import { Icon } from './Icons'
 import { fitPageZoom, setPageZoom } from '../lib/pageZoom'
+import { readByocSyncHealth, type ByocSyncHealth } from '../lib/byocSync'
 
 interface StatusBarProps {
   editor: Editor | null
   onPageSettings?: () => void
+  onSettings?: () => void
 }
 
 interface TextStats {
@@ -21,16 +24,19 @@ interface TextStats {
 }
 
 const EMPTY_STATS: TextStats = { chars: 0, words: 0, blocks: 0 }
+const BYOC_PROVIDERS = new Set(['local', 'dropbox', 'onedrive'])
 
 /**
  * Phase 17 — 강화된 StatusBar.
  * 글자/단어/단락 + 선택 영역 통계 + 저장 인디케이터 + 협업 + 줌 + 일일 목표 + 뽀모도로.
  */
-export function StatusBar({ editor, onPageSettings }: StatusBarProps) {
+export function StatusBar({ editor, onPageSettings, onSettings }: StatusBarProps) {
   const { savedAt } = useDocStore()
   const memo = useMemosStore((s) => s.current())
   const collab = useCollab()
   const goal = useWritingGoalStore()
+  const syncEnabled = useSettingsStore((s) => s.syncEnabled)
+  const syncProvider = useSettingsStore((s) => s.syncProvider)
   const zoom = useUIStore((s) => s.zoom)
   const pageSize = useUIStore((s) => s.pageSize)
   const pageOrientation = useUIStore((s) => s.pageOrientation)
@@ -41,6 +47,7 @@ export function StatusBar({ editor, onPageSettings }: StatusBarProps) {
   const showRulers = useUIStore((s) => s.showRulers)
   const viewLayout = useUIStore((s) => s.viewLayout)
   const [tick, setTick] = useState(0)
+  const [syncHealth, setSyncHealth] = useState<ByocSyncHealth>(() => readByocSyncHealth())
 
   useEffect(() => {
     if (!editor) return
@@ -52,6 +59,21 @@ export function StatusBar({ editor, onPageSettings }: StatusBarProps) {
       editor.off('update', fn)
     }
   }, [editor])
+
+  useEffect(() => {
+    const refresh = () => setSyncHealth(readByocSyncHealth())
+    refresh()
+    window.addEventListener('jan-byoc-sync-health', refresh)
+    window.addEventListener('storage', refresh)
+    window.addEventListener('focus', refresh)
+    const id = window.setInterval(refresh, 30000)
+    return () => {
+      window.removeEventListener('jan-byoc-sync-health', refresh)
+      window.removeEventListener('storage', refresh)
+      window.removeEventListener('focus', refresh)
+      window.clearInterval(id)
+    }
+  }, [])
 
   const docStats = editor ? getDocumentStats(editor) : EMPTY_STATS
   const selectionStats = editor ? getSelectionStats(editor) : EMPTY_STATS
@@ -80,6 +102,8 @@ export function StatusBar({ editor, onPageSettings }: StatusBarProps) {
   ].join(' · ')
   const pageTitle = `${pageSummary} · ${paperLabel} · 눈금자 ${showRulers ? '켬' : '끔'}`
 
+  const syncStatus = getSyncStatus(syncEnabled, syncProvider, syncHealth)
+
   return (
     <div className="jan-statusbar">
       <span>{docStats.chars}자</span>
@@ -95,6 +119,21 @@ export function StatusBar({ editor, onPageSettings }: StatusBarProps) {
       )}
       <span className="divider" />
       <span className={saveClass}>{saveLabel}</span>
+      {syncStatus && (
+        <>
+          <span className="divider" />
+          <button
+            type="button"
+            className={`jan-sync-status-chip is-${syncStatus.kind}`}
+            aria-label="개인 저장소 동기화 상태"
+            title={syncStatus.title}
+            onClick={onSettings}
+          >
+            <Icon name={syncStatus.kind === 'error' ? 'shield' : 'sync'} size={12} />
+            <span>{syncStatus.label}</span>
+          </button>
+        </>
+      )}
       <span className="divider" />
       <button
         type="button"
@@ -181,4 +220,62 @@ function getSelectionStats(editor: Editor): TextStats {
 
 function countWords(text: string): number {
   return text.trim().split(/\s+/).filter(Boolean).length
+}
+
+function getSyncStatus(
+  syncEnabled: boolean,
+  syncProvider: string,
+  health: ByocSyncHealth
+): { kind: 'ok' | 'idle' | 'error'; label: string; title: string } | null {
+  const provider = health.provider || syncProvider
+  const providerLabel = formatSyncProvider(provider)
+
+  if (health.lastError) {
+    return {
+      kind: 'error',
+      label: `${providerLabel} 실패`,
+      title: `최근 개인 저장소 백업 실패: ${formatSyncTime(health.lastErrorAt)} - ${health.lastError}`,
+    }
+  }
+
+  if (!syncEnabled || !BYOC_PROVIDERS.has(syncProvider)) return null
+
+  if (!health.lastAt) {
+    return {
+      kind: 'idle',
+      label: '백업 대기',
+      title: `${providerLabel} 개인 저장소 자동 백업이 켜져 있습니다. 아직 완료 기록은 없습니다.`,
+    }
+  }
+
+  return {
+    kind: 'ok',
+    label: `백업 ${formatRelativeSyncTime(health.lastAt)}`,
+    title: `${providerLabel} 개인 저장소 마지막 백업: ${formatSyncTime(health.lastAt)}`,
+  }
+}
+
+function formatSyncProvider(provider: string): string {
+  if (provider === 'local') return '내 컴퓨터'
+  if (provider === 'dropbox') return 'Dropbox'
+  if (provider === 'onedrive') return 'OneDrive'
+  if (provider === 'supabase') return 'Supabase'
+  return '개인 저장소'
+}
+
+function formatSyncTime(value: number): string {
+  if (!value) return '기록 없음'
+  return new Date(value).toLocaleString('ko-KR')
+}
+
+function formatRelativeSyncTime(value: number): string {
+  if (!value) return '대기'
+  const elapsedMs = Date.now() - value
+  const minutes = Math.max(0, Math.floor(elapsedMs / 60000))
+  if (minutes < 1) return '방금'
+  if (minutes < 60) return `${minutes}분 전`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}시간 전`
+  const days = Math.floor(hours / 24)
+  return `${days}일 전`
 }
