@@ -487,6 +487,41 @@ export function cardToHtml(card: BusinessCard): string {
   return `<div class="jan-business-card-embed"><h3>${escapeHtml(card.name || card.company || '명함')}</h3>${rows.map(([key, value]) => `<p><strong>${escapeHtml(key)}:</strong> ${escapeHtml(value)}</p>`).join('')}</div><p></p>`
 }
 
+const COMPANY_HINT_RE = /(주식회사|\(주\)|㈜|회사|법인|재단|협회|병원|의원|학원|학교|대학|연구소|센터|공사|공단|관광|건설|산업|상사|무역|전자|테크|시스템|솔루션|서비스|주차|\b(?:inc\.?|corp\.?|ltd\.?|labs?|studio|group|company)\b|\bco\.?\s*(?:ltd\.?|kr)?\b)/i
+const TITLE_RE = /(대표|팀장|실장|과장|차장|부장|이사|상무|전무|사장|연구원|매니저|디자이너|개발자|manager|director|ceo|cto|cfo|designer|engineer)/i
+const ADDRESS_RE = /(서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충청|전라|경상|제주|특별자치도|광역시|시 |구 |동 |읍 |면 |로 |길 |번지|building|street|road|suite)/i
+
+function isMobileNumber(value: string): boolean {
+  let digits = cleanPhone(value)
+  if (digits.startsWith('82')) digits = `0${digits.slice(2)}`
+  return /^01[016789]\d{7,8}$/.test(digits)
+}
+
+function extractPhoneFromLine(line: string): string {
+  return line.match(/(?:\+?\d{1,3}[-.\s]?)?(?:0\d{1,2}[-.\s]?)?\d{3,4}[-.\s]?\d{4}/)?.[0]?.trim() || ''
+}
+
+function cleanCompanyLine(line: string): string {
+  const withoutLabel = line
+    .replace(/^(?:company|company name|회사|회사명|상호|법인명|organization|org)\s*[:：-]?\s*/i, '')
+    .trim()
+  const withoutOcrBullet = withoutLabel.replace(/^[^\p{L}\p{N}]+/u, '').trim()
+  const singleHangulPrefix = withoutOcrBullet.match(/^([가-힣])\s+(.+)$/)
+  if (singleHangulPrefix && COMPANY_HINT_RE.test(singleHangulPrefix[2])) return singleHangulPrefix[2].trim()
+  return withoutOcrBullet
+}
+
+function titleFromLine(line: string): string {
+  return line.match(TITLE_RE)?.[0] || ''
+}
+
+function nameFromTitleLine(line: string): string {
+  const beforeTitle = line.match(/^([가-힣]{2,4})\s*(?:대표|팀장|실장|과장|차장|부장|이사|상무|전무|사장|연구원|매니저)\b/)
+  if (beforeTitle) return beforeTitle[1]
+  const afterTitle = line.match(/(?:대표|팀장|실장|과장|차장|부장|이사|상무|전무|사장|연구원|매니저)\s*[:：-]?\s*([가-힣]{2,4})/)
+  return afterTitle?.[1] || ''
+}
+
 export function parseContactText(text: string): Partial<BusinessCardInput> {
   const normalized = text.replace(/\t/g, ' ').replace(/[|·•]/g, '\n')
   const lines = normalized.split(/\r?\n/).map((line) => line.replace(/\s+/g, ' ').trim()).filter(Boolean)
@@ -494,18 +529,31 @@ export function parseContactText(text: string): Partial<BusinessCardInput> {
   const websiteCandidates = normalized.match(/https?:\/\/[^\s<>()]+|www\.[^\s<>()]+|[a-z0-9-]+\.(?:com|co\.kr|kr|net|org|io|ai|dev)(?:\/[^\s<>()]*)?/gi) || []
   const website = websiteCandidates.find((candidate) => !email.includes(candidate.replace(/^https?:\/\//i, '').replace(/^www\./i, ''))) || ''
   const phoneMatches = Array.from(normalized.matchAll(/(?:\+?\d{1,3}[-.\s]?)?(?:0\d{1,2}[-.\s]?)?\d{3,4}[-.\s]?\d{4}/g)).map((match) => match[0].trim())
-  const mobile = phoneMatches.find((phone) => /(?:^|\D)(?:\+?82[-.\s]?)?0?1[016789]/.test(phone)) || ''
-  const faxLine = lines.find((line) => /fax|팩스/i.test(line))
-  const fax = faxLine?.match(/(?:\+?\d{1,3}[-.\s]?)?(?:0\d{1,2}[-.\s]?)?\d{3,4}[-.\s]?\d{4}/)?.[0] || ''
-  const phone = phoneMatches.find((item) => item !== mobile && item !== fax) || ''
-  const companyLine = lines.find((line) => /(주식회사|\(주\)|㈜|회사|\b(?:inc\.?|corp\.?|ltd\.?|labs?|studio|group|company)\b|\bco\.?\s*(?:ltd\.?|kr)?\b)/i.test(line)) || ''
-  const titleLine = lines.find((line) => /(대표|팀장|실장|과장|차장|부장|이사|상무|전무|사장|연구원|매니저|manager|director|ceo|cto|cfo|designer|engineer)/i.test(line)) || ''
-  const addressLine = lines.find((line) => /(서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충청|전라|경상|제주|시 |구 |동 |로 |길 |번지|building|street|road|suite)/i.test(line)) || ''
+  const mobileLine = lines.find((line) => /(mobile|cell|hp|휴대|핸드폰|휴대폰|모바일)/i.test(line) && extractPhoneFromLine(line))
+  const phoneLine = lines.find((line) => /(tel|전화|대표전화|문의|office)/i.test(line) && extractPhoneFromLine(line))
+  const faxLine = lines.find((line) => /fax|팩스/i.test(line) && extractPhoneFromLine(line))
+  const labeledMobile = mobileLine ? extractPhoneFromLine(mobileLine) : ''
+  const labeledPhone = phoneLine ? extractPhoneFromLine(phoneLine) : ''
+  const fax = faxLine ? extractPhoneFromLine(faxLine) : ''
+  const mobile = labeledMobile || phoneMatches.find(isMobileNumber) || ''
+  const phone = labeledPhone || phoneMatches.find((item) => item !== mobile && item !== fax) || ''
+  const companyLine = lines.find((line) => COMPANY_HINT_RE.test(line)) || ''
+  const titleLine = lines.find((line) => TITLE_RE.test(line)) || ''
+  const addressLine = lines.find((line) => ADDRESS_RE.test(line)) || ''
   const contactLike = (line: string) =>
     line.includes('@') ||
     /https?:\/\/|www\.|\.com|\.co\.kr|\.kr|tel|fax|mobile|email|전화|휴대|팩스/i.test(line) ||
     /\d{2,}/.test(line)
-  const nameLine = lines.find((line) =>
+  const nameFromTitle = titleLine ? nameFromTitleLine(titleLine) : ''
+  const koreanNameLine = lines.find((line) =>
+    /^[가-힣]{2,4}$/.test(line) &&
+    line !== companyLine &&
+    line !== addressLine &&
+    !TITLE_RE.test(line) &&
+    !COMPANY_HINT_RE.test(line) &&
+    !contactLike(line)
+  ) || ''
+  const nameLine = nameFromTitle || koreanNameLine || lines.find((line) =>
     line !== companyLine &&
     line !== titleLine &&
     line !== addressLine &&
@@ -522,8 +570,8 @@ export function parseContactText(text: string): Partial<BusinessCardInput> {
   return {
     name: nameLine,
     nameEn: englishName,
-    company: companyLine,
-    position: titleLine,
+    company: companyLine ? cleanCompanyLine(companyLine) : '',
+    position: titleFromLine(titleLine),
     mobile,
     phone,
     fax,

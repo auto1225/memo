@@ -45,6 +45,23 @@ https://linkedin.com/in/gildong
     expect(parsed.sns?.linkedin).toContain('linkedin.com')
   })
 
+  it('does not classify Jeju landline numbers as mobile numbers', () => {
+    const parsed = parseContactText(`추 우주주차
+최민호
+Tel 064.756.1633
+Fax 064.756.1634
+cmh@woojoocha.com
+제주특별자치도 제주시 첨단로 245-13 (영평동)`)
+
+    expect(parsed.name).toBe('최민호')
+    expect(parsed.company).toBe('우주주차')
+    expect(parsed.mobile).toBe('')
+    expect(parsed.phone).toBe('064.756.1633')
+    expect(parsed.fax).toBe('064.756.1634')
+    expect(parsed.email).toBe('cmh@woojoocha.com')
+    expect(parsed.address).toContain('제주특별자치도')
+  })
+
   it('round-trips CSV with Korean headers and SNS fields', () => {
     const csv = cardsToCsv([baseCard])
     const parsed = parseCsv(csv)

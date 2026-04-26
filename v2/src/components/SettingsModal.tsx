@@ -5,6 +5,7 @@ import { pdfFileToHtml } from '../lib/pdfImport'
 import { downloadNotionZip } from '../lib/notionExport'
 import { useMemosStore } from '../store/memosStore'
 import { useI18nStore } from '../lib/i18n'
+import type { Lang } from '../lib/i18n'
 import { useThemeStore } from '../store/themeStore'
 import { useUIStore } from '../store/uiStore'
 import { useWritingGoalStore } from '../store/writingGoalStore'
@@ -13,6 +14,10 @@ import { getSession, getSupabaseConfigStatus, signInGoogle, signOut, syncNow, sy
 
 interface SettingsModalProps {
   onClose: () => void
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
 }
 
 export function SettingsModal({ onClose }: SettingsModalProps) {
@@ -32,17 +37,18 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
   useEffect(() => {
     let cancelled = false
     if (!supabaseStatus.configured) return
-    setCheckingSession(true)
-    getSession()
-      .then((session) => {
+    async function checkSession() {
+      setCheckingSession(true)
+      try {
+        const session = await getSession()
         if (!cancelled) setSupabaseUser(session?.user.email || '')
-      })
-      .catch(() => {
+      } catch {
         if (!cancelled) setSupabaseUser('')
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setCheckingSession(false)
-      })
+      }
+    }
+    void checkSession()
     return () => {
       cancelled = true
     }
@@ -155,7 +161,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                 />
                 <input
                   type="text"
-                  placeholder="모델명 (기본: claude-sonnet-4-6)"
+                  placeholder="모델명 (예: claude-sonnet-4-6)"
                   value={settings.aiModel}
                   onChange={(e) => settings.setKey('aiModel', e.target.value)}
                 />
@@ -182,7 +188,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                 <div className="jan-settings-info" style={{padding:'8px 10px',background:'rgba(76,175,80,0.08)',borderLeft:'3px solid #4caf50',borderRadius:4,marginTop:6}}>
                   서버 프록시 모드 — 사용자 키 불필요. 서버에서 forward.
                 </div>
-                <input type="text" placeholder="모델명 (claude-sonnet-4-6 또는 gpt-4o-mini)" value={settings.aiModel} onChange={(e) => settings.setKey('aiModel', e.target.value)} />
+                <input type="text" placeholder="모델명 (기본: gpt-4o-mini, 또는 claude-sonnet-4-6)" value={settings.aiModel} onChange={(e) => settings.setKey('aiModel', e.target.value)} />
               </>
             )}
           </section>
@@ -283,8 +289,8 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                       return { memos: { ...s.memos, [id]: { ...cur, title: file.name.replace(/\.pdf$/i, ''), content: r.html, updatedAt: Date.now() } } }
                     })
                     setStatus('PDF ' + r.pageCount + '페이지 변환 완료')
-                  } catch (err: any) {
-                    setStatus('PDF 변환 실패: ' + (err?.message || err))
+                  } catch (err: unknown) {
+                    setStatus('PDF 변환 실패: ' + errorMessage(err))
                   }
                 }
                 input.click()
@@ -348,7 +354,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
             <h4>언어 / Language</h4>
             <div className="jan-settings-row">
               <label>언어:</label>
-              <select value={lang} onChange={(e) => setLang(e.target.value as any)}>
+              <select value={lang} onChange={(e) => setLang(e.target.value as Lang)}>
                 <option value="ko">한국어</option>
                 <option value="en">English</option>
                 <option value="ja">日本語</option>
@@ -394,8 +400,8 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                 try {
                   await downloadNotionZip()
                   setStatus('ZIP 다운로드 완료')
-                } catch (e: any) {
-                  setStatus('ZIP 실패: ' + (e?.message || e))
+                } catch (e: unknown) {
+                  setStatus('ZIP 실패: ' + errorMessage(e))
                 }
               }}>ZIP 다운로드</button>
             </div>

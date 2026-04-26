@@ -28,6 +28,8 @@ export interface AiCallResult {
 
 const TIMEOUT_MS = 30000
 const VISION_TIMEOUT_MS = 45000
+const DEFAULT_OPENAI_MODEL = 'gpt-4o-mini'
+const DEFAULT_ANTHROPIC_MODEL = 'claude-sonnet-4-6'
 
 interface AnthropicResponse {
   content?: Array<{ text?: string }>
@@ -236,6 +238,26 @@ async function callProxy(prompt: string, providerHint: 'anthropic' | 'openai', m
   }
 }
 
+function inferProxyBackend(model: string): 'anthropic' | 'openai' {
+  return model.trim().toLowerCase().startsWith('claude') ? 'anthropic' : 'openai'
+}
+
+async function callProxyWithFallback(prompt: string, model: string, dataUrl?: string): Promise<AiCallResult> {
+  const primaryBackend = inferProxyBackend(model)
+  const primary = await callProxy(prompt, primaryBackend, model, dataUrl)
+  if (primary.ok) return primary
+
+  const fallbackBackend = primaryBackend === 'openai' ? 'anthropic' : 'openai'
+  const fallbackModel = fallbackBackend === 'openai' ? DEFAULT_OPENAI_MODEL : DEFAULT_ANTHROPIC_MODEL
+  const fallback = await callProxy(prompt, fallbackBackend, fallbackModel, dataUrl)
+  if (fallback.ok) return fallback
+
+  return {
+    ok: false,
+    error: [primary.error, fallback.error].filter(Boolean).join(' / '),
+  }
+}
+
 /** 메인 진입점. provider 에 따라 적절한 호출. */
 export async function runAi(mode: AiMode, text: string): Promise<AiCallResult> {
   const s = useSettingsStore.getState()
@@ -250,8 +272,8 @@ export async function runAi(mode: AiMode, text: string): Promise<AiCallResult> {
   }
   if (s.aiProvider === 'proxy') {
     // 모델 prefix 로 어느 backend 인지 추론
-    const backend: 'anthropic' | 'openai' = (s.aiModel || '').startsWith('gpt') ? 'openai' : 'anthropic'
-    return callProxy(prompt, backend, s.aiModel || (backend === 'openai' ? 'gpt-4o-mini' : 'claude-sonnet-4-6'))
+    const model = s.aiModel || DEFAULT_OPENAI_MODEL
+    return callProxyWithFallback(prompt, model || DEFAULT_OPENAI_MODEL)
   }
   return { ok: false, error: 'AI 제공자가 설정되지 않음 — 설정 모달에서 선택' }
 }
@@ -266,9 +288,9 @@ export async function runAiVision(prompt: string, dataUrl: string): Promise<AiCa
     if (!s.openaiKey) return { ok: false, error: '설정에서 OpenAI API 키를 입력하세요' }
     return callOpenAIVision(prompt, dataUrl, s.aiModel || 'gpt-4o-mini', s.openaiKey)
   }
-  if (s.aiProvider === 'proxy') {
-    const backend: 'anthropic' | 'openai' = (s.aiModel || '').startsWith('gpt') ? 'openai' : 'anthropic'
-    return callProxy(prompt, backend, s.aiModel || (backend === 'openai' ? 'gpt-4o-mini' : 'claude-sonnet-4-6'), dataUrl)
+  if (s.aiProvider === 'proxy' || s.aiProvider === 'none') {
+    const model = s.aiProvider === 'none' ? DEFAULT_OPENAI_MODEL : (s.aiModel || DEFAULT_OPENAI_MODEL)
+    return callProxyWithFallback(prompt, model || DEFAULT_OPENAI_MODEL, dataUrl)
   }
   return { ok: false, error: 'AI 제공자가 설정되지 않음 — OCR 추출을 사용하거나 설정에서 AI를 연결하세요' }
 }

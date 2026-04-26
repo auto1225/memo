@@ -36,7 +36,7 @@ const DEFAULTS = {
   anthropicKey: '',
   openaiKey: '',
   aiProvider: 'none' as AiProvider,
-  aiModel: 'claude-sonnet-4-6',
+  aiModel: 'gpt-4o-mini',
   supabaseUrl: '',
   supabaseAnonKey: '',
   supabaseEmail: '',

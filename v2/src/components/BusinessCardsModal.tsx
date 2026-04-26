@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from 'react'
 import type { ChangeEvent, ClipboardEvent, DragEvent } from 'react'
 import type { Editor } from '@tiptap/react'
 import { Icon } from './Icons'
-import { aiConfigured, runAiVision } from '../lib/aiApi'
+import { runAiVision } from '../lib/aiApi'
 import { ocrImage } from '../lib/ocr'
 import {
   BUSINESS_CARD_VISION_PROMPT,
@@ -465,6 +465,14 @@ export function BusinessCardsModal({ editor, onClose }: BusinessCardsModalProps)
     applyExtracted(parseContactText(text), '현재 메모')
   }
 
+  async function extractImageText(): Promise<string> {
+    const dataUrl = draft.frontImage || draft.backImage
+    if (!dataUrl) throw new Error('먼저 명함 이미지를 업로드하세요')
+    setStatus('OCR용 이미지 보정 중입니다...')
+    const blob = await preprocessImageForOcr(dataUrl).catch(() => dataUrlToBlob(dataUrl))
+    return (await ocrImage(blob, 'kor+eng', setOcrProgress)).trim()
+  }
+
   async function extractFromImageOcr() {
     const dataUrl = draft.frontImage || draft.backImage
     if (!dataUrl) {
@@ -474,9 +482,7 @@ export function BusinessCardsModal({ editor, onClose }: BusinessCardsModalProps)
     setOcrBusy(true)
     setOcrProgress(0)
     try {
-      setStatus('OCR용 이미지 보정 중입니다...')
-      const blob = await preprocessImageForOcr(dataUrl).catch(() => dataUrlToBlob(dataUrl))
-      const text = (await ocrImage(blob, 'kor+eng', setOcrProgress)).trim()
+      const text = await extractImageText()
       if (!text) {
         setStatus('OCR 결과가 비어 있습니다. 더 선명한 이미지를 사용해보세요.')
         return
@@ -496,23 +502,25 @@ export function BusinessCardsModal({ editor, onClose }: BusinessCardsModalProps)
       setStatus('먼저 명함 이미지를 업로드하세요')
       return
     }
-    if (!aiConfigured()) {
-      setStatus('AI가 설정되지 않았습니다. 설정에서 AI를 연결하거나 OCR 추출을 사용하세요.')
-      return
-    }
     setAiBusy(true)
     try {
       const result = await runAiVision(BUSINESS_CARD_VISION_PROMPT, dataUrl)
-      if (!result.ok || !result.text) {
-        setStatus(`AI 추출 실패: ${result.error || '응답 없음'}`)
+      if (result.ok && result.text) {
+        const parsed = parseAiBusinessCardJson(result.text)
+        if (parsed) {
+          applyExtracted(parsed, 'AI')
+          return
+        }
+      }
+      setStatus(`AI 추출 실패: ${result.error || '응답 파싱 실패'} · OCR 보정 추출로 대신 시도합니다.`)
+      setOcrProgress(0)
+      const text = await extractImageText()
+      if (!text) {
+        setStatus(`AI 추출 실패: ${result.error || '응답 없음'} · OCR 결과도 비어 있습니다.`)
         return
       }
-      const parsed = parseAiBusinessCardJson(result.text)
-      if (!parsed) {
-        setStatus('AI 응답을 명함 JSON으로 파싱하지 못했습니다')
-        return
-      }
-      applyExtracted(parsed, 'AI')
+      applyExtracted(parseContactText(text), 'OCR 보정')
+      setStatus(`AI 서버/키가 준비되지 않아 OCR 보정 추출로 채웠습니다. 설정에서 OpenAI 키 또는 서버 OPENAI_API_KEY를 연결하면 AI Vision을 사용합니다.`)
     } catch (error) {
       setStatus(`AI 추출 오류: ${error instanceof Error ? error.message : String(error)}`)
     } finally {
@@ -686,6 +694,7 @@ export function BusinessCardsModal({ editor, onClose }: BusinessCardsModalProps)
                   <button onClick={() => void extractFromImageAi()} disabled={aiBusy}><Icon name="ai" />{aiBusy ? 'AI 분석 중' : 'AI 추출'}</button>
                   <button onClick={extractFromMemo}><Icon name="wand" />현재 메모에서 추출</button>
                 </div>
+                {status && <div className="jan-settings-status jan-cards-inline-status">{status}</div>}
                 <div className="jan-card-form-grid">
                   <label>이름<input value={draft.name} onChange={(e) => updateDraft('name', e.target.value)} /></label>
                   <label>영문명<input value={draft.nameEn} onChange={(e) => updateDraft('nameEn', e.target.value)} /></label>
