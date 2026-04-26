@@ -115,6 +115,7 @@ interface UIState {
   spellCheck: boolean
   sidebarCollapsed: boolean
   headingNumbers: boolean
+  showRulers: boolean
   zoom: number // 0.35 ~ 2.0
   paperStyle: PaperStyle
   pageSize: PageSizePreset
@@ -130,6 +131,8 @@ interface UIState {
   toggleSpellCheck: () => void
   toggleSidebar: () => void
   toggleHeadingNumbers: () => void
+  toggleRulers: () => void
+  setRulers: (visible: boolean) => void
   setZoom: (zoom: number) => void
   zoomIn: () => void
   zoomOut: () => void
@@ -152,6 +155,7 @@ export const useUIStore = create<UIState>()(
       spellCheck: false,
       sidebarCollapsed: false,
       headingNumbers: false,
+      showRulers: true,
       zoom: 1,
       paperStyle: 'lined',
       pageSize: 'A4',
@@ -167,6 +171,8 @@ export const useUIStore = create<UIState>()(
       setFocus: (v) => set({ focusMode: v }),
       toggleSidebar: () => set({ sidebarCollapsed: !get().sidebarCollapsed }),
       toggleHeadingNumbers: () => set({ headingNumbers: !get().headingNumbers }),
+      toggleRulers: () => set({ showRulers: !get().showRulers }),
+      setRulers: (visible) => set({ showRulers: visible }),
       setZoom: (zoom) => set({ zoom: normalizeZoom(zoom, get().zoom) }),
       zoomIn: () => set({ zoom: normalizeZoom(get().zoom + 0.1, get().zoom) }),
       zoomOut: () => set({ zoom: normalizeZoom(get().zoom - 0.1, get().zoom) }),

@@ -198,6 +198,30 @@ test.describe('v2 smoke', () => {
     await expect.poll(readZoom).toBeGreaterThan(widthZoom - 0.01)
   })
 
+  test('view menu can hide and restore page rulers', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await page.goto('./')
+    const pages = page.locator('.jan-editor-pages').first()
+    await expect(page.locator('.ProseMirror').first()).toBeVisible({ timeout: 15000 })
+    await expect(pages).toHaveAttribute('data-rulers', 'true')
+    await expect(page.getByRole('img', { name: /가로 페이지 눈금자/ })).toBeVisible()
+    await expect(page.getByRole('img', { name: /세로 페이지 눈금자/ })).toBeVisible()
+
+    await page.getByRole('button', { name: '보기', exact: true }).click()
+    await page.getByRole('button', { name: '눈금자 숨기기' }).click()
+    await expect(pages).toHaveAttribute('data-rulers', 'false')
+    await expect(page.getByRole('img', { name: /가로 페이지 눈금자/ })).toHaveCount(0)
+    await expect(page.getByRole('img', { name: /세로 페이지 눈금자/ })).toHaveCount(0)
+    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('jan-v2-ui') || '{}')?.state?.showRulers)).toBe(false)
+
+    await page.keyboard.press('Control+Shift+P')
+    await page.locator('.jan-cp-input').fill('눈금자 표시')
+    await page.getByRole('button', { name: /눈금자 표시/ }).click()
+    await expect(pages).toHaveAttribute('data-rulers', 'true')
+    await expect(page.getByRole('img', { name: /가로 페이지 눈금자/ })).toBeVisible()
+    await expect(page.getByRole('img', { name: /세로 페이지 눈금자/ })).toBeVisible()
+  })
+
   test('meeting notes flow inserts a structured v1-style note', async ({ page }) => {
     await page.goto('./')
     await page.locator('.ProseMirror').first().waitFor({ state: 'visible', timeout: 15000 })

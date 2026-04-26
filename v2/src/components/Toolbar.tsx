@@ -666,6 +666,7 @@ export function Toolbar(p: ToolbarProps) {
         { label: '집중 모드', hint: 'F11', icon: 'focus', onClick: () => run(() => ui.toggleFocus()) },
         { label: '읽기 모드', hint: 'Shift+F11', icon: 'preview', onClick: () => run(() => ui.toggleReading()) },
         { label: '사이드바 토글', icon: 'list-bullet', onClick: () => run(() => ui.toggleSidebar()) },
+        { label: `눈금자 ${ui.showRulers ? '숨기기' : '표시'}`, icon: 'columns', onClick: () => run(() => ui.toggleRulers()) },
         { divider: '줌', label: '' },
         { label: '줌 인', hint: 'Ctrl+=', icon: 'plus', onClick: () => run(() => ui.zoomIn()) },
         { label: '줌 아웃', hint: 'Ctrl+-', icon: 'minus', onClick: () => run(() => ui.zoomOut()) },

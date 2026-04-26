@@ -166,6 +166,7 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
   const runningHeader = useUIStore((s) => s.runningHeader)
   const runningFooter = useUIStore((s) => s.runningFooter)
   const spellCheck = useUIStore((s) => s.spellCheck)
+  const showRulers = useUIStore((s) => s.showRulers)
 
   const pageMm = useMemo(() => pageDimensions(pageSize, pageOrientation), [pageSize, pageOrientation])
   const pagePx = useMemo(() => pageDimensionsPx(pageSize, pageOrientation), [pageSize, pageOrientation])
@@ -654,59 +655,64 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
           data-page-size={pageSize}
           data-page-orientation={pageOrientation}
           data-page-columns={pageColumnCount}
+          data-rulers={showRulers ? 'true' : 'false'}
           style={pageStyle}
         >
-          <div className="jan-page-ruler" role="img" aria-label={`가로 페이지 눈금자 ${Math.round(pageMm.widthMm)}mm`}>
-            <div className="jan-page-ruler-track" aria-hidden="true">
-              {rulerMarks.map((mark) => (
-                <span
-                  key={mark.mm}
-                  className={'jan-page-ruler-tick' + (mark.major ? ' is-major' : '')}
-                  style={{ left: `${mark.percent}%` }}
-                >
-                  {mark.major && <em>{mark.mm}</em>}
-                </span>
-              ))}
-              <span
-                className="jan-page-ruler-margin jan-page-ruler-margin-left"
-                style={{ left: `${leftMarginPercent}%` }}
-              >
-                <b>{pageMargins.left}mm</b>
-              </span>
-              <span
-                className="jan-page-ruler-margin jan-page-ruler-margin-right"
-                style={{ right: `${rightMarginPercent}%` }}
-              >
-                <b>{pageMargins.right}mm</b>
-              </span>
-            </div>
-          </div>
-          <div className="jan-page-layout">
-            <div className="jan-page-vertical-ruler" role="img" aria-label={`세로 페이지 눈금자 ${Math.round(pageMm.heightMm)}mm`}>
-              <div className="jan-page-vertical-ruler-track" aria-hidden="true">
-                {verticalRulerMarks.map((mark) => (
+          {showRulers && (
+            <div className="jan-page-ruler" role="img" aria-label={`가로 페이지 눈금자 ${Math.round(pageMm.widthMm)}mm`}>
+              <div className="jan-page-ruler-track" aria-hidden="true">
+                {rulerMarks.map((mark) => (
                   <span
                     key={mark.mm}
-                    className={'jan-page-vertical-ruler-tick' + (mark.major ? ' is-major' : '')}
-                    style={{ top: `${mark.percent}%` }}
+                    className={'jan-page-ruler-tick' + (mark.major ? ' is-major' : '')}
+                    style={{ left: `${mark.percent}%` }}
                   >
                     {mark.major && <em>{mark.mm}</em>}
                   </span>
                 ))}
                 <span
-                  className="jan-page-vertical-ruler-margin jan-page-vertical-ruler-margin-top"
-                  style={{ top: `${topMarginPercent}%` }}
+                  className="jan-page-ruler-margin jan-page-ruler-margin-left"
+                  style={{ left: `${leftMarginPercent}%` }}
                 >
-                  <b>{pageMargins.top}mm</b>
+                  <b>{pageMargins.left}mm</b>
                 </span>
                 <span
-                  className="jan-page-vertical-ruler-margin jan-page-vertical-ruler-margin-bottom"
-                  style={{ bottom: `${bottomMarginPercent}%` }}
+                  className="jan-page-ruler-margin jan-page-ruler-margin-right"
+                  style={{ right: `${rightMarginPercent}%` }}
                 >
-                  <b>{pageMargins.bottom}mm</b>
+                  <b>{pageMargins.right}mm</b>
                 </span>
               </div>
             </div>
+          )}
+          <div className="jan-page-layout">
+            {showRulers && (
+              <div className="jan-page-vertical-ruler" role="img" aria-label={`세로 페이지 눈금자 ${Math.round(pageMm.heightMm)}mm`}>
+                <div className="jan-page-vertical-ruler-track" aria-hidden="true">
+                  {verticalRulerMarks.map((mark) => (
+                    <span
+                      key={mark.mm}
+                      className={'jan-page-vertical-ruler-tick' + (mark.major ? ' is-major' : '')}
+                      style={{ top: `${mark.percent}%` }}
+                    >
+                      {mark.major && <em>{mark.mm}</em>}
+                    </span>
+                  ))}
+                  <span
+                    className="jan-page-vertical-ruler-margin jan-page-vertical-ruler-margin-top"
+                    style={{ top: `${topMarginPercent}%` }}
+                  >
+                    <b>{pageMargins.top}mm</b>
+                  </span>
+                  <span
+                    className="jan-page-vertical-ruler-margin jan-page-vertical-ruler-margin-bottom"
+                    style={{ bottom: `${bottomMarginPercent}%` }}
+                  >
+                    <b>{pageMargins.bottom}mm</b>
+                  </span>
+                </div>
+              </div>
+            )}
             <div className="jan-page-shell" data-has-running-preview={hasRunningPreview ? 'true' : 'false'}>
               <EditorContent editor={editor} />
               <div className="jan-page-margin-frame" aria-hidden="true" />

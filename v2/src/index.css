@@ -3277,6 +3277,11 @@ html, body, #root {
   width: calc(34px + var(--jan-page-w, 210mm));
 }
 
+.jan-editor-pages[data-rulers="false"] .jan-page-layout {
+  display: block;
+  width: var(--jan-page-w, 210mm);
+}
+
 .jan-page-ruler {
   position: sticky;
   top: 0;

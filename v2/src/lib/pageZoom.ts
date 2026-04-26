@@ -20,7 +20,7 @@ export function fitPageZoom(mode: PageZoomFitMode) {
   const availableWidth = Math.max(240, (main?.clientWidth || window.innerWidth) - 32)
   const availableHeight = Math.max(240, (main?.clientHeight || window.innerHeight) - 32)
   const pagePx = pageDimensionsPx(state.pageSize, state.pageOrientation)
-  const desktopRulers = window.matchMedia('(min-width: 861px)').matches
+  const desktopRulers = state.showRulers && window.matchMedia('(min-width: 861px)').matches
   const rulerWidth = desktopRulers ? DESKTOP_RULER_WIDTH_PX : 0
   const rulerHeight = desktopRulers ? DESKTOP_RULER_HEIGHT_PX : 0
   const paddingX = desktopRulers ? DESKTOP_PAGE_PADDING_X_PX : MOBILE_PAGE_PADDING_X_PX

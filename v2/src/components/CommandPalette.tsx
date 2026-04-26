@@ -48,7 +48,7 @@ export function CommandPalette(p: CommandPaletteProps) {
   const [selected, setSelected] = useState(0)
   const { newMemo, duplicate, togglePin, list, setCurrent } = useMemosStore() as any
   const ui = useUIStore()
-  const { toggleFocus, zoomIn, zoomOut, zoomReset, toggleSidebar, toggleHeadingNumbers, toggleReading, toggleSpellCheck } = ui
+  const { toggleFocus, zoomIn, zoomOut, zoomReset, toggleSidebar, toggleHeadingNumbers, toggleReading, toggleSpellCheck, toggleRulers } = ui
   const { theme, setTheme } = useThemeStore()
 
   useEffect(() => {
@@ -399,6 +399,7 @@ export function CommandPalette(p: CommandPaletteProps) {
       { id:'focus', cat:'보기', icon:'eye', label:'집중 모드', desc:'사이드바·툴바 숨김.', hint:'F11', run: toggleFocus },
       { id:'reading', cat:'보기', icon:'preview', label:'읽기 모드', desc:'편집 비활성, 가독성 향상.', hint:'Shift+F11', run: toggleReading },
       { id:'sidebar', cat:'보기', icon:'list-bullet', label:'사이드바 토글', desc:'메모 목록 열기/접기.', run: toggleSidebar },
+      { id:'rulers', cat:'보기', icon:'columns', label:`눈금자 ${ui.showRulers ? '숨기기' : '표시'}`, desc:'가로/세로 페이지 눈금자를 표시하거나 숨김.', run: toggleRulers },
       { id:'zoom-in', cat:'보기', icon:'zoom-in', label:'줌 인', desc:'본문 +10%.', hint:'Ctrl+=', run: zoomIn },
       { id:'zoom-out', cat:'보기', icon:'zoom-out', label:'줌 아웃', desc:'본문 -10%.', hint:'Ctrl+-', run: zoomOut },
       { id:'zoom-reset', cat:'보기', icon:'refresh-cw', label:'줌 리셋 (100%)', desc:'기본 크기로.', hint:'Ctrl+0', run: zoomReset },
@@ -432,7 +433,7 @@ export function CommandPalette(p: CommandPaletteProps) {
       /* 빠른 입력 */
       { id:'quick', cat:'빠른 입력', icon:'plus', label:'빠른 메모', desc:'팝오버 빠른 메모.', hint:'Ctrl+Shift+J', run: () => p.onQuick?.() },
     ]
-  }, [editor, list, newMemo, duplicate, togglePin, setCurrent, toggleFocus, zoomIn, zoomOut, zoomReset, toggleSidebar, toggleHeadingNumbers, toggleReading, toggleSpellCheck, theme, p])
+  }, [editor, list, newMemo, duplicate, togglePin, setCurrent, toggleFocus, zoomIn, zoomOut, zoomReset, toggleSidebar, toggleHeadingNumbers, toggleReading, toggleSpellCheck, toggleRulers, theme, p, ui.showRulers])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
