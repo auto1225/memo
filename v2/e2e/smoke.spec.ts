@@ -7,14 +7,14 @@ import { test, expect } from '@playwright/test'
 
 test.describe('v2 smoke', () => {
   test('app loads and renders editor', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('./')
     // 툴바 + ProseMirror 가 보이는지
     await expect(page.locator('.ProseMirror').first()).toBeVisible({ timeout: 15000 })
     await expect(page.getByRole('button', { name: '파일' })).toBeVisible()
   })
 
   test('typing in editor saves to memo', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('./')
     const editor = page.locator('.ProseMirror').first()
     await editor.waitFor({ state: 'visible' })
     await editor.click()
@@ -24,7 +24,7 @@ test.describe('v2 smoke', () => {
   })
 
   test('opens AI helper modal with Ctrl+/', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('./')
     await page.locator('.ProseMirror').first().waitFor()
     await page.keyboard.press('Control+/')
     await expect(page.locator('.jan-ai-modal')).toBeVisible()
@@ -32,21 +32,21 @@ test.describe('v2 smoke', () => {
   })
 
   test('opens search panel with Ctrl+Shift+F', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('./')
     await page.locator('.ProseMirror').first().waitFor()
     await page.keyboard.press('Control+Shift+F')
     await expect(page.locator('.jan-search-modal')).toBeVisible()
   })
 
   test('keyboard help opens with F1', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('./')
     await page.locator('.ProseMirror').first().waitFor()
     await page.keyboard.press('F1')
     await expect(page.locator('.jan-help-modal')).toBeVisible()
   })
 
   test('toolbar buttons present', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('./')
     await page.locator('.ProseMirror').first().waitFor()
     for (const label of ['논문', '서식', '삽입', '페이지', '미디어', '도구', '보기', '파일']) {
       await expect(page.getByRole('button', { name: label, exact: true })).toBeVisible({ timeout: 5000 })
@@ -63,7 +63,7 @@ test.describe('v2 smoke', () => {
   })
 
   test('v1 note paper default and page settings are available', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('./')
     const pages = page.locator('.jan-editor-pages').first()
     const editor = page.locator('.ProseMirror').first()
     await expect(editor).toBeVisible({ timeout: 15000 })

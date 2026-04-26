@@ -34,7 +34,7 @@ async function readPersistedValue(page: Page, key: string): Promise<string | nul
 
 test.describe('local-first memo storage', () => {
   test('persists memo content in IndexedDB without keeping a localStorage duplicate', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('./')
 
     const marker = `Local-first E2E ${Date.now()}`
     const editor = page.locator('.ProseMirror').first()
@@ -77,7 +77,7 @@ test.describe('local-first memo storage', () => {
       { key: MEMOS_KEY, value: legacyPayload }
     )
 
-    await page.goto('/')
+    await page.goto('./')
 
     const editor = page.locator('.ProseMirror').first()
     await expect(editor).toContainText(legacyText, { timeout: 15000 })
