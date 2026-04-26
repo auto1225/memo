@@ -191,4 +191,31 @@ test.describe('v2 smoke', () => {
     await expect(outline.getByRole('button', { name: /Scope/ })).toBeVisible()
     await expect(outline.getByRole('button', { name: /Project Plan/ })).toHaveCount(0)
   })
+
+  test('table sorting keeps the header row and sorts data rows', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('jan-v2-role-onboarded', '1'))
+    await page.goto('./')
+    const editor = page.locator('.ProseMirror').first()
+    await editor.waitFor({ state: 'visible', timeout: 15000 })
+    await editor.click()
+    await page.keyboard.press('Control+A')
+
+    await page.getByRole('button', { name: '삽입', exact: true }).click()
+    await page.getByRole('button', { name: '표 (3×3)' }).click()
+
+    const cells = page.locator('.ProseMirror table th, .ProseMirror table td')
+    await expect(cells).toHaveCount(9)
+    const values = ['Name', 'Amount', 'Note', 'Beta', '10', 'B row', 'Alpha', '2', 'A row']
+    for (let i = 0; i < values.length; i += 1) {
+      await page.keyboard.type(values[i])
+      if (i < values.length - 1) await page.keyboard.press('Tab')
+    }
+
+    await cells.nth(4).click({ force: true })
+    await page.getByTitle('현재 열 오름차순').click()
+    const rows = page.locator('.ProseMirror table tr')
+    await expect(rows.nth(0)).toContainText('Name')
+    await expect(rows.nth(1)).toContainText('Alpha')
+    await expect(rows.nth(2)).toContainText('Beta')
+  })
 })

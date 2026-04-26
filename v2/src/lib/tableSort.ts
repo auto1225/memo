@@ -4,6 +4,7 @@
  * 숫자/문자 자동 감지.
  */
 import type { Editor } from '@tiptap/react'
+import { Fragment, type Node as ProseMirrorNode } from '@tiptap/pm/model'
 
 export type SortDir = 'asc' | 'desc'
 
@@ -11,7 +12,7 @@ export function sortTableByCurrentColumn(editor: Editor, dir: SortDir = 'asc'): 
   if (!editor.isActive('table')) return false
   const { state } = editor
 
-  let tableNode: any = null
+  let tableNode: ProseMirrorNode | null = null
   let tablePos = 0
   let cellPos = 0
   state.doc.descendants((node, pos) => {
@@ -32,75 +33,98 @@ export function sortTableByCurrentColumn(editor: Editor, dir: SortDir = 'asc'): 
     }
     return true
   })
-  if (!tableNode) return false
+  const activeTable = tableNode as ProseMirrorNode | null
+  if (!activeTable) return false
 
-  // colIndex 찾기
-  let colIndex = -1
-  let firstRowIsHeader = false
-  let counter = 0
-  tableNode.descendants((row: any, rPos: number) => {
-    if (row.type.name === 'tableRow') {
-      const rFrom = tablePos + 1 + rPos
-      let i = 0
-      let hasHeader = false
-      row.forEach((c: any, cOff: number) => {
-        if (c.type.name === 'tableHeader') hasHeader = true
-        if (rFrom + 1 + cOff === cellPos) colIndex = i
-        i++
-      })
-      if (counter === 0) firstRowIsHeader = hasHeader
-      counter++
-    }
-    return false
-  })
+  const colIndex = getColumnIndex(activeTable, tablePos, cellPos)
 
   if (colIndex < 0) return false
+  const sortedTable = sortTableNode(activeTable, colIndex, dir)
+  if (!sortedTable) return false
 
-  // 모든 행의 텍스트 셀 추출
-  type RowData = { cells: string[]; htmlCells: string[]; isHeader: boolean }
-  const rows: RowData[] = []
-  tableNode.forEach((row: any) => {
-    if (row.type.name !== 'tableRow') return
-    const cells: string[] = []
-    const htmlCells: string[] = []
-    let isHeader = false
-    row.forEach((c: any) => {
-      cells.push((c.textContent || '').trim())
-      htmlCells.push(serialize(c))
-      if (c.type.name === 'tableHeader') isHeader = true
-    })
-    rows.push({ cells, htmlCells, isHeader })
-  })
-
-  // 헤더 행 분리
-  const headerRows: RowData[] = []
-  const dataRows: RowData[] = []
-  for (const r of rows) {
-    if (r.isHeader || (firstRowIsHeader && rows.indexOf(r) === 0)) headerRows.push(r)
-    else dataRows.push(r)
-  }
-
-  // 정렬
-  dataRows.sort((a, b) => {
-    const av = a.cells[colIndex] || ''
-    const bv = b.cells[colIndex] || ''
-    const an = parseFloat(av.replace(/[,$€¥₩%]/g, ''))
-    const bn = parseFloat(bv.replace(/[,$€¥₩%]/g, ''))
-    if (!isNaN(an) && !isNaN(bn)) return dir === 'asc' ? an - bn : bn - an
-    return dir === 'asc' ? av.localeCompare(bv, 'ko') : bv.localeCompare(av, 'ko')
-  })
-
-  // 새 표 HTML 빌드
-  const allRows = [...headerRows, ...dataRows]
-  const html = '<table>' + allRows.map((r) => `<tr>${r.htmlCells.join('')}</tr>`).join('') + '</table>'
-
-  editor.chain().focus().deleteTable().insertContent(html).run()
+  editor.view.dispatch(
+    state.tr
+      .replaceWith(tablePos, tablePos + activeTable.nodeSize, sortedTable)
+      .scrollIntoView(),
+  )
+  editor.view.focus()
   return true
 }
 
-function serialize(cellNode: any): string {
-  // ProseMirror cell → HTML cell 직렬화 (단순)
-  const tag = cellNode.type.name === 'tableHeader' ? 'th' : 'td'
-  const text = (cellNode.textContent || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-  return `<${tag}>${text}</${tag}>`
+export function sortTableNode(
+  tableNode: ProseMirrorNode,
+  colIndex: number,
+  dir: SortDir = 'asc',
+): ProseMirrorNode | null {
+  const rows = collectRows(tableNode)
+  if (rows.length === 0 || colIndex < 0) return null
+
+  const firstRowIsHeader = rows[0]?.isHeader ?? false
+  const headerRows = rows.filter((row, index) => row.isHeader || (firstRowIsHeader && index === 0))
+  const dataRows = rows.filter((row, index) => !(row.isHeader || (firstRowIsHeader && index === 0)))
+
+  dataRows.sort((a, b) => {
+    const compare = compareCellText(a.cells[colIndex] || '', b.cells[colIndex] || '', dir)
+    return compare === 0 ? a.index - b.index : compare
+  })
+
+  return tableNode.copy(Fragment.fromArray([...headerRows, ...dataRows].map((row) => row.node)))
+}
+
+interface RowData {
+  node: ProseMirrorNode
+  cells: string[]
+  isHeader: boolean
+  index: number
+}
+
+function collectRows(tableNode: ProseMirrorNode): RowData[] {
+  const rows: RowData[] = []
+  tableNode.forEach((row, _offset, index) => {
+    if (row.type.name !== 'tableRow') return
+    const cells: string[] = []
+    let isHeader = false
+    row.forEach((cell) => {
+      cells.push((cell.textContent || '').trim())
+      if (cell.type.name === 'tableHeader') isHeader = true
+    })
+    rows.push({ node: row, cells, isHeader, index })
+  })
+  return rows
+}
+
+function getColumnIndex(tableNode: ProseMirrorNode, tablePos: number, cellPos: number): number {
+  let colIndex = -1
+  tableNode.descendants((row, rowPos) => {
+    if (row.type.name !== 'tableRow') return false
+    const rowStart = tablePos + 1 + rowPos + 1
+    row.forEach((_cell, cellOffset, index) => {
+      if (rowStart + cellOffset === cellPos) colIndex = index
+    })
+    return colIndex < 0
+  })
+  return colIndex
+}
+
+function compareCellText(a: string, b: string, dir: SortDir): number {
+  const an = parseSortNumber(a)
+  const bn = parseSortNumber(b)
+  const result = an !== null && bn !== null
+    ? an - bn
+    : a.localeCompare(b, 'ko', { numeric: true, sensitivity: 'base' })
+  return dir === 'asc' ? result : -result
+}
+
+function parseSortNumber(value: string): number | null {
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  const negative = /^\(.*\)$/.test(trimmed)
+  const normalized = trimmed
+    .replace(/[()]/g, '')
+    .replace(/[,$€¥₩%]/g, '')
+    .replace(/\s+/g, '')
+  if (!/^[+-]?\d+(\.\d+)?$/.test(normalized)) return null
+  const parsed = Number(normalized)
+  if (!Number.isFinite(parsed)) return null
+  return negative ? -parsed : parsed
 }
