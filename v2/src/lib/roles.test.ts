@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import * as vm from 'node:vm'
-import { ROLE_TOOLS, ROLES, roleToolsFor } from './roles'
+import { ROLE_TOOLS, ROLES, findRole, materializeRoleTemplate, materializeRoleTemplateHtml, roleToolsFor } from './roles'
 
 interface V1Template {
   name: string
@@ -65,6 +65,50 @@ describe('role pack catalog', () => {
         expect(v2TemplateNames.has(template.name), `missing v1 template: ${roleId} -> ${template.name}`).toBe(true)
       }
     }
+  })
+
+  it('prioritizes the richer v1 template bodies over compact v2 defaults', () => {
+    const pm = findRole('pm')
+    const freelancer = findRole('freelancer')
+
+    expect(pm?.templates[0].name).toBe('PRD — Product Requirements Document')
+    expect(pm?.templates[0].html).toContain('PRD 리뷰 체크')
+    expect(pm?.templates[0].html).toContain('North Star')
+
+    const invoices = freelancer?.templates.filter((template) => template.name === '청구서') || []
+    expect(invoices).toHaveLength(1)
+    expect(invoices[0].html).toContain('INV-1777180963006')
+    expect(invoices[0].html).toContain('청구일')
+  })
+
+  it('materializes v1 frozen dates and document numbers at insertion time', () => {
+    const rendered = materializeRoleTemplateHtml(
+      '<h2>2026. 4. 26. 일기</h2><p>PRD-2026-001</p><p>청구서 #INV-1777180963006</p>',
+      new Date(2027, 4, 2, 12, 0, 0)
+    )
+
+    expect(rendered).toContain('2027. 5. 2.')
+    expect(rendered).toContain('PRD-2027-001')
+    expect(rendered).toMatch(/#INV-20270502-\d{5}/)
+    expect(rendered).not.toContain('2026. 4. 26.')
+    expect(rendered).not.toContain('INV-1777180963006')
+  })
+
+  it('uses a fresh invoice number for repeated template insertions', () => {
+    const date = new Date(2027, 4, 2, 12, 0, 0)
+    const first = materializeRoleTemplateHtml('청구서 #INV-1777180963006', date)
+    const second = materializeRoleTemplateHtml('청구서 #INV-1777180963006', date)
+
+    expect(first).toMatch(/INV-20270502-\d{5}/)
+    expect(second).toMatch(/INV-20270502-\d{5}/)
+    expect(first).not.toBe(second)
+  })
+
+  it('materializes every bundled template without the v1 generated static markers', () => {
+    const rendered = ROLES.flatMap((role) => role.templates.map((template) => materializeRoleTemplate(template, new Date(2027, 4, 2, 12, 0, 0)).html)).join('\n')
+
+    expect(rendered).not.toContain('2026. 4. 26.')
+    expect(rendered).not.toContain('INV-1777180963006')
   })
 
   it('maps every role tool id to a runnable tool card', () => {

@@ -618,4 +618,64 @@ test.describe('v2 smoke', () => {
     expect(editorStyle.fontFamily).toContain('Noto Serif KR')
     expect(editorStyle.fontSize).toBe('15px')
   })
+
+  test('role pack inserts v1-rich templates with fresh document numbers', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('jan-v2-role-onboarded', '1')
+      localStorage.setItem(
+        'jan-v2-role-tools',
+        JSON.stringify({ state: { selectedRoleIds: ['pm', 'freelancer'], roleData: {} }, version: 1 })
+      )
+    })
+    await page.goto('./')
+    const editor = page.locator('.ProseMirror').first()
+    await editor.waitFor({ state: 'visible', timeout: 15000 })
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('jan-open-roles')))
+
+    const modal = page.locator('.jan-roles-modal')
+    await expect(modal).toBeVisible()
+    await modal.locator('.jan-rolepack-nav').getByRole('button', { name: /템플릿/ }).click()
+
+    const pmSection = modal.locator('.jan-role-template-section').filter({ hasText: '기획자(PM/PO)' })
+    await pmSection.locator('.jan-roles-template', { hasText: 'PRD — Product Requirements Document' }).click()
+    await expect(editor).toContainText('PRD 리뷰 체크')
+    await expect(editor).toContainText('North Star')
+
+    await modal.getByRole('button', { name: /닫기/ }).click()
+    await editor.click()
+    await page.keyboard.press('Control+A')
+    await page.keyboard.press('Backspace')
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('jan-open-roles')))
+    await expect(modal).toBeVisible()
+    await modal.locator('.jan-rolepack-nav').getByRole('button', { name: /템플릿/ }).click()
+
+    const freelancerSection = modal.locator('.jan-role-template-section').filter({ hasText: '프리랜서' })
+    await freelancerSection.locator('.jan-roles-template', { hasText: '청구서' }).click()
+    await expect(editor).toContainText('청구서 #INV-')
+    await expect(editor).not.toContainText('INV-1777180963006')
+    await expect(editor).toContainText(/INV-\d{8}-\d{5}/)
+  })
+
+  test('template modal saves the live editor html before debounce persistence', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('jan-v2-role-onboarded', '1'))
+    await page.goto('./')
+    const editor = page.locator('.ProseMirror').first()
+    const marker = `Live template body ${Date.now()}`
+    await editor.waitFor({ state: 'visible', timeout: 15000 })
+    await editor.click()
+    await page.keyboard.press('Control+A')
+    await page.keyboard.type(marker)
+
+    await page.getByRole('button', { name: '도구', exact: true }).click()
+    await page.getByRole('button', { name: '템플릿', exact: true }).click()
+    const modal = page.locator('.jan-templates-modal')
+    await expect(modal).toBeVisible()
+    await modal.locator('input[placeholder="템플릿 이름"]').fill('Live editor template')
+    await modal.locator('input[placeholder="카테고리 (선택)"]').fill('QA')
+    await modal.getByRole('button', { name: '저장' }).click()
+    await expect(modal.locator('.jan-templates-list')).toContainText('Live editor template')
+    await modal.getByRole('button', { name: '새 메모로' }).click()
+
+    await expect(editor).toContainText(marker)
+  })
 })

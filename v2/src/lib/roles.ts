@@ -44,6 +44,39 @@ const today = () => {
   return `${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}.`
 }
 
+let roleTemplateDocumentSeq = 0
+
+function pad2(value: number): string {
+  return String(value).padStart(2, '0')
+}
+
+function roleTemplateYmd(date: Date): string {
+  return `${date.getFullYear()}${pad2(date.getMonth() + 1)}${pad2(date.getDate())}`
+}
+
+function nextRoleTemplateInvoiceNo(date: Date): string {
+  roleTemplateDocumentSeq = (roleTemplateDocumentSeq % 99999) + 1
+  return `INV-${roleTemplateYmd(date)}-${String(roleTemplateDocumentSeq).padStart(5, '0')}`
+}
+
+export function formatRoleTemplateDate(date = new Date()): string {
+  return `${date.getFullYear()}. ${date.getMonth() + 1}. ${date.getDate()}.`
+}
+
+export function materializeRoleTemplateHtml(html: string, date = new Date()): string {
+  const rendered = html
+    .replace(/2026\. 4\. 26\./g, formatRoleTemplateDate(date))
+    .replace(/PRD-2026-001/g, `PRD-${date.getFullYear()}-001`)
+
+  return /INV-(?:1777180963006|\d{13})/.test(rendered)
+    ? rendered.replace(/INV-(?:1777180963006|\d{13})/g, nextRoleTemplateInvoiceNo(date))
+    : rendered
+}
+
+export function materializeRoleTemplate(template: RoleTemplate, date = new Date()): RoleTemplate {
+  return { ...template, html: materializeRoleTemplateHtml(template.html, date) }
+}
+
 const table = (rows: string) => `<table><tbody>${rows}</tbody></table>`
 const row = (...cells: string[]) => `<tr>${cells.map((c, i) => (i % 2 === 0 ? `<th>${c}</th>` : `<td>${c}</td>`)).join('')}</tr>`
 const checklist = (items: string[]) => items.map((it) => `<ul data-type="taskList"><li data-type="taskItem" data-checked="false">${it}</li></ul>`).join('')
@@ -177,9 +210,8 @@ const CORE_ROLES: Role[] = [
 ]
 
 function mergeTemplates(base: RoleTemplate[], additions: RoleTemplate[]): RoleTemplate[] {
-  const names = new Set(base.map((template) => template.name))
-  const missing = additions.filter((template) => !names.has(template.name))
-  return [...base, ...missing]
+  const additionNames = new Set(additions.map((template) => template.name))
+  return [...additions, ...base.filter((template) => !additionNames.has(template.name))]
 }
 
 const CORE_ROLES_WITH_V1_TEMPLATES = CORE_ROLES.map((role) => {

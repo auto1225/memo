@@ -811,7 +811,7 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
         {showHeatmap && <ActivityHeatmap onClose={() => setShowHeatmap(false)} />}
         {showQuick && <QuickCapture onClose={() => setShowQuick(false)} />}
         {showTranslate && <TranslateModal editor={editor} onClose={() => setShowTranslate(false)} />}
-        {showTemplates && <TemplatesModal onClose={() => setShowTemplates(false)} />}
+        {showTemplates && <TemplatesModal editor={editor} onClose={() => setShowTemplates(false)} />}
         {showGist && <GistModal editor={editor} onClose={() => setShowGist(false)} />}
         {showWeb && <WebBrowserModal editor={editor} onClose={() => setShowWeb(false)} />}
         {showCards && <BusinessCardsModal editor={editor} onClose={() => setShowCards(false)} />}

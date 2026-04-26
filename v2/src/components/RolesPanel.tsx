@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import type { Editor } from '@tiptap/react'
 import { Icon } from './Icons'
-import { ROLE_TOOLS, ROLES, roleToolsFor, type Role, type RoleToolId } from '../lib/roles'
+import { ROLE_TOOLS, ROLES, materializeRoleTemplate, roleToolsFor, type Role, type RoleTemplate, type RoleToolId } from '../lib/roles'
 import {
   isoDate,
   isoMonth,
@@ -123,9 +123,10 @@ export function RolesPanel({ editor, onClose, initialTool = null }: RolesPanelPr
 
   if (!editor) return null
 
-  function insertTemplate(html: string, name: string) {
-    editor?.chain().focus().insertContent(html).run()
-    setStatus(`현재 메모에 "${name}" 템플릿을 삽입했습니다.`)
+  function insertTemplate(template: RoleTemplate) {
+    const tpl = materializeRoleTemplate(template)
+    editor?.chain().focus().insertContent(tpl.html).run()
+    setStatus(`현재 메모에 "${tpl.name}" 템플릿을 삽입했습니다.`)
   }
 
   function createMemo(title: string, html: string) {
@@ -139,9 +140,10 @@ export function RolesPanel({ editor, onClose, initialTool = null }: RolesPanelPr
     let count = 0
     roles.forEach((role) => {
       role.templates.forEach((tpl) => {
-        const title = `${role.name} - ${tpl.name}`
+        const rendered = materializeRoleTemplate(tpl)
+        const title = `${role.name} - ${rendered.name}`
         useMemosStore.getState().newMemo()
-        useMemosStore.getState().updateCurrent({ title, content: tpl.html })
+        useMemosStore.getState().updateCurrent({ title, content: rendered.html })
         count += 1
       })
     })
@@ -325,7 +327,7 @@ function TemplateLibrary({
   generateTemplateMemos,
 }: {
   roles: Role[]
-  insertTemplate: (html: string, name: string) => void
+  insertTemplate: (template: RoleTemplate) => void
   generateTemplateMemos: (ids?: string[]) => void
 }) {
   return (
@@ -346,7 +348,7 @@ function TemplateLibrary({
             </div>
             <div className="jan-roles-templates">
               {role.templates.map((tpl) => (
-                <button key={tpl.name} className="jan-roles-template" onClick={() => insertTemplate(tpl.html, tpl.name)}>
+                <button key={tpl.name} className="jan-roles-template" onClick={() => insertTemplate(tpl)}>
                   {tpl.name}
                 </button>
               ))}

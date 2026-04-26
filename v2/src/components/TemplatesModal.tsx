@@ -1,9 +1,11 @@
 import { useState } from 'react'
+import type { Editor } from '@tiptap/react'
 import { useTemplatesStore } from '../store/templatesStore'
 import { useMemosStore } from '../store/memosStore'
 import { expandVars } from '../store/macrosStore'
 
 interface TemplatesModalProps {
+  editor?: Editor | null
   onClose: () => void
 }
 
@@ -11,7 +13,7 @@ interface TemplatesModalProps {
  * Phase 16 — 사용자 메모 템플릿.
  * "현재 메모를 템플릿으로 저장" + "템플릿으로 새 메모 만들기".
  */
-export function TemplatesModal({ onClose }: TemplatesModalProps) {
+export function TemplatesModal({ editor, onClose }: TemplatesModalProps) {
   const { templates, add, remove } = useTemplatesStore()
   const memo = useMemosStore((s) => s.current())
   const newMemo = useMemosStore((s) => s.newMemo)
@@ -22,8 +24,10 @@ export function TemplatesModal({ onClose }: TemplatesModalProps) {
 
   function saveCurrent() {
     if (!memo || !name.trim()) return
-    add({ name: name.trim(), title: memo.title || '무제', content: memo.content, category: category.trim() || undefined })
-    setName(''); setCategory('')
+    const content = editor && !editor.isDestroyed ? editor.getHTML() : memo.content
+    add({ name: name.trim(), title: memo.title || '무제', content, category: category.trim() || undefined })
+    setName('')
+    setCategory('')
   }
 
   function applyTemplate(t: typeof templates[number]) {
