@@ -2462,6 +2462,33 @@ html, body, #root {
   gap: 10px;
 }
 
+.jan-page-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: min(320px, 28vw);
+  height: 21px;
+  padding: 0 8px;
+  border: 1px solid color-mix(in srgb, var(--paper-edge, #e5e5e5) 90%, transparent);
+  border-radius: 4px;
+  background: #fff;
+  color: color-mix(in srgb, var(--ink-soft, #666) 92%, #111);
+  font: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.jan-page-status-chip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.jan-page-status-chip:hover {
+  border-color: color-mix(in srgb, var(--accent, #D97757) 34%, var(--paper-edge, #e5e5e5));
+  background: color-mix(in srgb, var(--accent, #D97757) 10%, #fff);
+  color: color-mix(in srgb, var(--accent, #D97757) 82%, #222);
+}
+
 .jan-zoom-control {
   display: inline-flex;
   align-items: center;
@@ -2506,6 +2533,17 @@ html, body, #root {
 .jan-theme-dark .jan-zoom-control {
   background: var(--jan-paper, #1f1f20);
   border-color: var(--jan-border, #2a2a2c);
+}
+
+.jan-theme-dark .jan-page-status-chip {
+  background: var(--jan-paper, #1f1f20);
+  border-color: var(--jan-border, #2a2a2c);
+  color: var(--jan-fg-muted, #aaa);
+}
+
+.jan-theme-dark .jan-page-status-chip:hover {
+  background: rgba(217,119,87,0.18);
+  color: #f0c0aa;
 }
 
 .jan-theme-dark .jan-zoom-control button {
@@ -4634,5 +4672,9 @@ html, body, #root {
     min-width: 0;
     overflow-x: auto;
     white-space: nowrap;
+  }
+
+  .jan-page-status-chip {
+    max-width: 190px;
   }
 }

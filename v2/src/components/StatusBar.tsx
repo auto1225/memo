@@ -4,13 +4,14 @@ import { useDocStore } from '../store/docStore'
 import { useMemosStore } from '../store/memosStore'
 import { useCollab } from '../hooks/useCollab'
 import { useWritingGoalStore } from '../store/writingGoalStore'
-import { useUIStore } from '../store/uiStore'
+import { PAPER_STYLES, pageMarginsSummary, useUIStore } from '../store/uiStore'
 import { PomodoroWidget } from './PomodoroWidget'
 import { Icon } from './Icons'
 import { fitPageZoom, setPageZoom } from '../lib/pageZoom'
 
 interface StatusBarProps {
   editor: Editor | null
+  onPageSettings?: () => void
 }
 
 interface TextStats {
@@ -25,12 +26,19 @@ const EMPTY_STATS: TextStats = { chars: 0, words: 0, blocks: 0 }
  * Phase 17 — 강화된 StatusBar.
  * 글자/단어/단락 + 선택 영역 통계 + 저장 인디케이터 + 협업 + 줌 + 일일 목표 + 뽀모도로.
  */
-export function StatusBar({ editor }: StatusBarProps) {
+export function StatusBar({ editor, onPageSettings }: StatusBarProps) {
   const { savedAt } = useDocStore()
   const memo = useMemosStore((s) => s.current())
   const collab = useCollab()
   const goal = useWritingGoalStore()
   const zoom = useUIStore((s) => s.zoom)
+  const pageSize = useUIStore((s) => s.pageSize)
+  const pageOrientation = useUIStore((s) => s.pageOrientation)
+  const pageMarginMm = useUIStore((s) => s.pageMarginMm)
+  const pageMarginsMm = useUIStore((s) => s.pageMarginsMm)
+  const pageColumnCount = useUIStore((s) => s.pageColumnCount)
+  const paperStyle = useUIStore((s) => s.paperStyle)
+  const showRulers = useUIStore((s) => s.showRulers)
   const [tick, setTick] = useState(0)
 
   useEffect(() => {
@@ -60,6 +68,14 @@ export function StatusBar({ editor }: StatusBarProps) {
   else { saveLabel = `저장: ${new Date(savedAt).toLocaleTimeString()}`; saveClass += ' is-saved' }
 
   const goalPct = goal.dailyTarget > 0 ? Math.min(100, Math.round((goal.todayCount / goal.dailyTarget) * 100)) : 0
+  const paperLabel = PAPER_STYLES.find((style) => style.value === paperStyle)?.label.replace(' (기본)', '') || '줄노트'
+  const pageSummary = [
+    pageSize,
+    pageOrientation === 'landscape' ? '가로' : '세로',
+    `${pageColumnCount}단`,
+    `여백 ${pageMarginsSummary(pageMarginsMm, pageMarginMm)}`,
+  ].join(' · ')
+  const pageTitle = `${pageSummary} · ${paperLabel} · 눈금자 ${showRulers ? '켬' : '끔'}`
 
   return (
     <div className="jan-statusbar">
@@ -76,6 +92,17 @@ export function StatusBar({ editor }: StatusBarProps) {
       )}
       <span className="divider" />
       <span className={saveClass}>{saveLabel}</span>
+      <span className="divider" />
+      <button
+        type="button"
+        className="jan-page-status-chip"
+        aria-label="상태바 페이지 설정"
+        title={pageTitle}
+        onClick={onPageSettings}
+      >
+        <Icon name="page" size={12} />
+        <span>{pageSummary}</span>
+      </button>
       <span className="divider" />
       <span className="jan-zoom-control" aria-label="페이지 줌">
         <button type="button" aria-label="상태바 줌 아웃" title="줌 아웃" onClick={() => setPageZoom(zoom - 0.1)}>
