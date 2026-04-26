@@ -1,8 +1,13 @@
-﻿import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import type { Editor } from '@tiptap/react'
 import { useMemosStore } from '../store/memosStore'
 import { useUIStore } from '../store/uiStore'
 import { useThemeStore } from '../store/themeStore'
+import { Icon } from './Icons'
+import type { IconName } from './Icons'
+import { downloadHwpx } from '../lib/hwpxExport'
+import { downloadMd } from '../lib/markdownIO'
+import { exportToPdf } from '../lib/pdfExport'
 
 interface Command {
   id: string
@@ -10,19 +15,31 @@ interface Command {
   label: string
   desc?: string
   hint?: string
+  icon: IconName
   run: () => void
 }
 
 interface CommandPaletteProps {
   editor: Editor | null
+  /* 모달 핸들러 */
+  onAi?: () => void; onChat?: () => void; onSearch?: () => void; onFind?: () => void
+  onOcr?: () => void; onPaint?: () => void; onPostit?: () => void; onPaper?: () => void
+  onRoles?: () => void; onTemplates?: () => void; onSnippets?: () => void; onMacros?: () => void
+  onTypo?: () => void; onCalendar?: () => void; onQuick?: () => void; onMd?: () => void
+  onPrintPreview?: () => void; onShare?: () => void; onGist?: () => void; onAtt?: () => void
+  onLock?: () => void; onSettings?: () => void; onHelp?: () => void; onAbout?: () => void
+  onStats?: () => void; onMindMap?: () => void; onHeatmap?: () => void; onInfo?: () => void
+  onDiff?: () => void; onLinkCheck?: () => void; onTranslate?: () => void; onVersions?: () => void
+  onToggleOutline?: () => void
+  onSave?: () => void; onOpen?: () => void
 }
 
 /**
- * Phase 28 — 풍부한 명령 팔레트.
- * 카테고리별 그룹화 + 설명(desc) + 단축키 + 약 150 항목.
- * 라벨/desc/카테고리 모두 검색 대상.
+ * Phase 30 — v1 명령 팔레트 정확 복제.
+ * 좌측정렬 + 라인아트 SVG 아이콘 + 풀폭 노란 highlight + 직접 핸들러 호출.
  */
-export function CommandPalette({ editor }: CommandPaletteProps) {
+export function CommandPalette(p: CommandPaletteProps) {
+  const editor = p.editor
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState(0)
@@ -45,7 +62,7 @@ export function CommandPalette({ editor }: CommandPaletteProps) {
     return () => document.removeEventListener('keydown', handler, true)
   }, [open])
 
-  /* === 헬퍼 함수들 (Toolbar 의 핸들러 일부 재구현) === */
+  /* === 인라인 헬퍼 === */
   const insertHTML = (html: string) => editor?.chain().focus().insertContent(html).run()
   const togglePilcrow = () => {
     document.body.classList.toggle('jan-show-pilcrow')
@@ -57,194 +74,364 @@ export function CommandPalette({ editor }: CommandPaletteProps) {
     const s = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
     editor?.chain().focus().insertContent(s).run()
   }
-
-  const fireHeader = (title: string) => {
-    const btn = Array.from(document.querySelectorAll('.jan-app-header .jan-header-btn')).find(b => b.getAttribute('title') === title) as any
-    if (!btn) return
-    const k = Object.keys(btn).find(k => k.startsWith('__reactProps$'))
-    if (k) btn[k]?.onClick?.({})
+  const insertAuthorBlock = () => insertHTML(`<div class="paper-authors" style="text-align:center;margin:1em 0;"><p style="font-weight:600;font-size:1.05em;">저자 1<sup>1</sup>, 저자 2<sup>2</sup>, 교신저자 3<sup>1,*</sup></p><p style="font-size:0.9em;color:#555;"><sup>1</sup>소속 1, 도시 · <sup>2</sup>소속 2</p><p style="font-size:0.85em;color:#777;"><sup>*</sup>example@email.com</p></div><p></p>`)
+  const insertAbstract = () => insertHTML(`<div class="paper-abstract" style="border:1px solid #ddd;background:#fafafa;padding:1em 1.2em;margin:1em 0;border-radius:4px;"><strong>ABSTRACT</strong><p style="margin:0.4em 0 0;">여기에 초록을 작성하세요.</p></div><p></p>`)
+  const insertKeywords = () => insertHTML(`<p class="paper-keywords"><strong>KEYWORDS</strong>&nbsp;&nbsp;키워드1 · 키워드2 · 키워드3</p>`)
+  const insertAck = () => insertHTML(`<h2>Acknowledgments</h2><p>본 연구는 [기관명] 의 지원으로 수행되었습니다.</p>`)
+  const toggleTwoCol = () => {
+    const cur = document.body.classList.toggle('jan-2col')
+    const id = 'jan-2col-style'
+    const s = document.getElementById(id) || (() => { const e = document.createElement('style'); e.id = id; document.head.appendChild(e); return e })()
+    s.textContent = cur ? '.jan-2col .ProseMirror { column-count: 2; column-gap: 2em; column-rule: 1px solid #eee; }' : ''
   }
-  const fireMenuItem = (cat: string, label: string) => {
-    /* Open menu, find item, fire */
-    const menuBtn = Array.from(document.querySelectorAll('.jan-menu-btn')).find(b => (b.textContent||'').trim().startsWith(cat)) as any
-    if (!menuBtn) return
-    const k = Object.keys(menuBtn).find(k => k.startsWith('__reactProps$'))
-    if (k) menuBtn[k]?.onClick?.({})
-    setTimeout(() => {
-      const drop = menuBtn.closest('.jan-menu-wrap')?.querySelector('.jan-menu-dropdown')
-      const items = drop ? Array.from(drop.querySelectorAll('.jan-menu-item')) as any[] : []
-      const it = items.find(i => (i.querySelector('.jan-menu-label')?.textContent || '').trim() === label)
-      if (it) {
-        const ik = Object.keys(it).find(k => k.startsWith('__reactProps$'))
-        if (ik) it[ik]?.onClick?.({})
-      }
-      /* close menu */
-      if (k) menuBtn[k]?.onClick?.({})
-    }, 50)
+  const wrapAsPage = () => editor && editor.commands.setContent(`<div class="jan-page-wrap">${editor.getHTML()}</div>`)
+  const insertPageBreak = () => insertHTML('<hr class="jan-page-break"/><p></p>')
+  const insertFootnote = () => {
+    const n = (document.querySelectorAll('.paper-footnote').length || 0) + 1
+    insertHTML(`<sup class="paper-fn-ref">[${n}]</sup>`)
+    const root = document.querySelector('.ProseMirror') as HTMLElement | null
+    if (root && editor) {
+      const div = document.createElement('div')
+      div.className = 'paper-footnote'
+      div.style.cssText = 'font-size:0.85em;color:#444;border-top:1px solid #ccc;padding-top:0.4em;margin-top:1em;'
+      div.textContent = `[${n}] 각주 내용`
+      root.appendChild(div)
+      editor.commands.setContent(root.innerHTML)
+    }
   }
+  const insertCitation = () => { const c = window.prompt('인용 (예: Smith, 2024):', 'Author, 2024'); if (c) insertHTML(`<sup>(${c})</sup>`) }
+  const insertReference = () => { const r = window.prompt('참고문헌:', 'Author. (2024). Title.'); if (r) insertHTML(`<div class="paper-ref" style="text-indent:-1.5em;padding-left:1.5em;">${r}</div>`) }
+  const setPageSize = () => {
+    const sizes: Record<string, [number,number]> = { A4:[210,297], A5:[148,210], Letter:[216,279], B5:[176,250] }
+    const c = window.prompt('페이지 크기 (A4/A5/Letter/B5):', 'A4'); if (!c || !sizes[c]) return
+    const sz = sizes[c]
+    document.querySelectorAll('.ProseMirror,.jan-page,.jan-editor-pages').forEach(el => { (el as HTMLElement).style.maxWidth = sz[0] + 'mm' })
+    if (confirm('새로고침할까요?')) location.reload()
+  }
+  const setPageMargin = () => {
+    const v = window.prompt('여백 (mm):', '20'); if (!v) return
+    document.querySelectorAll('.ProseMirror').forEach(el => { (el as HTMLElement).style.padding = v + 'mm ' + v + 'mm' })
+  }
+  const setLetterSpacing = () => {
+    const v = window.prompt('자간 (em, 예: -0.05 좁게 / 0.1 넓게):', '0'); if (v === null) return
+    const id = 'jan-letter-spacing-style'
+    const s = document.getElementById(id) || (() => { const e = document.createElement('style'); e.id = id; document.head.appendChild(e); return e })()
+    s.textContent = `.ProseMirror { letter-spacing: ${v}em; }`
+  }
+  const setCharScale = () => {
+    const v = window.prompt('장평 % (예: 80=좁게 120=넓게):', '100'); if (v === null) return
+    const num = Math.max(20, Math.min(200, Number(v) || 100))
+    const id = 'jan-char-scale-style'
+    const s = document.getElementById(id) || (() => { const e = document.createElement('style'); e.id = id; document.head.appendChild(e); return e })()
+    if (num === 100) { s.textContent = ''; return }
+    const r = num/100, w = (100/r).toFixed(2)
+    s.textContent = `.ProseMirror p, .ProseMirror h1, .ProseMirror h2, .ProseMirror h3, .ProseMirror h4, .ProseMirror li, .ProseMirror blockquote { transform: scaleX(${r}); transform-origin: left top; width: ${w}%; }`
+  }
+  const toggleFirstIndent = () => {
+    const cur = localStorage.getItem('jan-first-line-indent') === '1'
+    const next = !cur
+    localStorage.setItem('jan-first-line-indent', next ? '1' : '0')
+    const id = 'jan-first-line-style'
+    const s = document.getElementById(id) || (() => { const e = document.createElement('style'); e.id = id; document.head.appendChild(e); return e })()
+    s.textContent = next ? '.ProseMirror p { text-indent: 1.5em; }' : ''
+  }
+  const setParaSpace = () => {
+    const v = window.prompt('단락 간격 (em):', '0.6'); if (v === null) return
+    const id = 'jan-para-space-style'
+    const s = document.getElementById(id) || (() => { const e = document.createElement('style'); e.id = id; document.head.appendChild(e); return e })()
+    s.textContent = `.ProseMirror p { margin: ${v}em 0; }`
+  }
+  const captureScreen = async () => {
+    try {
+      const stream = await (navigator.mediaDevices as any).getDisplayMedia({ video: true })
+      const track = stream.getVideoTracks()[0]
+      const cap = new (window as any).ImageCapture(track)
+      const bm = await cap.grabFrame()
+      const cv = document.createElement('canvas'); cv.width = bm.width; cv.height = bm.height
+      cv.getContext('2d')!.drawImage(bm, 0, 0); track.stop()
+      editor?.chain().focus().setImage({ src: cv.toDataURL('image/png') }).run()
+    } catch (e: any) { alert('취소 또는 실패: ' + (e.message||e)) }
+  }
+  const startVoice = () => {
+    const SR: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SR) { alert('이 브라우저 지원 안 함'); return }
+    const r = new SR(); r.lang = 'ko-KR'; r.continuous = false
+    let final = ''
+    r.onresult = (e: any) => { for (let i = e.resultIndex; i < e.results.length; i++) if (e.results[i].isFinal) final += e.results[i][0].transcript }
+    r.onend = () => { if (final) editor?.chain().focus().insertContent(final).run() }
+    r.start(); alert('말하세요...')
+  }
+  const speakSel = () => {
+    const sel = window.getSelection()?.toString() || editor?.state.doc.textContent.slice(0,1000) || ''
+    if (!sel) return
+    const u = new SpeechSynthesisUtterance(sel); u.lang = 'ko-KR'
+    speechSynthesis.cancel(); speechSynthesis.speak(u)
+  }
+  const aiImage = () => {
+    const pr = window.prompt('AI 이미지 프롬프트:', '단순 라인아트')
+    if (pr) editor?.chain().focus().setImage({ src: 'https://image.pollinations.ai/prompt/' + encodeURIComponent(pr) + '?width=512&height=512&nologo=true' }).run()
+  }
+  const wordCloud = () => {
+    const text = editor?.state.doc.textContent || ''
+    const words: Record<string, number> = {}
+    text.split(/[\s,.\-—()\[\]{}!?;:'"]+/).forEach(w => { w = w.trim(); if (w.length < 2) return; words[w] = (words[w]||0)+1 })
+    const sorted = Object.entries(words).sort((a,b) => b[1]-a[1]).slice(0, 60)
+    if (!sorted.length) { alert('단어 없음'); return }
+    const max = sorted[0][1]
+    const w = window.open('', '_blank', 'width=900,height=600'); if (!w) return
+    let html = `<!doctype html><html><head><title>워드 클라우드</title><style>body{font-family:sans-serif;padding:2em;text-align:center;background:#fff8e7;line-height:2}span{display:inline-block;margin:0.2em 0.4em;color:hsl(${Math.random()*360},60%,40%)}</style></head><body><h2>워드 클라우드</h2><div>`
+    sorted.forEach(([wd,n]) => { html += `<span style="font-size:${Math.round(12 + (n/max)*36)}px">${wd}</span> ` })
+    html += '</div></body></html>'; w.document.write(html); w.document.close()
+  }
+  const startPomo = () => {
+    const min = Number(window.prompt('포모도로 (분):', '25')) || 25
+    const end = Date.now() + min*60000
+    const el = document.createElement('div')
+    el.style.cssText = 'position:fixed;top:8px;right:8px;background:#FAE100;color:#333;padding:6px 12px;border-radius:6px;font-weight:700;z-index:9999;cursor:pointer'
+    document.body.appendChild(el); el.onclick = () => { clearInterval(t); el.remove() }
+    const t = setInterval(() => {
+      const left = Math.max(0, end - Date.now()), m = Math.floor(left/60000), s = Math.floor((left%60000)/1000)
+      el.textContent = `포모 ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
+      if (left <= 0) { clearInterval(t); el.remove(); alert('완료!') }
+    }, 500)
+  }
+  const flashcards = () => {
+    const root = document.querySelector('.ProseMirror'); if (!root) return
+    const cards: { q: string, a: string }[] = []
+    root.querySelectorAll('h1, h2, h3').forEach(h => {
+      let next = h.nextElementSibling, body = ''
+      while (next && !/^H[1-3]$/.test(next.tagName)) { body += next.textContent + ' '; next = next.nextElementSibling }
+      cards.push({ q: h.textContent || '', a: body.trim() })
+    })
+    if (!cards.length) { alert('제목 없음'); return }
+    const w = window.open('', '_blank', 'width=600,height=500'); if (!w) return
+    w.document.write(`<!doctype html><html><head><title>플래시카드</title></head><body><div id="c" onclick="f=!f;s()"></div><script>const c=${JSON.stringify(cards)};let i=0,f=0;function s(){document.getElementById('c').innerHTML=f?c[i].a:c[i].q;}s();</script></body></html>`)
+    w.document.close()
+  }
+  const exportHwpx = async () => { if (!editor) return; try { await downloadHwpx(editor.getHTML(), '메모') } catch (e: any) { alert('실패: ' + e.message) } }
+  const exportMd = () => { if (!editor) return; try { downloadMd(editor.getHTML(), '메모') } catch (e: any) { alert('실패: ' + e.message) } }
+  const exportPdf = async () => { if (!editor) return; try { await exportToPdf(editor.getHTML(), '메모') } catch (e: any) { alert('실패: ' + e.message) } }
+  const exportHtml = () => {
+    if (!editor) return
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>메모</title></head><body>${editor.getHTML()}</body></html>`
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
+    const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = '메모.html'
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(() => URL.revokeObjectURL(url), 800)
+  }
+  const exportDocx = () => {
+    if (!editor) return
+    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"></head><body>${editor.getHTML()}</body></html>`
+    const blob = new Blob(['\ufeff', html], { type: 'application/msword' })
+    const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = '메모.doc'
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(() => URL.revokeObjectURL(url), 800)
+  }
+  const jsonBackup = () => {
+    const all = useMemosStore.getState().list()
+    const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), version: 'v2', memos: all }, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `JustANotepad-${Date.now()}.json`
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(() => URL.revokeObjectURL(url), 800)
+  }
+  const webSearch = () => { const q = window.prompt('웹 검색어:'); if (q) window.open('https://www.google.com/search?q=' + encodeURIComponent(q), '_blank') }
+  const insertYouTube = () => {
+    const u = window.prompt('YouTube URL:'); if (!u) return
+    const m = u.match(/(?:v=|youtu\.be\/)([\w-]{11})/); if (!m) { alert('유효 URL 아님'); return }
+    insertHTML(`<div class="jan-yt"><iframe src="https://www.youtube.com/embed/${m[1]}" width="560" height="315" frameborder="0" allowfullscreen></iframe></div>`)
+  }
+  const insertSymbol = () => {
+    const c = window.prompt('특수 문자:\n— – … · • ◦ ★ ☆ → ← ✓ ✗ ¶ § © ® ™ ° × ÷ ≈ ≠ ∞ Σ Π ∫ √ α β π σ ω', '—')
+    if (c) editor?.chain().focus().insertContent(c).run()
+  }
+  const insertHrStyle = () => {
+    const v = window.prompt('스타일 (1=실선, 2=점선, 3=이중선, 4=별표):', '1')
+    const map: Record<string,string> = {
+      '1': '<hr style="border:0;border-top:1px solid #888;margin:1em 0;"/>',
+      '2': '<hr style="border:0;border-top:1px dashed #888;margin:1em 0;"/>',
+      '3': '<hr style="border:0;border-top:3px double #888;margin:1em 0;"/>',
+      '4': '<p style="text-align:center;color:#888;letter-spacing:0.6em;">＊ ＊ ＊</p>',
+    }
+    if (v && map[v]) insertHTML(map[v])
+  }
+  const renumberFn = () => {
+    const root = document.querySelector('.ProseMirror'); if (!root || !editor) return
+    root.querySelectorAll('.paper-fn-ref').forEach((el, i) => el.textContent = `[${i+1}]`)
+    root.querySelectorAll('.paper-footnote').forEach((el, i) => { const t = (el.textContent||'').replace(/^\[\d+\]\s*/, ''); el.textContent = `[${i+1}] ${t}` })
+    editor.commands.setContent(root.innerHTML)
+  }
+  const setRunHeader = () => {
+    const cur = localStorage.getItem('jan-run-header') || ''
+    const v = window.prompt('러닝 헤더:', cur); if (v === null) return
+    localStorage.setItem('jan-run-header', v)
+    const id = 'jan-run-header-style'
+    const s = document.getElementById(id) || (() => { const e = document.createElement('style'); e.id = id; document.head.appendChild(e); return e })()
+    s.textContent = v ? `.ProseMirror::before { content:"${v.replace(/"/g,'\\"')}"; display:block;text-align:center;font-size:0.85em;color:#888;border-bottom:1px solid #eee;padding-bottom:0.4em;margin-bottom:1em; }` : ''
+  }
+  const insertHighlightBox = () => insertHTML(`<div style="background:#FFF8C4;border-left:4px solid #FAE100;padding:0.8em 1em;margin:1em 0;border-radius:4px;"><strong>강조:</strong> 내용을 작성하세요.</div>`)
+  const insertTextBox = () => insertHTML(`<div style="border:1px solid #ccc;background:#fafafa;padding:1em;margin:1em 0;border-radius:6px;">텍스트 입력</div>`)
+  const insertBookmark = () => { const id = window.prompt('책갈피 ID:', 'bm-' + Date.now()); if (id) insertHTML(`<a id="${id}" title="책갈피">⚓</a>`) }
+  const setTextEffect = () => {
+    const v = window.prompt('1=그림자, 2=네온, 3=조각, 0=해제:', '1')
+    const m: Record<string,string> = { '0':'', '1':'text-shadow:1px 1px 2px rgba(0,0,0,0.25)', '2':'text-shadow:0 0 4px #ff0,0 0 8px #ff0;color:#600', '3':'text-shadow:1px 1px 0 #fff,-1px -1px 0 #999;color:#666' }
+    if (v && m[v] !== undefined) {
+      const id = 'jan-text-effect-style'
+      const s = document.getElementById(id) || (() => { const e = document.createElement('style'); e.id = id; document.head.appendChild(e); return e })()
+      s.textContent = m[v] ? `.ProseMirror { ${m[v]}; }` : ''
+    }
+  }
+  const insertMeetingTpl = () => insertHTML(`<h3>회의 노트 — ${new Date().toLocaleString('ko-KR')}</h3><p><strong>참석자:</strong> </p><p><strong>안건:</strong> </p><p><strong>결정:</strong> </p><p><strong>액션:</strong> </p>`)
 
   const commands: Command[] = useMemo(() => {
     if (!editor) return []
     const ed = editor
     const memos = (list?.() || [])
-    const memoCmds: Command[] = memos.slice(0, 30).map((m: any, i: number) => ({
-      id: 'memo-' + m.id, cat: '메모', label: '메모로 이동: ' + (m.title || '제목없음'),
+    const memoCmds: Command[] = memos.slice(0, 20).map((m: any, i: number) => ({
+      id: 'memo-' + m.id, cat: '메모', icon: 'file-text' as IconName,
+      label: '메모: ' + (m.title || '제목없음'),
       desc: '최근 수정: ' + new Date(m.updatedAt || m.createdAt || Date.now()).toLocaleString('ko-KR'),
       hint: i < 9 ? `Ctrl+${i+1}` : undefined,
       run: () => setCurrent(m.id),
     }))
-
     return [
-      /* === 메모 관리 === */
-      { id: 'new', cat: '메모', label: '새 메모', desc: '빈 메모를 새로 만듭니다.', hint: 'Ctrl+N', run: () => newMemo() },
-      { id: 'dup', cat: '메모', label: '현재 메모 복제', desc: '현재 메모를 새 사본으로 복사합니다.', run: () => duplicate?.() },
-      { id: 'pin', cat: '메모', label: '핀 / 핀 해제', desc: '메모를 사이드바 상단에 고정합니다.', run: () => togglePin?.() },
+      /* 메모 */
+      { id:'new', cat:'메모', icon:'file-plus', label:'새 메모', desc:'빈 메모를 새로 만듭니다.', hint:'Ctrl+N', run: () => newMemo() },
+      { id:'dup', cat:'메모', icon:'star', label:'현재 메모 복제', desc:'현재 메모를 새 사본으로 복사합니다.', run: () => duplicate?.() },
+      { id:'pin', cat:'메모', icon:'pin', label:'핀 / 핀 해제', desc:'메모를 사이드바 상단에 고정합니다.', run: () => togglePin?.() },
       ...memoCmds,
-
-      /* === 서식 (마크) === */
-      { id: 'bold', cat: '서식', label: '굵게', desc: '선택 텍스트를 두껍게 표시합니다.', hint: 'Ctrl+B', run: () => ed.chain().focus().toggleBold().run() },
-      { id: 'italic', cat: '서식', label: '기울임', desc: '선택 텍스트를 이탤릭체로 표시합니다.', hint: 'Ctrl+I', run: () => ed.chain().focus().toggleItalic().run() },
-      { id: 'underline', cat: '서식', label: '밑줄', desc: '선택 텍스트에 밑줄을 그립니다.', hint: 'Ctrl+U', run: () => ed.chain().focus().toggleUnderline().run() },
-      { id: 'strike', cat: '서식', label: '취소선', desc: '선택 텍스트에 가운데 줄을 긋습니다.', run: () => ed.chain().focus().toggleStrike().run() },
-      { id: 'highlight', cat: '서식', label: '형광펜', desc: '노란색 형광펜으로 강조 표시합니다.', run: () => (ed.chain() as any).focus().toggleHighlight({ color: '#FFEB3B' }).run() },
-      { id: 'clear-fmt', cat: '서식', label: '서식 지우기', desc: '모든 마크와 노드 서식을 초기화합니다.', run: () => ed.chain().focus().unsetAllMarks().clearNodes().run() },
-
-      /* === 제목 / 단락 === */
-      { id: 'h1', cat: '제목', label: '제목 1', desc: '큰 제목 (H1) 스타일로 변경.', hint: 'Ctrl+Alt+1', run: () => ed.chain().focus().toggleHeading({ level: 1 }).run() },
-      { id: 'h2', cat: '제목', label: '제목 2', desc: '중간 제목 (H2) 스타일.', hint: 'Ctrl+Alt+2', run: () => ed.chain().focus().toggleHeading({ level: 2 }).run() },
-      { id: 'h3', cat: '제목', label: '제목 3', desc: '소제목 (H3) 스타일.', hint: 'Ctrl+Alt+3', run: () => ed.chain().focus().toggleHeading({ level: 3 }).run() },
-      { id: 'h4', cat: '제목', label: '제목 4', desc: 'H4 헤딩.', run: () => ed.chain().focus().toggleHeading({ level: 4 }).run() },
-      { id: 'p', cat: '제목', label: '일반 문단', desc: '제목 스타일을 해제하고 일반 문단으로.', hint: 'Ctrl+Shift+N', run: () => ed.chain().focus().setParagraph().run() },
-
-      /* === 정렬 === */
-      { id: 'left', cat: '정렬', label: '왼쪽 정렬', desc: '선택 단락을 왼쪽으로 정렬.', hint: 'Ctrl+L', run: () => ed.chain().focus().setTextAlign('left').run() },
-      { id: 'center', cat: '정렬', label: '가운데 정렬', desc: '선택 단락을 가운데로 정렬.', hint: 'Ctrl+E', run: () => ed.chain().focus().setTextAlign('center').run() },
-      { id: 'right', cat: '정렬', label: '오른쪽 정렬', desc: '선택 단락을 오른쪽으로 정렬.', hint: 'Ctrl+R', run: () => ed.chain().focus().setTextAlign('right').run() },
-      { id: 'justify', cat: '정렬', label: '양쪽 정렬', desc: '양쪽 끝까지 자간 조정으로 정렬.', hint: 'Ctrl+J', run: () => ed.chain().focus().setTextAlign('justify').run() },
-
-      /* === 리스트 === */
-      { id: 'ul', cat: '리스트', label: '글머리 기호 목록', desc: '• 점으로 시작하는 무순서 목록.', run: () => ed.chain().focus().toggleBulletList().run() },
-      { id: 'ol', cat: '리스트', label: '번호 매기기 목록', desc: '1. 2. 3. 으로 시작하는 순서 목록.', run: () => ed.chain().focus().toggleOrderedList().run() },
-      { id: 'task', cat: '리스트', label: '체크리스트', desc: '체크박스 [ ] 가 있는 할 일 목록.', run: () => (ed.chain() as any).focus().toggleList('taskList', 'taskItem').run() },
-      { id: 'quote', cat: '리스트', label: '인용', desc: '왼쪽에 줄이 있는 인용 블록.', run: () => ed.chain().focus().toggleBlockquote().run() },
-      { id: 'code', cat: '리스트', label: '코드 블록', desc: '고정폭 코드 블록 (구문 강조).', run: () => ed.chain().focus().toggleCodeBlock().run() },
-
-      /* === 삽입 === */
-      { id: 'table', cat: '삽입', label: '표 삽입 (3×3)', desc: '3행×3열 표를 삽입합니다.', run: () => ed.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() },
-      { id: 'image', cat: '삽입', label: '이미지 (URL)', desc: 'URL 로 이미지를 삽입합니다.', run: () => { const u = window.prompt('이미지 URL:'); if (u) ed.chain().focus().setImage({ src: u }).run() } },
-      { id: 'image-up', cat: '삽입', label: '이미지 업로드', desc: '로컬 파일에서 이미지 업로드.', run: () => { const i = document.createElement('input'); i.type='file'; i.accept='image/*'; i.onchange=()=>{const f=i.files?.[0]; if(!f)return; const r=new FileReader(); r.onload=()=>ed.chain().focus().setImage({src:String(r.result)}).run(); r.readAsDataURL(f)}; i.click() } },
-      { id: 'link', cat: '삽입', label: '링크', desc: '하이퍼링크를 추가/편집합니다.', hint: 'Ctrl+K', run: () => { const u = window.prompt('링크 URL:'); if (u) ed.chain().focus().setLink({ href: u }).run() } },
-      { id: 'hr', cat: '삽입', label: '구분선', desc: '가로 구분선 (HR) 을 삽입.', run: () => ed.chain().focus().setHorizontalRule().run() },
-      { id: 'date', cat: '삽입', label: '날짜/시간', desc: '현재 날짜와 시간을 본문에 삽입.', run: insertDateTime },
-      { id: 'page-break', cat: '삽입', label: '페이지 구분', desc: '인쇄/PDF 시 다음 페이지로 넘어갑니다.', hint: 'Ctrl+Enter', run: () => insertHTML('<hr class="jan-page-break" data-page-break="1"/><p></p>') },
-      { id: 'callout-info', cat: '삽입', label: '콜아웃: 정보', desc: '파란색 정보 알림 상자.', run: () => (ed.chain() as any).focus().setCallout('info').run() },
-      { id: 'callout-warn', cat: '삽입', label: '콜아웃: 경고', desc: '주황색 경고 알림 상자.', run: () => (ed.chain() as any).focus().setCallout('warn').run() },
-      { id: 'callout-tip', cat: '삽입', label: '콜아웃: 팁', desc: '초록색 팁 알림 상자.', run: () => (ed.chain() as any).focus().setCallout('tip').run() },
-      { id: 'callout-error', cat: '삽입', label: '콜아웃: 오류', desc: '빨간색 오류 알림 상자.', run: () => (ed.chain() as any).focus().setCallout('error').run() },
-      { id: 'math', cat: '삽입', label: '수식 (LaTeX)', desc: 'KaTeX 로 렌더링되는 LaTeX 수식 블록.', run: () => { const t = window.prompt('LaTeX (예: x^2 + y^2 = z^2):'); if (t) (ed.chain() as any).focus().setMath(t).run() } },
-      { id: 'mermaid', cat: '삽입', label: '다이어그램 (Mermaid)', desc: 'Mermaid 코드로 다이어그램 그리기.', run: () => { const c = window.prompt('Mermaid 코드:', 'graph TD\n  A-->B'); if (c) (ed.chain() as any).focus().setMermaid(c).run() } },
-      { id: 'embed', cat: '삽입', label: '임베드 (URL)', desc: 'YouTube/Vimeo/CodeSandbox URL 임베드.', run: () => { const u = window.prompt('URL:'); if (u) (ed.chain() as any).focus().setEmbed(u).run() } },
-      { id: 'youtube', cat: '삽입', label: 'YouTube 영상', desc: 'YouTube 임베드 iframe 삽입.', run: () => { const u = window.prompt('YouTube URL:'); if (!u) return; const m = u.match(/(?:v=|youtu\.be\/)([\w-]{11})/); if (!m) return alert('유효 URL 아님'); insertHTML(`<div class="jan-yt"><iframe src="https://www.youtube.com/embed/${m[1]}" width="560" height="315" frameborder="0" allowfullscreen></iframe></div>`) } },
-      { id: 'symbol', cat: '삽입', label: '특수 문자', desc: '— … · ★ → 등 자주 쓰는 기호.', run: () => { const c = window.prompt('특수 문자:\n— – … · • ◦ ★ ☆ ◆ → ← ✓ ✗ ¶ § © ® ™ ° ± × ÷ ≈ ≠ ∞ Σ Π ∫ √ α β π σ ω', '—'); if (c) ed.chain().focus().insertContent(c).run() } },
-
-      /* === 논문 === */
-      { id: 'paper-mode', cat: '논문', label: '논문 모드 패널', desc: 'Science 포맷 논문 시작/변환.', run: () => fireMenuItem('논문', '논문 시작 (Science 포맷 샘플)') },
-      { id: 'authors', cat: '논문', label: '저자 · 소속 · 교신 블록', desc: '저자명, 소속, 교신저자 이메일 블록 삽입.', run: () => fireMenuItem('논문', '저자 · 소속 · 교신 블록') },
-      { id: 'abstract', cat: '논문', label: 'Abstract 박스', desc: '회색 박스에 ABSTRACT 라벨 + 본문.', run: () => fireMenuItem('논문', 'Abstract 박스') },
-      { id: 'keywords', cat: '논문', label: 'Keywords 블록', desc: '키워드 목록 인라인 한 줄.', run: () => fireMenuItem('논문', 'Keywords 블록') },
-      { id: 'toc', cat: '논문', label: 'TOC (목차) 자동 생성', desc: 'H1/H2/H3 로 목차 패널 토글.', run: () => fireMenuItem('논문', 'TOC (목차) 자동 생성') },
-      { id: 'ack', cat: '논문', label: 'Acknowledgments', desc: '감사의 말 섹션 H2 + 본문.', run: () => fireMenuItem('논문', 'Acknowledgments (감사의 말)') },
-      { id: '2col', cat: '논문', label: '2단 레이아웃 토글', desc: 'CSS column-count: 2 로 본문 2단 표시.', run: () => fireMenuItem('논문', '2단 레이아웃 토글') },
-      { id: 'wrap-page', cat: '논문', label: '페이지로 감싸기', desc: '전체 본문을 .jan-page-wrap div 로 감쌈.', run: () => fireMenuItem('논문', '페이지로 감싸기') },
-      { id: 'run-header', cat: '논문', label: '러닝 헤더 · 꼬리말', desc: '@page top-center + ProseMirror::before 헤더.', run: () => fireMenuItem('논문', '러닝 헤더 · 꼬리말 설정') },
-      { id: 'footnote', cat: '논문', label: '각주 삽입', desc: '<sup>[N]</sup> + 문서 끝 footnote 블록.', run: () => fireMenuItem('논문', '각주 삽입') },
-      { id: 'citation', cat: '논문', label: '인용 삽입', desc: '<sup>(저자, 연도)</sup> 본문 인용.', run: () => fireMenuItem('논문', '인용 삽입') },
-      { id: 'reference', cat: '논문', label: '참고문헌 항목 추가', desc: 'hanging-indent reference 항목.', run: () => fireMenuItem('논문', '참고문헌 항목 추가') },
-      { id: 'renumber', cat: '논문', label: '번호 재정렬', desc: '문서 내 모든 각주 번호 1,2,3 으로 재할당.', run: () => fireMenuItem('논문', '번호 재정렬') },
-
-      /* === 한국어 타이포 === */
-      { id: 'letter-sp', cat: '타이포', label: '자간 설정', desc: 'letter-spacing 을 em 단위로 조정.', run: () => fireMenuItem('서식', '자간 설정') },
-      { id: 'char-scale', cat: '타이포', label: '장평 설정', desc: 'transform: scaleX 로 글자 가로 폭 조정.', run: () => fireMenuItem('서식', '장평 설정') },
-      { id: 'first-indent', cat: '타이포', label: '첫 줄 들여쓰기 토글', desc: '단락마다 첫 줄 1.5em 들여쓰기.', run: () => fireMenuItem('서식', '첫 줄 들여쓰기 토글') },
-      { id: 'para-space', cat: '타이포', label: '단락 간격', desc: '단락 위/아래 margin 을 em 으로 설정.', run: () => fireMenuItem('서식', '단락 간격') },
-      { id: 'text-effect', cat: '타이포', label: '글자 효과', desc: '그림자/네온/조각 텍스트 효과 프리셋.', run: () => fireMenuItem('서식', '글자 효과') },
-      { id: 'highlight-box', cat: '타이포', label: '강조 배경 상자', desc: '노랑 배경 + 좌측 보더 강조 div.', run: () => fireMenuItem('서식', '강조 배경 상자') },
-
-      /* === 페이지 === */
-      { id: 'page-size', cat: '페이지', label: '페이지 크기', desc: 'A4/A5/Letter/B5 페이지 크기 변경.', run: () => fireMenuItem('페이지', '페이지 크기 설정 (A4/Letter/A5/B5)') },
-      { id: 'page-margin', cat: '페이지', label: '페이지 여백', desc: '본문 여백을 mm 단위로 설정.', run: () => fireMenuItem('페이지', '페이지 여백 설정 (mm)') },
-      { id: 'pilcrow', cat: '페이지', label: '엔터 표시(¶) 켬/끔', desc: '단락 끝에 ¶ 기호 표시 토글.', run: togglePilcrow },
-      { id: 'print-prev', cat: '페이지', label: '인쇄 미리보기', desc: 'Paged.js 기반 페이지 미리보기.', hint: 'Ctrl+Alt+P', run: () => fireHeader('도움말 (F1)') },
-      { id: 'print', cat: '페이지', label: '인쇄', desc: '브라우저 인쇄 다이얼로그.', hint: 'Ctrl+P', run: () => window.print() },
-
-      /* === 미디어 === */
-      { id: 'screen-cap', cat: '미디어', label: '화면 캡쳐', desc: 'getDisplayMedia 로 화면 캡쳐 후 본문 삽입.', run: () => fireMenuItem('미디어', '화면 캡쳐') },
-      { id: 'gallery', cat: '미디어', label: '갤러리 뷰', desc: '본문 모든 이미지를 새 창에 그리드로.', run: () => fireMenuItem('미디어', '갤러리 뷰') },
-      { id: 'voice-input', cat: '미디어', label: '음성 입력', desc: 'Web Speech API 로 한국어 받아쓰기.', run: () => fireMenuItem('미디어', '음성 입력 (받아쓰기)') },
-      { id: 'tts', cat: '미디어', label: '읽어주기 (TTS)', desc: 'speechSynthesis 로 선택 텍스트 음성 출력.', run: () => fireMenuItem('미디어', '읽어주기 (TTS)') },
-      { id: 'rec', cat: '미디어', label: '음성 녹음', desc: 'MediaRecorder 로 녹음 → audio 본문 삽입.', run: () => fireMenuItem('미디어', '음성 녹음') },
-      { id: 'meet', cat: '미디어', label: '회의 노트 템플릿', desc: '회의 정보/안건/결정/액션 템플릿.', run: () => fireMenuItem('미디어', '회의 노트 (템플릿)') },
-      { id: 'ai-img', cat: '미디어', label: 'AI 이미지 생성 (Pollinations)', desc: '프롬프트로 이미지 생성하여 삽입.', run: () => fireMenuItem('미디어', 'AI 이미지 생성 (Pollinations)') },
-
-      /* === 도구 === */
-      { id: 'wordcloud', cat: '도구', label: '워드 클라우드', desc: '본문 단어 빈도를 새 창에 클라우드로.', run: () => fireMenuItem('도구', '워드 클라우드') },
-      { id: 'flashcards', cat: '도구', label: '플래시카드', desc: '제목별 Q/A 카드 학습 새 창.', run: () => fireMenuItem('도구', '플래시카드 학습') },
-      { id: 'pomodoro', cat: '도구', label: '포모도로 타이머', desc: '25분 집중 타이머 (우상단 카운터).', run: () => fireMenuItem('도구', '포모도로 타이머') },
-      { id: 'spell', cat: '도구', label: '맞춤법 검사 토글', desc: '브라우저 spellcheck 속성 켬/끔.', run: toggleSpellCheck },
-
-      /* === 보기 / UI === */
-      { id: 'focus', cat: '보기', label: '집중 모드', desc: '사이드바·툴바 등 UI 숨김.', hint: 'F11', run: toggleFocus },
-      { id: 'reading', cat: '보기', label: '읽기 모드', desc: '편집 비활성화, 가독성 향상.', hint: 'Shift+F11', run: toggleReading },
-      { id: 'sidebar', cat: '보기', label: '사이드바 토글', desc: '메모 목록 사이드바 열기/접기.', run: toggleSidebar },
-      { id: 'zoom-in', cat: '보기', label: '줌 인', desc: '본문 글자 크기 +10%.', hint: 'Ctrl+=', run: zoomIn },
-      { id: 'zoom-out', cat: '보기', label: '줌 아웃', desc: '본문 글자 크기 -10%.', hint: 'Ctrl+-', run: zoomOut },
-      { id: 'zoom-reset', cat: '보기', label: '줌 리셋 (100%)', desc: '본문 글자 크기 기본값으로 복원.', hint: 'Ctrl+0', run: zoomReset },
-      { id: 'theme', cat: '보기', label: '테마 변경 (light/dark/auto)', desc: '라이트→다크→자동 순환.', run: cycleTheme },
-      { id: 'h-num', cat: '보기', label: '제목 번호 매기기 토글', desc: 'H1/H2/H3 앞에 1, 1.1, 1.1.1 자동 번호.', run: toggleHeadingNumbers },
-
-      /* === 편집 === */
-      { id: 'undo', cat: '편집', label: '실행 취소', desc: '마지막 변경을 되돌립니다.', hint: 'Ctrl+Z', run: () => ed.chain().focus().undo().run() },
-      { id: 'redo', cat: '편집', label: '다시 실행', desc: '되돌린 변경을 다시 실행.', hint: 'Ctrl+Shift+Z', run: () => ed.chain().focus().redo().run() },
-      { id: 'select-all', cat: '편집', label: '모두 선택', desc: '본문 전체를 선택합니다.', hint: 'Ctrl+A', run: () => ed.chain().focus().selectAll().run() },
-
-      /* === 파일 === */
-      { id: 'save', cat: '파일', label: '저장', desc: '현재 메모를 파일로 저장.', hint: 'Ctrl+S', run: () => fireMenuItem('파일', '저장') },
-      { id: 'open', cat: '파일', label: '열기', desc: '파일에서 메모를 불러옵니다.', hint: 'Ctrl+O', run: () => fireMenuItem('파일', '열기...') },
-      { id: 'export-pdf', cat: '파일', label: 'PDF 내보내기', desc: '현재 메모를 PDF 로 다운로드.', run: () => fireMenuItem('파일', 'PDF 내보내기') },
-      { id: 'export-html', cat: '파일', label: 'HTML 내보내기', desc: '현재 메모를 HTML 파일로.', run: () => fireMenuItem('파일', 'HTML 내보내기') },
-      { id: 'export-md', cat: '파일', label: 'Markdown 내보내기', desc: '.md 파일로 저장.', run: () => fireMenuItem('파일', 'Markdown(.md) 저장') },
-      { id: 'export-hwpx', cat: '파일', label: 'HWPX (한글) 내보내기', desc: '한글 .hwpx 파일로 저장.', run: () => fireMenuItem('파일', 'HWPX (한글) 내보내기') },
-      { id: 'export-doc', cat: '파일', label: 'Word(.doc) 내보내기', desc: 'MS Office 호환 .doc 파일.', run: () => fireMenuItem('파일', 'Word(.doc) 내보내기') },
-      { id: 'gist', cat: '파일', label: 'GitHub Gist 공유', desc: 'Gist 로 업로드하여 링크 공유.', run: () => fireMenuItem('파일', 'GitHub Gist 로 공유') },
-      { id: 'share', cat: '파일', label: '공유 링크', desc: '공유용 단축 링크 생성.', run: () => fireMenuItem('파일', '공유 링크') },
-      { id: 'json-export', cat: '파일', label: 'JSON 백업 내보내기', desc: '모든 메모를 JSON 파일로 백업.', run: () => fireMenuItem('파일', 'JSON 백업 내보내기') },
-      { id: 'json-import', cat: '파일', label: 'JSON 백업 가져오기', desc: 'JSON 파일에서 메모 일괄 가져오기.', run: () => fireMenuItem('파일', 'JSON 백업 가져오기') },
-      { id: 'v1-import', cat: '파일', label: 'v1 메모 가져오기', desc: 'localStorage 의 v1 메모 → v2 변환.', run: () => fireMenuItem('파일', 'v1 메모 가져오기') },
-      { id: 'versions', cat: '파일', label: '버전 기록', desc: '자동 저장된 버전 목록 + 복원.', run: () => fireMenuItem('파일', '버전 기록') },
-      { id: 'lock', cat: '파일', label: '잠금 / 비밀번호', desc: '메모에 비밀번호 설정.', run: () => fireMenuItem('파일', '잠금 / 비밀번호') },
-      { id: 'trash', cat: '파일', label: '휴지통', desc: '삭제된 메모 목록 보기.', run: () => fireMenuItem('파일', '휴지통') },
-      { id: 'about', cat: '파일', label: '정보 / 버전', desc: 'JustANotepad 버전 및 변경 내역.', run: () => fireHeader('버전 / 변경 내역') },
-
-      /* === Topbar 단축 === */
-      { id: 'tb-web', cat: '도구', label: '웹 검색', desc: '구글에서 키워드 검색 (새 탭).', run: () => fireHeader('웹 검색') },
-      { id: 'tb-ai', cat: '도구', label: 'AI 어시스턴트', desc: 'AI 도우미 모달 열기.', hint: 'Ctrl+/', run: () => fireHeader('AI 어시스턴트 (Ctrl+/)') },
-      { id: 'tb-cal', cat: '도구', label: '캘린더', desc: 'QuickCapture 캘린더 모달.', run: () => fireHeader('캘린더') },
-      { id: 'tb-pin', cat: '도구', label: '새 JustPin', desc: '새 포스트잇 메모.', hint: 'Ctrl+Alt+P', run: () => fireHeader('새 JustPin (Ctrl+Alt+P)') },
-      { id: 'tb-lecture', cat: '도구', label: '강의노트 템플릿', desc: '과목/교수/날짜/핵심개념 템플릿 새 메모.', run: () => fireHeader('강의노트') },
-      { id: 'tb-meeting', cat: '도구', label: '회의노트 템플릿', desc: '안건/결정/액션 아이템 템플릿 새 메모.', run: () => fireHeader('회의노트') },
-      { id: 'tb-cards', cat: '도구', label: '명함 / 카드 관리', desc: '메모를 카드 그리드로 새 창에서 보기.', run: () => fireHeader('명함 / 카드 관리') },
-      { id: 'tb-paint', cat: '도구', label: '그림판', desc: 'Canvas 기반 그림판 모달.', run: () => fireHeader('그림판') },
-      { id: 'tb-imgcv', cat: '도구', label: '이미지 변환기', desc: '리사이즈 + 포맷 변환 (PNG/JPG/WebP).', run: () => fireHeader('이미지 변환기') },
-      { id: 'tb-roles', cat: '도구', label: '내 도구 / 역할 팩', desc: '37개 역할별 글쓰기 도구.', run: () => fireHeader('내 도구 / 역할 팩') },
-      { id: 'tb-search', cat: '도구', label: '전체 검색', desc: '모든 메모 텍스트 검색.', hint: 'Ctrl+Shift+F', run: () => fireHeader('검색 (Ctrl+Shift+F)') },
-      { id: 'tb-ocr', cat: '도구', label: 'OCR', desc: '이미지에서 텍스트 추출.', run: () => fireHeader('OCR') },
-      { id: 'tb-help', cat: '도구', label: '도움말', desc: '단축키 + 사용법 가이드.', hint: 'F1', run: () => fireHeader('도움말 (F1)') },
-      { id: 'tb-home', cat: '도구', label: '홈 허브', desc: '최근 메모 목록 새 창.', run: () => fireHeader('홈 허브') },
-      { id: 'tb-sync', cat: '도구', label: '동기화 설정', desc: 'Dropbox/GDrive/Supabase 동기화.', run: () => fireHeader('동기화 설정') },
-      { id: 'tb-settings', cat: '도구', label: '설정', desc: '앱 설정 (테마/언어/AI/저장 등).', hint: 'Ctrl+,', run: () => fireHeader('설정 (Ctrl+,)') },
-      { id: 'tb-cms', cat: '도구', label: 'CMS 관리자', desc: 'Super Admin 전용 관리 페이지.', run: () => fireHeader('CMS 관리자 (Super Admin)') },
+      /* 서식 */
+      { id:'bold', cat:'서식', icon:'bold', label:'굵게', desc:'선택 텍스트를 두껍게 표시합니다.', hint:'Ctrl+B', run: () => ed.chain().focus().toggleBold().run() },
+      { id:'italic', cat:'서식', icon:'italic', label:'기울임', desc:'선택 텍스트를 이탤릭체로.', hint:'Ctrl+I', run: () => ed.chain().focus().toggleItalic().run() },
+      { id:'underline', cat:'서식', icon:'underline', label:'밑줄', desc:'선택 텍스트에 밑줄.', hint:'Ctrl+U', run: () => ed.chain().focus().toggleUnderline().run() },
+      { id:'strike', cat:'서식', icon:'strike', label:'취소선', desc:'가운데 줄을 긋습니다.', run: () => ed.chain().focus().toggleStrike().run() },
+      { id:'highlight', cat:'서식', icon:'highlight', label:'형광펜', desc:'노란색 형광펜 강조.', run: () => (ed.chain() as any).focus().toggleHighlight({ color: '#FFEB3B' }).run() },
+      { id:'clear-fmt', cat:'서식', icon:'wand', label:'서식 지우기', desc:'모든 마크와 노드 서식 초기화.', run: () => ed.chain().focus().unsetAllMarks().clearNodes().run() },
+      /* 제목 */
+      { id:'h1', cat:'제목', icon:'h1', label:'제목 1', desc:'큰 제목 (H1).', hint:'Ctrl+Alt+1', run: () => ed.chain().focus().toggleHeading({ level: 1 }).run() },
+      { id:'h2', cat:'제목', icon:'h2', label:'제목 2', desc:'중간 제목 (H2).', hint:'Ctrl+Alt+2', run: () => ed.chain().focus().toggleHeading({ level: 2 }).run() },
+      { id:'h3', cat:'제목', icon:'h3', label:'제목 3', desc:'소제목 (H3).', hint:'Ctrl+Alt+3', run: () => ed.chain().focus().toggleHeading({ level: 3 }).run() },
+      { id:'p', cat:'제목', icon:'paragraph', label:'일반 문단', desc:'제목 해제, 일반 문단으로.', run: () => ed.chain().focus().setParagraph().run() },
+      /* 정렬 */
+      { id:'left', cat:'정렬', icon:'align-left', label:'왼쪽 정렬', desc:'단락 왼쪽 정렬.', hint:'Ctrl+L', run: () => ed.chain().focus().setTextAlign('left').run() },
+      { id:'center', cat:'정렬', icon:'align-center', label:'가운데 정렬', desc:'단락 가운데 정렬.', hint:'Ctrl+E', run: () => ed.chain().focus().setTextAlign('center').run() },
+      { id:'right', cat:'정렬', icon:'align-right', label:'오른쪽 정렬', desc:'단락 오른쪽 정렬.', hint:'Ctrl+R', run: () => ed.chain().focus().setTextAlign('right').run() },
+      { id:'justify', cat:'정렬', icon:'align-justify', label:'양쪽 정렬', desc:'양끝 정렬.', hint:'Ctrl+J', run: () => ed.chain().focus().setTextAlign('justify').run() },
+      /* 리스트 */
+      { id:'ul', cat:'리스트', icon:'list-bullet', label:'글머리 기호 목록', desc:'• 점 무순서 목록.', run: () => ed.chain().focus().toggleBulletList().run() },
+      { id:'ol', cat:'리스트', icon:'list-numbered', label:'번호 매기기 목록', desc:'1. 2. 3. 순서 목록.', run: () => ed.chain().focus().toggleOrderedList().run() },
+      { id:'task', cat:'리스트', icon:'list-check', label:'체크리스트', desc:'☐ 체크박스 할 일 목록.', run: () => (ed.chain() as any).focus().toggleList('taskList', 'taskItem').run() },
+      { id:'quote', cat:'리스트', icon:'quote', label:'인용', desc:'왼쪽 줄 인용 블록.', run: () => ed.chain().focus().toggleBlockquote().run() },
+      { id:'code', cat:'리스트', icon:'code', label:'코드 블록', desc:'고정폭 코드 블록.', run: () => ed.chain().focus().toggleCodeBlock().run() },
+      /* 삽입 */
+      { id:'table', cat:'삽입', icon:'table', label:'표 삽입 (3×3)', desc:'3행×3열 표.', run: () => ed.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() },
+      { id:'image', cat:'삽입', icon:'image', label:'이미지 (URL)', desc:'URL 로 이미지 삽입.', run: () => { const u = window.prompt('이미지 URL:'); if (u) ed.chain().focus().setImage({ src: u }).run() } },
+      { id:'image-up', cat:'삽입', icon:'image', label:'이미지 업로드', desc:'로컬 파일 업로드.', run: () => { const i = document.createElement('input'); i.type='file'; i.accept='image/*'; i.onchange=()=>{const f=i.files?.[0]; if(!f)return; const r=new FileReader(); r.onload=()=>ed.chain().focus().setImage({src:String(r.result)}).run(); r.readAsDataURL(f)}; i.click() } },
+      { id:'link', cat:'삽입', icon:'link', label:'링크', desc:'하이퍼링크.', hint:'Ctrl+K', run: () => { const u = window.prompt('링크 URL:'); if (u) ed.chain().focus().setLink({ href: u }).run() } },
+      { id:'hr', cat:'삽입', icon:'minus', label:'구분선', desc:'가로 구분선 (HR).', run: () => ed.chain().focus().setHorizontalRule().run() },
+      { id:'hr-style', cat:'삽입', icon:'minus', label:'구분선 스타일', desc:'실선/점선/이중선/별표.', run: insertHrStyle },
+      { id:'date', cat:'삽입', icon:'clock', label:'날짜/시간', desc:'현재 날짜·시간 삽입.', run: insertDateTime },
+      { id:'page-break', cat:'삽입', icon:'page-break', label:'페이지 구분', desc:'인쇄 시 다음 페이지로.', hint:'Ctrl+Enter', run: insertPageBreak },
+      { id:'callout-info', cat:'삽입', icon:'info', label:'콜아웃: 정보', desc:'파란 정보 알림 상자.', run: () => (ed.chain() as any).focus().setCallout('info').run() },
+      { id:'callout-warn', cat:'삽입', icon:'bell', label:'콜아웃: 경고', desc:'주황 경고 상자.', run: () => (ed.chain() as any).focus().setCallout('warn').run() },
+      { id:'callout-tip', cat:'삽입', icon:'sparkle', label:'콜아웃: 팁', desc:'초록 팁 상자.', run: () => (ed.chain() as any).focus().setCallout('tip').run() },
+      { id:'math', cat:'삽입', icon:'hash', label:'수식 (LaTeX)', desc:'KaTeX 수식 블록.', run: () => { const t = window.prompt('LaTeX:'); if (t) (ed.chain() as any).focus().setMath(t).run() } },
+      { id:'mermaid', cat:'삽입', icon:'hash', label:'다이어그램 (Mermaid)', desc:'Mermaid 다이어그램.', run: () => { const c = window.prompt('Mermaid:', 'graph TD\n  A-->B'); if (c) (ed.chain() as any).focus().setMermaid(c).run() } },
+      { id:'embed', cat:'삽입', icon:'globe', label:'임베드 (URL)', desc:'YouTube/Vimeo 등 임베드.', run: () => { const u = window.prompt('URL:'); if (u) (ed.chain() as any).focus().setEmbed(u).run() } },
+      { id:'youtube', cat:'삽입', icon:'globe', label:'YouTube 영상', desc:'iframe 임베드.', run: insertYouTube },
+      { id:'symbol', cat:'삽입', icon:'sparkle', label:'특수 문자', desc:'— … · ★ → 등.', run: insertSymbol },
+      { id:'bookmark', cat:'삽입', icon:'pin', label:'책갈피', desc:'앵커 ID 책갈피.', run: insertBookmark },
+      { id:'textbox', cat:'삽입', icon:'box', label:'텍스트 상자', desc:'테두리 + 배경 박스.', run: insertTextBox },
+      /* 논문 */
+      { id:'authors', cat:'논문', icon:'user', label:'저자 · 소속 · 교신', desc:'논문 저자 블록 삽입.', run: insertAuthorBlock },
+      { id:'abstract', cat:'논문', icon:'file-text', label:'Abstract 박스', desc:'회색 ABSTRACT 박스.', run: insertAbstract },
+      { id:'keywords', cat:'논문', icon:'hash', label:'Keywords 블록', desc:'키워드 인라인 한 줄.', run: insertKeywords },
+      { id:'toc', cat:'논문', icon:'list-bullet', label:'TOC (목차) 자동 생성', desc:'헤딩 기반 목차 패널 토글.', run: () => p.onToggleOutline?.() },
+      { id:'ack', cat:'논문', icon:'star', label:'Acknowledgments', desc:'감사의 말 섹션.', run: insertAck },
+      { id:'2col', cat:'논문', icon:'columns', label:'2단 레이아웃 토글', desc:'본문 2단 표시.', run: toggleTwoCol },
+      { id:'wrap-page', cat:'논문', icon:'page', label:'페이지로 감싸기', desc:'전체 본문을 .jan-page-wrap 으로.', run: wrapAsPage },
+      { id:'run-header', cat:'논문', icon:'pin', label:'러닝 헤더 · 꼬리말', desc:'페이지 상단 헤더 텍스트.', run: setRunHeader },
+      { id:'footnote', cat:'논문', icon:'sup', label:'각주 삽입', desc:'<sup>[N]</sup> + 문서 끝 footnote.', run: insertFootnote },
+      { id:'citation', cat:'논문', icon:'quote', label:'인용 삽입', desc:'<sup>(저자, 연도)</sup>.', run: insertCitation },
+      { id:'reference', cat:'논문', icon:'file-text', label:'참고문헌 항목', desc:'hanging-indent 참고문헌.', run: insertReference },
+      { id:'renumber', cat:'논문', icon:'hash', label:'번호 재정렬', desc:'각주 번호 1,2,3 재할당.', run: renumberFn },
+      { id:'paper-mode', cat:'논문', icon:'file-text', label:'논문 모드 패널', desc:'Science 포맷 논문 패널.', run: () => p.onPaper?.() },
+      /* 타이포 */
+      { id:'letter-sp', cat:'타이포', icon:'sliders', label:'자간 설정', desc:'letter-spacing em 단위.', run: setLetterSpacing },
+      { id:'char-scale', cat:'타이포', icon:'sliders', label:'장평 설정', desc:'transform: scaleX 글자 폭.', run: setCharScale },
+      { id:'first-indent', cat:'타이포', icon:'paragraph', label:'첫 줄 들여쓰기', desc:'단락 첫 줄 1.5em 들여쓰기.', run: toggleFirstIndent },
+      { id:'para-space', cat:'타이포', icon:'paragraph', label:'단락 간격', desc:'단락 위/아래 margin em.', run: setParaSpace },
+      { id:'text-effect', cat:'타이포', icon:'sparkle', label:'글자 효과', desc:'그림자/네온/조각.', run: setTextEffect },
+      { id:'highlight-box', cat:'타이포', icon:'highlight', label:'강조 배경 상자', desc:'노랑 배경 강조 박스.', run: insertHighlightBox },
+      { id:'typo-modal', cat:'타이포', icon:'palette', label:'타이포그래피 패널', desc:'폰트/줄간격 조정.', run: () => p.onTypo?.() },
+      /* 페이지 */
+      { id:'page-size', cat:'페이지', icon:'page', label:'페이지 크기', desc:'A4/A5/Letter/B5.', run: setPageSize },
+      { id:'page-margin', cat:'페이지', icon:'page', label:'페이지 여백', desc:'본문 여백 mm.', run: setPageMargin },
+      { id:'pilcrow', cat:'페이지', icon:'paragraph', label:'엔터 표시 ¶ 켬/끔', desc:'단락 끝 ¶ 표시.', run: togglePilcrow },
+      { id:'print-prev', cat:'페이지', icon:'preview', label:'인쇄 미리보기', desc:'Paged.js 페이지 미리보기.', hint:'Ctrl+Alt+P', run: () => p.onPrintPreview?.() },
+      { id:'print', cat:'페이지', icon:'print', label:'인쇄', desc:'브라우저 인쇄.', hint:'Ctrl+P', run: () => window.print() },
+      /* 미디어 */
+      { id:'screen-cap', cat:'미디어', icon:'preview', label:'화면 캡쳐', desc:'getDisplayMedia 화면 캡쳐.', run: captureScreen },
+      { id:'voice-input', cat:'미디어', icon:'mic', label:'음성 입력', desc:'Web Speech API 받아쓰기.', run: startVoice },
+      { id:'tts', cat:'미디어', icon:'volume', label:'읽어주기 (TTS)', desc:'speechSynthesis 음성 출력.', run: speakSel },
+      { id:'meet-tpl', cat:'미디어', icon:'users', label:'회의 노트 템플릿', desc:'안건/결정/액션 템플릿.', run: insertMeetingTpl },
+      { id:'ai-img', cat:'미디어', icon:'sparkle', label:'AI 이미지 생성', desc:'Pollinations 이미지 생성.', run: aiImage },
+      { id:'paint', cat:'미디어', icon:'paint', label:'그림판', desc:'캔버스 그림판 모달.', run: () => p.onPaint?.() },
+      { id:'postit', cat:'미디어', icon:'pin', label:'포스트잇 (JustPin)', desc:'포스트잇 메모.', run: () => p.onPostit?.() },
+      /* 도구 */
+      { id:'wordcloud', cat:'도구', icon:'sparkle', label:'워드 클라우드', desc:'단어 빈도 클라우드 새 창.', run: wordCloud },
+      { id:'flashcards', cat:'도구', icon:'cards', label:'플래시카드', desc:'제목별 Q/A 학습.', run: flashcards },
+      { id:'pomodoro', cat:'도구', icon:'clock', label:'포모도로 타이머', desc:'25분 집중 타이머.', run: startPomo },
+      { id:'spell', cat:'도구', icon:'check', label:'맞춤법 검사 토글', desc:'spellcheck 켬/끔.', run: toggleSpellCheck },
+      { id:'web', cat:'도구', icon:'globe', label:'웹 검색', desc:'구글에서 키워드 검색.', run: webSearch },
+      { id:'ai', cat:'도구', icon:'ai', label:'AI 어시스턴트', desc:'AI 도우미 모달.', hint:'Ctrl+/', run: () => p.onAi?.() },
+      { id:'chat', cat:'도구', icon:'ai', label:'AI 챗 패널', desc:'AI 채팅 사이드 패널.', run: () => p.onChat?.() },
+      { id:'cal', cat:'도구', icon:'page', label:'캘린더', desc:'QuickCapture 캘린더.', run: () => p.onCalendar?.() },
+      { id:'search', cat:'도구', icon:'search', label:'전체 검색', desc:'모든 메모 검색.', hint:'Ctrl+Shift+F', run: () => p.onSearch?.() },
+      { id:'find', cat:'도구', icon:'replace', label:'찾아 바꾸기', desc:'단어 일괄 교체.', hint:'Ctrl+H', run: () => p.onFind?.() },
+      { id:'link-check', cat:'도구', icon:'unlink', label:'깨진 링크 검사', desc:'404 링크 찾기.', run: () => p.onLinkCheck?.() },
+      { id:'stats', cat:'도구', icon:'hash', label:'통계 / 대시보드', desc:'메모 통계 대시보드.', run: () => p.onStats?.() },
+      { id:'heatmap', cat:'도구', icon:'hash', label:'활동 히트맵', desc:'GitHub 스타일 활동 시각화.', run: () => p.onHeatmap?.() },
+      { id:'info', cat:'도구', icon:'info', label:'메모 정보', desc:'현재 메모 통계.', run: () => p.onInfo?.() },
+      { id:'diff', cat:'도구', icon:'replace', label:'메모 비교 (diff)', desc:'두 메모 차이 비교.', run: () => p.onDiff?.() },
+      { id:'translate', cat:'도구', icon:'translate', label:'번역', desc:'한↔영 번역.', run: () => p.onTranslate?.() },
+      { id:'mindmap', cat:'도구', icon:'sparkle', label:'마인드맵', desc:'노드 트리 시각화.', run: () => p.onMindMap?.() },
+      { id:'ocr', cat:'도구', icon:'image-text', label:'OCR (이미지 → 텍스트)', desc:'이미지에서 텍스트 추출.', run: () => p.onOcr?.() },
+      { id:'roles', cat:'도구', icon:'briefcase', label:'역할 팩 (전문 글쓰기)', desc:'37개 역할 도구.', run: () => p.onRoles?.() },
+      { id:'templates', cat:'도구', icon:'file-text', label:'템플릿', desc:'학술/문서 템플릿.', run: () => p.onTemplates?.() },
+      { id:'snippets', cat:'도구', icon:'file-plus', label:'스니펫', desc:'재사용 텍스트 스니펫.', run: () => p.onSnippets?.() },
+      { id:'macros', cat:'도구', icon:'wand', label:'매크로', desc:'반복 작업 매크로.', run: () => p.onMacros?.() },
+      { id:'help', cat:'도구', icon:'help', label:'도움말 / 단축키', desc:'F1 단축키 + 가이드.', hint:'F1', run: () => p.onHelp?.() },
+      /* 보기 */
+      { id:'focus', cat:'보기', icon:'eye', label:'집중 모드', desc:'사이드바·툴바 숨김.', hint:'F11', run: toggleFocus },
+      { id:'reading', cat:'보기', icon:'preview', label:'읽기 모드', desc:'편집 비활성, 가독성 향상.', hint:'Shift+F11', run: toggleReading },
+      { id:'sidebar', cat:'보기', icon:'list-bullet', label:'사이드바 토글', desc:'메모 목록 열기/접기.', run: toggleSidebar },
+      { id:'zoom-in', cat:'보기', icon:'zoom-in', label:'줌 인', desc:'본문 +10%.', hint:'Ctrl+=', run: zoomIn },
+      { id:'zoom-out', cat:'보기', icon:'zoom-out', label:'줌 아웃', desc:'본문 -10%.', hint:'Ctrl+-', run: zoomOut },
+      { id:'zoom-reset', cat:'보기', icon:'refresh-cw', label:'줌 리셋 (100%)', desc:'기본 크기로.', hint:'Ctrl+0', run: zoomReset },
+      { id:'theme', cat:'보기', icon: theme==='dark'?'moon':theme==='light'?'sun':'auto', label:`테마 변경 (현재: ${theme})`, desc:'라이트→다크→자동 순환.', run: cycleTheme },
+      { id:'h-num', cat:'보기', icon:'hash', label:'제목 번호 매기기', desc:'1, 1.1, 1.1.1 자동 번호.', run: toggleHeadingNumbers },
+      { id:'md-prev', cat:'보기', icon:'preview', label:'Markdown 미리보기', desc:'MD 렌더링 미리보기.', run: () => p.onMd?.() },
+      /* 편집 */
+      { id:'undo', cat:'편집', icon:'undo', label:'실행 취소', desc:'마지막 변경 되돌리기.', hint:'Ctrl+Z', run: () => ed.chain().focus().undo().run() },
+      { id:'redo', cat:'편집', icon:'redo', label:'다시 실행', desc:'되돌린 변경 복원.', hint:'Ctrl+Shift+Z', run: () => ed.chain().focus().redo().run() },
+      { id:'select-all', cat:'편집', icon:'check', label:'모두 선택', desc:'본문 전체 선택.', hint:'Ctrl+A', run: () => ed.chain().focus().selectAll().run() },
+      /* 파일 */
+      { id:'save', cat:'파일', icon:'save', label:'저장', desc:'현재 메모를 파일로.', hint:'Ctrl+S', run: () => p.onSave?.() },
+      { id:'open', cat:'파일', icon:'open', label:'열기', desc:'파일에서 메모 불러오기.', hint:'Ctrl+O', run: () => p.onOpen?.() },
+      { id:'export-pdf', cat:'파일', icon:'print', label:'PDF로 내보내기', desc:'인쇄 → "PDF로 저장" 선택.', run: exportPdf },
+      { id:'export-docx', cat:'파일', icon:'download', label:'Word(.docx) 내보내기', desc:'Word/한글에서 열림.', run: exportDocx },
+      { id:'export-html', cat:'파일', icon:'globe', label:'HTML로 내보내기', desc:'브라우저용 독립 파일.', run: exportHtml },
+      { id:'export-md', cat:'파일', icon:'file-text', label:'Markdown(.md) 저장', desc:'plain text 마크다운.', run: exportMd },
+      { id:'export-hwpx', cat:'파일', icon:'file-text', label:'HWPX (한글) 내보내기', desc:'한글 문서 파일.', run: exportHwpx },
+      { id:'gist', cat:'파일', icon:'cloud', label:'GitHub Gist', desc:'Gist 로 업로드 공유.', run: () => p.onGist?.() },
+      { id:'share', cat:'파일', icon:'link', label:'공유 링크', desc:'단축 링크 생성.', run: () => p.onShare?.() },
+      { id:'json-backup', cat:'파일', icon:'cloud', label:'JSON 백업', desc:'모든 메모 JSON 백업.', run: jsonBackup },
+      { id:'attach', cat:'파일', icon:'paperclip', label:'파일 첨부', desc:'파일 첨부 패널.', run: () => p.onAtt?.() },
+      { id:'lock', cat:'파일', icon:'lock', label:'잠금 / 비밀번호', desc:'메모 비밀번호 설정.', run: () => p.onLock?.() },
+      { id:'versions', cat:'파일', icon:'history', label:'버전 기록', desc:'자동 저장 버전 + 복원.', run: () => p.onVersions?.() },
+      { id:'about', cat:'파일', icon:'info', label:'정보 / 버전', desc:'앱 버전 + 변경 내역.', run: () => p.onAbout?.() },
+      { id:'settings', cat:'파일', icon:'settings', label:'설정', desc:'앱 환경 설정.', hint:'Ctrl+,', run: () => p.onSettings?.() },
+      /* 빠른 입력 */
+      { id:'quick', cat:'빠른 입력', icon:'plus', label:'빠른 메모', desc:'팝오버 빠른 메모.', hint:'Ctrl+Shift+J', run: () => p.onQuick?.() },
     ]
-  }, [editor, list, newMemo, duplicate, togglePin, setCurrent, toggleFocus, zoomIn, zoomOut, zoomReset, toggleSidebar, toggleHeadingNumbers, toggleReading, toggleSpellCheck, theme])
+  }, [editor, list, newMemo, duplicate, togglePin, setCurrent, toggleFocus, zoomIn, zoomOut, zoomReset, toggleSidebar, toggleHeadingNumbers, toggleReading, toggleSpellCheck, theme, p])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -253,11 +440,11 @@ export function CommandPalette({ editor }: CommandPaletteProps) {
       c.label.toLowerCase().includes(q) ||
       (c.desc || '').toLowerCase().includes(q) ||
       c.cat.toLowerCase().includes(q) ||
-      c.id.toLowerCase().includes(q)
+      c.id.toLowerCase().includes(q) ||
+      (c.hint || '').toLowerCase().includes(q)
     )
   }, [query, commands])
 
-  /* 카테고리별 그룹 */
   const groups = useMemo(() => {
     const m: Record<string, Command[]> = {}
     filtered.forEach(c => { (m[c.cat] = m[c.cat] || []).push(c) })
@@ -288,40 +475,42 @@ export function CommandPalette({ editor }: CommandPaletteProps) {
             type="text"
             className="jan-cp-input"
             autoFocus
-            placeholder={`명령 검색... (${flat.length}/${commands.length}개)  ·  Ctrl+K`}
+            placeholder={`명령 검색... (예: 캘린더, 새 탭, 테마)`}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onKeyDown}
           />
           <button className="jan-cp-close" onClick={() => setOpen(false)} title="닫기 (Esc)" aria-label="닫기">×</button>
         </div>
-        <ul className="jan-cp-list">
-          {flat.length === 0 && <li className="jan-cp-empty">검색 결과 없음</li>}
+        <div className="jan-cp-list">
+          {flat.length === 0 && <div className="jan-cp-empty">검색 결과 없음</div>}
           {Object.entries(groups).map(([cat, cmds]) => (
-            <li key={cat} className="jan-cp-group">
-              <div className="jan-cp-group-label">{cat} <span style={{ opacity: 0.5, fontWeight: 400, marginLeft: 6 }}>{cmds.length}</span></div>
+            <div key={cat} className="jan-cp-group">
+              <div className="jan-cp-group-label">{cat} <span className="jan-cp-group-count">{cmds.length}</span></div>
               {cmds.map((cmd) => {
                 const i = runningIdx++
                 return (
-                  <div
+                  <button
                     key={cmd.id}
+                    type="button"
                     className={'jan-cp-item' + (i === selected ? ' is-selected' : '')}
                     onClick={() => { cmd.run(); setOpen(false); setQuery('') }}
                     onMouseEnter={() => setSelected(i)}
                   >
-                    <div className="jan-cp-item-main">
+                    <span className="jan-cp-icon"><Icon name={cmd.icon} size={20} /></span>
+                    <span className="jan-cp-text">
                       <span className="jan-cp-label">{cmd.label}</span>
-                      {cmd.hint && <span className="jan-cp-hint">{cmd.hint}</span>}
-                    </div>
-                    {cmd.desc && <div className="jan-cp-desc">{cmd.desc}</div>}
-                  </div>
+                      {cmd.desc && <span className="jan-cp-desc">{cmd.desc}</span>}
+                    </span>
+                    {cmd.hint && <span className="jan-cp-hint">{cmd.hint}</span>}
+                  </button>
                 )
               })}
-            </li>
+            </div>
           ))}
-        </ul>
+        </div>
         <div className="jan-cp-footer">
-          ↑↓ 이동 · Enter 실행 · Esc 닫기 · {commands.length}개 명령 (검색: 라벨/설명/카테고리)
+          ↑↓ 이동 · Enter 실행 · Esc 닫기 · {commands.length}개 명령
         </div>
       </div>
     </div>
