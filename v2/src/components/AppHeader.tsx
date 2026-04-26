@@ -21,6 +21,7 @@ interface AppHeaderProps {
   onPaint?: () => void
   onRoles?: () => void
   onTemplates?: () => void
+  onCards?: () => void
 }
 
 /**
@@ -35,7 +36,7 @@ export function AppHeader(p: AppHeaderProps) {
   const toggleFocus = useUIStore((s) => s.toggleFocus)
   const theme = useThemeStore((s) => s.theme)
   const setTheme = useThemeStore((s) => s.setTheme)
-  const { current, updateCurrent, list, newMemo, setCurrent } = useMemosStore()
+  const { current, updateCurrent, newMemo, list } = useMemosStore()
   const memo = current()
   const title = memo?.title || '새 메모'
 
@@ -90,19 +91,6 @@ export function AppHeader(p: AppHeaderProps) {
       })
     }, 50)
   }
-  const openCardsManager = () => {
-    /* Mini popup with current memos as "cards" */
-    const all = list()
-    const w = window.open('', '_blank', 'width=900,height=700')
-    if (!w) return
-    let html = `<!doctype html><html><head><title>명함 / 카드 관리</title><style>body{font-family:sans-serif;background:#FFF8E7;padding:1em;} .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;} .card{background:#fff;border:1px solid #ddd;border-radius:8px;padding:1em;box-shadow:0 2px 6px rgba(0,0,0,0.08);} h3{margin:0 0 0.5em;font-size:14px;color:#333;} .body{color:#555;font-size:12px;height:80px;overflow:hidden;}</style></head><body><h2>명함 / 카드 관리 — 메모 ${all.length}개</h2><div class="grid">`
-    all.slice(0, 50).forEach((m: any) => {
-      const body = (m.content || '').replace(/<[^>]+>/g, ' ').slice(0, 200)
-      html += `<div class="card"><h3>${m.title || '제목없음'}</h3><div class="body">${body}</div></div>`
-    })
-    html += '</div></body></html>'
-    w.document.write(html); w.document.close()
-  }
   const openImageConverter = () => {
     const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'
     inp.onchange = () => {
@@ -149,8 +137,6 @@ export function AppHeader(p: AppHeaderProps) {
   const tauriMin = async () => { try { const t: any = (window as any).__TAURI__; const w = t?.window?.getCurrent?.(); if (w?.minimize) await w.minimize() } catch {} }
   const tauriMax = async () => { try { const t: any = (window as any).__TAURI__; const w = t?.window?.getCurrent?.(); if (w?.toggleMaximize) await w.toggleMaximize() } catch {} }
   const tauriClose = async () => { try { const t: any = (window as any).__TAURI__; const w = t?.window?.getCurrent?.(); if (w?.close) await w.close() } catch {} }
-  void setCurrent /* keep imported */
-
   return (
     <header className="jan-app-header">
       <div className="jan-header-left">
@@ -178,7 +164,7 @@ export function AppHeader(p: AppHeaderProps) {
         <button className="jan-header-btn" onClick={openJustPin} title="새 JustPin (Ctrl+Alt+P)" aria-label="JustPin"><Icon name="pin" /></button>
         <button className="jan-header-btn" onClick={insertLectureTemplate} title="강의노트" aria-label="강의노트"><Icon name="mic" /></button>
         <button className="jan-header-btn" onClick={insertMeetingTemplate} title="회의노트" aria-label="회의노트"><Icon name="users" /></button>
-        <button className="jan-header-btn" onClick={openCardsManager} title="명함 / 카드 관리" aria-label="명함"><Icon name="cards" /></button>
+        <button className="jan-header-btn" onClick={p.onCards} title="명함 / 카드 관리" aria-label="명함"><Icon name="cards" /></button>
         <button className="jan-header-btn" onClick={p.onPaint} title="그림판" aria-label="그림판"><Icon name="paint" /></button>
         <button className="jan-header-btn" onClick={openImageConverter} title="이미지 변환기" aria-label="이미지 변환"><Icon name="image" /></button>
         <button className="jan-header-btn" onClick={openRoleDash} title="내 도구 / 역할 팩" aria-label="역할 팩"><Icon name="briefcase" /></button>

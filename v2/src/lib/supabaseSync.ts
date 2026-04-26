@@ -211,7 +211,7 @@ export async function syncNow(): Promise<SyncResult> {
       const snapshot = snapshotFromCloudData(cloud.data)
       if (!snapshot) return { ok: false, pushed, pulled, error: '지원하지 않는 클라우드 데이터 형식입니다' }
       const applied = applyV2Snapshot(snapshot)
-      pulled = applied.memosChanged + applied.trashChanged + applied.tagsChanged + applied.workspacesChanged
+      pulled = applied.memosChanged + applied.trashChanged + applied.tagsChanged + applied.workspacesChanged + applied.cardsChanged
     }
 
     await upsertCloudSnapshot(session, createV2Snapshot())

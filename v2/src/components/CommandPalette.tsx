@@ -30,6 +30,7 @@ interface CommandPaletteProps {
   onLock?: () => void; onSettings?: () => void; onHelp?: () => void; onAbout?: () => void
   onStats?: () => void; onMindMap?: () => void; onHeatmap?: () => void; onInfo?: () => void
   onDiff?: () => void; onLinkCheck?: () => void; onTranslate?: () => void; onVersions?: () => void
+  onCards?: () => void
   onToggleOutline?: () => void
   onSave?: () => void; onOpen?: () => void
 }
@@ -378,6 +379,7 @@ export function CommandPalette(p: CommandPaletteProps) {
       { id:'wordcloud', cat:'도구', icon:'sparkle', label:'워드 클라우드', desc:'단어 빈도 클라우드 새 창.', run: wordCloud },
       { id:'flashcards', cat:'도구', icon:'cards', label:'플래시카드', desc:'제목별 Q/A 학습.', run: flashcards },
       { id:'pomodoro', cat:'도구', icon:'clock', label:'포모도로 타이머', desc:'25분 집중 타이머.', run: startPomo },
+      { id:'business-cards', cat:'도구', icon:'cards', label:'명함 관리', desc:'연락처 저장 · 검색 · vCard/CSV 내보내기.', run: () => p.onCards?.() },
       { id:'spell', cat:'도구', icon:'check', label:'맞춤법 검사 토글', desc:'spellcheck 켬/끔.', run: toggleSpellCheck },
       { id:'web', cat:'도구', icon:'globe', label:'웹 검색', desc:'구글에서 키워드 검색.', run: webSearch },
       { id:'ai', cat:'도구', icon:'ai', label:'AI 어시스턴트', desc:'AI 도우미 모달.', hint:'Ctrl+/', run: () => p.onAi?.() },

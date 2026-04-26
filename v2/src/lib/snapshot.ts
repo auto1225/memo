@@ -1,6 +1,7 @@
 import { useMemosStore, type Memo, type SortMode, type TrashedMemo } from '../store/memosStore'
 import { useTagsStore } from '../store/tagsStore'
 import { DEFAULT_WORKSPACE_ID, useWorkspaceStore, type Workspace } from '../store/workspaceStore'
+import { useBusinessCardsStore, type BusinessCard } from '../store/businessCardsStore'
 import { migrateV1Html } from './migration'
 
 export interface V2Snapshot {
@@ -20,6 +21,11 @@ export interface V2Snapshot {
     byMemo: Record<string, string>
     currentWsId: string | null
   }
+  businessCards: {
+    cards: Record<string, BusinessCard>
+    groups: string[]
+    myCardId: string | null
+  }
 }
 
 export interface SnapshotApplyResult {
@@ -28,6 +34,7 @@ export interface SnapshotApplyResult {
   trashChanged: number
   tagsChanged: number
   workspacesChanged: number
+  cardsChanged: number
 }
 
 interface V1Tab {
@@ -142,6 +149,73 @@ function normalizeWorkspaceMap(raw: unknown): Record<string, string> {
   return result
 }
 
+function normalizeStringArray(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return []
+  return raw.filter((item): item is string => typeof item === 'string').map((item) => item.trim()).filter(Boolean)
+}
+
+function normalizeBusinessCard(raw: unknown, fallbackId: string): BusinessCard | null {
+  if (!isRecord(raw)) return null
+  const now = Date.now()
+  const id = safeString(raw.id, fallbackId)
+  const sns: Record<string, string> = {}
+  if (isRecord(raw.sns)) {
+    for (const [key, value] of Object.entries(raw.sns)) {
+      if (typeof value === 'string' && value.trim()) sns[key] = value.trim()
+    }
+  }
+  const meetings = Array.isArray(raw.meetings)
+    ? raw.meetings.filter(isRecord).map((meeting, index) => ({
+        id: safeString(meeting.id, `mt_${id}_${index}`),
+        date: safeString(meeting.date, ''),
+        place: safeString(meeting.place, ''),
+        note: safeString(meeting.note, ''),
+        createdAt: safeNumber(meeting.createdAt, now),
+      }))
+    : []
+  return {
+    id,
+    name: safeString(raw.name, ''),
+    nameEn: safeString(raw.nameEn, ''),
+    company: safeString(raw.company, ''),
+    department: safeString(raw.department, ''),
+    position: safeString(raw.position, ''),
+    mobile: safeString(raw.mobile, ''),
+    phone: safeString(raw.phone, ''),
+    fax: safeString(raw.fax, ''),
+    email: safeString(raw.email, ''),
+    website: safeString(raw.website, ''),
+    address: safeString(raw.address, ''),
+    group: safeString(raw.group, ''),
+    tags: normalizeStringArray(raw.tags).map((tag) => tag.replace(/^#/, '').toLowerCase()),
+    memo: safeString(raw.memo, ''),
+    favorite: raw.favorite === true,
+    sns,
+    meetings,
+    frontImage: typeof raw.frontImage === 'string' ? raw.frontImage : undefined,
+    backImage: typeof raw.backImage === 'string' ? raw.backImage : undefined,
+    createdAt: safeNumber(raw.createdAt, now),
+    updatedAt: safeNumber(raw.updatedAt, now),
+  }
+}
+
+function normalizeBusinessCardRecord(raw: unknown): Record<string, BusinessCard> {
+  const result: Record<string, BusinessCard> = {}
+  if (Array.isArray(raw)) {
+    raw.forEach((value, index) => {
+      const card = normalizeBusinessCard(value, `bc_import_${index}`)
+      if (card) result[card.id] = card
+    })
+    return result
+  }
+  if (!isRecord(raw)) return result
+  for (const [id, value] of Object.entries(raw)) {
+    const card = normalizeBusinessCard(value, id)
+    if (card) result[card.id] = card
+  }
+  return result
+}
+
 function snapshotFromV2(raw: Record<string, unknown>): V2Snapshot | null {
   const memos = normalizeMemoRecord(raw.memos)
   if (!Object.keys(memos).length) return null
@@ -152,6 +226,7 @@ function snapshotFromV2(raw: Record<string, unknown>): V2Snapshot | null {
     ? normalizeWorkspaceRecord(raw.workspaces.workspaces)
     : normalizeWorkspaceRecord(null)
   const workspaceMap = rawWorkspaces ? normalizeWorkspaceMap(rawWorkspaces.byMemo) : {}
+  const rawCards = isRecord(raw.businessCards) ? raw.businessCards : null
   const rawOrder = Array.isArray(raw.order) ? raw.order.filter((id): id is string => typeof id === 'string') : []
   const order = [...rawOrder.filter((id) => memos[id]), ...Object.keys(memos).filter((id) => !rawOrder.includes(id))]
   const currentId = typeof raw.currentId === 'string' && memos[raw.currentId] ? raw.currentId : order[0] || null
@@ -173,6 +248,11 @@ function snapshotFromV2(raw: Record<string, unknown>): V2Snapshot | null {
       workspaces,
       byMemo: workspaceMap,
       currentWsId: typeof rawWorkspaces?.currentWsId === 'string' ? rawWorkspaces.currentWsId : null,
+    },
+    businessCards: {
+      cards: rawCards ? normalizeBusinessCardRecord(rawCards.cards) : {},
+      groups: rawCards ? normalizeStringArray(rawCards.groups) : [],
+      myCardId: typeof rawCards?.myCardId === 'string' ? rawCards.myCardId : null,
     },
   }
 }
@@ -234,6 +314,11 @@ function snapshotFromV1(raw: Record<string, unknown>): V2Snapshot | null {
       byMemo: workspaceMap,
       currentWsId: null,
     },
+    businessCards: {
+      cards: normalizeBusinessCardRecord(raw.businessCards),
+      groups: normalizeStringArray(raw.cardGroups),
+      myCardId: null,
+    },
   }
 }
 
@@ -246,6 +331,7 @@ export function createV2Snapshot(): V2Snapshot {
   const memos = useMemosStore.getState()
   const tags = useTagsStore.getState()
   const workspaces = useWorkspaceStore.getState()
+  const businessCards = useBusinessCardsStore.getState()
   return {
     app: 'justanotepad',
     version: 2,
@@ -260,6 +346,11 @@ export function createV2Snapshot(): V2Snapshot {
       workspaces: workspaces.workspaces,
       byMemo: workspaces.byMemo,
       currentWsId: workspaces.currentWsId,
+    },
+    businessCards: {
+      cards: businessCards.cards,
+      groups: businessCards.groups,
+      myCardId: businessCards.myCardId,
     },
   }
 }
@@ -327,11 +418,36 @@ export function applyV2Snapshot(snapshot: V2Snapshot): SnapshotApplyResult {
       : 1
   if (workspacesChanged) useWorkspaceStore.setState(nextWorkspaceState)
 
+  const currentCards = useBusinessCardsStore.getState()
+  const nextCards = { ...currentCards.cards }
+  for (const card of Object.values(snapshot.businessCards.cards)) {
+    const localCard = nextCards[card.id]
+    if (!localCard || localCard.updatedAt <= card.updatedAt) nextCards[card.id] = card
+  }
+  const nextGroups = Array.from(new Set([...currentCards.groups, ...snapshot.businessCards.groups])).sort((a, b) => a.localeCompare(b, 'ko'))
+  const nextMyCardId = currentCards.myCardId || snapshot.businessCards.myCardId
+  const cardsChanged =
+    JSON.stringify({
+      cards: currentCards.cards,
+      groups: currentCards.groups,
+      myCardId: currentCards.myCardId,
+    }) === JSON.stringify({ cards: nextCards, groups: nextGroups, myCardId: nextMyCardId })
+      ? 0
+      : 1
+  if (cardsChanged) {
+    useBusinessCardsStore.setState({
+      cards: nextCards,
+      groups: nextGroups,
+      myCardId: nextMyCardId,
+    })
+  }
+
   return {
-    applied: memosChanged + trashChanged + tagsChanged + workspacesChanged > 0,
+    applied: memosChanged + trashChanged + tagsChanged + workspacesChanged + cardsChanged > 0,
     memosChanged,
     trashChanged,
     tagsChanged,
     workspacesChanged,
+    cardsChanged,
   }
 }

@@ -30,7 +30,7 @@ This document tracks the migration target: v2 must reproduce the v1 design and u
 | Drawing | Handwriting/paint canvas | In progress | `PaintCanvas`; compare pen pressure/smoothing expectations. |
 | AI | Summary, improve, continue, translate, Q&A, flashcards | In progress | `AiHelper`, `AiChatPanel`, API config required for live test. |
 | OCR | Image to text / math / markdown table | In progress | `OcrModal`, `ocr.ts`; provider parity needs verification. |
-| Business cards | Scan/upload, SNS fields, vCard, duplicate checks, stats | Partial | Current v2 header has placeholder popup; needs dedicated v1-level manager. |
+| Business cards | Scan/upload, SNS fields, vCard, duplicate checks, stats | In progress | Dedicated v2 manager implemented: add/edit/delete, groups, tags, search, duplicate checks, memo insertion, CSV/vCard import/export, meeting logs. Image OCR/SNS deep fields remain next. |
 | Meeting notes | Recording, transcription, speaker split, summary/actions | Partial | Template exists; recording/transcript parity needs implementation audit. |
 | Productivity | Pomodoro, flashcards, word cloud, calendar, link cards | Partial | Several commands exist; verify UI and persistence. |
 | Import/export | PDF, DOCX/HWPX, HTML, Markdown, TXT, SRT, JSON backup | In progress | `hwpxExport`, `pdfExport`, markdown, file ops. DOCX/SRT parity TBD. |
@@ -50,6 +50,6 @@ This document tracks the migration target: v2 must reproduce the v1 design and u
 
 1. Complete design audit with v1/v2 screenshots and exact layout deltas.
 2. Validate Supabase Google OAuth redirect URLs for `/v2` in the live dashboard.
-3. Replace placeholder v2 business-card popup with a dedicated manager matching v1 behavior.
+3. Add image upload/OCR extraction to the v2 business-card manager.
 4. Audit meeting-note recording/transcription parity.
 5. Add targeted E2E smoke tests that can run against Chrome or bundled Playwright browsers.
