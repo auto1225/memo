@@ -12,6 +12,8 @@ import { useWritingGoalStore } from '../store/writingGoalStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { getSession, getSupabaseConfigStatus, signInGoogle, signOut, syncNow, syncConfigured } from '../lib/supabaseSync'
 import { PageSettingsModal } from './PageSettingsModal'
+import { getLocalFirstStorageStats } from '../lib/localFirstStorage'
+import { getBlobStorageStats } from '../lib/blobRefs'
 
 interface SettingsModalProps {
   onClose: () => void
@@ -21,11 +23,18 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
 
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`
+}
+
 export function SettingsModal({ onClose }: SettingsModalProps) {
   const [status, setStatus] = useState<string>('')
   const [supabaseUser, setSupabaseUser] = useState<string>('')
   const [checkingSession, setCheckingSession] = useState(false)
   const [showPageSettings, setShowPageSettings] = useState(false)
+  const [storageSummary, setStorageSummary] = useState<{ backend: string; stateBytes: number; blobCount: number; blobBytes: number } | null>(null)
   const memoCount = useMemosStore((s) => Object.keys(s.memos).length)
   const settings = useSettingsStore()
   const lang = useI18nStore((s) => s.lang)
@@ -58,8 +67,27 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
     }
   }, [supabaseStatus.configured])
 
-  function handleV1Import() {
-    const result = importV1FromLocalStorage()
+  useEffect(() => {
+    let cancelled = false
+    async function refreshStorageSummary() {
+      const [stateStats, blobStats] = await Promise.all([getLocalFirstStorageStats(), getBlobStorageStats()])
+      if (cancelled) return
+      setStorageSummary({
+        backend: stateStats.backend,
+        stateBytes: stateStats.totalBytes,
+        blobCount: blobStats.count,
+        blobBytes: blobStats.bytes,
+      })
+    }
+    refreshStorageSummary().catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [memoCount, status])
+
+  async function handleV1Import() {
+    setStatus('v1 데이터를 가져오는 중...')
+    const result = await importV1FromLocalStorage()
     setStatus(
       `v1 메모 ${result.imported}개 가져옴` +
       (result.skipped > 0 ? `, ${result.skipped}개 건너뜀` : '') +
@@ -67,8 +95,9 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
     )
   }
 
-  function handleExport() {
-    const json = exportV2ToJson()
+  async function handleExport() {
+    setStatus('백업 파일을 만드는 중...')
+    const json = await exportV2ToJson()
     const blob = new Blob([json], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -138,6 +167,25 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
           <button className="jan-modal-close" onClick={onClose}>닫기</button>
         </div>
         <div className="jan-modal-body">
+          {storageSummary && (
+            <section className="jan-settings-section jan-settings-storage-section">
+              <h4>로컬 저장 상태</h4>
+              <div className="jan-storage-health" aria-label="로컬 저장 상태">
+                <div>
+                  <span>저장 위치</span>
+                  <strong>{storageSummary.backend === 'indexeddb' ? 'IndexedDB' : 'localStorage'}</strong>
+                </div>
+                <div>
+                  <span>노트 데이터</span>
+                  <strong>{formatBytes(storageSummary.stateBytes)}</strong>
+                </div>
+                <div>
+                  <span>이미지 블롭</span>
+                  <strong>{storageSummary.blobCount}개 · {formatBytes(storageSummary.blobBytes)}</strong>
+                </div>
+              </div>
+            </section>
+          )}
           <section className="jan-settings-section">
             <h4>AI 제공자</h4>
             <div className="jan-settings-info">

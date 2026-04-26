@@ -271,6 +271,17 @@ body.jan-show-pilcrow .ProseMirror p::after {
 .jan-settings-actions button { padding: 6px 12px; background: var(--jan-paper); border: 1px solid rgba(0,0,0,0.1); border-radius: 4px; cursor: pointer; font-size: 12px; }
 .jan-settings-actions button:hover { background: var(--jan-bg); }
 .jan-settings-status { margin-top: 12px; padding: 8px 12px; background: rgba(217,119,87,0.1); border-radius: 4px; font-size: 12px; color: var(--jan-fg); }
+.jan-settings-storage-section { border: 1px solid rgba(217,119,87,0.16); border-radius: 8px; padding: 12px; background: linear-gradient(180deg, rgba(217,119,87,0.08), rgba(255,255,255,0)); }
+.jan-storage-health { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.jan-storage-health div { min-width: 0; padding: 9px 10px; border: 1px solid rgba(0,0,0,0.07); border-radius: 6px; background: var(--jan-paper); }
+.jan-storage-health span { display: block; margin-bottom: 4px; color: #777; font-size: 11px; }
+.jan-storage-health strong { display: block; overflow-wrap: anywhere; color: var(--jan-fg); font-size: 12px; font-weight: 650; }
+@media (max-width: 640px) {
+  .jan-storage-health { grid-template-columns: 1fr; }
+}
+.jan-theme-dark .jan-settings-storage-section { background: rgba(217,119,87,0.08); border-color: rgba(217,119,87,0.28); }
+.jan-theme-dark .jan-storage-health div { border-color: rgba(255,255,255,0.09); }
+.jan-theme-dark .jan-storage-health span { color: #aaa; }
 
 /* ==================== Phase 5 — Print Preview ==================== */
 .jan-print-modal{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.6);display:flex;flex-direction:column;}

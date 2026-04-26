@@ -3,6 +3,16 @@ import { useTagsStore } from '../store/tagsStore'
 import { DEFAULT_WORKSPACE_ID, useWorkspaceStore, type Workspace } from '../store/workspaceStore'
 import { useBusinessCardsStore, type BusinessCard } from '../store/businessCardsStore'
 import { migrateV1Html } from './migration'
+import { useTemplatesStore, type MemoTemplate } from '../store/templatesStore'
+import { useSnippetsStore, type Snippet } from '../store/snippetsStore'
+import { useMacrosStore, type Macro } from '../store/macrosStore'
+import { useRoleToolsStore, type RoleToolData } from '../store/roleToolsStore'
+import { useVersionsStore, type Version } from '../store/versionsStore'
+import { useSettingsStore } from '../store/settingsStore'
+import { useUIStore } from '../store/uiStore'
+import { useThemeStore } from '../store/themeStore'
+import { useTypographyStore } from '../store/typographyStore'
+import { useWritingGoalStore } from '../store/writingGoalStore'
 
 export interface V2Snapshot {
   app: 'justanotepad'
@@ -26,6 +36,23 @@ export interface V2Snapshot {
     groups: string[]
     myCardId: string | null
   }
+  extras?: {
+    templates?: MemoTemplate[]
+    snippets?: Snippet[]
+    macros?: Macro[]
+    roleTools?: {
+      selectedRoleIds: string[]
+      roleData: RoleToolData
+    }
+    versions?: {
+      byMemo: Record<string, Version[]>
+    }
+    settings?: Record<string, unknown>
+    ui?: Record<string, unknown>
+    theme?: Record<string, unknown>
+    typography?: Record<string, unknown>
+    writingGoal?: Record<string, unknown>
+  }
 }
 
 export interface SnapshotApplyResult {
@@ -35,6 +62,7 @@ export interface SnapshotApplyResult {
   tagsChanged: number
   workspacesChanged: number
   cardsChanged: number
+  extrasChanged: number
 }
 
 interface V1Tab {
@@ -154,6 +182,93 @@ function normalizeStringArray(raw: unknown): string[] {
   return raw.filter((item): item is string => typeof item === 'string').map((item) => item.trim()).filter(Boolean)
 }
 
+function cloneJson<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T
+}
+
+function pickDataState(source: Record<string, unknown>, keys: string[]): Record<string, unknown> {
+  const result: Record<string, unknown> = {}
+  for (const key of keys) {
+    const value = source[key]
+    if (typeof value !== 'function' && value !== undefined) result[key] = value
+  }
+  return result
+}
+
+function normalizeExtras(raw: unknown): V2Snapshot['extras'] | undefined {
+  if (!isRecord(raw)) return undefined
+  const extras: V2Snapshot['extras'] = {}
+
+  if (Array.isArray(raw.templates)) extras.templates = cloneJson(raw.templates) as MemoTemplate[]
+  if (Array.isArray(raw.snippets)) extras.snippets = cloneJson(raw.snippets) as Snippet[]
+  if (Array.isArray(raw.macros)) extras.macros = cloneJson(raw.macros) as Macro[]
+  if (isRecord(raw.roleTools)) {
+    extras.roleTools = {
+      selectedRoleIds: normalizeStringArray(raw.roleTools.selectedRoleIds),
+      roleData: isRecord(raw.roleTools.roleData) ? (cloneJson(raw.roleTools.roleData) as RoleToolData) : {},
+    }
+  }
+  if (isRecord(raw.versions) && isRecord(raw.versions.byMemo)) {
+    extras.versions = { byMemo: cloneJson(raw.versions.byMemo) as Record<string, Version[]> }
+  }
+  for (const key of ['settings', 'ui', 'theme', 'typography', 'writingGoal'] as const) {
+    if (isRecord(raw[key])) extras[key] = cloneJson(raw[key]) as Record<string, unknown>
+  }
+
+  return Object.keys(extras).length ? extras : undefined
+}
+
+function createExtrasSnapshot(): V2Snapshot['extras'] {
+  return {
+    templates: cloneJson(useTemplatesStore.getState().templates),
+    snippets: cloneJson(useSnippetsStore.getState().snippets),
+    macros: cloneJson(useMacrosStore.getState().macros),
+    roleTools: {
+      selectedRoleIds: cloneJson(useRoleToolsStore.getState().selectedRoleIds),
+      roleData: cloneJson(useRoleToolsStore.getState().roleData),
+    },
+    versions: {
+      byMemo: cloneJson(useVersionsStore.getState().byMemo),
+    },
+    settings: pickDataState(useSettingsStore.getState() as unknown as Record<string, unknown>, [
+      'aiProvider',
+      'aiModel',
+      'syncEnabled',
+      'citationStyle',
+      'collabEnabled',
+      'collabWsUrl',
+      'collabRoom',
+      'collabUserName',
+      'aiAutocomplete',
+    ]),
+    ui: pickDataState(useUIStore.getState() as unknown as Record<string, unknown>, [
+      'focusMode',
+      'readingMode',
+      'spellCheck',
+      'sidebarCollapsed',
+      'headingNumbers',
+      'zoom',
+      'paperStyle',
+      'pageSize',
+      'pageOrientation',
+      'pageMarginMm',
+    ]),
+    theme: pickDataState(useThemeStore.getState() as unknown as Record<string, unknown>, ['theme', 'accent']),
+    typography: pickDataState(useTypographyStore.getState() as unknown as Record<string, unknown>, [
+      'fontFamily',
+      'lineHeight',
+      'paragraphSpacing',
+      'fontSize',
+    ]),
+    writingGoal: pickDataState(useWritingGoalStore.getState() as unknown as Record<string, unknown>, [
+      'dailyTarget',
+      'todayCount',
+      'todayKey',
+      'totalDays',
+    ]),
+  }
+}
+
 function normalizeBusinessCard(raw: unknown, fallbackId: string): BusinessCard | null {
   if (!isRecord(raw)) return null
   const now = Date.now()
@@ -198,7 +313,7 @@ function normalizeBusinessCard(raw: unknown, fallbackId: string): BusinessCard |
     favorite: raw.favorite === true,
     sns,
     meetings,
-    frontImage: typeof raw.frontImage === 'string' ? raw.frontImage : typeof raw.frontImg === 'string' ? raw.frontImg : undefined,
+    frontImage: typeof raw.frontImage === 'string' ? raw.frontImage : typeof raw.frontImg === 'string' ? raw.frontImg : typeof raw.photoBase64 === 'string' ? raw.photoBase64 : undefined,
     backImage: typeof raw.backImage === 'string' ? raw.backImage : typeof raw.backImg === 'string' ? raw.backImg : undefined,
     createdAt: safeNumber(raw.createdAt, now),
     updatedAt: safeNumber(raw.updatedAt, now),
@@ -260,6 +375,7 @@ function snapshotFromV2(raw: Record<string, unknown>): V2Snapshot | null {
       groups: rawCards ? normalizeStringArray(rawCards.groups) : [],
       myCardId: typeof rawCards?.myCardId === 'string' ? rawCards.myCardId : null,
     },
+    extras: normalizeExtras(raw.extras),
   }
 }
 
@@ -365,6 +481,7 @@ export function createV2Snapshot(): V2Snapshot {
       groups: businessCards.groups,
       myCardId: businessCards.myCardId,
     },
+    extras: createExtrasSnapshot(),
   }
 }
 
@@ -455,12 +572,63 @@ export function applyV2Snapshot(snapshot: V2Snapshot): SnapshotApplyResult {
     })
   }
 
+  let extrasChanged = 0
+  if (snapshot.extras) {
+    const extras = snapshot.extras
+    if (extras.templates) {
+      useTemplatesStore.setState({ templates: extras.templates })
+      extrasChanged++
+    }
+    if (extras.snippets) {
+      useSnippetsStore.setState({ snippets: extras.snippets })
+      extrasChanged++
+    }
+    if (extras.macros) {
+      useMacrosStore.setState({ macros: extras.macros })
+      extrasChanged++
+    }
+    if (extras.roleTools) {
+      useRoleToolsStore.setState({
+        selectedRoleIds: extras.roleTools.selectedRoleIds,
+        roleData: extras.roleTools.roleData,
+      })
+      extrasChanged++
+    }
+    if (extras.versions) {
+      useVersionsStore.setState({ byMemo: extras.versions.byMemo })
+      extrasChanged++
+    }
+    if (extras.settings) {
+      useSettingsStore.setState(extras.settings as Partial<ReturnType<typeof useSettingsStore.getState>>)
+      extrasChanged++
+    }
+    if (extras.ui) {
+      useUIStore.setState(extras.ui as Partial<ReturnType<typeof useUIStore.getState>>)
+      extrasChanged++
+    }
+    if (extras.theme) {
+      useThemeStore.setState(extras.theme as Partial<ReturnType<typeof useThemeStore.getState>>)
+      useThemeStore.getState().apply()
+      extrasChanged++
+    }
+    if (extras.typography) {
+      useTypographyStore.setState(extras.typography as Partial<ReturnType<typeof useTypographyStore.getState>>)
+      useTypographyStore.getState().apply()
+      extrasChanged++
+    }
+    if (extras.writingGoal) {
+      useWritingGoalStore.setState(extras.writingGoal as Partial<ReturnType<typeof useWritingGoalStore.getState>>)
+      extrasChanged++
+    }
+  }
+
   return {
-    applied: memosChanged + trashChanged + tagsChanged + workspacesChanged + cardsChanged > 0,
+    applied: memosChanged + trashChanged + tagsChanged + workspacesChanged + cardsChanged + extrasChanged > 0,
     memosChanged,
     trashChanged,
     tagsChanged,
     workspacesChanged,
     cardsChanged,
+    extrasChanged,
   }
 }

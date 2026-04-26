@@ -1,5 +1,6 @@
 ﻿import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
+import type { AnyExtension } from '@tiptap/core'
 import Placeholder from '@tiptap/extension-placeholder'
 import TextAlign from '@tiptap/extension-text-align'
 import Underline from '@tiptap/extension-underline'
@@ -14,7 +15,7 @@ import { Collaboration } from '@tiptap/extension-collaboration'
 import { CollaborationCursor } from '@tiptap/extension-collaboration-cursor'
 import TaskList from '@tiptap/extension-task-list'
 import TaskItem from '@tiptap/extension-task-item'
-import { useEffect, useState, lazy, Suspense, useMemo, type CSSProperties } from 'react'
+import { useEffect, useState, lazy, Suspense, useMemo, useRef, type CSSProperties } from 'react'
 import { Toolbar } from './Toolbar'
 import { AppHeader } from './AppHeader'
 import { MemoTabs } from './MemoTabs'
@@ -63,6 +64,7 @@ import { AudioNode, VideoNode } from '../extensions/Media'
 import Highlight from '@tiptap/extension-highlight'
 import { Lightbox } from './Lightbox'
 import type { RoleToolId } from '../lib/roles'
+import { externalizeLargeDataUrlsInHtml, resolveBlobRefsInElement } from '../lib/blobRefs'
 
 const AiHelper = lazy(() => import('./AiHelper').then((m) => ({ default: m.AiHelper })))
 const SettingsModal = lazy(() => import('./SettingsModal').then((m) => ({ default: m.SettingsModal })))
@@ -107,7 +109,7 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
   const aiAuto = useSettingsStore((s) => s.aiAutocomplete); void aiAuto
   const collab = useCollab()
   const memo = current()
-  const [, setTick] = useState(0)
+  const contentSaveSeq = useRef(0)
   const [showAi, setShowAi] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [showPrint, setShowPrint] = useState(false)
@@ -163,7 +165,7 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
   const title = memo?.title || '새 메모'
 
   const editorExtensions = useMemo(() => {
-    const base = [
+    const base: AnyExtension[] = [
       StarterKit.configure({
         heading: { levels: [1, 2, 3, 4, 5, 6] },
         undoRedo: collab.ydoc ? false : undefined,
@@ -218,8 +220,8 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
     ]
     if (collab.ydoc && collab.provider) {
       base.push(
-        Collaboration.configure({ document: collab.ydoc }) as any,
-        CollaborationCursor.configure({ provider: collab.provider }) as any,
+        Collaboration.configure({ document: collab.ydoc }),
+        CollaborationCursor.configure({ provider: collab.provider }),
       )
     }
     return base
@@ -234,10 +236,26 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
       },
       onUpdate: ({ editor, transaction }) => {
         const html = editor.getHTML()
-        updateCurrent({ content: html })
+        const seq = ++contentSaveSeq.current
+        if (html.includes('data:')) {
+          externalizeLargeDataUrlsInHtml(html)
+            .then((storedHtml) => {
+              if (seq !== contentSaveSeq.current) return
+              updateCurrent({ content: storedHtml })
+              if (storedHtml !== html) {
+                editor.commands.setContent(storedHtml, { emitUpdate: false })
+                resolveBlobRefsInElement(editor.view.dom).catch(() => {})
+              }
+            })
+            .catch(() => updateCurrent({ content: html }))
+        } else {
+          updateCurrent({ content: html })
+          if (html.includes('jan-blob://')) resolveBlobRefsInElement(editor.view.dom).catch(() => {})
+        }
         let inserted = 0
-        transaction.steps.forEach((step: any) => {
-          if (step.slice && step.slice.size > 0) inserted += step.slice.size
+        transaction.steps.forEach((step) => {
+          const slice = (step as { slice?: { size?: number } }).slice
+          if (slice?.size && slice.size > 0) inserted += slice.size
         })
         if (inserted > 0) useWritingGoalStore.getState().addChars(inserted)
       },
@@ -280,13 +298,15 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
   useAutoSave(editor, title)
 
   const takeSnapshot = useVersionsStore((s) => s.takeSnapshot)
+  const snapshotMemoId = memo?.id
+  const snapshotMemoTitle = memo?.title || ''
   useEffect(() => {
-    if (!editor || !memo) return
+    if (!editor || !snapshotMemoId) return
     const t = setInterval(() => {
-      if (editor && memo) takeSnapshot(memo.id, memo.title, editor.getHTML())
+      takeSnapshot(snapshotMemoId, snapshotMemoTitle, editor.getHTML())
     }, 60000)
     return () => clearInterval(t)
-  }, [editor, memo?.id, takeSnapshot])
+  }, [editor, snapshotMemoId, snapshotMemoTitle, takeSnapshot])
 
   useEffect(() => {
     if (editor) setEditor(editor)
@@ -302,9 +322,14 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
     const cur = editor.getHTML()
     if (cur !== memo.content) {
       editor.commands.setContent(memo.content, { emitUpdate: false })
+      resolveBlobRefsInElement(editor.view.dom).catch(() => {})
     }
-    setTick((n) => n + 1)
-  }, [currentId, editor, collab.ydoc])
+  }, [currentId, editor, collab.ydoc, memo])
+
+  useEffect(() => {
+    if (!editor) return
+    resolveBlobRefsInElement(editor.view.dom).catch(() => {})
+  }, [editor, currentId, memo?.content])
 
   useEffect(() => {
     if (!editor) return
@@ -349,7 +374,7 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
     }
     document.addEventListener('keydown', h, true)
     return () => document.removeEventListener('keydown', h, true)
-  }, [])
+  }, [editor])
 
   useEffect(() => {
     const openRoles = (event: Event) => {

@@ -84,4 +84,44 @@ test.describe('local-first memo storage', () => {
     await expect.poll(() => readPersistedValue(page, MEMOS_KEY), { timeout: 10000 }).toContain(legacyText)
     await expect.poll(() => page.evaluate((key) => localStorage.getItem(key), MEMOS_KEY)).toBeNull()
   })
+
+  test('stores pasted images as local blob references instead of inline data URLs', async ({ page }) => {
+    await page.goto('./')
+
+    const editor = page.locator('.ProseMirror').first()
+    await editor.waitFor({ state: 'visible', timeout: 15000 })
+    await editor.click()
+
+    await page.evaluate(() => {
+      const base64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII='
+      const bytes = Uint8Array.from(atob(base64), (char) => char.charCodeAt(0))
+      const file = new File([bytes], 'dot.png', { type: 'image/png' })
+      const transfer = new DataTransfer()
+      transfer.items.add(file)
+      const event = new Event('paste', { bubbles: true, cancelable: true })
+      Object.defineProperty(event, 'clipboardData', { value: transfer })
+      document.querySelector('.ProseMirror')?.dispatchEvent(event)
+    })
+
+    await expect(editor.locator('img')).toHaveCount(1, { timeout: 10000 })
+    await expect.poll(() => readPersistedValue(page, MEMOS_KEY), { timeout: 10000 }).toContain('jan-blob://')
+    const persisted = await readPersistedValue(page, MEMOS_KEY)
+    expect(persisted).not.toContain('data:image/png;base64')
+  })
+
+  test('shows local storage status responsively in settings', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('./')
+
+    await page.locator('.ProseMirror').first().waitFor({ state: 'visible', timeout: 15000 })
+    await page.keyboard.press('Control+,')
+
+    const modal = page.locator('.jan-settings-modal')
+    await expect(modal).toBeVisible({ timeout: 15000 })
+    await expect(page.locator('.jan-settings-storage-section')).toContainText('IndexedDB')
+    await expect(page.locator('.jan-settings-storage-section')).toContainText('이미지 블롭')
+
+    const hasHorizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 2)
+    expect(hasHorizontalOverflow).toBe(false)
+  })
 })
