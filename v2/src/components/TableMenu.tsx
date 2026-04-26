@@ -64,6 +64,7 @@ export function TableMenu({ editor }: TableMenuProps) {
       <button onClick={() => aggregateColumn(editor, 'avg')} title="현재 열 평균">x̄</button>
       <button onClick={() => aggregateColumn(editor, 'min')} title="최소">↓</button>
       <button onClick={() => aggregateColumn(editor, 'max')} title="최대">↑</button>
+      <button onClick={() => aggregateColumn(editor, 'count')} title="현재 열 개수">#</button>
       <span className="divider" />
       <button onClick={() => {
         const csv = tableToCsv(editor)

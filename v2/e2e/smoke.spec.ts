@@ -239,6 +239,33 @@ test.describe('v2 smoke', () => {
     await expect(rows.nth(2)).toContainText('Beta')
   })
 
+  test('table aggregates skip headers and the result cell', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('jan-v2-role-onboarded', '1'))
+    await page.goto('./')
+    const editor = page.locator('.ProseMirror').first()
+    await editor.waitFor({ state: 'visible', timeout: 15000 })
+    await editor.click()
+    await page.keyboard.press('Control+A')
+
+    await page.getByRole('button', { name: '삽입', exact: true }).click()
+    await page.getByRole('button', { name: '표 (3×3)' }).click()
+
+    const cells = page.locator('.ProseMirror table th, .ProseMirror table td')
+    await expect(cells).toHaveCount(9)
+    const values = ['Name', 'Amount', 'Note', 'Beta', '₩10', 'B row', 'Alpha', '2', 'A row']
+    for (let i = 0; i < values.length; i += 1) {
+      await page.keyboard.type(values[i])
+      if (i < values.length - 1) await page.keyboard.press('Tab')
+    }
+
+    await cells.nth(7).click({ force: true })
+    await page.getByTitle('아래 행 추가').click()
+    await expect(cells).toHaveCount(12)
+    await cells.nth(10).click({ force: true })
+    await page.getByTitle('현재 열 합계').click()
+    await expect(cells.nth(10)).toContainText('합계: 12')
+  })
+
   test('document style presets apply Word-like typography settings', async ({ page }) => {
     await page.goto('./')
     await page.locator('.ProseMirror').first().waitFor({ state: 'visible', timeout: 15000 })
