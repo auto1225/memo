@@ -395,7 +395,7 @@ export function CommandPalette(p: CommandPaletteProps) {
       { id:'translate', cat:'도구', icon:'translate', label:'번역', desc:'한↔영 번역.', run: () => p.onTranslate?.() },
       { id:'mindmap', cat:'도구', icon:'sparkle', label:'마인드맵', desc:'노드 트리 시각화.', run: () => p.onMindMap?.() },
       { id:'ocr', cat:'도구', icon:'image-text', label:'OCR (이미지 → 텍스트)', desc:'이미지에서 텍스트 추출.', run: () => p.onOcr?.() },
-      { id:'roles', cat:'도구', icon:'briefcase', label:'역할 팩 (전문 글쓰기)', desc:'37개 역할 도구.', run: () => p.onRoles?.() },
+      { id:'roles', cat:'도구', icon:'briefcase', label:'내 도구 / 역할 팩', desc:'역할 선택·전용 도구·템플릿.', run: () => p.onRoles?.() },
       { id:'templates', cat:'도구', icon:'file-text', label:'템플릿', desc:'학술/문서 템플릿.', run: () => p.onTemplates?.() },
       { id:'snippets', cat:'도구', icon:'file-plus', label:'스니펫', desc:'재사용 텍스트 스니펫.', run: () => p.onSnippets?.() },
       { id:'macros', cat:'도구', icon:'wand', label:'매크로', desc:'반복 작업 매크로.', run: () => p.onMacros?.() },

@@ -527,7 +527,7 @@ export function Toolbar(p: ToolbarProps) {
         { label: '번호 재정렬', icon: 'hash', onClick: () => run(renumberFootnotes) },
         { divider: '논문 도구', label: '' },
         { label: '템플릿 (학술 논문)', icon: 'file-text', onClick: () => run(p.onTemplates) },
-        { label: '역할 팩 (전문 글쓰기)', icon: 'user', onClick: () => run(p.onRoles) },
+        { label: '내 도구 / 역할 팩', icon: 'briefcase', onClick: () => run(p.onRoles) },
       ],
     },
 

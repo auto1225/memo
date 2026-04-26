@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
 
+const browserChannel = process.env.PLAYWRIGHT_CHANNEL || undefined
+
 export default defineConfig({
   testDir: './e2e',
   timeout: 30000,
@@ -14,6 +16,6 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'chromium', use: { ...devices['Desktop Chrome'], ...(browserChannel ? { channel: browserChannel } : {}) } },
   ],
 })

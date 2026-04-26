@@ -433,6 +433,130 @@ body.jan-show-pilcrow .ProseMirror p::after {
 .jan-cards-empty.detail{height:100%;min-height:320px;}
 .jan-cards-status{position:absolute;left:18px;right:18px;bottom:12px;}
 .jan-cards-inline-status{margin:2px 0 8px;font-size:12px;line-height:1.45;}
+
+/* ==================== Role Pack / My Tools ==================== */
+.jan-rolepack-overlay{z-index:260;}
+.jan-rolepack-modal{width:min(980px,96vw);max-width:980px;height:min(780px,92vh);max-height:92vh;}
+.jan-rolepack-head{gap:12px;}
+.jan-rolepack-title{display:flex;align-items:center;gap:10px;min-width:0;}
+.jan-rolepack-title h3{margin:0;font-size:16px;}
+.jan-rolepack-title span{display:block;margin-top:2px;font-size:11px;color:#777;}
+.jan-rolepack-head .jan-modal-close{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--paper-edge);background:#fff;color:var(--ink);height:30px;}
+.jan-rolepack-body{display:grid;grid-template-columns:200px 1fr;gap:0;padding:0 !important;min-height:0;flex:1;}
+.jan-rolepack-nav{border-right:1px solid var(--paper-edge);background:#fafafa;padding:10px 8px;overflow:auto;}
+.jan-rolepack-nav button{width:100%;display:flex;align-items:center;gap:8px;border:0;background:transparent;color:var(--ink);padding:9px 10px;border-radius:6px;text-align:left;cursor:pointer;font-size:13px;}
+.jan-rolepack-nav button:hover,.jan-rolepack-nav button.is-active{background:color-mix(in srgb,var(--accent) 12%,white);color:#5D4037;}
+.jan-rolepack-nav button span{margin-left:auto;min-width:19px;height:19px;border-radius:999px;background:var(--accent);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;}
+.jan-rolepack-nav-note{margin-top:12px;padding:9px;border-top:1px solid var(--paper-edge);display:flex;flex-wrap:wrap;gap:5px;font-size:11px;}
+.jan-rolepack-nav-note span{font-weight:700;}
+.jan-rolepack-main{min-width:0;overflow:auto;padding:16px;background:#fff;}
+.jan-rolepack-section-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;}
+.jan-rolepack-section-head h4{margin:0 0 4px;font-size:16px;color:var(--ink);}
+.jan-rolepack-section-head p{margin:0;color:#777;font-size:12px;line-height:1.45;}
+.jan-rolepack-section-head strong{margin-left:auto;color:var(--accent);font-size:13px;white-space:nowrap;}
+.jan-rolepack-section-head button,.jan-rolepack-actions button,.jan-rolepack-template-callout button,.jan-role-inline-controls button,.jan-role-tool button{border:1px solid var(--paper-edge);background:#fff;color:var(--ink);border-radius:5px;padding:6px 10px;font-size:12px;cursor:pointer;font-family:inherit;}
+.jan-rolepack-section-head button:hover,.jan-rolepack-actions button:hover,.jan-rolepack-template-callout button:hover,.jan-role-inline-controls button:hover,.jan-role-tool button:hover{border-color:var(--accent);background:#FFFCF7;}
+.jan-rolepack-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:14px;flex-wrap:wrap;}
+.jan-rolepack-actions .primary,.jan-rolepack-empty .primary,.jan-role-form-grid .primary{background:var(--accent);border-color:var(--accent);color:#333;font-weight:700;}
+.jan-rolepack-actions button:disabled{opacity:.45;cursor:not-allowed;}
+.jan-role-card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;}
+.jan-role-card{position:relative;text-align:left;min-height:112px;border:2px solid var(--paper-edge);background:#fff;border-radius:8px;padding:13px 12px;display:flex;flex-direction:column;gap:6px;cursor:pointer;transition:transform .15s,border-color .15s,box-shadow .15s,background .15s;color:var(--ink);}
+.jan-role-card:hover{transform:translateY(-2px);border-color:var(--role-color);box-shadow:0 4px 12px rgba(0,0,0,.08);}
+.jan-role-card.selected{border-color:var(--role-color);background:color-mix(in srgb,var(--role-color) 8%,white);box-shadow:0 0 0 3px color-mix(in srgb,var(--role-color) 18%,transparent);}
+.jan-role-card svg{color:var(--role-color);}
+.jan-role-name{font-weight:800;font-size:14px;}
+.jan-role-desc{font-size:11px;color:#666;line-height:1.35;}
+.jan-role-check{position:absolute;top:8px;right:8px;width:21px;height:21px;border-radius:50%;background:var(--role-color);color:#fff;display:none;align-items:center;justify-content:center;}
+.jan-role-card.selected .jan-role-check{display:flex;}
+.jan-rolepack-empty{text-align:center;padding:52px 20px;color:#777;}
+.jan-rolepack-empty svg{opacity:.45;margin-bottom:12px;}
+.jan-rolepack-empty h4{margin:0 0 6px;font-size:16px;color:var(--ink);}
+.jan-rolepack-empty p{margin:0 auto 16px;max-width:360px;font-size:12px;line-height:1.5;}
+.jan-role-chip-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
+.jan-role-chip-row span{display:inline-flex;align-items:center;gap:5px;background:color-mix(in srgb,var(--role-color) 13%,white);color:var(--role-color);border:1px solid color-mix(in srgb,var(--role-color) 35%,white);border-radius:999px;padding:4px 9px;font-size:11px;font-weight:700;}
+.jan-role-tool-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;}
+.jan-role-tool-card{min-height:112px;background:#fff;border:1px solid var(--paper-edge);border-radius:8px;padding:13px 10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;cursor:pointer;transition:transform .15s,border-color .15s,background .15s;color:var(--ink);}
+.jan-role-tool-card:hover{border-color:var(--accent);background:#FFFCF7;transform:translateY(-2px);}
+.jan-role-tool-card svg{color:var(--accent);}
+.jan-role-tool-card span{font-weight:800;font-size:13px;}
+.jan-role-tool-card small{font-size:10px;color:#777;line-height:1.3;}
+.jan-rolepack-template-callout{margin-top:16px;border-top:1px solid var(--paper-edge);padding-top:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.jan-rolepack-template-callout div{flex:1;min-width:220px;}
+.jan-rolepack-template-callout strong{font-size:13px;}
+.jan-rolepack-template-callout p{margin:3px 0 0;color:#777;font-size:11px;}
+.jan-role-template-sections{display:flex;flex-direction:column;gap:14px;}
+.jan-role-template-section{border:1px solid var(--paper-edge);border-radius:8px;overflow:hidden;background:#fff;}
+.jan-role-template-role{display:flex;align-items:center;gap:7px;padding:9px 12px;background:color-mix(in srgb,var(--role-color) 8%,white);color:var(--role-color);border-bottom:1px solid var(--paper-edge);}
+.jan-role-template-role button{margin-left:auto;border:1px solid color-mix(in srgb,var(--role-color) 35%,white);background:#fff;color:var(--role-color);border-radius:4px;padding:4px 8px;font-size:11px;cursor:pointer;}
+.jan-role-template-section .jan-roles-templates{padding:10px;margin:0;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));}
+.jan-rolepack-tool-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;border-bottom:1px solid var(--paper-edge);padding-bottom:12px;}
+.jan-rolepack-tool-head h4{margin:0 0 3px;display:flex;align-items:center;gap:7px;font-size:16px;}
+.jan-rolepack-tool-head p{margin:0;color:#777;font-size:12px;}
+.jan-rolepack-back{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--paper-edge);background:#fff;border-radius:5px;padding:6px 9px;cursor:pointer;}
+.jan-rolepack-status{margin-top:12px;padding:8px 10px;border-radius:6px;background:color-mix(in srgb,var(--accent) 10%,white);color:#5D4037;font-size:12px;}
+.jan-role-tool{display:flex;flex-direction:column;gap:12px;}
+.jan-role-inline-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.jan-role-inline-controls input,.jan-role-inline-controls select,.jan-role-tool input,.jan-role-tool select,.jan-role-tool textarea{border:1px solid var(--paper-edge);background:#fff;color:var(--ink);border-radius:5px;padding:7px 9px;font:inherit;font-size:12px;box-sizing:border-box;}
+.jan-role-form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;align-items:center;background:#fafafa;border:1px solid var(--paper-edge);border-radius:8px;padding:10px;}
+.jan-role-table{width:100%;border-collapse:collapse;font-size:12px;}
+.jan-role-table th,.jan-role-table td{border:1px solid var(--paper-edge);padding:6px 7px;text-align:center;vertical-align:middle;}
+.jan-role-table th{background:color-mix(in srgb,var(--accent) 8%,transparent);font-weight:700;}
+.jan-role-table input,.jan-role-table select{width:100%;min-width:0;}
+.jan-timetable .jan-time-cell{height:54px;cursor:pointer;background:#fff;}
+.jan-timetable .jan-time-cell:hover{background:#FFFCF7;}
+.jan-timetable .jan-time-cell span{display:block;border-radius:4px;color:#fff;padding:4px 5px;font-weight:700;line-height:1.25;}
+.jan-timetable .jan-time-cell small{display:block;font-weight:500;opacity:.88;margin-top:2px;}
+.jan-ledger-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;}
+.jan-ledger-summary span{background:#fafafa;border:1px solid var(--paper-edge);border-radius:8px;padding:10px;font-size:12px;}
+.pos{color:#2e7d32;}
+.neg{color:#c62828;}
+.jan-role-list{border:1px solid var(--paper-edge);border-radius:8px;overflow:hidden;background:#fff;}
+.jan-role-list-row,.jan-dday-row,.jan-med-row{display:grid;grid-template-columns:minmax(80px,.7fr) minmax(110px,1fr) minmax(80px,.8fr) auto auto;gap:8px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--paper-edge);font-size:12px;}
+.jan-role-list-row:last-child,.jan-dday-row:last-child,.jan-med-row:last-child{border-bottom:0;}
+.jan-role-list-row small{color:#777;}
+.jan-role-list-row button,.jan-dday-row button,.jan-med-row button,.jan-shop-group button{padding:3px 7px;}
+.jan-role-empty-row{padding:28px;text-align:center;color:#888;font-size:12px;}
+.jan-dday-row{grid-template-columns:82px 1fr auto;}
+.jan-dday-row b{font-size:20px;color:var(--accent);text-align:center;}
+.jan-dday-row b.today{color:#ef5350;}
+.jan-dday-row span{display:flex;flex-direction:column;gap:2px;}
+.jan-dday-row small{color:#777;font-size:11px;}
+.jan-med-row{grid-template-columns:150px 1fr auto;}
+.jan-med-row div:first-child{display:flex;flex-direction:column;}
+.jan-med-row label{display:inline-flex;align-items:center;gap:4px;margin-right:10px;font-size:12px;}
+.jan-gpa-result{display:flex;align-items:center;gap:8px;font-size:14px;}
+.jan-gpa-result b{font-size:26px;color:var(--accent);}
+.jan-shop-group{border:1px solid var(--paper-edge);border-radius:8px;overflow:hidden;background:#fff;}
+.jan-shop-group h5{margin:0;padding:8px 10px;background:#fafafa;border-bottom:1px solid var(--paper-edge);}
+.jan-shop-group label{display:flex;align-items:center;gap:8px;padding:7px 10px;border-bottom:1px solid var(--paper-edge);font-size:12px;}
+.jan-shop-group label:last-child{border-bottom:0;}
+.jan-shop-group label.done{opacity:.55;text-decoration:line-through;}
+.jan-shop-group label button{margin-left:auto;}
+.jan-meal-table textarea{width:100%;min-height:50px;border:0;background:transparent;resize:vertical;}
+.jan-current-timer{display:flex;align-items:center;gap:12px;border:1px solid var(--paper-edge);background:color-mix(in srgb,var(--accent) 8%,white);border-radius:8px;padding:12px;}
+.jan-current-timer strong{font-family:monospace;font-size:24px;color:var(--accent);}
+.jan-role-summary-line{font-size:12px;color:#666;}
+.jan-sidebar-role-section{border-top:1px solid rgba(0,0,0,.08);margin-top:8px;padding:8px;}
+.jan-sidebar-role-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;font-size:11px;font-weight:800;color:#777;}
+.jan-sidebar-role-head button{border:0;background:transparent;color:var(--accent);cursor:pointer;font-size:10px;padding:2px;}
+.jan-sidebar-role-name{display:flex;align-items:center;gap:4px;margin-top:5px;font-size:10px;font-weight:800;}
+.jan-sidebar-role-tool{display:flex;align-items:center;gap:6px;width:100%;border:0;background:transparent;text-align:left;cursor:pointer;color:var(--ink);padding:6px 6px 6px 18px;border-radius:5px;font-size:12px;}
+.jan-sidebar-role-tool:hover{background:rgba(0,0,0,.05);}
+.jan-header-role-btn{position:relative;}
+.jan-header-role-badge{position:absolute;right:1px;top:1px;min-width:15px;height:15px;border-radius:999px;background:var(--accent);color:#333;font-size:9px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.8);}
+
+@media (max-width: 780px){
+  .jan-rolepack-modal{height:94vh;}
+  .jan-rolepack-body{grid-template-columns:1fr;}
+  .jan-rolepack-nav{display:flex;gap:6px;overflow-x:auto;border-right:0;border-bottom:1px solid var(--paper-edge);}
+  .jan-rolepack-nav button{min-width:max-content;}
+  .jan-rolepack-nav-note{display:none;}
+  .jan-role-card-grid{grid-template-columns:1fr;}
+  .jan-role-tool-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .jan-role-list-row,.jan-med-row{grid-template-columns:1fr auto;}
+  .jan-role-list-row span,.jan-med-row div:nth-child(2){grid-column:1/-1;}
+  .jan-dday-row{grid-template-columns:70px 1fr auto;}
+}
 .jan-business-card-embed{border:1px solid rgba(217,119,87,0.28);border-left:4px solid var(--jan-accent);border-radius:6px;padding:12px;margin:10px 0;background:rgba(217,119,87,0.06);}
 .jan-business-card-embed h3{margin:0 0 8px;}
 .jan-business-card-embed p{margin:4px 0;}

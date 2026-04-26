@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState, lazy, Suspense } from 'react'
 import { importMarkdownFiles } from '../lib/bulkImport'
-import { useMemosStore } from '../store/memosStore'
+import { useMemosStore, type SortMode } from '../store/memosStore'
 import { useUIStore } from '../store/uiStore'
 import { useWorkspaceStore, DEFAULT_WORKSPACE_ID } from '../store/workspaceStore'
+import { ROLES, ROLE_TOOLS, roleToolsFor, type RoleToolId } from '../lib/roles'
+import { useRoleToolsStore } from '../store/roleToolsStore'
+import { Icon } from './Icons'
 
 const TrashModal = lazy(() => import('./TrashModal').then((m) => ({ default: m.TrashModal })))
 
@@ -21,13 +24,16 @@ export function Sidebar() {
   const sidebarCollapsed = useUIStore((s) => s.sidebarCollapsed)
   const toggleSidebar = useUIStore((s) => s.toggleSidebar)
   const { workspaces, byMemo: wsByMemo, currentWsId, setCurrentWs, list: wsList, assignMemo } = useWorkspaceStore()
+  const selectedRoleIds = useRoleToolsStore((s) => s.selectedRoleIds)
   const [showTrash, setShowTrash] = useState(false)
   const [filter, setFilter] = useState('')
   const trashCount = trashedList().length
+  const selectedRoles = useMemo(() => selectedRoleIds.map((id) => ROLES.find((r) => r.id === id)).filter(Boolean), [selectedRoleIds])
+  const roleTools = useMemo(() => roleToolsFor(selectedRoleIds), [selectedRoleIds])
 
   useEffect(() => {
     purgeOldTrash()
-  }, [])
+  }, [purgeOldTrash])
 
   const memos = list()
   const filtered = useMemo(() => {
@@ -62,6 +68,10 @@ export function Sidebar() {
     await importMarkdownFiles(files)
   }
 
+  function openRolePack(toolId?: RoleToolId) {
+    window.dispatchEvent(new CustomEvent('jan-open-roles', { detail: { toolId } }))
+  }
+
   return (
     <aside className="jan-sidebar" onDragOver={(e) => e.preventDefault()} onDrop={onDrop}>
       <div className="jan-sidebar-head">
@@ -90,7 +100,7 @@ export function Sidebar() {
         <select
           className="jan-sidebar-sort"
           value={sortMode}
-          onChange={(e) => setSortMode(e.target.value as any)}
+          onChange={(e) => setSortMode(e.target.value as SortMode)}
           title="정렬 방식"
         >
           <option value="recent">최근 수정순</option>
@@ -98,6 +108,30 @@ export function Sidebar() {
           <option value="created">생성순</option>
           <option value="manual">수동 (드래그)</option>
         </select>
+      </div>
+      <div className="jan-sidebar-role-section">
+        <div className="jan-sidebar-role-head">
+          <span>내 역할</span>
+          <button onClick={() => openRolePack()}>역할 변경</button>
+        </div>
+        {selectedRoles.length === 0 ? (
+          <button className="jan-sidebar-role-tool" onClick={() => openRolePack()}>
+            <Icon name="users" /> 역할을 선택하세요
+          </button>
+        ) : (
+          <>
+            {selectedRoles.map((role) => role && (
+              <div key={role.id} className="jan-sidebar-role-name" style={{ color: role.color }}>
+                <Icon name={role.icon} size={12} /> {role.name}
+              </div>
+            ))}
+            {roleTools.map((tool) => (
+              <button key={tool.id} className="jan-sidebar-role-tool" onClick={() => openRolePack(tool.id)}>
+                <Icon name={ROLE_TOOLS[tool.id].icon} /> {tool.name}
+              </button>
+            ))}
+          </>
+        )}
       </div>
       <ul className="jan-sidebar-list">
         {filtered.length === 0 && (

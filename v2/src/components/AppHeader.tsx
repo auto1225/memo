@@ -3,6 +3,7 @@ import { Icon } from './Icons'
 import { useUIStore } from '../store/uiStore'
 import { useThemeStore } from '../store/themeStore'
 import { useMemosStore } from '../store/memosStore'
+import { useRoleToolsStore } from '../store/roleToolsStore'
 
 interface AppHeaderProps {
   onCmdK: () => void
@@ -37,6 +38,7 @@ export function AppHeader(p: AppHeaderProps) {
   const theme = useThemeStore((s) => s.theme)
   const setTheme = useThemeStore((s) => s.setTheme)
   const { current, updateCurrent, newMemo, list } = useMemosStore()
+  const roleCount = useRoleToolsStore((s) => s.selectedRoleIds.length)
   const memo = current()
   const title = memo?.title || '새 메모'
 
@@ -167,7 +169,10 @@ export function AppHeader(p: AppHeaderProps) {
         <button className="jan-header-btn" onClick={p.onCards} title="명함 / 카드 관리" aria-label="명함"><Icon name="cards" /></button>
         <button className="jan-header-btn" onClick={p.onPaint} title="그림판" aria-label="그림판"><Icon name="paint" /></button>
         <button className="jan-header-btn" onClick={openImageConverter} title="이미지 변환기" aria-label="이미지 변환"><Icon name="image" /></button>
-        <button className="jan-header-btn" onClick={openRoleDash} title="내 도구 / 역할 팩" aria-label="역할 팩"><Icon name="briefcase" /></button>
+        <button className="jan-header-btn jan-header-role-btn" onClick={openRoleDash} title="내 도구 / 역할 팩" aria-label="내 도구 / 역할 팩">
+          <Icon name="briefcase" />
+          {roleCount > 0 && <span className="jan-header-role-badge">{roleCount}</span>}
+        </button>
         <button className="jan-header-btn" onClick={cycleTheme} title={`테마: ${theme}`} aria-label="테마"><Icon name={themeIcon} /></button>
         <button className="jan-header-btn" onClick={p.onSearch} title="검색 (Ctrl+Shift+F)" aria-label="검색"><Icon name="search" /></button>
         <button className={'jan-header-btn' + (focusMode ? ' is-active' : '')} onClick={() => toggleFocus()} title="집중 모드 (F11)" aria-label="집중 모드"><Icon name="eye" /></button>

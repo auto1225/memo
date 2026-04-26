@@ -62,6 +62,7 @@ import { LinkCard } from '../extensions/LinkCard'
 import { AudioNode, VideoNode } from '../extensions/Media'
 import Highlight from '@tiptap/extension-highlight'
 import { Lightbox } from './Lightbox'
+import type { RoleToolId } from '../lib/roles'
 
 const AiHelper = lazy(() => import('./AiHelper').then((m) => ({ default: m.AiHelper })))
 const SettingsModal = lazy(() => import('./SettingsModal').then((m) => ({ default: m.SettingsModal })))
@@ -110,6 +111,7 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
   const [showSettings, setShowSettings] = useState(false)
   const [showPrint, setShowPrint] = useState(false)
   const [showRoles, setShowRoles] = useState(false)
+  const [initialRoleTool, setInitialRoleTool] = useState<RoleToolId | null>(null)
   const [showPaper, setShowPaper] = useState(false)
   const [showPostit, setShowPostit] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
@@ -303,6 +305,30 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
     return () => document.removeEventListener('keydown', h, true)
   }, [])
 
+  useEffect(() => {
+    const openRoles = (event: Event) => {
+      const detail = (event as CustomEvent<{ toolId?: RoleToolId }>).detail
+      setInitialRoleTool(detail?.toolId || null)
+      setShowRoles(true)
+    }
+    window.addEventListener('jan-open-roles', openRoles)
+    return () => window.removeEventListener('jan-open-roles', openRoles)
+  }, [])
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      try {
+        if (localStorage.getItem('jan-v2-role-onboarded') === '1') return
+        localStorage.setItem('jan-v2-role-onboarded', '1')
+        setInitialRoleTool(null)
+        setShowRoles(true)
+      } catch {
+        // localStorage can be blocked by privacy settings; skip onboarding then.
+      }
+    }, 2500)
+    return () => window.clearTimeout(timer)
+  }, [])
+
   async function handleSave() {
     if (!editor) return
     const html = editor.getHTML()
@@ -347,7 +373,7 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
         onAi={() => setShowAi(true)}
         onPostit={() => setShowPostit(true)}
         onPaint={() => setShowPaint(true)}
-        onRoles={() => setShowRoles(true)}
+        onRoles={() => { setInitialRoleTool(null); setShowRoles(true) }}
         onTemplates={() => setShowTemplates(true)}
         onCards={() => setShowCards(true)}
       />
@@ -367,7 +393,7 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
         onOpen={handleOpen}
         onPrintPreview={() => setShowPrint(true)}
         onAi={() => setShowAi(true)}
-        onRoles={() => setShowRoles(true)}
+        onRoles={() => { setInitialRoleTool(null); setShowRoles(true) }}
         onPaper={() => setShowPaper(true)}
         onPostit={() => setShowPostit(true)}
         onPaint={() => setShowPaint(true)}
@@ -408,7 +434,7 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
       </div>
       </div>
       <StatusBar editor={editor} />
-      <CommandPalette editor={editor} onAi={() => setShowAi(true)} onChat={() => setShowChat(true)} onSearch={() => setShowSearch(true)} onFind={() => setShowFind(true)} onOcr={() => setShowOcr(true)} onPaint={() => setShowPaint(true)} onPostit={() => setShowPostit(true)} onPaper={() => setShowPaper(true)} onRoles={() => setShowRoles(true)} onTemplates={() => setShowTemplates(true)} onSnippets={() => setShowSnippets(true)} onMacros={() => setShowMacros(true)} onTypo={() => setShowTypo(true)} onCalendar={() => setShowQuick(true)} onQuick={() => setShowQuick(true)} onMd={() => setShowMd(true)} onPrintPreview={() => setShowPrint(true)} onShare={() => setShowShare(true)} onGist={() => setShowGist(true)} onAtt={() => setShowAtt(true)} onLock={() => setShowLock(true)} onSettings={() => setShowSettings(true)} onHelp={() => setShowHelp(true)} onAbout={() => setShowAbout(true)} onStats={() => setShowStats(true)} onMindMap={() => setShowMindMap(true)} onHeatmap={() => setShowHeatmap(true)} onInfo={() => setShowInfo(true)} onDiff={() => setShowDiff(true)} onLinkCheck={() => setShowLinkCheck(true)} onTranslate={() => setShowTranslate(true)} onVersions={() => setShowVersions(true)} onCards={() => setShowCards(true)} onToggleOutline={() => setShowOutline((v) => !v)} onSave={handleSave} onOpen={handleOpen} />
+      <CommandPalette editor={editor} onAi={() => setShowAi(true)} onChat={() => setShowChat(true)} onSearch={() => setShowSearch(true)} onFind={() => setShowFind(true)} onOcr={() => setShowOcr(true)} onPaint={() => setShowPaint(true)} onPostit={() => setShowPostit(true)} onPaper={() => setShowPaper(true)} onRoles={() => { setInitialRoleTool(null); setShowRoles(true) }} onTemplates={() => setShowTemplates(true)} onSnippets={() => setShowSnippets(true)} onMacros={() => setShowMacros(true)} onTypo={() => setShowTypo(true)} onCalendar={() => setShowQuick(true)} onQuick={() => setShowQuick(true)} onMd={() => setShowMd(true)} onPrintPreview={() => setShowPrint(true)} onShare={() => setShowShare(true)} onGist={() => setShowGist(true)} onAtt={() => setShowAtt(true)} onLock={() => setShowLock(true)} onSettings={() => setShowSettings(true)} onHelp={() => setShowHelp(true)} onAbout={() => setShowAbout(true)} onStats={() => setShowStats(true)} onMindMap={() => setShowMindMap(true)} onHeatmap={() => setShowHeatmap(true)} onInfo={() => setShowInfo(true)} onDiff={() => setShowDiff(true)} onLinkCheck={() => setShowLinkCheck(true)} onTranslate={() => setShowTranslate(true)} onVersions={() => setShowVersions(true)} onCards={() => setShowCards(true)} onToggleOutline={() => setShowOutline((v) => !v)} onSave={handleSave} onOpen={handleOpen} />
       <SlashMenu editor={editor} />
       <TableMenu editor={editor} />
       <BubbleToolbar editor={editor} />
@@ -417,7 +443,7 @@ export function Editor({ sidebar }: { sidebar?: React.ReactNode }) {
         {showAi && <AiHelper editor={editor} onClose={() => setShowAi(false)} />}
         {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
         {showPrint && editor && <PrintPreview html={editor.getHTML()} title={title} onClose={() => setShowPrint(false)} />}
-        {showRoles && <RolesPanel editor={editor} onClose={() => setShowRoles(false)} />}
+        {showRoles && <RolesPanel editor={editor} initialTool={initialRoleTool} onClose={() => { setShowRoles(false); setInitialRoleTool(null) }} />}
         {showPaper && <PaperPanel editor={editor} onClose={() => setShowPaper(false)} />}
         {showPostit && <PostitPanel onClose={() => setShowPostit(false)} />}
         {showSearch && <SearchPanel onClose={() => setShowSearch(false)} />}
