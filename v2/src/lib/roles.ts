@@ -1,4 +1,5 @@
 import type { IconName } from '../components/Icons'
+import { V1_EXTRA_ROLES, V1_ROLE_TEMPLATE_ADDITIONS } from './v1RoleTemplates'
 
 export type RoleToolId =
   | 'timetable'
@@ -152,7 +153,7 @@ export const ROLE_TOOLS: Record<RoleToolId, RoleTool> = {
   paperList: { id: 'paperList', name: '논문 리딩 리스트', desc: '논문 상태 추적', icon: 'file-text' },
 }
 
-export const ROLES: Role[] = [
+const CORE_ROLES: Role[] = [
   { id: 'elementary', name: '초등학생', icon: 'palette', color: '#ff9800', desc: '그림일기·숙제·받아쓰기', tools: ['dday', 'shop'], templates: [{ name: '오늘의 일기', html: daily() }, { name: '숙제 체크리스트', html: checklist(['국어 숙제', '수학 숙제', '영어 숙제']) }] },
   { id: 'middle', name: '중학생', icon: 'file-text', color: '#29b6f6', desc: '시간표·시험·단어장', tools: ['timetable', 'examPlan', 'dday'], templates: [{ name: '영단어장', html: '<h2>영단어장</h2><p>Q: apple<br>A: 사과</p><p>Q: school<br>A: 학교</p>' }, { name: '과목별 노트', html: studyNote() }] },
   { id: 'high', name: '고등학생', icon: 'focus', color: '#ef5350', desc: '수능 D-Day·오답노트·학습 타이머', tools: ['timetable', 'examPlan', 'dday'], templates: [{ name: '오답노트', html: wrongAnswer() }, { name: '모의고사 기록', html: '<h2>모의고사 성적</h2><table><tbody><tr><th>회차</th><th>국어</th><th>수학</th><th>영어</th><th>탐구</th><th>총점</th></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr></tbody></table>' }] },
@@ -165,7 +166,7 @@ export const ROLES: Role[] = [
   { id: 'senior', name: '노년층', icon: 'heart', color: '#FAE100', desc: '약 복용·혈압·병원 일정', tools: ['med', 'vital', 'dday'], templates: [{ name: '병원 일정', html: healthMemo() }] },
   { id: 'pm', name: '기획자(PM/PO)', icon: 'focus', color: '#3f51b5', desc: 'PRD·스프린트·백로그·지표', tools: ['projPipe', 'timetrack', 'dday'], templates: [{ name: 'PRD', html: prd() }, { name: '스프린트 계획', html: sprint() }, { name: '제품 지표 리뷰', html: weeklyReport() }] },
   { id: 'designer', name: '디자이너(UX/UI)', icon: 'palette', color: '#e91e63', desc: '디자인 리뷰·유저 리서치', tools: ['timetrack', 'dday', 'projPipe'], templates: [{ name: '디자인 리뷰', html: designReview() }, { name: '유저 인터뷰 계획', html: interview() }] },
-  { id: 'developer', name: '개발자', icon: 'code', color: '#607d8b', desc: '기술 스펙·코드 리뷰·인시던트', tools: ['projPipe', 'timetrack', 'dday'], templates: [{ name: '기술 스펙', html: prd() }, { name: '코드 리뷰 체크리스트', html: codeReview() }, { name: '개발 일지', html: `<h2>개발 일지 — ${today()}</h2><h3>오늘 한 일</h3><ul><li></li></ul><h3>막힌 곳</h3><ul><li></li></ul><h3>내일 할 일</h3><ul><li></li></ul>` }] },
+  { id: 'dev', name: '개발자', icon: 'code', color: '#607d8b', desc: '기술 스펙·코드 리뷰·인시던트', tools: ['projPipe', 'timetrack', 'dday'], templates: [{ name: '기술 스펙', html: prd() }, { name: '코드 리뷰 체크리스트', html: codeReview() }, { name: '개발 일지', html: `<h2>개발 일지 — ${today()}</h2><h3>오늘 한 일</h3><ul><li></li></ul><h3>막힌 곳</h3><ul><li></li></ul><h3>내일 할 일</h3><ul><li></li></ul>` }] },
   { id: 'data', name: '데이터 분석가', icon: 'hash', color: '#00bcd4', desc: 'SQL·대시보드·리포트', tools: ['projPipe', 'timetrack', 'dday'], templates: [{ name: '분석 리포트', html: weeklyReport() }, { name: 'SQL Playbook', html: '<h2>SQL Playbook</h2><pre><code>SELECT date_trunc(\'day\', created_at) AS day, count(*) FROM events GROUP BY 1;</code></pre><h3>결과 해석</h3><ul><li></li></ul>' }] },
   { id: 'marketer', name: '마케터', icon: 'send', color: '#ff5722', desc: '캠페인·카피·채널 분석', tools: ['projPipe', 'dday', 'timetrack'], templates: [{ name: '캠페인 브리프', html: '<h2>캠페인 브리프</h2><h3>목표</h3><ul><li></li></ul><h3>타깃</h3><p></p><h3>메시지</h3><ul><li></li></ul><h3>KPI</h3><table><tbody><tr><th>채널</th><th>예산</th><th>노출</th><th>전환</th></tr><tr><td></td><td></td><td></td><td></td></tr></tbody></table>' }] },
   { id: 'sales', name: '영업', icon: 'phone', color: '#ffa726', desc: '리드·파이프라인·미팅 노트', tools: ['projPipe', 'timetrack', 'dday'], templates: [{ name: '영업 파이프라인', html: '<h2>영업 파이프라인</h2><table><tbody><tr><th>단계</th><th>건수</th><th>예상 가치</th><th>이번 주 액션</th></tr><tr><td>Qualified</td><td></td><td></td><td></td></tr><tr><td>Proposal</td><td></td><td></td><td></td></tr></tbody></table>' }, { name: '디스커버리 콜 노트', html: meeting() }] },
@@ -173,7 +174,24 @@ export const ROLES: Role[] = [
   { id: 'researcher', name: '연구자', icon: 'file-text', color: '#3949ab', desc: '논문·실험·리딩 리스트', tools: ['paperList', 'timetrack', 'dday'], templates: [{ name: '논문 리뷰', html: paper() }, { name: '실험 노트', html: experiment() }] },
   { id: 'writer', name: '작가·콘텐츠', icon: 'file-text', color: '#5e35b1', desc: '원고·기획·출간 일정', tools: ['projPipe', 'dday', 'timetrack'], templates: [{ name: '글감 기획', html: '<h2>글감 기획</h2><h3>핵심 메시지</h3><p></p><h3>독자</h3><p></p><h3>구성</h3><ol><li></li></ol>' }] },
   { id: 'finance', name: '재무·회계', icon: 'hash', color: '#2e7d32', desc: '예산·정산·월간 리포트', tools: ['ledger', 'projPipe', 'dday'], templates: [{ name: '월간 재무 점검', html: financeReport() }] },
-  { id: 'healthcare', name: '의료·건강관리', icon: 'heart', color: '#00897b', desc: '복약·건강 수치·상담 기록', tools: ['med', 'vital', 'dday'], templates: [{ name: '건강 기록', html: healthMemo() }] },
+]
+
+function mergeTemplates(base: RoleTemplate[], additions: RoleTemplate[]): RoleTemplate[] {
+  const names = new Set(base.map((template) => template.name))
+  const missing = additions.filter((template) => !names.has(template.name))
+  return [...base, ...missing]
+}
+
+const CORE_ROLES_WITH_V1_TEMPLATES = CORE_ROLES.map((role) => {
+  const additions = V1_ROLE_TEMPLATE_ADDITIONS[role.id] || []
+  return additions.length > 0 ? { ...role, templates: mergeTemplates(role.templates, additions) } : role
+})
+
+const CORE_ROLE_IDS = new Set(CORE_ROLES_WITH_V1_TEMPLATES.map((role) => role.id))
+
+export const ROLES: Role[] = [
+  ...CORE_ROLES_WITH_V1_TEMPLATES,
+  ...V1_EXTRA_ROLES.filter((role) => !CORE_ROLE_IDS.has(role.id)),
 ]
 
 export function findRole(id: string): Role | undefined {
